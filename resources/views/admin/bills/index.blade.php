@@ -16,6 +16,9 @@
                     @endforeach
                 </select>
             </form>
+            @if ($bills->isNotEmpty())
+                <x-button :href="route('admin.bills.export', ['period' => $period])" variant="ghost">خروجی Excel</x-button>
+            @endif
             <form method="POST" action="{{ route('admin.bills.generate') }}" onsubmit="return confirm('صدور/به‌روزرسانی قبوض این دوره؟ قبوض تسویه‌شده تغییر نمی‌کنند.')">
                 @csrf
                 <input type="hidden" name="period" value="{{ $period }}">
@@ -44,7 +47,8 @@
                             <th class="pb-2 text-right">جریمه</th>
                             <th class="pb-2 text-right">کل</th>
                             <th class="pb-2 text-right">پرداخت‌شده</th>
-                            <th class="pb-2 text-left">وضعیت</th>
+                            <th class="pb-2 text-right">وضعیت</th>
+                            <th class="pb-2 text-left">فاکتور</th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-slate-100 dark:divide-slate-700">
@@ -56,7 +60,8 @@
                                 <td class="py-2.5 tabular-nums text-rose-500">{{ Jalali::money($bill->penalty_amount) }}</td>
                                 <td class="py-2.5 tabular-nums font-semibold">{{ Jalali::money($bill->total_amount) }}</td>
                                 <td class="py-2.5 tabular-nums text-emerald-600 dark:text-emerald-400">{{ Jalali::money($bill->paid_amount) }}</td>
-                                <td class="py-2.5 text-left"><x-badge :color="$bill->status->color()">{{ $bill->status->label() }}</x-badge></td>
+                                <td class="py-2.5"><x-badge :color="$bill->status->color()">{{ $bill->status->label() }}</x-badge></td>
+                                <td class="py-2.5 text-left"><a href="{{ route('bills.pdf', $bill) }}" class="text-sky-600 hover:underline dark:text-sky-400">PDF</a></td>
                             </tr>
                         @endforeach
                     </tbody>

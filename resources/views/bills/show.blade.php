@@ -8,7 +8,10 @@
 <div class="mx-auto max-w-3xl space-y-4">
     <div class="flex items-center justify-between">
         <h1 class="text-xl font-bold">قبض {{ Jalali::periodLabel($bill->period) }}</h1>
-        <x-badge :color="$bill->status->color()">{{ $bill->status->label() }}</x-badge>
+        <div class="flex items-center gap-2">
+            <x-button :href="route('bills.pdf', $bill)" variant="ghost" class="!py-1.5">دانلود PDF فاکتور</x-button>
+            <x-badge :color="$bill->status->color()">{{ $bill->status->label() }}</x-badge>
+        </div>
     </div>
 
     <x-card>

@@ -32,6 +32,7 @@ Route::middleware('auth')->group(function () {
     // Resident bills & payments
     Route::get('/my/bills', [BillController::class, 'index'])->name('bills.index');
     Route::get('/my/bills/{bill}', [BillController::class, 'show'])->name('bills.show');
+    Route::get('/my/bills/{bill}/pdf', [BillController::class, 'pdf'])->name('bills.pdf');
     Route::get('/pay/{bill}', [PaymentController::class, 'show'])->name('payments.show');
     Route::post('/pay/{bill}/online', [PaymentController::class, 'startOnline'])->name('payments.online');
     Route::get('/pay/callback/{payment}', [PaymentController::class, 'callback'])->name('payments.callback');
@@ -54,6 +55,7 @@ Route::middleware('auth')->group(function () {
         Route::delete('incomes/{income}', [Admin\ExpenseController::class, 'destroyIncome'])->name('incomes.destroy');
 
         Route::get('bills', [Admin\BillManagerController::class, 'index'])->name('bills.index');
+        Route::get('bills/export', [Admin\BillManagerController::class, 'export'])->name('bills.export');
         Route::post('bills/generate', [Admin\BillManagerController::class, 'generate'])->name('bills.generate');
 
         Route::get('payments', [Admin\PaymentReviewController::class, 'index'])->name('payments.index');

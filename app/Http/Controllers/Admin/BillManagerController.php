@@ -2,11 +2,13 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Exports\BillsExport;
 use App\Http\Controllers\Controller;
 use App\Models\Bill;
 use App\Services\Charge\BillGenerator;
 use App\Support\Jalali;
 use Illuminate\Http\Request;
+use Maatwebsite\Excel\Facades\Excel;
 
 class BillManagerController extends Controller
 {
@@ -33,6 +35,20 @@ class BillManagerController extends Controller
             'total' => $bills->sum('total_amount'),
             'collected' => $bills->sum('paid_amount'),
         ]);
+    }
+
+    public function export(Request $request)
+    {
+        $period = $request->query('period', Jalali::currentPeriod());
+
+        $bills = Bill::where('period', $period)
+            ->with('unit')
+            ->join('units', 'bills.unit_id', '=', 'units.id')
+            ->orderBy('units.unit_number')
+            ->select('bills.*')
+            ->get();
+
+        return Excel::download(new BillsExport($bills, $period), 'bills-'.$period.'.xlsx');
     }
 
     public function generate(Request $request, BillGenerator $generator)
