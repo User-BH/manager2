@@ -1,0 +1,67 @@
+<?php
+
+namespace App\Models;
+
+use App\Enums\UserRole;
+use Database\Factories\UserFactory;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Foundation\Auth\User as Authenticatable;
+use Illuminate\Notifications\Notifiable;
+
+class User extends Authenticatable
+{
+    /** @use HasFactory<UserFactory> */
+    use HasFactory, Notifiable;
+
+    protected $fillable = [
+        'complex_id', 'name', 'email', 'phone', 'national_id',
+        'role', 'password', 'is_active', 'can_message',
+    ];
+
+    protected $hidden = ['password', 'remember_token'];
+
+    protected function casts(): array
+    {
+        return [
+            'email_verified_at' => 'datetime',
+            'password' => 'hashed',
+            'role' => UserRole::class,
+            'is_active' => 'boolean',
+            'can_message' => 'boolean',
+        ];
+    }
+
+    public function complex(): BelongsTo
+    {
+        return $this->belongsTo(Complex::class);
+    }
+
+    public function units(): BelongsToMany
+    {
+        return $this->belongsToMany(Unit::class)
+            ->withPivot(['relation', 'share_percent', 'start_date', 'end_date', 'is_current'])
+            ->withTimestamps();
+    }
+
+    public function currentUnits(): BelongsToMany
+    {
+        return $this->units()->wherePivot('is_current', true);
+    }
+
+    public function isSuperAdmin(): bool
+    {
+        return $this->role === UserRole::SuperAdmin;
+    }
+
+    public function isComplexAdmin(): bool
+    {
+        return $this->role === UserRole::ComplexAdmin;
+    }
+
+    public function isAdmin(): bool
+    {
+        return $this->role?->isAdmin() ?? false;
+    }
+}
