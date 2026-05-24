@@ -31,3 +31,10 @@ window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () 
 });
 
 applyTheme(localStorage.getItem(storageKey) || 'system');
+
+// Register the PWA service worker (installable, offline-tolerant).
+if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+        navigator.serviceWorker.register('/sw.js').catch(() => {});
+    });
+}

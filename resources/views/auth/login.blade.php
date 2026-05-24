@@ -3,6 +3,9 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="manifest" href="/manifest.webmanifest">
+    <meta name="theme-color" content="#0284c7">
+    <link rel="apple-touch-icon" href="/icons/icon-192.png">
     <title>ورود — {{ config('app.name') }}</title>
     <script>
         (function () {

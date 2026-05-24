@@ -51,6 +51,14 @@ class BillManagerController extends Controller
         return Excel::download(new BillsExport($bills, $period), 'bills-'.$period.'.xlsx');
     }
 
+    public function remind(Request $request, \App\Services\ReminderService $reminders)
+    {
+        $period = $request->input('period');
+        $count = $reminders->sendForComplex($this->requireComplex(), $period, 0);
+
+        return back()->with('success', 'تعداد '.Jalali::digits($count).' پیامک یادآوری برای قبوض معوق ارسال شد.');
+    }
+
     public function generate(Request $request, BillGenerator $generator)
     {
         $data = $request->validate([

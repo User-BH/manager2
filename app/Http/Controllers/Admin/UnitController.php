@@ -54,6 +54,36 @@ class UnitController extends Controller
         return redirect()->route('admin.units.index')->with('success', 'واحد حذف شد.');
     }
 
+    /** Settlement statement for a unit (useful on move-out / sale). */
+    public function statement(Unit $unit)
+    {
+        return view('admin.units.statement', $this->statementData($unit));
+    }
+
+    public function statementPdf(Unit $unit)
+    {
+        $content = \App\Support\Pdf::fromView('pdf.statement', $this->statementData($unit));
+
+        return response($content, 200, [
+            'Content-Type' => 'application/pdf',
+            'Content-Disposition' => 'attachment; filename="statement-'.$unit->unit_number.'.pdf"',
+        ]);
+    }
+
+    protected function statementData(Unit $unit): array
+    {
+        $unit->load(['bills' => fn ($q) => $q->orderBy('period'), 'owners', 'tenants']);
+        $payments = $unit->payments()->where('status', \App\Enums\PaymentStatus::Success)->latest()->get();
+
+        return [
+            'unit' => $unit,
+            'complex' => $unit->complex,
+            'bills' => $unit->bills,
+            'payments' => $payments,
+            'totalDebt' => (float) $unit->bills->sum(fn ($b) => $b->remaining()),
+        ];
+    }
+
     protected function validateData(Request $request): array
     {
         $request->merge(['uses_elevator' => $request->boolean('uses_elevator')]);

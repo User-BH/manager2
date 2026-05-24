@@ -38,15 +38,23 @@ Route::middleware('auth')->group(function () {
     Route::get('/my/bills/{bill}/pdf', [BillController::class, 'pdf'])->name('bills.pdf');
     Route::get('/pay/{bill}', [PaymentController::class, 'show'])->name('payments.show');
     Route::post('/pay/{bill}/online', [PaymentController::class, 'startOnline'])->name('payments.online');
-    Route::get('/pay/callback/{payment}', [PaymentController::class, 'callback'])->name('payments.callback');
+    Route::match(['get', 'post'], '/pay/callback/{payment}', [PaymentController::class, 'callback'])
+        ->name('payments.callback')
+        ->withoutMiddleware([\Illuminate\Foundation\Http\Middleware\ValidateCsrfToken::class]);
     Route::post('/pay/{bill}/receipt', [PaymentController::class, 'uploadReceipt'])->name('payments.receipt');
 
     // --- Complex admin area ---
     Route::middleware('role:super_admin,complex_admin')->prefix('admin')->name('admin.')->group(function () {
+        Route::get('units/{unit}/statement', [Admin\UnitController::class, 'statement'])->name('units.statement');
+        Route::get('units/{unit}/statement/pdf', [Admin\UnitController::class, 'statementPdf'])->name('units.statement.pdf');
         Route::resource('units', Admin\UnitController::class)->except('show');
         Route::resource('residents', Admin\ResidentController::class)->except('show');
         Route::patch('residents/{resident}/toggle-active', [Admin\ResidentController::class, 'toggleActive'])->name('residents.toggle-active');
         Route::patch('residents/{resident}/toggle-message', [Admin\ResidentController::class, 'toggleMessage'])->name('residents.toggle-message');
+
+        Route::get('managers', [Admin\ManagerController::class, 'index'])->name('managers.index');
+        Route::post('managers', [Admin\ManagerController::class, 'store'])->name('managers.store');
+        Route::delete('managers/{manager}', [Admin\ManagerController::class, 'destroy'])->name('managers.destroy');
 
         Route::resource('charge-rules', Admin\ChargeRuleController::class)->only('index', 'store', 'destroy');
         Route::patch('charge-rules/{charge_rule}/toggle', [Admin\ChargeRuleController::class, 'toggle'])->name('charge-rules.toggle');
@@ -60,6 +68,11 @@ Route::middleware('auth')->group(function () {
         Route::get('bills', [Admin\BillManagerController::class, 'index'])->name('bills.index');
         Route::get('bills/export', [Admin\BillManagerController::class, 'export'])->name('bills.export');
         Route::post('bills/generate', [Admin\BillManagerController::class, 'generate'])->name('bills.generate');
+        Route::post('bills/remind', [Admin\BillManagerController::class, 'remind'])->name('bills.remind');
+
+        Route::get('discounts', [Admin\DiscountController::class, 'index'])->name('discounts.index');
+        Route::post('discounts', [Admin\DiscountController::class, 'store'])->name('discounts.store');
+        Route::delete('discounts/{discount}', [Admin\DiscountController::class, 'destroy'])->name('discounts.destroy');
 
         Route::get('payments', [Admin\PaymentReviewController::class, 'index'])->name('payments.index');
         Route::get('payments/{payment}/receipt', [Admin\PaymentReviewController::class, 'receipt'])->name('payments.receipt');
@@ -87,5 +100,10 @@ Route::middleware('auth')->group(function () {
         Route::get('sms', [System\SmsSettingController::class, 'edit'])->name('sms.edit');
         Route::put('sms', [System\SmsSettingController::class, 'update'])->name('sms.update');
         Route::post('sms/test', [System\SmsSettingController::class, 'test'])->name('sms.test');
+
+        Route::get('backup', [System\SystemBackupController::class, 'index'])->name('backup.index');
+        Route::post('backup', [System\SystemBackupController::class, 'store'])->name('backup.store');
+        Route::get('backup/{backup}/download', [System\SystemBackupController::class, 'download'])->name('backup.download');
+        Route::post('backup/restore', [System\SystemBackupController::class, 'restore'])->name('backup.restore');
     });
 });

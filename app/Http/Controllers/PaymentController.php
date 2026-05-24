@@ -42,7 +42,21 @@ class PaymentController extends Controller
             'period' => $bill->period,
         ]);
 
-        $redirect = $this->gateways->for($bill->complex)->request($payment);
+        try {
+            $redirect = $this->gateways->for($bill->complex)->request($payment);
+        } catch (\Throwable $e) {
+            $payment->update(['status' => PaymentStatus::Failed]);
+
+            return redirect()->route('payments.show', $bill)->with('error', $e->getMessage());
+        }
+
+        // Some gateways (Mellat, Saman) require an auto-submitted POST form.
+        if (($redirect['method'] ?? 'GET') === 'POST') {
+            return view('payments.redirect', [
+                'action' => $redirect['redirect_url'],
+                'fields' => $redirect['fields'] ?? [],
+            ]);
+        }
 
         return redirect()->away($redirect['redirect_url']);
     }

@@ -100,4 +100,26 @@ class BillingFlowTest extends TestCase
         $this->assertSame(BillStatus::Paid, $bill->status);
         $this->assertEquals(0, Unit::withoutGlobalScopes()->find($bill->unit_id)->balance);
     }
+
+    public function test_per_unit_discount_is_deducted_from_the_bill(): void
+    {
+        $c = $this->makeComplex();
+        $unit = $this->makeUnit($c, '1', 1, 80);
+        ChargeRule::withoutGlobalScopes()->create([
+            'complex_id' => $c->id, 'name' => 'شارژ', 'type' => ChargeRuleType::Fixed,
+            'category' => ExpenseCategory::Tenant, 'config' => ['amount' => 500000], 'is_active' => true,
+        ]);
+
+        \App\Models\Discount::withoutGlobalScopes()->create([
+            'complex_id' => $c->id, 'unit_id' => $unit->id, 'period' => '1404-03',
+            'amount' => 120000, 'reason' => 'تخفیف تست',
+        ]);
+
+        app(BillGenerator::class)->generate($c, '1404-03');
+
+        $bill = Bill::withoutGlobalScopes()->where('unit_id', $unit->id)->first();
+        $this->assertEquals(500000, $bill->base_amount);
+        $this->assertEquals(120000, $bill->discount_amount);
+        $this->assertEquals(380000, $bill->total_amount);
+    }
 }

@@ -18,6 +18,11 @@
             </form>
             @if ($bills->isNotEmpty())
                 <x-button :href="route('admin.bills.export', ['period' => $period])" variant="ghost">خروجی Excel</x-button>
+                <form method="POST" action="{{ route('admin.bills.remind') }}" onsubmit="return confirm('ارسال پیامک یادآوری برای قبوض معوق این دوره؟')">
+                    @csrf
+                    <input type="hidden" name="period" value="{{ $period }}">
+                    <x-button variant="ghost">یادآوری پیامکی</x-button>
+                </form>
             @endif
             <form method="POST" action="{{ route('admin.bills.generate') }}" onsubmit="return confirm('صدور/به‌روزرسانی قبوض این دوره؟ قبوض تسویه‌شده تغییر نمی‌کنند.')">
                 @csrf

@@ -19,10 +19,22 @@
 
             <hr class="border-slate-200 dark:border-slate-700">
             <h3 class="font-semibold">درگاه پرداخت</h3>
-            <x-select name="payment_gateway" label="درگاه فعال"
-                :options="['none' => 'غیرفعال (فقط آپلود رسید)', 'fake' => 'تستی / سندباکس', 'mellat' => 'به‌پرداخت ملت', 'saman' => 'سامان / سپ']"
-                :selected="$complex->payment_gateway" required />
-            <p class="text-xs text-slate-400">برای درگاه‌های واقعی، اطلاعات ترمینال در فایل پیکربندی سرور (env) یا تنظیمات پیشرفته وارد می‌شود.</p>
+            <div x-data="{ gw: '{{ $complex->payment_gateway }}' }">
+                <x-select name="payment_gateway" label="درگاه فعال"
+                    :options="['none' => 'غیرفعال (فقط آپلود رسید)', 'fake' => 'تستی / سندباکس', 'mellat' => 'به‌پرداخت ملت', 'saman' => 'سامان / سپ']"
+                    :selected="$complex->payment_gateway" x-model="gw" required />
+
+                @php($gw = $complex->gateway_config ?? [])
+                <div class="mt-4 space-y-4" x-show="['mellat','saman'].includes(gw)" x-cloak>
+                    <x-input name="gw_terminal_id" label="شناسه ترمینال (Terminal ID)" :value="$gw['terminal_id'] ?? ''" dir="ltr" />
+                    <template x-if="gw === 'mellat'">
+                        <div class="space-y-4">
+                            <x-input name="gw_username" label="نام کاربری درگاه" :value="$gw['username'] ?? ''" dir="ltr" />
+                            <x-input name="gw_password" type="password" label="رمز عبور درگاه" :value="$gw['password'] ?? ''" dir="ltr" />
+                        </div>
+                    </template>
+                </div>
+            </div>
 
             <hr class="border-slate-200 dark:border-slate-700">
             <h3 class="font-semibold">جریمه دیرکرد</h3>

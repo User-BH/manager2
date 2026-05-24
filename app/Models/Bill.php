@@ -15,7 +15,7 @@ class Bill extends Model
     protected $fillable = [
         'complex_id', 'unit_id', 'period', 'owner_amount', 'tenant_amount',
         'base_amount', 'penalty_amount', 'discount_amount', 'total_amount',
-        'paid_amount', 'status', 'due_date', 'paid_at', 'issued_at', 'breakdown',
+        'paid_amount', 'status', 'due_date', 'paid_at', 'issued_at', 'breakdown', 'last_reminded_at',
     ];
 
     protected function casts(): array
@@ -32,6 +32,7 @@ class Bill extends Model
             'due_date' => 'date',
             'paid_at' => 'date',
             'issued_at' => 'datetime',
+            'last_reminded_at' => 'datetime',
             'breakdown' => 'array',
         ];
     }

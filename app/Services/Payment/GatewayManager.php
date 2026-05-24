@@ -16,8 +16,8 @@ class GatewayManager
     {
         return match ($complex->payment_gateway) {
             'fake' => new FakeGateway,
-            // 'mellat' => new MellatGateway($complex->gateway_config ?? []),
-            // 'saman'  => new SamanGateway($complex->gateway_config ?? []),
+            'mellat' => new MellatGateway($complex->gateway_config ?? [], $complex->currency),
+            'saman' => new SamanGateway($complex->gateway_config ?? [], $complex->currency),
             default => throw new RuntimeException('درگاه پرداخت برای این مجتمع فعال نیست. از آپلود رسید استفاده کنید.'),
         };
     }

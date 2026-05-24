@@ -4,6 +4,9 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="csrf-token" content="{{ csrf_token() }}">
+    <link rel="manifest" href="/manifest.webmanifest">
+    <meta name="theme-color" content="#0284c7">
+    <link rel="apple-touch-icon" href="/icons/icon-192.png">
     <title>@yield('title', 'مدیریت ساختمان') — {{ config('app.name') }}</title>
 
     {{-- Prevent dark-mode flash before assets load --}}
@@ -43,10 +46,12 @@
                 <p class="px-3 pt-4 pb-1 text-xs font-semibold uppercase tracking-wide text-slate-400">مدیریت</p>
                 <x-nav-link :href="route('admin.units.index')" icon='<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M4 21V5a2 2 0 012-2h8a2 2 0 012 2v16M4 21h16M9 7h2m-2 4h2m-2 4h2"/></svg>'>واحدها</x-nav-link>
                 <x-nav-link :href="route('admin.residents.index')" icon='<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M17 20h5v-2a4 4 0 00-3-3.87M9 20H4v-2a4 4 0 013-3.87m6-2a4 4 0 10-4-4 4 4 0 004 4z"/></svg>'>ساکنین</x-nav-link>
+                <x-nav-link :href="route('admin.managers.index')" icon='<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>'>مدیران مجتمع</x-nav-link>
                 <x-nav-link :href="route('admin.charge-rules.index')" icon='<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6V4m0 16v-2m6-6h2M4 12h2m1.5-4.5l1.5 1.5m6 6l1.5 1.5m0-9l-1.5 1.5m-6 6l-1.5 1.5"/></svg>'>قوانین شارژ</x-nav-link>
                 <x-nav-link :href="route('admin.expenses.index')" icon='<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 9v1m0-1c-1.11 0-2.08-.402-2.599-1"/></svg>'>هزینه‌ها و درآمد</x-nav-link>
                 <x-nav-link :href="route('admin.bills.index')" icon='<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M9 7h6m-6 4h6m-6 4h4M5 3h14v18l-3-2-2 2-2-2-2 2-2-2-1 1z"/></svg>'>قبوض و شارژ</x-nav-link>
                 <x-nav-link :href="route('admin.payments.index')" icon='<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M3 10h18M7 15h2m4 0h4M3 7a2 2 0 012-2h14a2 2 0 012 2v10a2 2 0 01-2 2H5a2 2 0 01-2-2z"/></svg>'>بررسی پرداخت‌ها</x-nav-link>
+                <x-nav-link :href="route('admin.discounts.index')" icon='<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M15 5v2m0 4v2m0 4v2M5 5a2 2 0 00-2 2v3a2 2 0 010 4v3a2 2 0 002 2h14a2 2 0 002-2v-3a2 2 0 010-4V7a2 2 0 00-2-2H5z"/></svg>'>تخفیف و بخشودگی</x-nav-link>
             @endif
 
             <p class="px-3 pt-4 pb-1 text-xs font-semibold uppercase tracking-wide text-slate-400">عمومی</p>
@@ -67,6 +72,7 @@
                 <p class="px-3 pt-4 pb-1 text-xs font-semibold uppercase tracking-wide text-slate-400">سیستم</p>
                 <x-nav-link :href="route('system.complexes.index')" icon='<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0H5m14 0h2M5 21H3m6-14h6m-6 4h6m-6 4h6"/></svg>'>مدیریت مجتمع‌ها</x-nav-link>
                 <x-nav-link :href="route('system.sms.edit')" icon='<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-4 4v-4z"/></svg>'>پنل پیامک</x-nav-link>
+                <x-nav-link :href="route('system.backup.index')" icon='<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M4 7v10c0 1.105 3.582 2 8 2s8-.895 8-2V7M4 7c0 1.105 3.582 2 8 2s8-.895 8-2M4 7c0-1.105 3.582-2 8-2s8 .895 8 2"/></svg>'>بکاپ کل سیستم</x-nav-link>
             @endif
         </nav>
     </aside>

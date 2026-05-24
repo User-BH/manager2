@@ -37,6 +37,7 @@
                             <td class="py-3 tabular-nums {{ $unit->balance > 0 ? 'text-rose-600 dark:text-rose-400' : '' }}">{{ Jalali::money($unit->balance) }}</td>
                             <td class="py-3 text-left">
                                 <div class="flex items-center justify-end gap-2">
+                                    <a href="{{ route('admin.units.statement', $unit) }}" class="text-slate-500 hover:underline">تسویه‌حساب</a>
                                     <a href="{{ route('admin.units.edit', $unit) }}" class="text-sky-600 hover:underline dark:text-sky-400">ویرایش</a>
                                     <form method="POST" action="{{ route('admin.units.destroy', $unit) }}" onsubmit="return confirm('حذف این واحد؟')">
                                         @csrf @method('DELETE')

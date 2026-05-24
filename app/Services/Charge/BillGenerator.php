@@ -29,6 +29,16 @@ class BillGenerator
     {
         $units = $complex->units()->where('is_active', true)->get();
 
+        // Merge any per-unit discounts/exemptions defined for this period.
+        if (empty($discounts)) {
+            $discounts = \App\Models\Discount::withoutGlobalScopes()
+                ->where('complex_id', $complex->id)
+                ->where('period', $period)
+                ->pluck('amount', 'unit_id')
+                ->map(fn ($v) => (float) $v)
+                ->all();
+        }
+
         // Build the component list: standing rules first, then period expenses.
         $components = [];
         foreach ($complex->chargeRules()->where('is_active', true)->orderBy('sort_order')->get() as $rule) {
