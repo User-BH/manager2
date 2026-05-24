@@ -66,6 +66,7 @@
             @if ($user->isSuperAdmin())
                 <p class="px-3 pt-4 pb-1 text-xs font-semibold uppercase tracking-wide text-slate-400">سیستم</p>
                 <x-nav-link :href="route('system.complexes.index')" icon='<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0H5m14 0h2M5 21H3m6-14h6m-6 4h6m-6 4h6"/></svg>'>مدیریت مجتمع‌ها</x-nav-link>
+                <x-nav-link :href="route('system.sms.edit')" icon='<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-4 4v-4z"/></svg>'>پنل پیامک</x-nav-link>
             @endif
         </nav>
     </aside>

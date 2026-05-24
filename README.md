@@ -46,8 +46,11 @@ app/
   Services/
     Charge/              ChargeCalculator, BillGenerator, PenaltyCalculator, ChargeComponent
     Payment/             PaymentService, GatewayManager, PaymentGateway, FakeGateway
+    Sms/                 SmsManager + درایورهای Kavenegar/Ippanel/Melipayamak/Log
+    Auth/                OtpService (تولید/اعتبارسنجی کد ورود)
     ReportService        محاسبات داشبورد و گزارش‌ها
-  Support/               Jalali (تاریخ/عدد/پول فارسی)، TenantContext
+  Exports/               BillsExport (خروجی Excel قبوض)
+  Support/               Jalali، Phone (نرمال‌سازی شماره)، Pdf (mPDF)، TenantContext، SystemSettings
 resources/views/         layouts, components (card/stat/badge/input/...), صفحات
 database/migrations/     ساختار جداول
 database/seeders/        DemoSeeder (دادهٔ نمونهٔ کامل)
@@ -104,6 +107,27 @@ database/seeders/        DemoSeeder (دادهٔ نمونهٔ کامل)
 - **اطلاعیه:** عنوان/متن/مخاطب (همه/مالکین/مستاجرین)/سنجاق/فعال، نمایش در داشبورد.
 - **بکاپ مجتمع:** خروجی JSON خودکفا از واحدها، کاربران، مالی، قبوض و پرداخت‌های همان مجتمع (داده‌های سایر مجتمع‌ها نمی‌آید). بکاپ کل سیستم در نقشهٔ راه.
 
+## ورود و احراز هویت (با شماره تلفن)
+
+ورود کاربران **با شماره تلفن همراه** انجام می‌شود (شناسهٔ یکتای کاربر) و دو روش احراز دارد:
+
+1. **رمز عبور:** شماره تلفن + رمز عبور.
+2. **کد پیامکی (OTP):** کاربر شماره را وارد می‌کند، یک کد یک‌بارمصرف ۵ رقمی برایش پیامک می‌شود (انقضای ۲ دقیقه، حداکثر ۵ تلاش، فاصلهٔ ارسال مجدد ۶۰ ثانیه)، و با وارد کردن کد وارد می‌شود. کد به‌صورت **hash** در جدول `otp_codes` ذخیره می‌شود.
+
+شماره‌ها هنگام ورود/ثبت نرمال‌سازی می‌شوند (تبدیل ارقام فارسی، حذف `+98`/`0098`، استانداردسازی به شکل `09xxxxxxxxx`).
+
+### پنل پیامک (قابل تنظیم توسط ادمین کل)
+از مسیر **سیستم ← پنل پیامک**، ادمین یکی از سامانه‌های زیر را انتخاب و اطلاعات آن را وارد می‌کند؛ سپس با «ارسال آزمایشی» اتصال را بررسی می‌کند:
+
+| سامانه | اطلاعات لازم |
+|--------|--------------|
+| **کاوه‌نگار** (kavenegar) | API Key + شماره خط ارسال |
+| **آی‌پی‌پنل** (ippanel) | API Key + شماره خط ارسال |
+| **ملی پیامک** (melipayamak) | نام کاربری + رمز وب‌سرویس + شماره خط |
+| حالت تست (log) | بدون اطلاعات؛ کد در لاگ و صفحهٔ ورود نمایش داده می‌شود |
+
+درایورها در `app/Services/Sms/` پیاده شده‌اند و `SmsManager` درایور فعال را از تنظیمات سیستم می‌خواند؛ افزودن سامانهٔ جدید با ساخت یک کلاس `SmsGateway` ساده است. در محیط بدون تنظیمات، درایور **log** به‌صورت پیش‌فرض فعال است تا ورود با کد بدون نیاز به اعتبار واقعی قابل تست باشد.
+
 ## ۱۳) امنیت
 
 - احراز هویت Laravel، رمز عبور **bcrypt**.
@@ -119,39 +143,80 @@ database/seeders/        DemoSeeder (دادهٔ نمونهٔ کامل)
 
 ---
 
-## راه‌اندازی
+## راه‌اندازی و نصب (MySQL/MariaDB)
 
-### پیش‌نیاز
-PHP 8.3+، Composer، Node 18+/npm. برای پروداکشن: MySQL/MariaDB.
+### پیش‌نیازها
+- **PHP 8.3+** با اکستنشن‌های `pdo_mysql`, `mbstring`, `zip`, `gd`, `dom`, `xml`
+- **Composer 2**
+- **Node.js 18+** و **npm**
+- **MySQL 8** یا **MariaDB 10.4+** (مدیریت با **phpMyAdmin**)
 
-### اجرای سریع (محیط توسعه با SQLite)
-```bash
-composer install
-npm install && npm run build
-cp .env.example .env          # برای SQLite مقدار DB_CONNECTION=sqlite را فعال کنید
-php artisan key:generate
-touch database/database.sqlite
-php artisan migrate --seed
-php artisan serve
+### گام ۱: ساخت دیتابیس
+در phpMyAdmin یک دیتابیس با نام `manager` و کدبندی `utf8mb4_unicode_ci` بسازید، یا از خط فرمان:
+```sql
+CREATE DATABASE manager CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+CREATE USER 'manager'@'127.0.0.1' IDENTIFIED BY 'یک_رمز_قوی';
+GRANT ALL PRIVILEGES ON manager.* TO 'manager'@'127.0.0.1';
+FLUSH PRIVILEGES;
 ```
 
-### پروداکشن با MySQL
-1. در `.env` مقادیر `DB_CONNECTION=mysql` و `DB_DATABASE/USERNAME/PASSWORD` را تنظیم کنید (دیتابیس را در phpMyAdmin بسازید).
-2. `php artisan migrate --seed` و سپس `npm run build`.
+### گام ۲: نصب وابستگی‌ها و ساخت assetها
+```bash
+composer install
+npm install
+npm run build          # فونت Vazirmatn و CSS/JS را به‌صورت محلی باندل می‌کند
+```
 
-### حساب‌های نمونه (رمز همه: `password`)
-| نقش | ایمیل |
-|-----|-------|
-| ادمین کل | `admin@system.test` |
-| مدیر مجتمع | `manager@aftab.test` |
-| مالک | `owner1@aftab.test` |
-| مستاجر | `tenant2@aftab.test` |
+### گام ۳: پیکربندی محیط
+```bash
+cp .env.example .env
+php artisan key:generate
+```
+سپس در فایل `.env` اطلاعات دیتابیس را تنظیم کنید:
+```env
+DB_CONNECTION=mysql
+DB_HOST=127.0.0.1
+DB_PORT=3306
+DB_DATABASE=manager
+DB_USERNAME=manager
+DB_PASSWORD=یک_رمز_قوی
+```
+
+### گام ۴: ساخت جداول و دادهٔ نمونه
+```bash
+php artisan migrate --seed
+```
+
+### گام ۵: اجرا
+```bash
+php artisan serve
+```
+سپس آدرس `http://127.0.0.1:8000` را باز کنید. (در پروداکشن، Nginx/Apache را به پوشهٔ `public/` اشاره دهید.)
+
+> **پنل پیامک:** برای ورود با کد، پس از ورود به‌عنوان ادمین کل به **سیستم ← پنل پیامک** بروید و سامانهٔ پیامکی (کاوه‌نگار/ippanel/ملی‌پیامک) و اطلاعات آن را وارد کنید. بدون تنظیم، حالت **تست** فعال است و کد ورود روی صفحه و در `storage/logs/laravel.log` نمایش داده می‌شود.
+
+### حساب‌های نمونه — ورود با شماره تلفن (رمز همه: `password`)
+| نقش | شماره تلفن |
+|-----|-----------|
+| ادمین کل سیستم | `09120000001` |
+| مدیر مجتمع | `09120000000` |
+| مالک واحد ۱ | `09121111101` |
+| مستاجر واحد ۲ | `09122222202` |
+
+> می‌توانید با هر شماره، گزینهٔ «ورود با کد پیامک» را هم امتحان کنید؛ در حالت تست، کد روی صفحه نشان داده می‌شود.
+
+### اجرای سریع برای توسعه (بدون MySQL، با SQLite)
+اگر فقط می‌خواهید سریع امتحان کنید، در `.env` به‌جای بخش MySQL مقدار `DB_CONNECTION=sqlite` را بگذارید و:
+```bash
+touch database/database.sqlite
+php artisan migrate --seed && php artisan serve
+```
 
 ### تست
 ```bash
 php artisan test
 ```
-شامل تست واحد موتور شارژ (۱۰ سناریو) و تست یکپارچگی صدور قبض/تسویه.
+شامل تست‌های واحد موتور شارژ (۱۰ سناریو)، نرمال‌سازی شماره تلفن، جریان ورود با رمز/کد پیامک، و تست یکپارچگی صدور قبض/تسویه (۲۱ تست).
 
 ---
 

@@ -16,7 +16,10 @@ Route::get('/', fn () => redirect()->route('dashboard'));
 // --- Authentication ---
 Route::middleware('guest')->group(function () {
     Route::get('/login', [LoginController::class, 'show'])->name('login');
-    Route::post('/login', [LoginController::class, 'login']);
+    Route::post('/login/password', [LoginController::class, 'password'])->name('login.password');
+    Route::post('/login/otp/request', [LoginController::class, 'requestOtp'])->name('login.otp.request');
+    Route::post('/login/otp/verify', [LoginController::class, 'verifyOtp'])->name('login.otp.verify');
+    Route::post('/login/otp/cancel', [LoginController::class, 'cancelOtp'])->name('login.otp.cancel');
 });
 Route::post('/logout', [LoginController::class, 'logout'])->middleware('auth')->name('logout');
 
@@ -80,5 +83,9 @@ Route::middleware('auth')->group(function () {
         Route::post('complexes', [System\ComplexController::class, 'store'])->name('complexes.store');
         Route::post('complexes/{complex}/select', [System\ComplexController::class, 'select'])->name('complexes.select');
         Route::post('complexes/clear', [System\ComplexController::class, 'clear'])->name('complexes.clear');
+
+        Route::get('sms', [System\SmsSettingController::class, 'edit'])->name('sms.edit');
+        Route::put('sms', [System\SmsSettingController::class, 'update'])->name('sms.update');
+        Route::post('sms/test', [System\SmsSettingController::class, 'test'])->name('sms.test');
     });
 });

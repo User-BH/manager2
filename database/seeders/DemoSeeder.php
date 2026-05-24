@@ -36,6 +36,7 @@ class DemoSeeder extends Seeder
         User::create([
             'name' => 'مدیر سیستم',
             'email' => 'admin@system.test',
+            'phone' => '09120000001',
             'password' => Hash::make('password'),
             'role' => UserRole::SuperAdmin,
             'is_active' => true,

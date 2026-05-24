@@ -14,8 +14,8 @@
             @if ($resident->exists) @method('PUT') @endif
 
             <x-input name="name" label="نام و نام خانوادگی" :value="$resident->name" required />
-            <x-input name="email" type="email" label="ایمیل (نام کاربری)" :value="$resident->email" required dir="ltr" />
-            <x-input name="phone" label="شماره تماس" :value="$resident->phone" dir="ltr" />
+            <x-input name="phone" label="شماره تلفن همراه (نام کاربری)" :value="$resident->phone" required dir="ltr" placeholder="09xxxxxxxxx" />
+            <x-input name="email" type="email" label="ایمیل (اختیاری)" :value="$resident->email" dir="ltr" />
             <x-input name="national_id" label="کد ملی" :value="$resident->national_id" dir="ltr" />
             <x-select name="role" label="نقش" :options="ResidentRelation::options()" :selected="$resident->role?->value" required />
             <x-select name="unit_id" label="واحد" :options="$units->pluck('unit_number', 'id')->mapWithKeys(fn($v,$k) => [$k => 'واحد '.$v])->prepend('— بدون واحد', '')->toArray()" :selected="$currentUnitId" />

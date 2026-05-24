@@ -16,8 +16,8 @@ return new class extends Migration
             // Complex scope: null only for the system super-admin.
             $table->foreignId('complex_id')->nullable()->constrained('complexes')->nullOnDelete();
             $table->string('name');
-            $table->string('email')->unique();
-            $table->string('phone', 20)->nullable();
+            $table->string('email')->nullable()->unique();
+            $table->string('phone', 20)->nullable()->unique();
             $table->string('national_id', 20)->nullable();
             $table->string('role', 30)->default('tenant')->index();
             $table->timestamp('email_verified_at')->nullable();

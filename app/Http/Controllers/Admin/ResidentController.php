@@ -146,16 +146,22 @@ class ResidentController extends Controller
 
     protected function validateData(Request $request, ?int $ignoreId = null): array
     {
+        // Phone is the login identifier: normalise then validate uniqueness/format.
+        $request->merge(['phone' => \App\Support\Phone::normalize($request->input('phone'))]);
+
         return $request->validate([
             'name' => ['required', 'string', 'max:120'],
-            'email' => ['required', 'email', Rule::unique('users', 'email')->ignore($ignoreId)],
-            'phone' => ['nullable', 'string', 'max:20'],
+            'phone' => ['required', 'regex:/^09\d{9}$/', Rule::unique('users', 'phone')->ignore($ignoreId)],
+            'email' => ['nullable', 'email', Rule::unique('users', 'email')->ignore($ignoreId)],
             'national_id' => ['nullable', 'string', 'max:20'],
             'role' => ['required', 'in:owner,tenant'],
             'unit_id' => ['nullable', 'exists:units,id'],
             'password' => [$ignoreId ? 'nullable' : 'required', 'nullable', 'string', 'min:6'],
-        ], [], [
-            'name' => 'نام', 'email' => 'ایمیل', 'role' => 'نقش', 'password' => 'رمز عبور',
+        ], [
+            'phone.regex' => 'شماره تلفن همراه باید به شکل ۰۹xxxxxxxxx باشد.',
+            'phone.unique' => 'این شماره تلفن قبلا ثبت شده است.',
+        ], [
+            'name' => 'نام', 'email' => 'ایمیل', 'phone' => 'شماره تلفن', 'role' => 'نقش', 'password' => 'رمز عبور',
         ]);
     }
 
