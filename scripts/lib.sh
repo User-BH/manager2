@@ -42,25 +42,91 @@ php_version()    { "$1" -r 'echo PHP_VERSION;' 2>/dev/null || echo '?'; }
 #
 # اگر باینری شما نام دیگری دارد (مثلاً مسیر cPanel یا Plesk)، با متغیر محیطی
 # مسیرش را بدهید:  PHP_BIN=/opt/php84/bin/php ./scripts/deploy.sh
+
+# همهٔ مفسرهای PHP موجود روی سیستم را فهرست می‌کند: «مسیر<TAB>نسخه»
+#
+# فقط به PATH تکیه نمی‌کنیم، چون روی پنل‌های میزبانی (cPanel، Plesk،
+# DirectAdmin) و مخازن Remi/SCL نسخهٔ جدید PHP نصب است ولی در PATH نیست.
+list_php_binaries() {
+    local seen=" " p id
+    {
+        # نام‌های موجود در PATH
+        for p in php8.5 php8.4 php8.3 php8.2 php8.1 php8.0 php7.4 php; do
+            command -v "$p" 2>/dev/null || true
+        done
+        # مسیرهای رایج پنل‌های میزبانی و مخازن چندنسخه‌ای
+        ls -1 /usr/bin/php8.* /usr/local/bin/php8.* 2>/dev/null || true
+        ls -1 /opt/php*/bin/php /usr/local/php*/bin/php 2>/dev/null || true
+        ls -1 /opt/cpanel/ea-php8*/root/usr/bin/php 2>/dev/null || true
+        ls -1 /opt/plesk/php/8.*/bin/php 2>/dev/null || true
+        ls -1 /opt/remi/php8*/root/usr/bin/php 2>/dev/null || true
+        ls -1 /usr/local/lsws/lsphp8*/bin/lsphp 2>/dev/null || true
+    } | while read -r p; do
+        [ -n "$p" ] && [ -x "$p" ] || continue
+        p="$(readlink -f "$p" 2>/dev/null || echo "$p")"
+        case "$seen" in *" $p "*) continue ;; esac
+        seen="$seen$p "
+        id="$(php_version_id "$p")"
+        [ "$id" != "0" ] && printf '%s\t%s\n' "$p" "$(php_version "$p")"
+    done
+}
+
+# پیدا کردن مفسر PHP مناسب.
+#
+# مهم: عمداً `php` خالی آخرین گزینه است. روی سروری که یک سایت دیگر با PHP 7.4
+# سرو می‌شود، `php` معمولاً همان ۷.۴ است؛ اگر کورکورانه از آن استفاده کنیم
+# کل استقرار شکست می‌خورد. پس نسخهٔ همهٔ باینری‌های پیداشده را می‌سنجیم و
+# جدیدترینِ واجد شرایط را برمی‌داریم.
 find_php() {
     if [ -n "${PHP_BIN:-}" ]; then
-        command -v "$PHP_BIN" >/dev/null 2>&1 || die "PHP_BIN=$PHP_BIN پیدا نشد."
+        [ -x "$PHP_BIN" ] || command -v "$PHP_BIN" >/dev/null 2>&1 \
+            || die "PHP_BIN=$PHP_BIN پیدا نشد یا قابل اجرا نیست."
         [ "$(php_version_id "$PHP_BIN")" -ge "$MIN_PHP_ID" ] \
             || die "PHP_BIN نسخهٔ $(php_version "$PHP_BIN") است؛ حداقل ۸.۳ لازم است."
         echo "$PHP_BIN"; return 0
     fi
 
-    local candidate best='' best_id=0 id
-    for candidate in php8.5 php8.4 php8.3 php; do
-        command -v "$candidate" >/dev/null 2>&1 || continue
-        id="$(php_version_id "$candidate")"
-        if [ "$id" -ge "$MIN_PHP_ID" ] && [ "$id" -gt "$best_id" ]; then
-            best="$candidate"; best_id="$id"
-        fi
-    done
+    local found best='' best_id=0 path ver id
+    found="$(list_php_binaries)"
 
-    [ -n "$best" ] || die "PHP نسخهٔ ۸.۳ یا بالاتر پیدا نشد. اگر نصب است ولی نام دیگری دارد:  PHP_BIN=/path/to/php $0"
-    echo "$best"
+    while IFS=$'\t' read -r path ver; do
+        [ -n "$path" ] || continue
+        id="$(php_version_id "$path")"
+        if [ "$id" -ge "$MIN_PHP_ID" ] && [ "$id" -gt "$best_id" ]; then
+            best="$path"; best_id="$id"
+        fi
+    done <<< "$found"
+
+    if [ -n "$best" ]; then
+        echo "$best"; return 0
+    fi
+
+    # هیچ نسخهٔ مناسبی نبود — به‌جای یک پیام کلی، بگوییم چه چیزی *هست*.
+    {
+        printf '\n%s✗ PHP نسخهٔ ۸.۳ یا بالاتر پیدا نشد.%s\n\n' "$C_ERR" "$C_OFF"
+        if [ -n "$found" ]; then
+            printf '  نسخه‌هایی که روی این سرور پیدا شد:\n'
+            while IFS=$'\t' read -r path ver; do
+                [ -n "$path" ] && printf '    %-46s %s\n' "$path" "$ver"
+            done <<< "$found"
+        else
+            printf '  هیچ مفسر PHP‌ای پیدا نشد.\n'
+        fi
+        printf '\n  این پروژه به PHP 8.3+ نیاز دارد (Laravel 13).\n'
+        printf '\n  %sنصب PHP 8.4 در کنار نسخهٔ فعلی — سایت‌های موجود آسیب نمی‌بینند:%s\n' "$C_INFO" "$C_OFF"
+        printf '    Ubuntu/Debian:\n'
+        printf '      sudo add-apt-repository ppa:ondrej/php && sudo apt update\n'
+        printf '      sudo apt install php8.4-fpm php8.4-mysql php8.4-mbstring php8.4-xml \\\n'
+        printf '           php8.4-zip php8.4-gd php8.4-curl php8.4-intl php8.4-bcmath\n'
+        printf '\n    AlmaLinux/Rocky/CentOS:\n'
+        printf '      sudo dnf install epel-release && sudo dnf install https://rpms.remirepo.net/enterprise/remi-release-9.rpm\n'
+        printf '      sudo dnf module install php:remi-8.4\n'
+        printf '\n  %sنسخهٔ قدیمی حذف نمی‌شود:%s بسته‌ها، سرویس php-fpm و سوکت هر نسخه جداست،\n' "$C_DIM" "$C_OFF"
+        printf '  و کانفیگ nginx سایت قبلی همچنان به سوکت خودش اشاره می‌کند.\n'
+        printf '\n  اگر PHP 8.3+ نصب است ولی بالا فهرست نشده، مسیرش را مستقیم بدهید:\n'
+        printf '    PHP_BIN=/full/path/to/php %s\n\n' "${0##*/}"
+    } >&2
+    exit 1
 }
 
 # اکستنشن‌های لازم Laravel + mPDF + maatwebsite/excel
