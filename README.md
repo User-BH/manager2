@@ -274,7 +274,7 @@ sudo apt install -y nginx mariadb-server unzip git \
   php8.4-fpm php8.4-mysql php8.4-mbstring php8.4-xml php8.4-zip \
   php8.4-gd php8.4-curl php8.4-intl php8.4-bcmath
 ```
-Node.js 18+ فقط برای ساخت assetها لازم است؛ می‌توانید `npm run build` را روی سیستم خودتان بزنید و پوشهٔ `public/build` را همراه پروژه بالا ببرید.
+Node.js 20.19+ یا 22.12+ فقط برای ساخت assetها لازم است (نیاز Vite)؛ می‌توانید `npm run build` را روی سیستم خودتان بزنید و پوشهٔ `public/build` را همراه پروژه بالا ببرید.
 
 ### راه‌اندازی با اسکریپت (روش پیشنهادی)
 

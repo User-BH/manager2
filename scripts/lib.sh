@@ -277,13 +277,61 @@ is_production() { [ "$(env_value APP_ENV)" = "production" ]; }
 # public/build در .gitignore است، پس روی سروری که با git کد را می‌گیرد باید
 # ساخته شود؛ وگرنه سایت بدون CSS بالا می‌آید. اگر Node نبود و پوشه هم نبود،
 # با خطا متوقف می‌شویم تا این مورد بی‌سروصدا رد نشود.
+# Vite 8 نسخهٔ Node را محدود کرده: ^20.19.0 || >=22.12.0
+# با Node قدیمی‌تر، npm ci خطای مبهم می‌دهد؛ پس زودتر و با پیام روشن می‌ایستیم.
+node_version_ok() {
+    local v major minor
+    v="$(node -v 2>/dev/null | sed 's/^v//')"
+    [ -n "$v" ] || return 1
+    major="${v%%.*}"
+    minor="$(printf '%s' "$v" | cut -d. -f2)"
+
+    if   [ "$major" -ge 23 ]; then return 0
+    elif [ "$major" -eq 22 ] && [ "$minor" -ge 12 ]; then return 0
+    elif [ "$major" -eq 20 ] && [ "$minor" -ge 19 ]; then return 0
+    fi
+    return 1
+}
+
+print_node_install_help() {
+    printf '  %sنصب Node.js 22 (LTS):%s\n' "$C_INFO" "$C_OFF"
+    if command -v apt-get >/dev/null 2>&1; then
+        printf '    curl -fsSL https://deb.nodesource.com/setup_22.x | sudo -E bash -\n'
+        printf '    sudo apt install -y nodejs\n'
+    elif command -v dnf >/dev/null 2>&1; then
+        printf '    sudo dnf module reset nodejs && sudo dnf module enable nodejs:22\n'
+        printf '    sudo dnf install -y nodejs\n'
+    else
+        printf '    https://nodejs.org/en/download\n'
+    fi
+    printf '\n  Node فقط برای ساخت فایل‌های CSS/JS استفاده می‌شود؛ به PHP، nginx و\n'
+    printf '  سایت‌های دیگر روی این سرور کاری ندارد.\n'
+    printf '\n  %sاگر نمی‌خواهید Node روی سرور نصب کنید:%s\n' "$C_DIM" "$C_OFF"
+    printf '    روی سیستم خودتان «npm run build» بزنید و پوشهٔ public/build را\n'
+    printf '    به %s/public/ آپلود کنید.\n' "$APP_ROOT"
+}
+
 build_assets() {
     if [ "${SKIP_BUILD:-0}" = "1" ]; then
         warn "ساخت assetها رد شد (SKIP_BUILD=1)"
         return 0
     fi
 
-    if command -v npm >/dev/null 2>&1; then
+    if command -v npm >/dev/null 2>&1 && command -v node >/dev/null 2>&1; then
+        if ! node_version_ok; then
+            if [ -f public/build/manifest.json ]; then
+                warn "نسخهٔ Node ($(node -v)) برای Vite قدیمی است؛ از public/build موجود استفاده می‌شود."
+                return 0
+            fi
+            {
+                printf '\n%s✗ نسخهٔ Node روی این سرور %s است؛ Vite به ^20.19 یا >=22.12 نیاز دارد.%s\n\n' \
+                    "$C_ERR" "$(node -v)" "$C_OFF"
+                print_node_install_help
+                printf '\n'
+            } >&2
+            exit 1
+        fi
+
         step "ساخت CSS/JS"
         if [ -f package-lock.json ]; then npm ci --no-audit --no-fund; else npm install --no-audit --no-fund; fi
         npm run build
@@ -296,11 +344,13 @@ build_assets() {
         return 0
     fi
 
-    die "npm نصب نیست و public/build هم وجود ندارد.
-    یکی از این دو کار را بکنید:
-      • Node.js 18+ را روی سرور نصب کنید، یا
-      • روی سیستم خودتان 'npm run build' بزنید و پوشهٔ public/build را آپلود کنید
-    بدون این مرحله سایت بدون CSS بالا می‌آید."
+    {
+        printf '\n%s✗ npm نصب نیست و public/build هم وجود ندارد.%s\n' "$C_ERR" "$C_OFF"
+        printf '  بدون این مرحله سایت بدون CSS بالا می‌آید.\n\n'
+        print_node_install_help
+        printf '\n'
+    } >&2
+    exit 1
 }
 
 # ------------------------------------------------------------------ دسترسی فایل
