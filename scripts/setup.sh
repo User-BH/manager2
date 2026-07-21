@@ -104,7 +104,24 @@ if [ "$WITH_DEMO" = "1" ]; then
 else
     "$PHP" artisan migrate --force --no-interaction
     ok "جدول‌ها ساخته شدند"
-    note "برای دادهٔ نمونه: ./scripts/setup.sh --demo"
+fi
+
+# migrate فقط جدول خالی می‌سازد. اگر هیچ کاربری وجود نداشته باشد، سامانه
+# بالا می‌آید ولی هیچ‌کس نمی‌تواند وارد شود — و این حالت نباید به‌عنوان
+# «راه‌اندازی موفق» گزارش شود.
+USER_COUNT="$(count_users "$PHP")"
+if [ "${USER_COUNT:-0}" = "0" ]; then
+    printf '\n%s! دیتابیس هیچ کاربری ندارد؛ فعلاً امکان ورود به پنل نیست.%s\n' "$C_WARN" "$C_OFF"
+    note "یکی از این دو را انجام دهید:"
+    note ""
+    note "  ۱) ساخت ادمین واقعی (پیشنهاد برای سرویس واقعی):"
+    note "     $PHP artisan admin:create"
+    note ""
+    note "  ۲) وارد کردن دادهٔ نمونه برای تست (مجتمع، واحدها، قبوض ساختگی):"
+    note "     ./scripts/setup.sh --demo"
+    NO_USERS=1
+else
+    ok "تعداد کاربران موجود: $USER_COUNT"
 fi
 
 # ---------------------------------------------------------------- ۷) پایانی
@@ -115,7 +132,13 @@ warn_if_debug_public
 # نمونه کانفیگ nginx تولید می‌شود ولی *اعمال نمی‌شود* — تصمیمش با شماست.
 "$(dirname "${BASH_SOURCE[0]}")/make-nginx-config.sh" "$PHP" || true
 
-printf '\n%s✓ راه‌اندازی کامل شد.%s\n\n' "$C_OK" "$C_OFF"
+if [ "${NO_USERS:-0}" = "1" ]; then
+    printf '\n%s✓ نصب کامل شد، اما هنوز کاربری برای ورود ساخته نشده.%s\n\n' "$C_WARN" "$C_OFF"
+    note "قدم بعدی:  $PHP artisan admin:create"
+else
+    printf '\n%s✓ راه‌اندازی کامل شد.%s\n\n' "$C_OK" "$C_OFF"
+fi
+
 note "برای تست محلی:      $PHP artisan serve"
 note "برای به‌روزرسانی بعدی: ./scripts/deploy.sh"
 printf '\n'

@@ -552,6 +552,22 @@ check_database() {
     exit 1
 }
 
+# تعداد کاربران دیتابیس.
+#
+# مستقیم Laravel را بوت می‌کنیم و یک عدد چاپ می‌کنیم، به‌جای تجزیهٔ خروجی
+# `artisan tinker` که ممکن است هشدار یا متن اضافه هم چاپ کند و شمارش را
+# خراب کند. withoutGlobalScopes لازم است چون ادمین کل به هیچ مجتمعی وصل
+# نیست و ComplexScope در حالت عادی او را فیلتر می‌کند.
+count_users() {
+    "$1" -r '
+        require "vendor/autoload.php";
+        $app = require "bootstrap/app.php";
+        $app->make(Illuminate\Contracts\Console\Kernel::class)->bootstrap();
+        try { echo App\Models\User::withoutGlobalScopes()->count(); }
+        catch (Throwable $e) { echo "-1"; }
+    ' 2>/dev/null | tr -dc '0-9-'
+}
+
 # ------------------------------------------------------------------ کش‌های Laravel
 rebuild_caches() {
     step "بازسازی کش‌های Laravel"
