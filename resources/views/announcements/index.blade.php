@@ -21,11 +21,11 @@
                 </div>
                 <x-badge color="sky">{{ $a->audience->label() }}</x-badge>
             </div>
-            <p class="mt-2 whitespace-pre-line text-sm text-slate-600 dark:text-slate-300">{{ $a->body }}</p>
-            <p class="mt-3 text-xs text-slate-400">{{ Jalali::dateTime($a->published_at) }}</p>
+            <p class="mt-2 whitespace-pre-line text-sm text-muted">{{ $a->body }}</p>
+            <p class="mt-3 text-xs text-faint">{{ Jalali::dateTime($a->published_at) }}</p>
         </x-card>
     @empty
-        <x-card><p class="py-8 text-center text-sm text-slate-400">اطلاعیه‌ای موجود نیست.</p></x-card>
+        <x-card><p class="py-8 text-center text-sm text-faint">اطلاعیه‌ای موجود نیست.</p></x-card>
     @endforelse
 
     {{ $announcements->links() }}

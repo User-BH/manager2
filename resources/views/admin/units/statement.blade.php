@@ -19,16 +19,16 @@
 
     <x-card title="صورت‌حساب‌ها">
         <table class="w-full text-sm">
-            <thead class="text-xs text-slate-400">
+            <thead class="text-xs text-faint">
                 <tr><th class="pb-2 text-right">دوره</th><th class="pb-2 text-right">مبلغ کل</th><th class="pb-2 text-right">پرداخت‌شده</th><th class="pb-2 text-right">مانده</th><th class="pb-2 text-left">وضعیت</th></tr>
             </thead>
-            <tbody class="divide-y divide-slate-100 dark:divide-slate-700">
+            <tbody class="divide-y divide-line">
                 @foreach ($bills as $bill)
                     <tr>
                         <td class="py-2.5">{{ Jalali::periodLabel($bill->period) }}</td>
                         <td class="py-2.5 tabular-nums">{{ Jalali::money($bill->total_amount) }}</td>
-                        <td class="py-2.5 tabular-nums text-emerald-600 dark:text-emerald-400">{{ Jalali::money($bill->paid_amount) }}</td>
-                        <td class="py-2.5 tabular-nums text-rose-600 dark:text-rose-400">{{ Jalali::money($bill->remaining()) }}</td>
+                        <td class="py-2.5 tabular-nums text-success">{{ Jalali::money($bill->paid_amount) }}</td>
+                        <td class="py-2.5 tabular-nums text-danger">{{ Jalali::money($bill->remaining()) }}</td>
                         <td class="py-2.5 text-left"><x-badge :color="$bill->status->color()">{{ $bill->status->label() }}</x-badge></td>
                     </tr>
                 @endforeach
@@ -38,16 +38,16 @@
 
     <x-card title="پرداخت‌های موفق">
         @if ($payments->isEmpty())
-            <p class="py-6 text-center text-sm text-slate-400">پرداختی ثبت نشده است.</p>
+            <p class="py-6 text-center text-sm text-faint">پرداختی ثبت نشده است.</p>
         @else
             <table class="w-full text-sm">
-                <tbody class="divide-y divide-slate-100 dark:divide-slate-700">
+                <tbody class="divide-y divide-line">
                     @foreach ($payments as $p)
                         <tr>
                             <td class="py-2">{{ Jalali::date($p->paid_at ?? $p->created_at) }}</td>
                             <td class="py-2">{{ $p->method->label() }}</td>
                             <td class="py-2 tabular-nums">{{ Jalali::money($p->amount) }}</td>
-                            <td class="py-2 text-left text-xs text-slate-400" dir="ltr">{{ $p->tracking_code ?? '-' }}</td>
+                            <td class="py-2 text-left text-xs text-faint" dir="ltr">{{ $p->tracking_code ?? '-' }}</td>
                         </tr>
                     @endforeach
                 </tbody>

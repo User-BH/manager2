@@ -11,7 +11,8 @@ use App\Http\Controllers\System;
 use App\Livewire\Messenger;
 use Illuminate\Support\Facades\Route;
 
-Route::get('/', fn () => redirect()->route('dashboard'));
+// Public landing page for visitors; signed-in users go straight to their dashboard.
+Route::get('/', fn () => auth()->check() ? redirect()->route('dashboard') : view('home.index'))->name('home');
 
 // --- Authentication ---
 Route::middleware('guest')->group(function () {

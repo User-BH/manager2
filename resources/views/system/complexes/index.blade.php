@@ -20,7 +20,7 @@
                 @csrf
                 <x-input name="name" label="نام مجتمع" required />
                 <x-input name="address" label="آدرس" />
-                <hr class="border-slate-200 dark:border-slate-700">
+                <hr class="border-line">
                 <x-input name="admin_name" label="نام مدیر مجتمع" required />
                 <x-input name="admin_email" type="email" label="ایمیل مدیر" required dir="ltr" />
                 <x-input name="admin_password" type="password" label="رمز عبور مدیر" required dir="ltr" />
@@ -31,10 +31,10 @@
         <div class="lg:col-span-2">
             <x-card title="مجتمع‌ها">
                 <table class="w-full text-sm">
-                    <thead class="text-xs text-slate-400">
+                    <thead class="text-xs text-faint">
                         <tr><th class="pb-2 text-right">نام</th><th class="pb-2 text-right">واحدها</th><th class="pb-2 text-right">کاربران</th><th class="pb-2 text-left">عملیات</th></tr>
                     </thead>
-                    <tbody class="divide-y divide-slate-100 dark:divide-slate-700">
+                    <tbody class="divide-y divide-line">
                         @foreach ($complexes as $c)
                             <tr>
                                 <td class="py-3 font-medium">

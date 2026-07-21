@@ -13,7 +13,7 @@
     <x-card>
         <div class="overflow-x-auto">
             <table class="w-full text-sm">
-                <thead class="text-xs text-slate-400">
+                <thead class="text-xs text-faint">
                     <tr>
                         <th class="pb-2 text-right">شماره</th>
                         <th class="pb-2 text-right">طبقه</th>
@@ -25,7 +25,7 @@
                         <th class="pb-2 text-left">عملیات</th>
                     </tr>
                 </thead>
-                <tbody class="divide-y divide-slate-100 dark:divide-slate-700">
+                <tbody class="divide-y divide-line">
                     @foreach ($units as $unit)
                         <tr>
                             <td class="py-3 font-medium">{{ Jalali::digits($unit->unit_number) }}</td>
@@ -34,14 +34,14 @@
                             <td class="py-3 tabular-nums">{{ Jalali::digits($unit->residents_count) }}</td>
                             <td class="py-3 tabular-nums">{{ Jalali::digits($unit->coefficient) }}</td>
                             <td class="py-3"><x-badge>{{ $unit->occupancy_status->label() }}</x-badge></td>
-                            <td class="py-3 tabular-nums {{ $unit->balance > 0 ? 'text-rose-600 dark:text-rose-400' : '' }}">{{ Jalali::money($unit->balance) }}</td>
+                            <td class="py-3 tabular-nums {{ $unit->balance > 0 ? 'text-danger' : '' }}">{{ Jalali::money($unit->balance) }}</td>
                             <td class="py-3 text-left">
                                 <div class="flex items-center justify-end gap-2">
-                                    <a href="{{ route('admin.units.statement', $unit) }}" class="text-slate-500 hover:underline">تسویه‌حساب</a>
-                                    <a href="{{ route('admin.units.edit', $unit) }}" class="text-sky-600 hover:underline dark:text-sky-400">ویرایش</a>
+                                    <a href="{{ route('admin.units.statement', $unit) }}" class="text-muted hover:underline">تسویه‌حساب</a>
+                                    <a href="{{ route('admin.units.edit', $unit) }}" class="text-brand-500 dark:text-brand-300 hover:underline">ویرایش</a>
                                     <form method="POST" action="{{ route('admin.units.destroy', $unit) }}" onsubmit="return confirm('حذف این واحد؟')">
                                         @csrf @method('DELETE')
-                                        <button class="text-rose-600 hover:underline dark:text-rose-400">حذف</button>
+                                        <button class="text-danger hover:underline">حذف</button>
                                     </form>
                                 </div>
                             </td>

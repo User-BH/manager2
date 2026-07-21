@@ -10,14 +10,14 @@
             @csrf
             <x-input name="title" label="عنوان" required />
             <label class="block">
-                <span class="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-200">متن</span>
+                <span class="mb-1 block text-sm font-medium text-ink">متن</span>
                 <textarea name="body" rows="4" required
-                    class="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm dark:border-slate-600 dark:bg-slate-900">{{ old('body') }}</textarea>
-                @error('body')<span class="text-xs text-rose-500">{{ $message }}</span>@enderror
+                    class="w-full rounded-xl border border-line-strong px-3 py-2 text-sm">{{ old('body') }}</textarea>
+                @error('body')<span class="text-xs text-danger">{{ $message }}</span>@enderror
             </label>
             <x-select name="audience" label="مخاطب" :options="AnnouncementAudience::options()" required />
             <label class="flex items-center gap-2 text-sm">
-                <input type="checkbox" name="is_pinned" value="1" class="rounded border-slate-300 text-sky-600">
+                <input type="checkbox" name="is_pinned" value="1" class="rounded border-line-strong text-brand-500 dark:text-brand-300">
                 سنجاق کردن (نمایش در بالا)
             </label>
             <x-button variant="primary" class="w-full">انتشار اطلاعیه</x-button>
@@ -34,14 +34,14 @@
                         <x-badge color="sky">{{ $a->audience->label() }}</x-badge>
                     </div>
                     <form method="POST" action="{{ route('admin.announcements.destroy', $a) }}" onsubmit="return confirm('حذف اطلاعیه؟')">@csrf @method('DELETE')
-                        <button class="text-xs text-rose-600 hover:underline dark:text-rose-400">حذف</button>
+                        <button class="text-xs text-danger hover:underline">حذف</button>
                     </form>
                 </div>
-                <p class="mt-2 whitespace-pre-line text-sm text-slate-600 dark:text-slate-300">{{ $a->body }}</p>
-                <p class="mt-2 text-xs text-slate-400">{{ Jalali::dateTime($a->published_at ?? $a->created_at) }}</p>
+                <p class="mt-2 whitespace-pre-line text-sm text-muted">{{ $a->body }}</p>
+                <p class="mt-2 text-xs text-faint">{{ Jalali::dateTime($a->published_at ?? $a->created_at) }}</p>
             </x-card>
         @empty
-            <x-card><p class="py-8 text-center text-sm text-slate-400">اطلاعیه‌ای ثبت نشده است.</p></x-card>
+            <x-card><p class="py-8 text-center text-sm text-faint">اطلاعیه‌ای ثبت نشده است.</p></x-card>
         @endforelse
     </div>
 </div>

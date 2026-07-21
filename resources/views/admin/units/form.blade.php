@@ -26,7 +26,7 @@
             <x-select name="occupancy_status" label="وضعیت سکونت" :options="OccupancyStatus::options()" :selected="$unit->occupancy_status?->value" required />
 
             <label class="flex items-center gap-2 text-sm sm:col-span-2">
-                <input type="checkbox" name="uses_elevator" value="1" @checked($unit->uses_elevator ?? true) class="rounded border-slate-300 text-sky-600">
+                <input type="checkbox" name="uses_elevator" value="1" @checked($unit->uses_elevator ?? true) class="rounded border-line-strong text-brand-500 dark:text-brand-300">
                 این واحد از آسانسور استفاده می‌کند
             </label>
 

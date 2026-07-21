@@ -4,7 +4,7 @@
 @section('content')
 <div class="mx-auto max-w-2xl space-y-4">
     <h1 class="text-xl font-bold">پنل پیامک (ورود با کد)</h1>
-    <p class="text-sm text-slate-400">سامانه‌ی پیامکی خود را انتخاب و اطلاعات آن را وارد کنید. این تنظیمات برای ارسال کد ورود کاربران استفاده می‌شود.</p>
+    <p class="text-sm text-faint">سامانه‌ی پیامکی خود را انتخاب و اطلاعات آن را وارد کنید. این تنظیمات برای ارسال کد ورود کاربران استفاده می‌شود.</p>
 
     <x-card>
         <form method="POST" action="{{ route('system.sms.update') }}" class="space-y-4" x-data="{ driver: '{{ $driver }}' }">
@@ -13,7 +13,7 @@
             <x-select name="sms_driver" label="سامانه پیامکی" :options="$drivers" :selected="$driver" x-model="driver" required />
 
             <template x-if="driver === 'log'">
-                <div class="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-700 dark:border-amber-800 dark:bg-amber-900/30 dark:text-amber-300">
+                <div class="tone-warning rounded-xl px-4 py-3 text-sm">
                     در حالت تست، پیامک واقعی ارسال نمی‌شود و کد ورود در فایل لاگ (و صفحه‌ی ورود) نمایش داده می‌شود. برای محیط واقعی یکی از سامانه‌ها را انتخاب کنید.
                 </div>
             </template>

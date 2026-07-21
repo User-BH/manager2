@@ -9,7 +9,7 @@
         <h1 class="text-xl font-bold">هزینه‌ها و درآمدها — {{ Jalali::periodLabel($period) }}</h1>
         <form method="GET" class="flex items-center gap-2">
             <input type="text" name="period" value="{{ $period }}" dir="ltr" placeholder="1404-03"
-                class="w-32 rounded-xl border border-slate-300 px-3 py-1.5 text-sm dark:border-slate-600 dark:bg-slate-900">
+                class="w-32 rounded-xl border border-line-strong px-3 py-1.5 text-sm">
             <x-button variant="ghost" class="!py-1.5">نمایش</x-button>
         </form>
     </div>
@@ -22,7 +22,7 @@
     <div class="grid grid-cols-1 gap-4 lg:grid-cols-2">
         {{-- Expenses --}}
         <x-card title="هزینه‌ها">
-            <form method="POST" action="{{ route('admin.expenses.store') }}" class="mb-4 space-y-3 rounded-xl bg-slate-50 p-3 dark:bg-slate-700/40">
+            <form method="POST" action="{{ route('admin.expenses.store') }}" class="mb-4 space-y-3 rounded-xl bg-sunken p-3">
                 @csrf
                 <input type="hidden" name="period" value="{{ $period }}">
                 <x-input name="title" label="عنوان هزینه" required />
@@ -36,28 +36,28 @@
 
             <div class="space-y-2">
                 @forelse ($expenses as $e)
-                    <div class="flex items-center justify-between border-b border-slate-100 pb-2 text-sm dark:border-slate-700">
+                    <div class="flex items-center justify-between border-b border-line pb-2 text-sm">
                         <div>
                             <span class="font-medium">{{ $e->title }}</span>
                             <x-badge :color="$e->category->value === 'owner' ? 'sky' : 'slate'">{{ $e->category->label() }}</x-badge>
                             @if ($e->is_distributed)<x-badge color="amber">تقسیم‌شده</x-badge>@endif
                         </div>
                         <div class="flex items-center gap-3">
-                            <span class="tabular-nums text-rose-600 dark:text-rose-400">{{ Jalali::money($e->amount) }}</span>
+                            <span class="tabular-nums text-danger">{{ Jalali::money($e->amount) }}</span>
                             <form method="POST" action="{{ route('admin.expenses.destroy', $e) }}" onsubmit="return confirm('حذف؟')">@csrf @method('DELETE')
-                                <button class="text-xs text-rose-500 hover:underline">حذف</button>
+                                <button class="text-xs text-danger hover:underline">حذف</button>
                             </form>
                         </div>
                     </div>
                 @empty
-                    <p class="py-4 text-center text-sm text-slate-400">هزینه‌ای ثبت نشده است.</p>
+                    <p class="py-4 text-center text-sm text-faint">هزینه‌ای ثبت نشده است.</p>
                 @endforelse
             </div>
         </x-card>
 
         {{-- Incomes --}}
         <x-card title="درآمدها">
-            <form method="POST" action="{{ route('admin.incomes.store') }}" class="mb-4 space-y-3 rounded-xl bg-slate-50 p-3 dark:bg-slate-700/40">
+            <form method="POST" action="{{ route('admin.incomes.store') }}" class="mb-4 space-y-3 rounded-xl bg-sunken p-3">
                 @csrf
                 <input type="hidden" name="period" value="{{ $period }}">
                 <x-input name="title" label="عنوان درآمد" required />
@@ -70,17 +70,17 @@
 
             <div class="space-y-2">
                 @forelse ($incomes as $i)
-                    <div class="flex items-center justify-between border-b border-slate-100 pb-2 text-sm dark:border-slate-700">
+                    <div class="flex items-center justify-between border-b border-line pb-2 text-sm">
                         <span class="font-medium">{{ $i->title }}</span>
                         <div class="flex items-center gap-3">
-                            <span class="tabular-nums text-emerald-600 dark:text-emerald-400">{{ Jalali::money($i->amount) }}</span>
+                            <span class="tabular-nums text-success">{{ Jalali::money($i->amount) }}</span>
                             <form method="POST" action="{{ route('admin.incomes.destroy', $i) }}" onsubmit="return confirm('حذف؟')">@csrf @method('DELETE')
-                                <button class="text-xs text-rose-500 hover:underline">حذف</button>
+                                <button class="text-xs text-danger hover:underline">حذف</button>
                             </form>
                         </div>
                     </div>
                 @empty
-                    <p class="py-4 text-center text-sm text-slate-400">درآمدی ثبت نشده است.</p>
+                    <p class="py-4 text-center text-sm text-faint">درآمدی ثبت نشده است.</p>
                 @endforelse
             </div>
         </x-card>

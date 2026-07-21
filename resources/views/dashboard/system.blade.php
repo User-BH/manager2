@@ -15,10 +15,10 @@
 
     <x-card title="مجتمع‌ها" subtitle="برای مدیریت یک مجتمع، آن را انتخاب کنید">
         <table class="w-full text-sm">
-            <thead class="text-xs text-slate-400">
+            <thead class="text-xs text-faint">
                 <tr><th class="pb-2 text-right">نام</th><th class="pb-2 text-right">واحدها</th><th class="pb-2 text-right">کاربران</th><th class="pb-2 text-left">عملیات</th></tr>
             </thead>
-            <tbody class="divide-y divide-slate-100 dark:divide-slate-700">
+            <tbody class="divide-y divide-line">
                 @foreach ($complexes as $c)
                     <tr>
                         <td class="py-3 font-medium">{{ $c->name }}</td>

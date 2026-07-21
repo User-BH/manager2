@@ -17,7 +17,7 @@
                 <x-input name="charge_due_day" type="number" label="روز مهلت پرداخت (در ماه)" :value="$complex->charge_due_day" required />
             </div>
 
-            <hr class="border-slate-200 dark:border-slate-700">
+            <hr class="border-line">
             <h3 class="font-semibold">درگاه پرداخت</h3>
             <div x-data="{ gw: '{{ $complex->payment_gateway }}' }">
                 <x-select name="payment_gateway" label="درگاه فعال"
@@ -36,10 +36,10 @@
                 </div>
             </div>
 
-            <hr class="border-slate-200 dark:border-slate-700">
+            <hr class="border-line">
             <h3 class="font-semibold">جریمه دیرکرد</h3>
             <label class="flex items-center gap-2 text-sm">
-                <input type="checkbox" name="penalty_enabled" value="1" @checked($complex->penalty_enabled) class="rounded border-slate-300 text-sky-600">
+                <input type="checkbox" name="penalty_enabled" value="1" @checked($complex->penalty_enabled) class="rounded border-line-strong text-brand-500 dark:text-brand-300">
                 محاسبه جریمه دیرکرد فعال باشد
             </label>
             <div class="grid grid-cols-1 gap-4 sm:grid-cols-3">
@@ -50,14 +50,14 @@
                 <x-input name="penalty_grace_days" type="number" label="روزهای مهلت (بدون جریمه)" :value="$complex->penalty_grace_days" required />
             </div>
 
-            <hr class="border-slate-200 dark:border-slate-700">
+            <hr class="border-line">
             <h3 class="font-semibold">امکانات</h3>
             <label class="flex items-center gap-2 text-sm">
-                <input type="checkbox" name="messenger_enabled" value="1" @checked($complex->messenger_enabled) class="rounded border-slate-300 text-sky-600">
+                <input type="checkbox" name="messenger_enabled" value="1" @checked($complex->messenger_enabled) class="rounded border-line-strong text-brand-500 dark:text-brand-300">
                 پیام‌رسان داخلی فعال باشد
             </label>
             <label class="flex items-center gap-2 text-sm">
-                <input type="checkbox" name="good_payer_enabled" value="1" @checked($complex->good_payer_enabled) class="rounded border-slate-300 text-sky-600">
+                <input type="checkbox" name="good_payer_enabled" value="1" @checked($complex->good_payer_enabled) class="rounded border-line-strong text-brand-500 dark:text-brand-300">
                 بخش ساکنین خوش‌حساب فعال باشد
             </label>
 

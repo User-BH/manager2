@@ -144,9 +144,46 @@ database/seeders/        DemoSeeder (دادهٔ نمونهٔ کامل)
 - محدودیت نوع/حجم فایل رسید؛ ذخیره روی دیسک **خصوصی** و سرویس‌دهی کنترل‌شده.
 - غیرفعال‌سازی کاربر (`is_active`) با خروج فوری؛ لاگ فعالیت (`audit_logs`).
 
-## ۱۴) UI
+## ۱۴) UI و سیستم طراحی
 
 ساده، مدرن، مینیمال، ریسپانسیو، RTL، **حالت روشن/تاریک** هماهنگ با تنظیم سیستم (با امکان تغییر دستی و ذخیره)، اعداد و تاریخ فارسی، فونت Vazirmatn.
+
+### هویت برند
+نام **ساکنا** با نشان سپر+ساختمان (SVG، بدون فایل تصویری) و پالت **سبز-زمرد ساختمانی**. نام، شعار، اطلاعات تماس و شبکه‌های اجتماعی در `config/brand.php` متمرکز شده‌اند؛ با تغییر این فایل کل UI هماهنگ به‌روزرسانی می‌شود.
+
+### توکن‌های طراحی (`resources/css/app.css`)
+دو لایه رنگ داریم:
+
+1. **پالت ثابت برند** — `--color-brand-50..900` و `--color-accent-400..600` که بین تم روشن و تاریک تغییر نمی‌کنند.
+2. **متغیرهای زمان-اجرا** — `--surface-*`, `--text-*`, `--border-*`, `--state-*`, `--tone-*-bg/fg` که در `:root` و `.dark` مقدار متفاوت دارند.
+
+توکن‌های معنایی داخل `@theme` به لایهٔ دوم اشاره می‌کنند، بنابراین کلاس‌های زیر **خودشان** بین تم روشن و تاریک سوییچ می‌کنند و دیگر لازم نیست برای هرکدام یک نسخهٔ `dark:` هم نوشته شود:
+
+| کلاس | کاربرد |
+|------|--------|
+| `bg-canvas` / `bg-surface` / `bg-raised` / `bg-sunken` / `bg-overlay` | سطوح، از پس‌زمینهٔ صفحه تا منوی شناور |
+| `border-line` / `border-line-strong` | مرزهای کم‌رنگ و پررنگ |
+| `text-ink` / `text-muted` / `text-faint` / `text-on-brand` | سلسله‌مراتب متن |
+| `text-success` / `text-danger` / `text-warning` / `text-info` | رنگ وضعیت |
+| `tone-neutral` / `tone-brand` / `tone-success` / `tone-danger` / `tone-warning` / `tone-info` | جفت پس‌زمینه+متن برای نشان‌ها و هشدارها |
+| `shadow-ambient` / `focus-ring` / `scrollbar-thin` | سایه، حلقهٔ فوکوس و اسکرول‌بار یکدست |
+
+> نکته: نام کلاس Tailwind را هرگز با درج مقدار در Blade نسازید (مثل `bg-{{ $color }}-500`)؛ اسکنر Tailwind فقط رشته‌های کامل موجود در سورس را می‌بیند و کلاس ساخته‌شدهٔ پویا تولید نمی‌شود.
+
+### کامپوننت‌های Blade (`resources/views/components/`)
+`icon` (مجموعهٔ آیکون مرکزی، سبک Lucide)، `logo` / `logo-mark`، `button`، `icon-button`، `badge`، `alert`، `card`، `stat`، `input`، `select`، `nav-link`، `theme-toggle`، `sidebar-content` و `skyline` (نمای انتزاعی مجتمع، کاملاً SVG و محلی).
+
+مقادیر قدیمی رنگ در `x-badge` و `x-stat` (مثل `color="sky"` یا `tone="emerald"`) همچنان کار می‌کنند و داخل کامپوننت به تُن معنایی معادل نگاشت می‌شوند.
+
+### پوستهٔ داشبورد
+سایدبار **جمع‌شونده** با ذخیرهٔ وضعیت در `localStorage`. وضعیت روی `<html data-sidebar="...">` نگه‌داشته و توسط اسکریپت inline در `<head>` پیش از اولین رنگ‌آمیزی ست می‌شود، بنابراین هنگام بارگذاری صفحه پرش دیده نمی‌شود. هدر شامل عنوان صفحه، اعلان، تعویض تم و منوی کاربر است؛ در موبایل سایدبار به‌صورت کشو از سمت راست باز می‌شود.
+
+ساختار منو در `components/sidebar-content.blade.php` از یک آرایهٔ واحد ساخته می‌شود و هر آیتم مستقیماً به `route()` موجود اشاره دارد؛ افزودن یا جابه‌جایی آیتم فقط در همان یک نقطه انجام می‌شود.
+
+### صفحهٔ فرود عمومی
+مسیر `/` برای بازدیدکنندهٔ واردنشده صفحهٔ فرود (`home.index`) و برای کاربر واردشده ریدایرکت به داشبورد است. بخش‌ها: هیرو، آمار با شمارش تدریجی، بنر چرخشی، ویژگی‌ها، گالری بی‌نهایت، نظرات و فوتر. متن‌های آن در `config/landing.php` جدا شده‌اند.
+
+**هیچ منبع خارجی به‌کار نرفته است:** به‌جای عکس‌های استوک از کامپوننت `x-skyline` (SVG تولیدشده با رنگ‌های برند) و به‌جای نقشهٔ جاسازی‌شدهٔ گوگل از یک کارت موقعیت محلی استفاده شده تا قید self-host پروژه حفظ شود. اگر بعداً عکس واقعی مجتمع اضافه شد، کافی است `x-skyline` با `<img>` عوض شود.
 
 ---
 
@@ -223,7 +260,77 @@ php artisan migrate --seed && php artisan serve
 ```bash
 php artisan test
 ```
-شامل تست‌های واحد موتور شارژ (۱۰ سناریو)، نرمال‌سازی شماره تلفن، جریان ورود با رمز/کد پیامک، و تست یکپارچگی صدور قبض/تسویه (۲۱ تست).
+۲۷ تست: موتور شارژ (۱۰ سناریو)، نرمال‌سازی شماره تلفن، جریان ورود با رمز/کد پیامک، یکپارچگی صدور قبض/تسویه، و **`SmokeRenderTest`** که همهٔ صفحات را برای هر چهار نقش رندر می‌کند تا خطای Blade در هر صفحه‌ای بلافاصله در تست دیده شود (نه با کلیک دستی).
+
+---
+
+## استقرار روی سرور لینوکس
+
+### پیش‌نیازهای سرور
+```bash
+# Ubuntu / Debian
+sudo apt update
+sudo apt install -y nginx mariadb-server unzip git \
+  php8.4-fpm php8.4-mysql php8.4-mbstring php8.4-xml php8.4-zip \
+  php8.4-gd php8.4-curl php8.4-intl php8.4-bcmath
+```
+Node.js 18+ فقط برای ساخت assetها لازم است؛ می‌توانید `npm run build` را روی سیستم خودتان بزنید و پوشهٔ `public/build` را همراه پروژه بالا ببرید.
+
+### گام‌ها
+```bash
+cd /var/www/sakena
+composer install --no-dev --optimize-autoloader
+cp .env.example .env && php artisan key:generate
+
+# در .env: APP_ENV=production, APP_DEBUG=false, APP_URL=https://your-domain
+# و اطلاعات MySQL را وارد کنید
+
+php artisan migrate --force          # --seed را فقط اگر دادهٔ نمونه می‌خواهید
+npm ci && npm run build              # اگر روی سرور Node دارید
+
+php artisan config:cache
+php artisan route:cache
+php artisan view:cache
+```
+
+### دسترسی فایل‌ها
+```bash
+sudo chown -R www-data:www-data storage bootstrap/cache
+sudo chmod -R 775 storage bootstrap/cache
+```
+
+### Nginx
+ریشهٔ سایت باید به پوشهٔ **`public/`** اشاره کند، نه ریشهٔ پروژه:
+```nginx
+server {
+    listen 80;
+    server_name your-domain.com;
+    root /var/www/sakena/public;
+    index index.php;
+
+    location / {
+        try_files $uri $uri/ /index.php?$query_string;
+    }
+
+    location ~ \.php$ {
+        fastcgi_pass unix:/run/php/php8.4-fpm.sock;
+        fastcgi_param SCRIPT_FILENAME $realpath_root$fastcgi_script_name;
+        include fastcgi_params;
+    }
+
+    location ~ /\.(?!well-known).* { deny all; }
+}
+```
+سپس با `certbot --nginx` گواهی HTTPS بگیرید. **PWA و سرویس‌ورکر فقط روی HTTPS فعال می‌شوند.**
+
+### زمان‌بندی یادآوری پیامکی
+```bash
+# crontab -e
+* * * * * cd /var/www/sakena && php artisan schedule:run >> /dev/null 2>&1
+```
+
+> نکته: بعد از هر `git pull` روی سرور، کش‌ها را تازه کنید:
+> `php artisan config:cache && php artisan route:cache && php artisan view:cache`
 
 ---
 

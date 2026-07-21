@@ -13,7 +13,7 @@
     <x-card>
         <div class="overflow-x-auto">
             <table class="w-full text-sm">
-                <thead class="text-xs text-slate-400">
+                <thead class="text-xs text-faint">
                     <tr>
                         <th class="pb-2 text-right">نام</th>
                         <th class="pb-2 text-right">نقش</th>
@@ -23,7 +23,7 @@
                         <th class="pb-2 text-left">عملیات</th>
                     </tr>
                 </thead>
-                <tbody class="divide-y divide-slate-100 dark:divide-slate-700">
+                <tbody class="divide-y divide-line">
                     @foreach ($residents as $resident)
                         <tr>
                             <td class="py-3 font-medium">{{ $resident->name }}</td>
@@ -38,14 +38,14 @@
                             </td>
                             <td class="py-3 text-left">
                                 <div class="flex items-center justify-end gap-2">
-                                    <a href="{{ route('admin.residents.edit', $resident) }}" class="text-sky-600 hover:underline dark:text-sky-400">ویرایش</a>
+                                    <a href="{{ route('admin.residents.edit', $resident) }}" class="text-brand-500 dark:text-brand-300 hover:underline">ویرایش</a>
                                     <form method="POST" action="{{ route('admin.residents.toggle-active', $resident) }}">
                                         @csrf @method('PATCH')
-                                        <button class="text-amber-600 hover:underline dark:text-amber-400">{{ $resident->is_active ? 'غیرفعال' : 'فعال' }}</button>
+                                        <button class="text-warning hover:underline">{{ $resident->is_active ? 'غیرفعال' : 'فعال' }}</button>
                                     </form>
                                     <form method="POST" action="{{ route('admin.residents.toggle-message', $resident) }}">
                                         @csrf @method('PATCH')
-                                        <button class="text-slate-500 hover:underline">{{ $resident->can_message ? 'محدود پیام' : 'رفع محدودیت' }}</button>
+                                        <button class="text-muted hover:underline">{{ $resident->can_message ? 'محدود پیام' : 'رفع محدودیت' }}</button>
                                     </form>
                                 </div>
                             </td>

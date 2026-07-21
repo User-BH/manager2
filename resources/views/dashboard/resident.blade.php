@@ -16,7 +16,7 @@
     <div class="grid grid-cols-1 gap-4 lg:grid-cols-2">
         <x-card title="واحدها و صورت‌حساب‌ها">
             @forelse ($units as $unit)
-                <div class="mb-3 rounded-xl border border-slate-200 p-3 dark:border-slate-700">
+                <div class="mb-3 rounded-xl border border-line p-3">
                     <div class="mb-2 flex items-center justify-between">
                         <span class="font-semibold">{{ $unit->label() }}</span>
                         <x-badge :color="$unit->balance > 0 ? 'rose' : 'emerald'">
@@ -25,32 +25,32 @@
                     </div>
                     @php($latest = $unit->bills->first())
                     @if ($latest)
-                        <div class="flex items-center justify-between text-sm text-slate-500 dark:text-slate-400">
+                        <div class="flex items-center justify-between text-sm text-muted">
                             <span>آخرین قبض: {{ Jalali::periodLabel($latest->period) }} — {{ Jalali::money($latest->total_amount) }}</span>
-                            <a href="{{ route('bills.show', $latest) }}" class="text-sky-600 hover:underline dark:text-sky-400">جزئیات</a>
+                            <a href="{{ route('bills.show', $latest) }}" class="text-brand-500 dark:text-brand-300 hover:underline">جزئیات</a>
                         </div>
                     @else
-                        <p class="text-sm text-slate-400">قبضی صادر نشده است.</p>
+                        <p class="text-sm text-faint">قبضی صادر نشده است.</p>
                     @endif
                 </div>
             @empty
-                <p class="py-6 text-center text-sm text-slate-400">واحدی به شما اختصاص نیافته است.</p>
+                <p class="py-6 text-center text-sm text-faint">واحدی به شما اختصاص نیافته است.</p>
             @endforelse
             <x-button :href="route('bills.index')" variant="ghost" class="mt-2 w-full">مشاهده همه صورت‌حساب‌ها</x-button>
         </x-card>
 
         <x-card title="اطلاعیه‌ها">
             @forelse ($announcements as $a)
-                <div class="mb-3 border-b border-slate-100 pb-3 last:border-0 dark:border-slate-700">
+                <div class="mb-3 border-b border-line pb-3 last:border-0">
                     <div class="flex items-center gap-2">
                         @if ($a->is_pinned)<x-badge color="amber">سنجاق</x-badge>@endif
                         <span class="font-semibold">{{ $a->title }}</span>
                     </div>
-                    <p class="mt-1 line-clamp-2 text-sm text-slate-500 dark:text-slate-400">{{ $a->body }}</p>
-                    <p class="mt-1 text-xs text-slate-400">{{ Jalali::date($a->published_at) }}</p>
+                    <p class="mt-1 line-clamp-2 text-sm text-muted">{{ $a->body }}</p>
+                    <p class="mt-1 text-xs text-faint">{{ Jalali::date($a->published_at) }}</p>
                 </div>
             @empty
-                <p class="py-6 text-center text-sm text-slate-400">اطلاعیه‌ای موجود نیست.</p>
+                <p class="py-6 text-center text-sm text-faint">اطلاعیه‌ای موجود نیست.</p>
             @endforelse
         </x-card>
     </div>

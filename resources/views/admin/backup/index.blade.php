@@ -8,7 +8,7 @@
     <h1 class="text-xl font-bold">بکاپ اطلاعات مجتمع</h1>
 
     <x-card title="تهیه بکاپ جدید" subtitle="خروجی شامل واحدها، کاربران، مالی، قبوض و پرداخت‌ها">
-        <p class="mb-4 text-sm text-slate-500 dark:text-slate-400">
+        <p class="mb-4 text-sm text-muted">
             با کلیک روی دکمه‌ی زیر، یک فایل JSON شامل تمام داده‌های همین مجتمع تهیه و دانلود می‌شود.
             داده‌های سایر مجتمع‌ها در این بکاپ قرار نمی‌گیرند.
         </p>
@@ -20,13 +20,13 @@
 
     <x-card title="تاریخچه بکاپ‌ها">
         @if ($backups->isEmpty())
-            <p class="py-6 text-center text-sm text-slate-400">هنوز بکاپی تهیه نشده است.</p>
+            <p class="py-6 text-center text-sm text-faint">هنوز بکاپی تهیه نشده است.</p>
         @else
             <table class="w-full text-sm">
-                <thead class="text-xs text-slate-400">
+                <thead class="text-xs text-faint">
                     <tr><th class="pb-2 text-right">تاریخ</th><th class="pb-2 text-right">حجم</th><th class="pb-2 text-right">وضعیت</th></tr>
                 </thead>
-                <tbody class="divide-y divide-slate-100 dark:divide-slate-700">
+                <tbody class="divide-y divide-line">
                     @foreach ($backups as $b)
                         <tr>
                             <td class="py-2.5">{{ Jalali::dateTime($b->created_at) }}</td>

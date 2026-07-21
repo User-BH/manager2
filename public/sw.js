@@ -1,6 +1,6 @@
 // Service worker for the building-management PWA.
 // Network-first for navigations (always try fresh data), cache-first for built assets.
-const CACHE = 'bms-v1';
+const CACHE = 'bms-v2';
 const ASSETS = ['/icons/icon-192.png', '/icons/icon-512.png', '/manifest.webmanifest'];
 
 self.addEventListener('install', (event) => {

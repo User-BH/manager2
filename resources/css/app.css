@@ -37,15 +37,356 @@
     font-display: swap;
 }
 
+/* ==================================================================
+   ۱) پالت ثابت برند — سبز-زمرد ساختمانی (Building Emerald)
+   این مقادیر بین تم روشن و تاریک تغییر نمی‌کنند.
+   ================================================================== */
 @theme {
     --font-sans: 'Vazirmatn', ui-sans-serif, system-ui, 'Segoe UI', Tahoma, sans-serif;
+
+    --color-brand-50: #e1f5ee;
+    --color-brand-100: #c3ebdd;
+    --color-brand-200: #8fd9c0;
+    --color-brand-300: #58c39f;
+    --color-brand-400: #2a9e7c;
+    --color-brand-500: #0f6e56;
+    --color-brand-600: #0c5a46;
+    --color-brand-700: #085041;
+    --color-brand-800: #073e33;
+    --color-brand-900: #052b24;
+
+    --color-accent-400: #d18f2c;
+    --color-accent-500: #ba7517;
+    --color-accent-600: #a3650f;
+
+    /* ------------------------------------------------------------------
+       توکن‌های معنایی: به متغیرهای زمان-اجرا (بخش ۲) اشاره می‌کنند، پس
+       کلاس‌هایی مثل bg-surface / text-ink / border-line خودشان بین تم روشن
+       و تاریک سوییچ می‌شوند و دیگر نیازی به نوشتن `dark:` برای آن‌ها نیست.
+       ------------------------------------------------------------------ */
+    --color-canvas: var(--surface-canvas);
+    --color-surface: var(--surface-base);
+    --color-raised: var(--surface-raised);
+    --color-sunken: var(--surface-sunken);
+    --color-overlay: var(--surface-overlay);
+
+    --color-line: var(--border-subtle);
+    --color-line-strong: var(--border-default);
+
+    --color-ink: var(--text-primary);
+    --color-muted: var(--text-secondary);
+    --color-faint: var(--text-tertiary);
+    --color-on-brand: var(--text-on-brand);
+
+    --color-success: var(--state-success);
+    --color-danger: var(--state-danger);
+    --color-warning: var(--state-warning);
+    --color-info: var(--state-info);
 }
 
+/* ==================================================================
+   ۲) متغیرهای زمان-اجرا که بین تم روشن / تاریک سوییچ می‌کنند
+   ================================================================== */
+:root {
+    --surface-canvas: #f6f7f6;
+    --surface-base: #ffffff;
+    --surface-raised: #ffffff;
+    --surface-sunken: #eef1ef;
+    --surface-overlay: #ffffff;
+
+    --border-subtle: #e3e6e3;
+    --border-default: #d3d8d4;
+
+    --text-primary: #1d2421;
+    --text-secondary: #5f6a64;
+    --text-tertiary: #8c958f;
+    --text-on-brand: #ffffff;
+
+    --ring-focus: #0f6e56;
+
+    --state-success: #157f5f;
+    --state-danger: #c0392b;
+    --state-warning: #a3650f;
+    --state-info: #1f6f8b;
+
+    /* جفت رنگ پس‌زمینه/متن نشان‌ها (badge) و هشدارها */
+    --tone-neutral-bg: #eef1ef;
+    --tone-neutral-fg: #47524c;
+    --tone-brand-bg: #e1f5ee;
+    --tone-brand-fg: #0c5a46;
+    --tone-success-bg: #e0f2ea;
+    --tone-success-fg: #12674c;
+    --tone-danger-bg: #fbeae8;
+    --tone-danger-fg: #a5301f;
+    --tone-warning-bg: #fdf1de;
+    --tone-warning-fg: #8a5406;
+    --tone-info-bg: #e4f1f6;
+    --tone-info-fg: #1a5a73;
+
+    --shadow-ambient: 0 1px 2px rgb(15 110 86 / 0.06), 0 8px 24px -16px rgb(15 110 86 / 0.18);
+}
+
+.dark {
+    --surface-canvas: #0f1411;
+    --surface-base: #161c19;
+    --surface-raised: #1b231f;
+    --surface-sunken: #0c100e;
+    --surface-overlay: #1f2823;
+
+    --border-subtle: #28332d;
+    --border-default: #344038;
+
+    --text-primary: #eef2ef;
+    --text-secondary: #a9b3ad;
+    --text-tertiary: #748077;
+    --text-on-brand: #ffffff;
+
+    --ring-focus: #2a9e7c;
+
+    --state-success: #4ec49b;
+    --state-danger: #e57373;
+    --state-warning: #d9a441;
+    --state-info: #63b6d4;
+
+    --tone-neutral-bg: #232d28;
+    --tone-neutral-fg: #c2ccc6;
+    --tone-brand-bg: #0b3b30;
+    --tone-brand-fg: #8fd9c0;
+    --tone-success-bg: #0d3a2c;
+    --tone-success-fg: #6fd3ae;
+    --tone-danger-bg: #401e1c;
+    --tone-danger-fg: #f0a3a3;
+    --tone-warning-bg: #3a2c14;
+    --tone-warning-fg: #e3bd76;
+    --tone-info-bg: #16323d;
+    --tone-info-fg: #93cfe4;
+
+    --shadow-ambient: 0 1px 2px rgb(0 0 0 / 0.4), 0 8px 24px -16px rgb(0 0 0 / 0.6);
+}
+
+/* ==================================================================
+   ۳) پایه
+   ================================================================== */
 html {
     font-family: var(--font-sans);
+    background-color: var(--surface-canvas);
+    color: var(--text-primary);
+}
+
+body {
+    min-height: 100vh;
+}
+
+/* دکمه‌ها و لینک‌های فعال همیشه باید نشانگر pointer داشته باشند، نه default */
+button:not(:disabled),
+a,
+[role='button'] {
+    cursor: pointer;
+}
+
+button:disabled {
+    cursor: not-allowed;
+    opacity: 0.6;
+}
+
+[x-cloak] {
+    display: none !important;
 }
 
 /* Persian digits render best with proper line-height; keep numerals tabular in tables. */
 .tabular-nums {
     font-variant-numeric: tabular-nums;
+}
+
+::selection {
+    background-color: var(--color-brand-200);
+    color: var(--color-brand-900);
+}
+
+/* ==================================================================
+   ۴) کلاس‌های کمکی مشترک
+   ================================================================== */
+@utility scrollbar-thin {
+    scrollbar-width: thin;
+    scrollbar-color: var(--border-default) transparent;
+
+    &::-webkit-scrollbar {
+        width: 6px;
+        height: 6px;
+    }
+    &::-webkit-scrollbar-thumb {
+        background-color: var(--border-default);
+        border-radius: 9999px;
+    }
+    &::-webkit-scrollbar-track {
+        background: transparent;
+    }
+}
+
+/* جفت رنگ نشان‌ها و هشدارها — یک کلاس به‌جای نوشتن bg/text و نسخهٔ dark: هرکدام جدا.
+   نام‌ها با کلیدهای @props کامپوننت‌های x-badge و x-alert یکی هستند. */
+.tone-neutral {
+    background-color: var(--tone-neutral-bg);
+    color: var(--tone-neutral-fg);
+}
+.tone-brand {
+    background-color: var(--tone-brand-bg);
+    color: var(--tone-brand-fg);
+}
+.tone-success {
+    background-color: var(--tone-success-bg);
+    color: var(--tone-success-fg);
+}
+.tone-danger {
+    background-color: var(--tone-danger-bg);
+    color: var(--tone-danger-fg);
+}
+.tone-warning {
+    background-color: var(--tone-warning-bg);
+    color: var(--tone-warning-fg);
+}
+.tone-info {
+    background-color: var(--tone-info-bg);
+    color: var(--tone-info-fg);
+}
+
+/* سایهٔ نرم و یکدست کارت‌ها که در تم تاریک هم دیده می‌شود */
+.shadow-ambient {
+    box-shadow: var(--shadow-ambient);
+}
+
+/* حلقهٔ فوکوس یکسان برای همهٔ ورودی‌ها و دکمه‌ها */
+@utility focus-ring {
+    outline: none;
+
+    &:focus-visible {
+        outline: 2px solid var(--ring-focus);
+        outline-offset: 2px;
+    }
+}
+
+/* ==================================================================
+   ۵) سایدبار جمع‌شونده
+   وضعیت جمع/باز روی <html data-sidebar="..."> نگه‌داشته می‌شود و پیش از
+   اولین رنگ‌آمیزی توسط اسکریپت inline در layout ست می‌گردد؛ بنابراین
+   برخلاف روش x-show، هنگام بارگذاری صفحه پرش (flash) دیده نمی‌شود.
+   ================================================================== */
+.sidebar-desktop {
+    width: 17rem; /* ۲۷۲px */
+    transition: width 0.28s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+[data-sidebar='collapsed'] .sidebar-desktop {
+    width: 4.75rem; /* ۷۶px */
+}
+
+[data-sidebar='collapsed'] .sidebar-desktop .sidebar-label,
+[data-sidebar='collapsed'] .sidebar-desktop .sidebar-section-title,
+[data-sidebar='collapsed'] .sidebar-desktop .sidebar-brand-text {
+    display: none;
+}
+
+[data-sidebar='collapsed'] .sidebar-desktop .sidebar-item,
+[data-sidebar='collapsed'] .sidebar-desktop .sidebar-brand {
+    justify-content: center;
+    padding-inline: 0;
+}
+
+[data-sidebar='collapsed'] .sidebar-collapse-chevron {
+    transform: rotate(180deg);
+}
+
+.sidebar-collapse-chevron {
+    transition: transform 0.28s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* ==================================================================
+   ۶) نوار بی‌نهایت گالری صفحهٔ فرود (marquee)
+   حرکت کاملاً یکنواخت با CSS خام: فاصلهٔ بین آیتم‌ها با margin ثابت روی خود
+   آیتم است (نه gap فلکس‌باکس) تا «واحد تکرار» دقیقاً یک عدد px مطلق باشد و
+   در هر چرخه خطای انباشتی (drift) و شکاف دیده نشود.
+
+   نکتهٔ مهم: margin روی *همهٔ* آیتم‌ها اعمال می‌شود، حتی اولی. اگر برای حذف
+   فاصلهٔ ابتدایی یک قاعدهٔ :first-child اضافه شود، گام تکرار آیتم اول با بقیه
+   فرق می‌کند (۲۸۰ به‌جای ۳۰۰) و چون چیدمان RTL است این ۲۰ پیکسل دقیقاً بین
+   آیتم اول و دوم می‌افتد؛ نتیجه‌اش یک پرش ۲۰ پیکسلی در پایان هر چرخه است.
+   فاصلهٔ ابتدایی هم مشکلی ایجاد نمی‌کند چون لبه‌های viewport ماسک شده‌اند.
+
+   واحد تکرار = تعداد آیتم‌های یک بلوک × (عرض آیتم + فاصله) = ۸ × ۳۰۰ = ۲۴۰۰px.
+   اگر عرض/فاصلهٔ آیتم یا تعداد تصاویر تغییر کرد، --gallery-block-width را هم
+   در resources/views/home/partials/gallery.blade.php به‌روزرسانی کنید.
+   ================================================================== */
+.marquee-viewport {
+    width: 100%;
+    overflow: hidden;
+    -webkit-mask-image: linear-gradient(90deg, transparent, black 4%, black 96%, transparent);
+    mask-image: linear-gradient(90deg, transparent, black 4%, black 96%, transparent);
+}
+
+.marquee-track {
+    display: flex;
+    align-items: stretch;
+    width: max-content;
+    will-change: transform;
+    animation: marquee-scroll var(--marquee-duration, 42s) linear infinite;
+}
+
+.marquee-viewport:hover .marquee-track {
+    animation-play-state: paused;
+}
+
+.marquee-item {
+    position: relative;
+    flex: 0 0 auto;
+    width: 280px;
+    height: 360px;
+    margin-left: 20px;
+    border-radius: 1rem;
+    overflow: hidden;
+    box-shadow: 0 8px 20px -8px color-mix(in srgb, var(--text-primary) 18%, transparent);
+}
+
+@keyframes marquee-scroll {
+    from {
+        transform: translate3d(0, 0, 0);
+    }
+    to {
+        transform: translate3d(calc(-1 * var(--gallery-block-width, 2400px)), 0, 0);
+    }
+}
+
+/* هاور با رنگ/گرادیان رسمی هر شبکهٔ اجتماعی در فوتر.
+   مقدار از متغیر --social-hover که هر لینک به‌صورت inline ست می‌کند خوانده
+   می‌شود، چون می‌تواند گرادیان باشد نه فقط یک رنگ ساده. */
+.social-link:hover {
+    background: var(--social-hover);
+}
+
+/* ظاهر شدن تدریجی بخش‌های صفحهٔ فرود هنگام اسکرول (IntersectionObserver در app.js).
+   حالت پنهان فقط وقتی اعمال می‌شود که کلاس js روی <html> باشد؛ این کلاس را
+   اسکریپت inline در <head> ست می‌کند. بنابراین اگر جاوااسکریپت غیرفعال باشد
+   محتوا به‌جای نامرئی ماندن، عادی نمایش داده می‌شود. */
+.js .reveal {
+    opacity: 0;
+    transform: translateY(24px);
+    transition:
+        opacity 0.7s cubic-bezier(0.22, 1, 0.36, 1),
+        transform 0.7s cubic-bezier(0.22, 1, 0.36, 1);
+    transition-delay: var(--reveal-delay, 0ms);
+}
+
+.js .reveal.is-visible {
+    opacity: 1;
+    transform: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .marquee-track {
+        animation: none;
+    }
+    .reveal {
+        opacity: 1;
+        transform: none;
+        transition: none;
+    }
 }

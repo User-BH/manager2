@@ -10,8 +10,8 @@
 
     <x-card>
         <div class="flex items-center justify-between">
-            <span class="text-slate-500 dark:text-slate-400">مبلغ قابل پرداخت</span>
-            <span class="text-2xl font-bold tabular-nums text-emerald-600 dark:text-emerald-400">{{ Jalali::money($bill->remaining()) }} {{ $currency }}</span>
+            <span class="text-muted">مبلغ قابل پرداخت</span>
+            <span class="text-2xl font-bold tabular-nums text-success">{{ Jalali::money($bill->remaining()) }} {{ $currency }}</span>
         </div>
     </x-card>
 
@@ -23,7 +23,7 @@
             </form>
         </x-card>
     @else
-        <div class="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-700 dark:border-amber-800 dark:bg-amber-900/30 dark:text-amber-300">
+        <div class="tone-warning rounded-xl px-4 py-3 text-sm">
             درگاه پرداخت آنلاین برای این مجتمع فعال نیست. لطفا رسید واریز خود را آپلود کنید.
         </div>
     @endif
@@ -35,10 +35,10 @@
             <x-input name="paid_on" type="date" label="تاریخ واریز" />
             <x-input name="description" label="توضیحات (اختیاری)" />
             <label class="block">
-                <span class="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-200">فایل رسید (تصویر یا PDF، حداکثر ۴ مگابایت) <span class="text-rose-500">*</span></span>
+                <span class="mb-1 block text-sm font-medium text-ink">فایل رسید (تصویر یا PDF، حداکثر ۴ مگابایت) <span class="text-danger">*</span></span>
                 <input type="file" name="receipt" accept=".jpg,.jpeg,.png,.pdf" required
-                    class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm file:ml-3 file:rounded-lg file:border-0 file:bg-sky-600 file:px-3 file:py-1.5 file:text-white dark:border-slate-600 dark:bg-slate-900" />
-                @error('receipt')<span class="mt-1 block text-xs text-rose-500">{{ $message }}</span>@enderror
+                    class="w-full rounded-xl border border-line bg-sunken px-3 py-2 text-sm text-ink file:ml-3 file:rounded-lg file:border-0 file:bg-brand-500 file:px-3 file:py-1.5 file:text-white focus-ring" />
+                @error('receipt')<span class="mt-1 block text-xs text-danger">{{ $message }}</span>@enderror
             </label>
             <x-button variant="success" class="w-full">ثبت رسید</x-button>
         </form>

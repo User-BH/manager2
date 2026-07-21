@@ -18,8 +18,8 @@
     <div class="lg:col-span-2">
         <x-card title="مدیران فعلی" subtitle="یک مجتمع می‌تواند چند مدیر داشته باشد">
             <table class="w-full text-sm">
-                <thead class="text-xs text-slate-400"><tr><th class="pb-2 text-right">نام</th><th class="pb-2 text-right">شماره</th><th class="pb-2 text-left">عملیات</th></tr></thead>
-                <tbody class="divide-y divide-slate-100 dark:divide-slate-700">
+                <thead class="text-xs text-faint"><tr><th class="pb-2 text-right">نام</th><th class="pb-2 text-right">شماره</th><th class="pb-2 text-left">عملیات</th></tr></thead>
+                <tbody class="divide-y divide-line">
                     @foreach ($managers as $m)
                         <tr>
                             <td class="py-3 font-medium">{{ $m->name }} @if($m->id === auth()->id())<x-badge color="sky">شما</x-badge>@endif</td>
@@ -27,7 +27,7 @@
                             <td class="py-3 text-left">
                                 @if ($m->id !== auth()->id())
                                     <form method="POST" action="{{ route('admin.managers.destroy', $m) }}" onsubmit="return confirm('حذف این مدیر؟')">@csrf @method('DELETE')
-                                        <button class="text-rose-600 hover:underline dark:text-rose-400">حذف</button>
+                                        <button class="text-danger hover:underline">حذف</button>
                                     </form>
                                 @endif
                             </td>
