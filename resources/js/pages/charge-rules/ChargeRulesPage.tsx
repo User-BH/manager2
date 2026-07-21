@@ -11,6 +11,7 @@ import { EmptyState, ErrorState, LoadingState } from '@/components/ui/PageState'
 import { useApi } from '@/hooks/useApi'
 import { useDocumentTitle } from '@/hooks'
 import { api, ApiError } from '@/lib/api'
+import { alertError, confirmAction, toastSuccess } from '@/lib/alert'
 import { formatMoney } from '@/lib/format'
 
 const ruleSchema = z.object({
@@ -77,10 +78,21 @@ export function ChargeRulesPage() {
   }
 
   async function remove(rule: ChargeRule) {
-    if (!confirm(`قانون «${rule.name}» حذف شود؟`)) return
+    const ok = await confirmAction({
+      title: `قانون «${rule.name}» حذف شود؟`,
+      text: 'قبوض صادرشده تغییر نمی‌کنند؛ فقط دوره‌های بعدی این قانون را نخواهند داشت.',
+      confirmLabel: 'حذف کن',
+      danger: true,
+    })
+    if (!ok) return
 
-    await api(`/charge-rules/${rule.id}`, { method: 'DELETE' })
-    reload()
+    try {
+      await api(`/charge-rules/${rule.id}`, { method: 'DELETE' })
+      toastSuccess('قانون شارژ حذف شد.')
+      reload()
+    } catch (error) {
+      alertError(error, 'حذف قانون ممکن نشد.')
+    }
   }
 
   return (

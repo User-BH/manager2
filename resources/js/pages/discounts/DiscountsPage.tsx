@@ -11,6 +11,7 @@ import { EmptyState, ErrorState, LoadingState } from '@/components/ui/PageState'
 import { useApi } from '@/hooks/useApi'
 import { useDocumentTitle } from '@/hooks'
 import { api, ApiError } from '@/lib/api'
+import { alertError, confirmAction, toastSuccess } from '@/lib/alert'
 import { formatMoney } from '@/lib/format'
 
 const discountSchema = z.object({
@@ -50,10 +51,20 @@ export function DiscountsPage() {
   const { data, error, isLoading, reload } = useApi<DiscountsResponse>(query)
 
   async function remove(discount: Discount) {
-    if (!confirm(`تخفیف ${discount.unitLabel} حذف شود؟`)) return
+    const ok = await confirmAction({
+      title: `تخفیف ${discount.unitLabel} حذف شود؟`,
+      confirmLabel: 'حذف کن',
+      danger: true,
+    })
+    if (!ok) return
 
-    await api(`/discounts/${discount.id}`, { method: 'DELETE' })
-    reload()
+    try {
+      await api(`/discounts/${discount.id}`, { method: 'DELETE' })
+      toastSuccess('تخفیف حذف شد.')
+      reload()
+    } catch (error) {
+      alertError(error, 'حذف تخفیف ممکن نشد.')
+    }
   }
 
   return (

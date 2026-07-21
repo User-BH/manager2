@@ -9,6 +9,7 @@ import { UnitForm } from './UnitForm'
 import { useApi } from '@/hooks/useApi'
 import { useDocumentTitle } from '@/hooks'
 import { api } from '@/lib/api'
+import { alertError, confirmAction, toastSuccess } from '@/lib/alert'
 import { formatMoney, formatNumber } from '@/lib/format'
 import type { Unit, UnitsResponse } from './types'
 
@@ -26,10 +27,21 @@ export function UnitsPage() {
   const handleSearch = useCallback((value: string) => setSearch(value), [])
 
   async function handleDelete(unit: Unit) {
-    if (!confirm(`واحد ${unit.unitNumber} حذف شود؟`)) return
+    const ok = await confirmAction({
+      title: `واحد ${unit.unitNumber} حذف شود؟`,
+      text: 'قبوض و سوابق پرداخت این واحد هم از دسترس خارج می‌شود.',
+      confirmLabel: 'حذف کن',
+      danger: true,
+    })
+    if (!ok) return
 
-    await api(`/units/${unit.id}`, { method: 'DELETE' })
-    reload()
+    try {
+      await api(`/units/${unit.id}`, { method: 'DELETE' })
+      toastSuccess('واحد حذف شد.')
+      reload()
+    } catch (error) {
+      alertError(error, 'حذف واحد ممکن نشد.')
+    }
   }
 
   function handleSaved() {

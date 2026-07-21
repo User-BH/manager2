@@ -1,8 +1,9 @@
-import { Bell, Menu } from 'lucide-react'
+import { NavLink } from 'react-router-dom'
+import { Calculator, Menu } from 'lucide-react'
 import { SearchBox } from './SearchBox'
+import { NotificationBell } from './NotificationBell'
 import { ThemeToggle } from './ThemeToggle'
 import { UserMenu } from './UserMenu'
-import { IconButton } from '@/components/ui/IconButton'
 import { useSidebar } from '@/context/SidebarContext'
 
 export function Header() {
@@ -26,20 +27,36 @@ export function Header() {
       </button>
 
       <div className="flex-1">
-        <SearchBox onSearch={(q) => console.log('جستجو:', q)} />
+        <SearchBox />
       </div>
 
       <div className="flex items-center gap-2">
-        <IconButton variant="outline" aria-label="اعلان‌ها" className="relative">
-          <Bell size={17} style={{ color: 'var(--text-secondary)' }} />
-          <span
-            className="absolute -left-0.5 -top-0.5 flex h-2.5 w-2.5 rounded-full ring-2"
-            style={{
-              backgroundColor: 'var(--color-accent-500)',
-              ['--tw-ring-color' as string]: 'var(--surface-base)',
-            }}
-          />
-        </IconButton>
+        {/*
+          ماشین حساب یک صفحه‌ی معمولی است نه پاپ‌آپ: با NavLink هم آدرسش
+          قابل بوکمارک می‌شود و هم هدر و سایدبار سر جایشان می‌مانند و فقط
+          وسط صفحه عوض می‌شود — همان رفتاری که بقیه‌ی صفحه‌ها دارند.
+        */}
+        <NavLink
+          to="/calculator"
+          aria-label="ماشین حساب"
+          title="ماشین حساب مهندسی"
+          className="flex h-9 w-9 items-center justify-center rounded-full border transition-colors hover:bg-(--surface-sunken)"
+          style={({ isActive }) => ({
+            borderColor: isActive ? 'var(--color-brand-500)' : 'var(--border-subtle)',
+            backgroundColor: isActive
+              ? 'color-mix(in srgb, var(--color-brand-500) 12%, transparent)'
+              : undefined,
+          })}
+        >
+          {({ isActive }) => (
+            <Calculator
+              size={17}
+              style={{ color: isActive ? 'var(--color-brand-600)' : 'var(--text-secondary)' }}
+            />
+          )}
+        </NavLink>
+
+        <NotificationBell />
 
         <ThemeToggle />
 

@@ -7,6 +7,7 @@ import { EmptyState, ErrorState, LoadingState } from '@/components/ui/PageState'
 import { useApi } from '@/hooks/useApi'
 import { useDocumentTitle } from '@/hooks'
 import { api, ApiError } from '@/lib/api'
+import { confirmAction, promptText, toastSuccess } from '@/lib/alert'
 import { formatMoney, formatNumber } from '@/lib/format'
 
 interface PaymentRow {
@@ -48,12 +49,18 @@ export function PaymentReviewPage() {
   const { data, error, isLoading, reload } = useApi<PaymentsResponse>('/payments')
 
   async function approve(payment: PaymentRow) {
-    if (!confirm(`پرداخت ${formatMoney(payment.amount)} برای ${payment.unitLabel} تایید شود؟`)) return
+    const ok = await confirmAction({
+      title: `پرداخت ${formatMoney(payment.amount)} تایید شود؟`,
+      text: `${payment.unitLabel} — مبلغ به بدهی این واحد اعمال می‌شود.`,
+      confirmLabel: 'تایید پرداخت',
+    })
+    if (!ok) return
 
     setBusyId(payment.id)
     setActionError(null)
     try {
       await api(`/payments/${payment.id}/approve`, { method: 'POST' })
+      toastSuccess('پرداخت تایید شد.')
       reload()
     } catch (err) {
       setActionError(err instanceof ApiError ? err.message : 'تایید ناموفق بود.')
@@ -63,13 +70,20 @@ export function PaymentReviewPage() {
   }
 
   async function reject(payment: PaymentRow) {
-    const note = prompt('دلیل رد کردن رسید (اختیاری):', 'رسید نامعتبر')
+    const note = await promptText({
+      title: 'رد کردن رسید',
+      text: 'دلیل رد شدن برای ساکن نمایش داده می‌شود.',
+      defaultValue: 'رسید نامعتبر',
+      placeholder: 'دلیل (اختیاری)',
+      confirmLabel: 'رد کن',
+    })
     if (note === null) return
 
     setBusyId(payment.id)
     setActionError(null)
     try {
       await api(`/payments/${payment.id}/reject`, { method: 'POST', body: { note } })
+      toastSuccess('رسید رد شد.')
       reload()
     } catch (err) {
       setActionError(err instanceof ApiError ? err.message : 'رد کردن ناموفق بود.')

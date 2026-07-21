@@ -7,6 +7,7 @@ import { EmptyState, ErrorState, LoadingState } from '@/components/ui/PageState'
 import { useApi } from '@/hooks/useApi'
 import { useDocumentTitle } from '@/hooks'
 import { api } from '@/lib/api'
+import { alertError, confirmAction, toastSuccess } from '@/lib/alert'
 import { formatMoney, formatNumber } from '@/lib/format'
 import type { BillStatus } from '@/types'
 
@@ -51,12 +52,21 @@ export function BillsPage() {
 
   async function handleGenerate() {
     if (!data) return
-    if (!confirm(`قبوض دوره‌ی ${data.periodLabel} صادر یا به‌روزرسانی شود؟`)) return
+
+    const ok = await confirmAction({
+      title: `قبوض دوره‌ی ${data.periodLabel} صادر شود؟`,
+      text: 'قبض‌های موجودِ همین دوره با مبالغ تازه به‌روزرسانی می‌شوند.',
+      confirmLabel: 'صدور کن',
+    })
+    if (!ok) return
 
     setGenerating(true)
     try {
       await api('/bills/generate', { method: 'POST', body: { period: data.period } })
+      toastSuccess(`قبوض ${data.periodLabel} صادر شد.`)
       reload()
+    } catch (error) {
+      alertError(error, 'صدور قبوض ممکن نشد.')
     } finally {
       setGenerating(false)
     }

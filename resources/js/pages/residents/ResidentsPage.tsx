@@ -9,6 +9,7 @@ import { ResidentForm } from './ResidentForm'
 import { useApi } from '@/hooks/useApi'
 import { useDocumentTitle } from '@/hooks'
 import { api } from '@/lib/api'
+import { alertError, confirmAction, toastSuccess } from '@/lib/alert'
 import { formatNumber } from '@/lib/format'
 import type { Resident, ResidentsResponse } from './types'
 
@@ -25,10 +26,21 @@ export function ResidentsPage() {
   const handleSearch = useCallback((value: string) => setSearch(value), [])
 
   async function handleDelete(resident: Resident) {
-    if (!confirm(`${resident.name} حذف شود؟`)) return
+    const ok = await confirmAction({
+      title: `${resident.name} حذف شود؟`,
+      text: 'دسترسی این ساکن به سامانه بسته می‌شود.',
+      confirmLabel: 'حذف کن',
+      danger: true,
+    })
+    if (!ok) return
 
-    await api(`/residents/${resident.id}`, { method: 'DELETE' })
-    reload()
+    try {
+      await api(`/residents/${resident.id}`, { method: 'DELETE' })
+      toastSuccess('ساکن حذف شد.')
+      reload()
+    } catch (error) {
+      alertError(error, 'حذف ساکن ممکن نشد.')
+    }
   }
 
   async function handleToggle(resident: Resident) {

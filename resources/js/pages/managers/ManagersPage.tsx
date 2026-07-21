@@ -11,6 +11,7 @@ import { EmptyState, ErrorState, LoadingState } from '@/components/ui/PageState'
 import { useApi } from '@/hooks/useApi'
 import { useDocumentTitle } from '@/hooks'
 import { api, ApiError } from '@/lib/api'
+import { confirmAction, toastSuccess } from '@/lib/alert'
 
 const managerSchema = z.object({
   name: z.string().min(1, 'نام را وارد کنید').max(120, 'نام طولانی است'),
@@ -41,11 +42,18 @@ export function ManagersPage() {
   const { data, error, isLoading, reload } = useApi<{ data: Manager[]; complexName: string }>('/managers')
 
   async function handleDelete(manager: Manager) {
-    if (!confirm(`${manager.name} از مدیران مجتمع حذف شود؟`)) return
+    const ok = await confirmAction({
+      title: `${manager.name} از مدیران مجتمع حذف شود؟`,
+      text: 'دسترسی مدیریتی این کاربر بلافاصله قطع می‌شود.',
+      confirmLabel: 'حذف کن',
+      danger: true,
+    })
+    if (!ok) return
 
     setActionError(null)
     try {
       await api(`/managers/${manager.id}`, { method: 'DELETE' })
+      toastSuccess('مدیر حذف شد.')
       reload()
     } catch (err) {
       // «آخرین مدیر» و «حذف خود» با ۴۲۲ برمی‌گردند و باید دیده شوند

@@ -3,10 +3,10 @@
 namespace App\Http\Controllers\Api;
 
 use App\Enums\AnnouncementAudience;
-use App\Enums\UserRole;
 use App\Http\Controllers\Controller;
 use App\Models\Announcement;
 use App\Support\Jalali;
+use App\Support\Notifications;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -17,26 +17,19 @@ class AnnouncementController extends Controller
     {
         $user = Auth::user();
 
-        $query = Announcement::query();
-
-        if (! $user->isAdmin()) {
-            // ساکن فقط اطلاعیه‌های فعالِ مربوط به نقش خودش را می‌بیند
-            $query->where('is_active', true)->whereIn('audience', [
-                AnnouncementAudience::All->value,
-                $user->role === UserRole::Owner
-                    ? AnnouncementAudience::Owners->value
-                    : AnnouncementAudience::Tenants->value,
-            ]);
-        }
-
-        $announcements = $query
+        $announcements = Announcement::query()
+            ->visibleTo($user)
             ->orderByDesc('is_pinned')
             ->orderByDesc('published_at')
             ->paginate(15);
 
+        // کدام‌یک از همین صفحه را کاربر خوانده است (یک کوئری، نه N کوئری)
+        $readIds = Notifications::readIds($user, collect($announcements->items())->pluck('id'));
+
         return response()->json([
             'data' => collect($announcements->items())
-                ->map(fn (Announcement $a) => $this->present($a))->values(),
+                ->map(fn (Announcement $a) => $this->present($a, in_array($a->id, $readIds, true)))->values(),
+            'unreadCount' => Notifications::unreadCount($user),
             'meta' => [
                 'currentPage' => $announcements->currentPage(),
                 'lastPage' => $announcements->lastPage(),
@@ -70,6 +63,9 @@ class AnnouncementController extends Controller
             'created_by' => Auth::id(),
         ]);
 
+        // نویسنده نباید بابت اطلاعیه‌ی خودش اعلان نخوانده بگیرد
+        Notifications::markRead($announcement, Auth::user());
+
         return response()->json(['announcement' => $this->present($announcement)], 201);
     }
 
@@ -82,7 +78,8 @@ class AnnouncementController extends Controller
         return response()->json(['message' => 'اطلاعیه حذف شد.']);
     }
 
-    private function present(Announcement $a): array
+    /** اطلاعیه‌ی تازه‌ساخته‌شده برای خودِ نویسنده خوانده حساب می‌شود. */
+    private function present(Announcement $a, bool $isRead = true): array
     {
         return [
             'id' => $a->id,
@@ -92,6 +89,7 @@ class AnnouncementController extends Controller
             'audienceLabel' => $a->audience->label(),
             'isPinned' => (bool) $a->is_pinned,
             'isActive' => (bool) $a->is_active,
+            'isRead' => $isRead,
             'publishedAt' => $a->published_at ? Jalali::date($a->published_at) : null,
         ];
     }

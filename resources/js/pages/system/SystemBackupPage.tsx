@@ -8,6 +8,7 @@ import { useApi } from '@/hooks/useApi'
 import { useDocumentTitle } from '@/hooks'
 import { useAuth } from '@/context/AuthContext'
 import { api, ApiError } from '@/lib/api'
+import { confirmAction } from '@/lib/alert'
 
 export function SystemBackupPage() {
   const [busy, setBusy] = useState(false)
@@ -32,10 +33,14 @@ export function SystemBackupPage() {
   }
 
   async function restore(file: File) {
-    const confirmed = confirm(
-      'بازیابی، تمام دادهٔ فعلی سیستم را پاک و با محتوای این فایل جایگزین می‌کند.\n' +
-        'این عمل برگشت‌پذیر نیست. مطمئن هستید؟',
-    )
+    const confirmed = await confirmAction({
+      title: 'بازیابی کل سیستم؟',
+      text:
+        'تمام دادهٔ فعلی پاک و با محتوای این فایل جایگزین می‌شود. ' +
+        'این عمل برگشت‌پذیر نیست و نشست شما هم بسته خواهد شد.',
+      confirmLabel: 'بازیابی کن',
+      danger: true,
+    })
     if (!confirmed) return
 
     setRestoring(true)

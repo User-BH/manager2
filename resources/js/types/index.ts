@@ -52,6 +52,59 @@ export interface DashboardStats {
   goodPayers: { id: number; label: string; onTime: number }[]
 }
 
+/* --- جستجوی سراسری --- */
+
+export interface SearchItem {
+  id: number
+  title: string
+  subtitle: string
+  /** برچسب کوچک سمت چپ ردیف، مثلاً مبلغ بدهی یا تاریخ. */
+  badge: string | null
+  /** مسیر داخل SPA که کلیک روی نتیجه به آن می‌رود. */
+  path: string
+}
+
+export interface SearchGroup {
+  id: string
+  title: string
+  /** نام آیکون lucide که سرور فرستاده؛ کلاینت آن را به کامپوننت نگاشت می‌کند. */
+  icon: string
+  path: string
+  count: number
+  items: SearchItem[]
+}
+
+export interface SearchResponse {
+  query: string
+  total: number
+  groups: SearchGroup[]
+  message?: string
+}
+
+/** یک عبارت جستجوشده که در localStorage نگه داشته می‌شود. */
+export interface RecentSearch {
+  query: string
+  total: number
+  /** میلی‌ثانیه‌ی یونیکس. */
+  at: number
+}
+
+/* --- اعلان‌ها --- */
+
+export interface NotificationItem {
+  id: number
+  title: string
+  excerpt: string
+  isPinned: boolean
+  isRead: boolean
+  publishedAt: string | null
+}
+
+export interface NotificationsResponse {
+  unreadCount: number
+  items: NotificationItem[]
+}
+
 export interface Paginated<T> {
   data: T[]
   meta: { currentPage: number; lastPage: number; perPage: number; total: number }

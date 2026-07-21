@@ -12,10 +12,14 @@ use App\Http\Controllers\Api\GoodPayerController;
 use App\Http\Controllers\Api\ManagerController;
 use App\Http\Controllers\Api\MessengerController;
 use App\Http\Controllers\Api\MyBillController;
+use App\Http\Controllers\Api\NotificationController;
 use App\Http\Controllers\Api\PaymentController;
 use App\Http\Controllers\Api\PaymentReviewController;
+use App\Http\Controllers\Api\ProfileController;
 use App\Http\Controllers\Api\ResidentController;
+use App\Http\Controllers\Api\SearchController;
 use App\Http\Controllers\Api\SettingController;
+use App\Http\Controllers\Api\SubscriptionController;
 use App\Http\Controllers\Api\System\BackupController as SystemBackupController;
 use App\Http\Controllers\Api\System\ComplexController as SystemComplexController;
 use App\Http\Controllers\Api\System\SmsController;
@@ -61,6 +65,24 @@ Route::middleware('auth')->group(function () {
         ->name('announcements.destroy');
 
     Route::get('good-payers', [GoodPayerController::class, 'index'])->name('good-payers.index');
+
+    // زنگوله‌ی هدر. منبعش همان اطلاعیه‌هاست، فقط با وضعیت خوانده/نخوانده.
+    Route::get('notifications', [NotificationController::class, 'index'])->name('notifications.index');
+    Route::post('notifications/read-all', [NotificationController::class, 'readAll'])->name('notifications.read-all');
+    Route::post('notifications/{announcement}/read', [NotificationController::class, 'read'])
+        ->name('notifications.read');
+
+    // جستجوی سراسری. هر گروه داخل کنترلر همان قید نقشی صفحه‌ی خودش را دارد.
+    Route::get('search', [SearchController::class, 'index'])->name('search');
+
+    // پروفایل و حساب کاربری — همیشه دربارهٔ خودِ کاربر واردشده
+    Route::get('profile', [ProfileController::class, 'show'])->name('profile.show');
+    Route::put('profile', [ProfileController::class, 'update'])->name('profile.update');
+    Route::put('profile/password', [ProfileController::class, 'updatePassword'])->name('profile.password');
+
+    Route::get('subscription', [SubscriptionController::class, 'show'])->name('subscription.show');
+    Route::post('subscription/{subscription}/cancel', [SubscriptionController::class, 'cancel'])
+        ->name('subscription.cancel');
 
     // --- صورت‌حساب‌های خود کاربر (مدیر هم می‌تواند ببیند) ---
     Route::get('my-bills', [MyBillController::class, 'index'])->name('my-bills.index');

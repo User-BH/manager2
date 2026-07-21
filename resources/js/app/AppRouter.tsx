@@ -33,6 +33,10 @@ const ChargeRulesPage = lazy(() => import('@/pages/charge-rules/ChargeRulesPage'
 const FinancePage = lazy(() => import('@/pages/finance/FinancePage').then((m) => ({ default: m.FinancePage })))
 const PaymentReviewPage = lazy(() => import('@/pages/payments/PaymentReviewPage').then((m) => ({ default: m.PaymentReviewPage })))
 const DiscountsPage = lazy(() => import('@/pages/discounts/DiscountsPage').then((m) => ({ default: m.DiscountsPage })))
+const SearchResultsPage = lazy(() => import('@/pages/search/SearchResultsPage').then((m) => ({ default: m.SearchResultsPage })))
+const CalculatorPage = lazy(() => import('@/pages/calculator/CalculatorPage').then((m) => ({ default: m.CalculatorPage })))
+const ProfilePage = lazy(() => import('@/pages/profile/ProfilePage').then((m) => ({ default: m.ProfilePage })))
+const AccountPage = lazy(() => import('@/pages/account/AccountPage').then((m) => ({ default: m.AccountPage })))
 
 const ADMINS: UserRole[] = ['super_admin', 'complex_admin']
 const SUPER: UserRole[] = ['super_admin']
@@ -58,6 +62,13 @@ export function AppRouter() {
             <Route path="/my-bills" element={<MyBillsPage />} />
             <Route path="/pay/:billId" element={<PayBillPage />} />
             <Route path="/top-residents" element={<GoodPayersPage />} />
+
+            {/* این چهار صفحه هم داخل همین layout هستند، پس هدر و سایدبار
+                هنگام رفتن به آن‌ها حذف نمی‌شوند و فقط وسط صفحه عوض می‌شود. */}
+            <Route path="/search" element={<SearchResultsPage />} />
+            <Route path="/calculator" element={<CalculatorPage />} />
+            <Route path="/profile" element={<ProfilePage />} />
+            <Route path="/account" element={<AccountPage />} />
           </Route>
         </Route>
 

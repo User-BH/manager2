@@ -2,6 +2,7 @@ import { visibleSections } from '@/config/navigation'
 import { useAuth } from '@/context/AuthContext'
 import { SidebarBrand } from './SidebarBrand'
 import { SidebarSection } from './SidebarSection'
+import { SidebarRecentSearches } from './SidebarRecentSearches'
 
 interface SidebarContentProps {
   collapsed: boolean
@@ -27,6 +28,8 @@ export function SidebarContent({ collapsed, onNavigate }: SidebarContentProps) {
             onNavigate={onNavigate}
           />
         ))}
+
+        <SidebarRecentSearches collapsed={collapsed} onNavigate={onNavigate} />
       </nav>
     </div>
   )

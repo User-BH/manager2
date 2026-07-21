@@ -61,8 +61,22 @@ export function UserMenu() {
             className="absolute left-0 top-[calc(100%+8px)] z-40 w-48 overflow-hidden rounded-xl border shadow-lg"
             style={{ backgroundColor: 'var(--surface-raised)', borderColor: 'var(--border-subtle)' }}
           >
-            <UserMenuItem icon={UserRound} label="پروفایل من" />
-            <UserMenuItem icon={Settings} label="تنظیمات حساب" />
+            <UserMenuItem
+              icon={UserRound}
+              label="پروفایل من"
+              onClick={() => {
+                setOpen(false)
+                navigate('/profile')
+              }}
+            />
+            <UserMenuItem
+              icon={Settings}
+              label="تنظیمات حساب"
+              onClick={() => {
+                setOpen(false)
+                navigate('/account')
+              }}
+            />
             <div className="h-px" style={{ backgroundColor: 'var(--border-subtle)' }} />
             <UserMenuItem icon={LogOut} label="خروج از حساب" danger onClick={handleLogout} />
           </motion.div>

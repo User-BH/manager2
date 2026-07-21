@@ -421,3 +421,153 @@ button:disabled {
         transition: none;
     }
 }
+
+/* ---------------------------------------------------------------------------
+   SweetAlert2
+   ---------------------------------------------------------------------------
+   دیالوگ‌ها با متغیرهای خودِ SweetAlert استایل می‌گیرند، پس به‌جای بازنویسی
+   با !important، همان متغیرها به توکن‌های پروژه وصل می‌شوند. نتیجه این است
+   که با عوض شدن تم (کلاس .dark روی <html>) دیالوگ هم بدون کد اضافه عوض
+   می‌شود. buttonsStyling در lib/alert.ts خاموش است، پس دکمه‌ها را خودمان
+   استایل می‌دهیم و کلاس‌های پیش‌فرض swal دخالت نمی‌کنند.
+--------------------------------------------------------------------------- */
+.swal2-container {
+    --swal2-backdrop: color-mix(in srgb, #05100c 55%, transparent);
+    /* فونت باید همان Vazirmatn بدنه باشد وگرنه عدد فارسی بد رندر می‌شود */
+    font-family: inherit;
+    direction: rtl;
+}
+
+/* استایل خودِ SweetAlert در زمان اجرا به <head> تزریق می‌شود، یعنی بعد از
+   این فایل می‌آید. برای همین هر قاعده‌ای که با پیش‌فرض swal تصادم دارد با
+   دو کلاس نوشته شده تا specificity بالاتر برود؛ وگرنه بی‌اثر می‌ماند. */
+.swal2-popup.swal-app {
+    background-color: var(--surface-overlay);
+    color: var(--text-primary);
+    border: 1px solid var(--border-subtle);
+    border-radius: 1.25rem;
+    box-shadow: 0 24px 60px -24px color-mix(in srgb, #05100c 55%, transparent);
+    padding: 1.75rem 1.5rem 1.25rem;
+}
+
+.swal-app .swal-app-title {
+    color: var(--text-primary);
+    font-size: 1.0625rem;
+    font-weight: 800;
+    line-height: 1.7;
+    padding: 0;
+    margin: 0;
+}
+
+.swal-app .swal-app-text {
+    color: var(--text-secondary);
+    font-size: 0.8125rem;
+    line-height: 2;
+    margin: 0.5rem 0 0;
+}
+
+.swal-app-list {
+    margin: 0.25rem 0 0;
+    padding-inline-start: 1.1rem;
+    text-align: right;
+    list-style: disc;
+}
+
+.swal-app .swal-app-actions {
+    gap: 0.5rem;
+    margin: 1.25rem 0 0;
+}
+
+.swal-app .swal-app-confirm,
+.swal-app .swal-app-cancel {
+    border-radius: 0.75rem;
+    padding: 0.6rem 1.4rem;
+    font-size: 0.8125rem;
+    font-weight: 700;
+    transition:
+        transform 0.15s ease,
+        filter 0.15s ease;
+}
+
+.swal-app .swal-app-confirm {
+    background-color: var(--color-brand-500);
+    background-image: none;
+    color: #fff;
+}
+
+.swal-app .swal-app-confirm.swal-app-danger {
+    background-color: var(--state-danger);
+}
+
+.swal-app .swal-app-cancel {
+    background-color: var(--surface-sunken);
+    background-image: none;
+    color: var(--text-secondary);
+    border: 1px solid var(--border-subtle);
+}
+
+.swal-app .swal-app-confirm:hover,
+.swal-app .swal-app-cancel:hover {
+    transform: translateY(-1px);
+    filter: brightness(1.05);
+}
+
+.swal-app .swal-app-confirm:focus-visible,
+.swal-app .swal-app-cancel:focus-visible {
+    outline: 2px solid var(--ring-focus);
+    outline-offset: 2px;
+}
+
+/* آیکون‌ها: رنگ پیش‌فرض swal با پالت سبز پروژه نمی‌خواند */
+.swal-app-icon.swal2-question {
+    border-color: var(--color-brand-400);
+    color: var(--color-brand-500);
+}
+.swal-app-icon.swal2-warning {
+    border-color: var(--state-warning);
+    color: var(--state-warning);
+}
+.swal-app-icon.swal2-success {
+    border-color: var(--state-success);
+    color: var(--state-success);
+}
+.swal-app-icon.swal2-success [class^='swal2-success-line'] {
+    background-color: var(--state-success);
+}
+.swal-app-icon.swal2-success .swal2-success-ring {
+    border-color: color-mix(in srgb, var(--state-success) 35%, transparent);
+}
+.swal-app-icon.swal2-error {
+    border-color: var(--state-danger);
+    color: var(--state-danger);
+}
+.swal-app-icon.swal2-error [class^='swal2-x-mark-line'] {
+    background-color: var(--state-danger);
+}
+.swal-app-icon.swal2-info {
+    border-color: var(--state-info);
+    color: var(--state-info);
+}
+
+/* حالت toast: کوچک‌تر، بدون padding دیالوگ کامل */
+.swal2-popup.swal-app-toast {
+    padding: 0.75rem 1rem;
+    border-radius: 0.875rem;
+}
+
+.swal-app-toast .swal-app-title {
+    font-size: 0.8125rem;
+    font-weight: 600;
+    text-align: right;
+}
+
+.swal2-timer-progress-bar {
+    background: var(--color-brand-400);
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .swal2-show,
+    .swal2-hide {
+        animation: none;
+    }
+}

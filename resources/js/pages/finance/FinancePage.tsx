@@ -12,6 +12,7 @@ import { EmptyState, ErrorState, LoadingState } from '@/components/ui/PageState'
 import { useApi } from '@/hooks/useApi'
 import { useDocumentTitle } from '@/hooks'
 import { api, ApiError } from '@/lib/api'
+import { alertError, confirmAction, toastSuccess } from '@/lib/alert'
 import { formatMoney } from '@/lib/format'
 
 const expenseSchema = z.object({
@@ -70,15 +71,38 @@ export function FinancePage() {
   const { data, error, isLoading, reload } = useApi<FinanceResponse>(query)
 
   async function removeExpense(id: number) {
-    if (!confirm('این هزینه حذف شود؟')) return
-    await api(`/finance/expenses/${id}`, { method: 'DELETE' })
-    reload()
+    const ok = await confirmAction({
+      title: 'این هزینه حذف شود؟',
+      text: 'اگر بین واحدها تقسیم شده باشد، قبوض صادرشده تغییر نمی‌کنند.',
+      confirmLabel: 'حذف کن',
+      danger: true,
+    })
+    if (!ok) return
+
+    try {
+      await api(`/finance/expenses/${id}`, { method: 'DELETE' })
+      toastSuccess('هزینه حذف شد.')
+      reload()
+    } catch (error) {
+      alertError(error, 'حذف هزینه ممکن نشد.')
+    }
   }
 
   async function removeIncome(id: number) {
-    if (!confirm('این درآمد حذف شود؟')) return
-    await api(`/finance/incomes/${id}`, { method: 'DELETE' })
-    reload()
+    const ok = await confirmAction({
+      title: 'این درآمد حذف شود؟',
+      confirmLabel: 'حذف کن',
+      danger: true,
+    })
+    if (!ok) return
+
+    try {
+      await api(`/finance/incomes/${id}`, { method: 'DELETE' })
+      toastSuccess('درآمد حذف شد.')
+      reload()
+    } catch (error) {
+      alertError(error, 'حذف درآمد ممکن نشد.')
+    }
   }
 
   return (

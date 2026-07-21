@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\DownloadController;
 use App\Http\Controllers\GatewayController;
+use App\Http\Controllers\SubscriptionCheckoutController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -43,6 +44,10 @@ Route::middleware('auth')->group(function () {
 
     // شروع پرداخت آنلاین: مرورگر باید واقعاً به سایت بانک برود
     Route::post('pay/{bill}/online', [GatewayController::class, 'start'])->name('payments.online');
+
+    // خرید اشتراک — درگاهش از درگاه مجتمع جداست (config/subscription.php)
+    Route::post('subscription/checkout', [SubscriptionCheckoutController::class, 'start'])
+        ->name('subscription.checkout');
 });
 
 // بازگشت از درگاه. بدون CSRF، چون درخواست از دامنه‌ی بانک می‌آید و توکن
@@ -50,6 +55,11 @@ Route::middleware('auth')->group(function () {
 Route::match(['get', 'post'], 'pay/callback/{payment}', [GatewayController::class, 'callback'])
     ->middleware('auth')
     ->name('payments.callback')
+    ->withoutMiddleware([\Illuminate\Foundation\Http\Middleware\PreventRequestForgery::class]);
+
+Route::match(['get', 'post'], 'subscription/callback/{subscription}', [SubscriptionCheckoutController::class, 'callback'])
+    ->middleware('auth')
+    ->name('subscription.callback')
     ->withoutMiddleware([\Illuminate\Foundation\Http\Middleware\PreventRequestForgery::class]);
 
 /*

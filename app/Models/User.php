@@ -7,6 +7,7 @@ use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 
@@ -17,6 +18,7 @@ class User extends Authenticatable
 
     protected $fillable = [
         'complex_id', 'name', 'email', 'phone', 'national_id',
+        'birth_date', 'emergency_phone', 'address', 'bio',
         'role', 'password', 'is_active', 'can_message',
     ];
 
@@ -28,6 +30,7 @@ class User extends Authenticatable
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
             'role' => UserRole::class,
+            'birth_date' => 'date',
             'is_active' => 'boolean',
             'can_message' => 'boolean',
         ];
@@ -48,6 +51,11 @@ class User extends Authenticatable
     public function currentUnits(): BelongsToMany
     {
         return $this->units()->wherePivot('is_current', true);
+    }
+
+    public function subscriptions(): HasMany
+    {
+        return $this->hasMany(Subscription::class);
     }
 
     public function isSuperAdmin(): bool
