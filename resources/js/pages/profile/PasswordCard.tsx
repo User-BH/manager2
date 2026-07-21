@@ -6,17 +6,23 @@ import { Card } from '@/components/ui/Card'
 import { TextField } from '@/components/ui/Field'
 import { api, ApiError } from '@/lib/api'
 import { alertError, toastSuccess } from '@/lib/alert'
+import { strongPassword } from '@/lib/validation'
 
 const schema = z
   .object({
     current_password: z.string().min(1, 'رمز عبور فعلی را وارد کنید.'),
-    password: z.string().min(8, 'رمز عبور جدید حداقل ۸ نویسه باشد.'),
+    password: strongPassword,
     password_confirmation: z.string(),
   })
   // بررسی تطابق سمت کلاینت هم انجام می‌شود تا کاربر بی‌دلیل منتظر سرور نماند
   .refine((values) => values.password === values.password_confirmation, {
     message: 'تکرار رمز عبور مطابقت ندارد.',
     path: ['password_confirmation'],
+  })
+  // رمز جدید نباید همان رمز فعلی باشد
+  .refine((values) => values.password !== values.current_password, {
+    message: 'رمز جدید باید با رمز فعلی متفاوت باشد.',
+    path: ['password'],
   })
 
 type PasswordValues = z.infer<typeof schema>

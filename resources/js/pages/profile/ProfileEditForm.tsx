@@ -1,23 +1,43 @@
-import { useForm } from 'react-hook-form'
+import { Controller, useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { Loader2, Save } from 'lucide-react'
 import { z } from 'zod'
 import { TextField } from '@/components/ui/Field'
+import { JalaliDatePicker } from '@/components/ui/JalaliDatePicker'
 import { api, ApiError } from '@/lib/api'
 import { alertError, toastSuccess } from '@/lib/alert'
+import { toEnglishDigits } from '@/lib/format'
+import {
+  nameField,
+  optionalEmail,
+  optionalNationalId,
+  optionalPhone,
+} from '@/lib/validation'
 import type { ProfileFields } from './types'
 
 /**
- * شماره‌ی تلفن عمداً اینجا نیست: کلید ورود به سامانه است و تغییرش باید با
- * تایید پیامکی انجام شود، نه با یک فرم ساده. سرور هم آن را نمی‌پذیرد.
+ * اعتبارسنجی دقیق هر فیلد. شماره‌ی تلفن عمداً اینجا نیست: کلید ورود است و
+ * تغییرش باید با تایید پیامکی انجام شود، نه با یک فرم ساده. سرور هم آن را
+ * نمی‌پذیرد.
  */
 const schema = z.object({
-  name: z.string().trim().min(2, 'نام را کامل وارد کنید.').max(255),
-  email: z.union([z.literal(''), z.email('ایمیل معتبر نیست.')]),
-  national_id: z.string().trim().max(20).optional(),
-  birth_date: z.string().optional(),
-  emergency_phone: z.string().trim().max(20).optional(),
-  address: z.string().trim().max(255).optional(),
+  name: nameField,
+  email: optionalEmail,
+  national_id: optionalNationalId,
+  birth_date: z
+    .string()
+    .optional()
+    .refine(
+      (value) => !value || !Number.isNaN(Date.parse(value)),
+      'تاریخ تولد معتبر نیست.',
+    )
+    .refine(
+      // تاریخ تولدِ آینده بی‌معنی است
+      (value) => !value || new Date(value) <= new Date(),
+      'تاریخ تولد نمی‌تواند در آینده باشد.',
+    ),
+  emergency_phone: optionalPhone,
+  address: z.string().trim().max(255, 'نشانی بیش از حد طولانی است.').optional(),
   bio: z.string().trim().max(500, 'حداکثر ۵۰۰ نویسه.').optional(),
 })
 
@@ -34,11 +54,14 @@ export function ProfileEditForm({
 }) {
   const {
     register,
+    control,
     handleSubmit,
     setError,
     formState: { errors, isSubmitting },
   } = useForm<ProfileValues>({
     resolver: zodResolver(schema),
+    // اعتبارسنجی هنگام از دست دادن فوکوس، تا کاربر همان لحظه خطا را ببیند
+    mode: 'onTouched',
     defaultValues: {
       name: profile.name,
       email: profile.email ?? '',
@@ -52,14 +75,19 @@ export function ProfileEditForm({
 
   async function onSubmit(values: ProfileValues) {
     try {
-      // فیلدهای خالی به‌جای رشته‌ی تهی، null فرستاده می‌شوند تا اعتبارسنجی
-      // «nullable» سرور آن‌ها را واقعاً خالی ببیند نه مقداری نامعتبر.
-      await api('/profile', {
-        method: 'PUT',
-        body: Object.fromEntries(
-          Object.entries(values).map(([key, value]) => [key, value === '' ? null : value]),
-        ),
-      })
+      // ارقام فارسی به لاتین و فیلدهای خالی به null، تا اعتبارسنجی «nullable»
+      // سرور آن‌ها را واقعاً خالی ببیند نه مقداری نامعتبر.
+      const payload = {
+        ...values,
+        national_id: values.national_id ? toEnglishDigits(values.national_id) : null,
+        emergency_phone: values.emergency_phone ? toEnglishDigits(values.emergency_phone) : null,
+        email: values.email || null,
+        birth_date: values.birth_date || null,
+        address: values.address || null,
+        bio: values.bio || null,
+      }
+
+      await api('/profile', { method: 'PUT', body: payload })
 
       toastSuccess('اطلاعات پروفایل ذخیره شد.')
       onSaved()
@@ -75,7 +103,7 @@ export function ProfileEditForm({
   }
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4">
+    <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4" noValidate>
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <TextField label="نام و نام خانوادگی" error={errors.name?.message} {...register('name')} />
         <TextField
@@ -86,11 +114,33 @@ export function ProfileEditForm({
           title="تغییر شماره تلفن از این صفحه ممکن نیست."
         />
         <TextField label="ایمیل" type="email" dir="ltr" error={errors.email?.message} {...register('email')} />
-        <TextField label="کد ملی" inputMode="numeric" error={errors.national_id?.message} {...register('national_id')} />
-        <TextField label="تاریخ تولد" type="date" dir="ltr" error={errors.birth_date?.message} {...register('birth_date')} />
+        <TextField
+          label="کد ملی"
+          inputMode="numeric"
+          maxLength={10}
+          dir="ltr"
+          error={errors.national_id?.message}
+          {...register('national_id')}
+        />
+
+        <Controller
+          control={control}
+          name="birth_date"
+          render={({ field }) => (
+            <JalaliDatePicker
+              label="تاریخ تولد"
+              value={field.value ?? ''}
+              onChange={field.onChange}
+              error={errors.birth_date?.message}
+              maxToday
+            />
+          )}
+        />
+
         <TextField
           label="شماره تماس اضطراری"
           inputMode="tel"
+          dir="ltr"
           error={errors.emergency_phone?.message}
           {...register('emergency_phone')}
         />

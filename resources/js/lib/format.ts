@@ -4,6 +4,19 @@ export function toPersianDigits(value: string | number): string {
   return String(value).replace(/\d/g, (d) => '۰۱۲۳۴۵۶۷۸۹'[Number(d)])
 }
 
+/**
+ * ارقام فارسی/عربی را به لاتین برمی‌گرداند.
+ *
+ * لازم است چون کاربر با صفحه‌کلید فارسی «۰۹۱۲» تایپ می‌کند ولی regexهای
+ * اعتبارسنجی و بک‌اند با ارقام لاتین کار می‌کنند. قبل از هر بررسیِ کد ملی یا
+ * شماره تلفن باید از این عبور کند.
+ */
+export function toEnglishDigits(value: string): string {
+  return value
+    .replace(/[۰-۹]/g, (d) => String('۰۱۲۳۴۵۶۷۸۹'.indexOf(d)))
+    .replace(/[٠-٩]/g, (d) => String('٠١٢٣٤٥٦٧٨٩'.indexOf(d)))
+}
+
 /** مبلغ با جداکننده‌ی هزارگان و ارقام فارسی. */
 export function formatMoney(amount: number): string {
   return toPersianDigits(Math.round(amount).toLocaleString('en-US'))

@@ -3,7 +3,7 @@ import { useSearchParams } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { motion } from 'framer-motion'
-import { Plus, Pin, Trash2, Megaphone, Loader2, Save, AlertCircle, CheckCheck } from 'lucide-react'
+import { Plus, Pin, PinOff, Pencil, Trash2, Megaphone, Loader2, Save, AlertCircle, CheckCheck } from 'lucide-react'
 import { z } from 'zod'
 import { Card } from '@/components/ui/Card'
 import { Modal } from '@/components/ui/Modal'
@@ -47,6 +47,7 @@ interface AnnouncementsResponse {
 
 export function AnnouncementsPage() {
   const [creating, setCreating] = useState(false)
+  const [editing, setEditing] = useState<Announcement | null>(null)
   const [params] = useSearchParams()
   const focusId = Number(params.get('focus')) || null
 
@@ -82,6 +83,27 @@ export function AnnouncementsPage() {
     await markAllRead()
     reload()
     toastSuccess('همه‌ی اطلاعیه‌ها خوانده شد.')
+  }
+
+  // سنجاق‌کردن/برداشتن سنجاق بدون باز کردن فرم: همان endpoint ویرایش با
+  // مقادیر فعلی و فقط is_pinned برعکس‌شده.
+  async function handleTogglePin(announcement: Announcement) {
+    try {
+      await api(`/announcements/${announcement.id}`, {
+        method: 'PUT',
+        body: {
+          title: announcement.title,
+          body: announcement.body,
+          audience: announcement.audience,
+          is_pinned: !announcement.isPinned,
+          is_active: announcement.isActive,
+        },
+      })
+      toastSuccess(announcement.isPinned ? 'سنجاق برداشته شد.' : 'اطلاعیه سنجاق شد.')
+      reload()
+    } catch (err) {
+      alertError(err, 'تغییر وضعیت سنجاق ممکن نشد.')
+    }
   }
 
   async function handleDelete(announcement: Announcement) {
@@ -241,18 +263,48 @@ export function AnnouncementsPage() {
                     </div>
 
                     {data.canManage && (
-                      <button
-                        onClick={(event) => {
-                          // وگرنه کلیک به کارت هم می‌رسد و اطلاعیه بی‌دلیل خوانده می‌شود
-                          event.stopPropagation()
-                          void handleDelete(announcement)
-                        }}
-                        aria-label={`حذف ${announcement.title}`}
-                        className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg transition-colors hover:bg-(--surface-sunken)"
-                        style={{ color: 'var(--color-danger)' }}
-                      >
-                        <Trash2 size={15} />
-                      </button>
+                      <div className="flex shrink-0 items-center gap-0.5">
+                        {/* سنجاق/برداشتن سنجاق سریع، بدون باز کردن فرم */}
+                        <button
+                          onClick={(event) => {
+                            event.stopPropagation()
+                            void handleTogglePin(announcement)
+                          }}
+                          aria-label={announcement.isPinned ? 'برداشتن سنجاق' : 'سنجاق کردن'}
+                          title={announcement.isPinned ? 'برداشتن سنجاق' : 'سنجاق کردن'}
+                          className="flex h-8 w-8 items-center justify-center rounded-lg transition-colors hover:bg-(--surface-sunken)"
+                          style={{ color: announcement.isPinned ? 'var(--color-accent-600)' : 'var(--text-tertiary)' }}
+                        >
+                          {announcement.isPinned ? <PinOff size={15} /> : <Pin size={15} />}
+                        </button>
+
+                        <button
+                          onClick={(event) => {
+                            event.stopPropagation()
+                            setEditing(announcement)
+                          }}
+                          aria-label={`ویرایش ${announcement.title}`}
+                          title="ویرایش"
+                          className="flex h-8 w-8 items-center justify-center rounded-lg transition-colors hover:bg-(--surface-sunken)"
+                          style={{ color: 'var(--text-secondary)' }}
+                        >
+                          <Pencil size={15} />
+                        </button>
+
+                        <button
+                          onClick={(event) => {
+                            // وگرنه کلیک به کارت هم می‌رسد و اطلاعیه بی‌دلیل خوانده می‌شود
+                            event.stopPropagation()
+                            void handleDelete(announcement)
+                          }}
+                          aria-label={`حذف ${announcement.title}`}
+                          title="حذف"
+                          className="flex h-8 w-8 items-center justify-center rounded-lg transition-colors hover:bg-(--surface-sunken)"
+                          style={{ color: 'var(--color-danger)' }}
+                        >
+                          <Trash2 size={15} />
+                        </button>
+                      </div>
                     )}
                   </div>
 
@@ -269,15 +321,27 @@ export function AnnouncementsPage() {
         </>
       )}
 
-      <Modal open={creating} title="اطلاعیه جدید" onClose={() => setCreating(false)}>
+      <Modal
+        open={creating || editing !== null}
+        title={editing ? 'ویرایش اطلاعیه' : 'اطلاعیه جدید'}
+        onClose={() => {
+          setCreating(false)
+          setEditing(null)
+        }}
+      >
         {data && (
           <AnnouncementForm
+            announcement={editing}
             audienceOptions={data.audienceOptions}
             onSaved={() => {
               setCreating(false)
+              setEditing(null)
               reload()
             }}
-            onCancel={() => setCreating(false)}
+            onCancel={() => {
+              setCreating(false)
+              setEditing(null)
+            }}
           />
         )}
       </Modal>
@@ -286,15 +350,19 @@ export function AnnouncementsPage() {
 }
 
 function AnnouncementForm({
+  announcement,
   audienceOptions,
   onSaved,
   onCancel,
 }: {
+  /** اگر باشد، فرم در حالت ویرایش است و PUT می‌زند نه POST. */
+  announcement: Announcement | null
   audienceOptions: { value: string; label: string }[]
   onSaved: () => void
   onCancel: () => void
 }) {
   const [formError, setFormError] = useState<string | null>(null)
+  const isEditing = announcement !== null
 
   const {
     register,
@@ -303,14 +371,28 @@ function AnnouncementForm({
     formState: { errors, isSubmitting },
   } = useForm<AnnouncementFormValues>({
     resolver: zodResolver(announcementSchema),
-    defaultValues: { title: '', body: '', audience: audienceOptions[0]?.value ?? 'all', is_pinned: false },
+    defaultValues: announcement
+      ? {
+          title: announcement.title,
+          body: announcement.body,
+          audience: announcement.audience,
+          is_pinned: announcement.isPinned,
+        }
+      : { title: '', body: '', audience: audienceOptions[0]?.value ?? 'all', is_pinned: false },
   })
 
   async function onSubmit(values: AnnouncementFormValues) {
     setFormError(null)
 
     try {
-      await api('/announcements', { method: 'POST', body: values })
+      if (isEditing) {
+        await api(`/announcements/${announcement.id}`, {
+          method: 'PUT',
+          body: { ...values, is_active: announcement.isActive },
+        })
+      } else {
+        await api('/announcements', { method: 'POST', body: values })
+      }
       onSaved()
     } catch (err) {
       if (err instanceof ApiError) {
@@ -382,7 +464,7 @@ function AnnouncementForm({
           style={{ backgroundColor: 'var(--color-brand-500)' }}
         >
           {isSubmitting ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
-          انتشار اطلاعیه
+          {isEditing ? 'ذخیره تغییرات' : 'انتشار اطلاعیه'}
         </button>
         <button
           type="button"

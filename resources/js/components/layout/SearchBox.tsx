@@ -14,7 +14,7 @@ import { formatNumber } from '@/lib/format'
  */
 export function SearchBox() {
   const navigate = useNavigate()
-  const { query, setQuery, results, isSearching, rememberSearch } = useSearch()
+  const { query, setQuery, results, isSearching, rememberSearch, recent } = useSearch()
 
   const term = query.trim()
   const canSubmit = term.length >= 2
@@ -26,6 +26,14 @@ export function SearchBox() {
 
     rememberSearch(term, total ?? 0)
     navigate(`/search?q=${encodeURIComponent(term)}`)
+  }
+
+  // زدن ضربدر فقط باکس را خالی نمی‌کند؛ کاربر را به صفحه‌ی جستجوهای اخیر
+  // می‌برد (اگر تاریخچه‌ای هست) وگرنه به داشبورد، تا روی صفحه‌ی نتایجِ
+  // خالی‌شده گیر نکند.
+  function clear() {
+    setQuery('')
+    navigate(recent.length > 0 ? '/search' : '/dashboard')
   }
 
   return (
@@ -88,7 +96,7 @@ export function SearchBox() {
         {query && (
           <button
             type="button"
-            onClick={() => setQuery('')}
+            onClick={clear}
             className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full transition-colors hover:bg-(--border-subtle)"
             style={{ color: 'var(--text-tertiary)' }}
             aria-label="پاک کردن جستجو"

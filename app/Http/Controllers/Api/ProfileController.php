@@ -44,15 +44,29 @@ class ProfileController extends Controller
     {
         $user = Auth::user();
 
+        // ارقام فارسیِ کد ملی و شماره‌ی اضطراری قبل از regex به لاتین تبدیل
+        // می‌شوند تا درخواستِ مستقیمِ API هم مثل کلاینت پاک باشد.
+        $request->merge([
+            'national_id' => $this->latinDigits($request->input('national_id')),
+            'emergency_phone' => $this->latinDigits($request->input('emergency_phone')),
+        ]);
+
         $data = $request->validate([
-            'name' => ['required', 'string', 'max:255'],
+            'name' => ['required', 'string', 'max:255', 'regex:/^[\p{L}\s\x{200c}\'\-]+$/u'],
             'email' => ['nullable', 'email', 'max:255', Rule::unique('users')->ignore($user->id)],
-            'national_id' => ['nullable', 'string', 'max:20'],
-            'birth_date' => ['nullable', 'date'],
-            'emergency_phone' => ['nullable', 'string', 'max:20'],
+            // کد ملی: دقیقاً ۱۰ رقم (رقم کنترلی سمت کلاینت بررسی می‌شود)
+            'national_id' => ['nullable', 'regex:/^\d{10}$/'],
+            'birth_date' => ['nullable', 'date', 'before_or_equal:today'],
+            // موبایل یا ثابت: ۱۱ رقم با شروع ۰
+            'emergency_phone' => ['nullable', 'regex:/^0\d{10}$/'],
             'address' => ['nullable', 'string', 'max:255'],
             'bio' => ['nullable', 'string', 'max:500'],
-        ], [], [
+        ], [
+            'name.regex' => 'نام فقط می‌تواند شامل حروف باشد.',
+            'national_id.regex' => 'کد ملی باید ۱۰ رقم باشد.',
+            'emergency_phone.regex' => 'شماره تماس معتبر نیست.',
+            'birth_date.before_or_equal' => 'تاریخ تولد نمی‌تواند در آینده باشد.',
+        ], [
             'name' => 'نام',
             'email' => 'ایمیل',
             'national_id' => 'کد ملی',
@@ -82,8 +96,11 @@ class ProfileController extends Controller
 
         $data = $request->validate([
             'current_password' => ['required', 'string'],
-            'password' => ['required', 'confirmed', Password::min(8)],
-        ], [], [
+            // رمز قوی: حداقل ۸ نویسه، دست‌کم یک حرف و یک رقم — همان قاعده‌ی کلاینت
+            'password' => ['required', 'confirmed', 'different:current_password', Password::min(8)->letters()->numbers()],
+        ], [
+            'password.different' => 'رمز جدید باید با رمز فعلی متفاوت باشد.',
+        ], [
             'current_password' => 'رمز عبور فعلی',
             'password' => 'رمز عبور جدید',
         ]);
@@ -97,6 +114,19 @@ class ProfileController extends Controller
         $user->update(['password' => Hash::make($data['password'])]);
 
         return response()->json(['message' => 'رمز عبور تغییر کرد.']);
+    }
+
+    /** ارقام فارسی/عربی را به لاتین برمی‌گرداند (یا null اگر ورودی خالی باشد). */
+    private function latinDigits(?string $value): ?string
+    {
+        if ($value === null || $value === '') {
+            return $value;
+        }
+
+        $from = ['۰', '۱', '۲', '۳', '۴', '۵', '۶', '۷', '۸', '۹', '٠', '١', '٢', '٣', '٤', '٥', '٦', '٧', '٨', '٩'];
+        $to = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '0', '1', '2', '3', '4', '5', '6', '7', '8', '9'];
+
+        return str_replace($from, $to, $value);
     }
 
     private function present(User $user): array

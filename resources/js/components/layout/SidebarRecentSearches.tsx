@@ -23,7 +23,9 @@ export function SidebarRecentSearches({
   const navigate = useNavigate()
   const { recent, removeRecent, clearRecent, setQuery } = useSearch()
 
-  if (collapsed || recent.length === 0) return null
+  // در حالت جمع‌شده جا نیست، ولی حتی وقتی تاریخچه خالی است این بخش می‌ماند
+  // و تعداد را صفر نشان می‌دهد (کاربر خواسته همیشه دیده شود).
+  if (collapsed) return null
 
   function openSearch(query: string) {
     // باکس هدر هم پر می‌شود تا کاربر ببیند چه چیزی در حال جستجوست
@@ -33,7 +35,8 @@ export function SidebarRecentSearches({
   }
 
   return (
-    <div className="mt-5">
+    // بوردر بالا و فاصله‌ی بیشتر، تا این بخش از منوی اصلی جدا و متمایز شود
+    <div className="mt-6 border-t pt-4" style={{ borderColor: 'var(--border-subtle)' }}>
       <button
         onClick={() => setOpen((prev) => !prev)}
         className="mb-1.5 flex w-full items-center gap-1.5 px-2.5 text-[11px] font-semibold tracking-wide transition-colors hover:opacity-80"
@@ -62,6 +65,15 @@ export function SidebarRecentSearches({
             transition={{ duration: 0.22, ease: 'easeInOut' }}
             className="overflow-hidden"
           >
+            {recent.length === 0 ? (
+              <p
+                className="px-2.5 py-2 text-[11px] leading-6"
+                style={{ color: 'var(--text-tertiary)' }}
+              >
+                هنوز چیزی جستجو نکرده‌اید. نتایج جستجوهای شما اینجا نگهداری می‌شود.
+              </p>
+            ) : (
+              <>
             <ul className="flex flex-col gap-0.5">
               {recent.map((item) => (
                 <li key={item.query} className="group relative">
@@ -104,6 +116,8 @@ export function SidebarRecentSearches({
               <Trash2 size={12} />
               پاک کردن تاریخچه
             </button>
+              </>
+            )}
           </motion.div>
         )}
       </AnimatePresence>

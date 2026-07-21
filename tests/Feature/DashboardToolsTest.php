@@ -189,6 +189,60 @@ class DashboardToolsTest extends TestCase
             ->assertStatus(403);
     }
 
+    public function test_admin_can_edit_an_announcement_and_unpin_it(): void
+    {
+        $announcement = $this->makeAnnouncement('عنوان اولیه');
+        $announcement->update(['is_pinned' => true]);
+
+        $this->actingAs($this->admin)->putJson("/api/announcements/{$announcement->id}", [
+            'title' => 'عنوان ویرایش‌شده',
+            'body' => 'متن تازه',
+            'audience' => 'owners',
+            'is_pinned' => false,
+        ])->assertOk()
+            ->assertJsonPath('announcement.title', 'عنوان ویرایش‌شده')
+            ->assertJsonPath('announcement.isPinned', false)
+            ->assertJsonPath('announcement.audience', 'owners');
+
+        $this->assertDatabaseHas('announcements', [
+            'id' => $announcement->id,
+            'title' => 'عنوان ویرایش‌شده',
+            'is_pinned' => false,
+        ]);
+    }
+
+    public function test_a_resident_cannot_edit_announcements(): void
+    {
+        $announcement = $this->makeAnnouncement('عنوان');
+
+        $this->actingAs($this->resident)->putJson("/api/announcements/{$announcement->id}", [
+            'title' => 'دستکاری',
+            'body' => 'متن',
+            'audience' => 'all',
+        ])->assertStatus(403);
+    }
+
+    public function test_admin_cannot_edit_another_complexs_announcement(): void
+    {
+        $otherComplex = Complex::create(['name' => 'مجتمع دیگر', 'slug' => 'other-'.uniqid()]);
+        $foreign = Announcement::withoutGlobalScopes()->create([
+            'complex_id' => $otherComplex->id,
+            'title' => 'مال مجتمع دیگر',
+            'body' => 'متن',
+            'audience' => AnnouncementAudience::All,
+            'is_active' => true,
+            'published_at' => now(),
+        ]);
+
+        $this->actingAs($this->admin)->putJson("/api/announcements/{$foreign->id}", [
+            'title' => 'نفوذ',
+            'body' => 'متن',
+            'audience' => 'all',
+        ])->assertStatus(403);
+
+        $this->assertDatabaseHas('announcements', ['id' => $foreign->id, 'title' => 'مال مجتمع دیگر']);
+    }
+
     /** نویسنده نباید بابت اطلاعیه‌ی خودش اعلان نخوانده بگیرد. */
     public function test_author_does_not_get_a_notification_for_their_own_announcement(): void
     {
@@ -245,6 +299,40 @@ class DashboardToolsTest extends TestCase
         $this->assertSame('09120000002', $this->resident->phone);
     }
 
+    public function test_profile_update_rejects_an_invalid_national_id_and_phone(): void
+    {
+        $this->actingAs($this->resident)->putJson('/api/profile', [
+            'name' => 'ساکن نمونه',
+            'national_id' => '1234567890', // رقم کنترلی غلط برای سرور فقط ۱۰ رقمی بودن مهم است
+            'emergency_phone' => '12345',   // نه ۱۱ رقم و نه با شروع ۰
+        ])->assertStatus(422)->assertJsonValidationErrors(['emergency_phone']);
+
+        // نام با رقم هم رد می‌شود
+        $this->actingAs($this->resident)->putJson('/api/profile', [
+            'name' => 'ساکن ۱۲۳',
+        ])->assertStatus(422)->assertJsonValidationErrors(['name']);
+    }
+
+    public function test_profile_update_accepts_persian_digits_in_national_id(): void
+    {
+        // کد ملی با ارقام فارسی باید به لاتین تبدیل و پذیرفته شود
+        $this->actingAs($this->resident)->putJson('/api/profile', [
+            'name' => 'ساکن نمونه',
+            'national_id' => '۰۰۱۲۳۴۵۶۷۸',
+            'emergency_phone' => '۰۹۱۲۳۴۵۶۷۸۹',
+        ])->assertOk();
+
+        $this->assertSame('0012345678', $this->resident->fresh()->national_id);
+    }
+
+    public function test_profile_update_rejects_a_future_birth_date(): void
+    {
+        $this->actingAs($this->resident)->putJson('/api/profile', [
+            'name' => 'ساکن نمونه',
+            'birth_date' => now()->addYear()->toDateString(),
+        ])->assertStatus(422)->assertJsonValidationErrors(['birth_date']);
+    }
+
     public function test_password_change_requires_the_current_password(): void
     {
         $this->actingAs($this->resident)->putJson('/api/profile/password', [
@@ -260,6 +348,30 @@ class DashboardToolsTest extends TestCase
         ])->assertOk();
 
         $this->assertTrue(Hash::check('newsecret123', $this->resident->fresh()->password));
+    }
+
+    public function test_password_change_rejects_a_weak_password(): void
+    {
+        // فقط حرف، بدون رقم
+        $this->actingAs($this->resident)->putJson('/api/profile/password', [
+            'current_password' => 'secret123',
+            'password' => 'onlyletters',
+            'password_confirmation' => 'onlyletters',
+        ])->assertStatus(422)->assertJsonValidationErrors('password');
+
+        // کوتاه‌تر از ۸ نویسه
+        $this->actingAs($this->resident)->putJson('/api/profile/password', [
+            'current_password' => 'secret123',
+            'password' => 'a1b2',
+            'password_confirmation' => 'a1b2',
+        ])->assertStatus(422)->assertJsonValidationErrors('password');
+
+        // همان رمز فعلی
+        $this->actingAs($this->resident)->putJson('/api/profile/password', [
+            'current_password' => 'secret123',
+            'password' => 'secret123',
+            'password_confirmation' => 'secret123',
+        ])->assertStatus(422)->assertJsonValidationErrors('password');
     }
 
     /* ----------------------------- اشتراک ------------------------------ */

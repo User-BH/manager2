@@ -549,16 +549,37 @@ button:disabled {
     color: var(--state-info);
 }
 
-/* حالت toast: کوچک‌تر، بدون padding دیالوگ کامل */
+/* حالت toast: کوچک‌تر، بدون padding دیالوگ کامل.
+   استایل خودِ SweetAlert بعد از این فایل به <head> تزریق می‌شود و با
+   selectorهای هم‌ارز غلبه می‌کند؛ برای همین اینجا از `.swal2-toast.swal-app-toast`
+   (دو کلاس روی همان المان) استفاده می‌شود تا specificity بالاتر برود. */
 .swal2-popup.swal-app-toast {
-    padding: 0.75rem 1rem;
+    padding: 0.7rem 0.95rem;
     border-radius: 0.875rem;
+    /* toast یک grid است؛ فاصله‌ی ستون‌ها همان فاصله‌ی آیکون و متن است، پس
+       متنِ کوتاه دیگر نه می‌شکند و نه به آیکون می‌چسبد. */
+    column-gap: 0.55rem;
 }
 
-.swal-app-toast .swal-app-title {
+.swal2-toast.swal-app-toast .swal2-icon {
+    width: 1.55rem;
+    height: 1.55rem;
+    min-width: 1.55rem;
+    margin: 0;
+}
+
+.swal2-toast.swal-app-toast .swal2-icon .swal2-icon-content {
+    font-size: 1rem;
+}
+
+.swal2-toast.swal-app-toast .swal-app-title {
+    margin: 0;
+    padding: 0;
     font-size: 0.8125rem;
     font-weight: 600;
     text-align: right;
+    /* متنِ کوتاه نباید بشکند و زیر آیکون بیفتد */
+    white-space: nowrap;
 }
 
 .swal2-timer-progress-bar {
@@ -596,4 +617,109 @@ button:disabled {
 
 .calc-key:active {
     transform: scale(0.95);
+}
+
+/* ---------------------------------------------------------------------------
+   انتخابگر تاریخ شمسی (react-multi-date-picker)
+   ---------------------------------------------------------------------------
+   ورودی هم‌شکل با بقیه‌ی فیلدهای فرم می‌شود و تقویمِ بازشونده به توکن‌های
+   پروژه وصل می‌شود تا در تم تاریک هم سفیدِ کورکننده نباشد.
+--------------------------------------------------------------------------- */
+.jalali-container {
+    width: 100%;
+}
+
+.jalali-input {
+    width: 100%;
+    border-radius: 0.75rem;
+    border: 1px solid var(--border-subtle);
+    background-color: var(--surface-sunken);
+    color: var(--text-primary);
+    padding: 0.625rem 0.75rem;
+    font-size: 13.5px;
+    font-family: inherit;
+    outline: none;
+    transition:
+        border-color 0.2s ease,
+        box-shadow 0.2s ease;
+}
+
+.jalali-input::placeholder {
+    color: var(--text-tertiary);
+}
+
+.jalali-input:focus {
+    border-color: var(--ring-focus);
+    box-shadow: 0 0 0 2px color-mix(in srgb, var(--ring-focus) 45%, transparent);
+}
+
+.jalali-input-error {
+    border-color: var(--color-danger);
+}
+.jalali-input-error:focus {
+    box-shadow: 0 0 0 2px color-mix(in srgb, var(--color-danger) 45%, transparent);
+}
+
+/* تقویمِ بازشونده */
+.rmdp-wrapper {
+    background-color: var(--surface-overlay);
+    border: 1px solid var(--border-subtle);
+    box-shadow: var(--shadow-ambient);
+    border-radius: 0.9rem;
+    color: var(--text-primary);
+}
+
+.rmdp-calendar {
+    padding: 0.35rem;
+}
+
+.rmdp-header-values,
+.rmdp-week-day,
+.rmdp-day span {
+    color: var(--text-primary);
+}
+
+.rmdp-week-day {
+    color: var(--text-tertiary);
+}
+
+.rmdp-day.rmdp-deactive span,
+.rmdp-day.rmdp-disabled span {
+    color: var(--text-tertiary);
+    opacity: 0.5;
+}
+
+.rmdp-arrow {
+    border-color: var(--text-secondary);
+}
+.rmdp-arrow-container:hover {
+    background-color: var(--color-brand-500);
+    box-shadow: none;
+}
+.rmdp-arrow-container:hover .rmdp-arrow {
+    border-color: #fff;
+}
+
+.rmdp-day:not(.rmdp-disabled):not(.rmdp-day-hidden) span:hover {
+    background-color: color-mix(in srgb, var(--color-brand-500) 22%, transparent) !important;
+    color: var(--text-primary) !important;
+}
+
+.rmdp-day.rmdp-today span {
+    background-color: color-mix(in srgb, var(--color-brand-500) 16%, transparent);
+    color: var(--color-brand-600);
+}
+
+.rmdp-day.rmdp-selected span:not(.highlight) {
+    background-color: var(--color-brand-500);
+    box-shadow: none;
+    color: #fff;
+}
+
+.rmdp-header-values span {
+    color: var(--text-primary);
+}
+
+.rmdp-panel-body li {
+    background-color: var(--color-brand-500);
 }
