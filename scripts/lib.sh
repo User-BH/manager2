@@ -192,6 +192,10 @@ composer_run() {
     fi
 }
 
+# artisan فقط وقتی قابل اجراست که وابستگی‌ها نصب شده باشند؛ روی یک کلون تازه
+# پوشهٔ vendor وجود ندارد و هر فراخوانی artisan با خطای autoload می‌شکند.
+has_vendor() { [ -f "$APP_ROOT/vendor/autoload.php" ]; }
+
 # ------------------------------------------------------------------ خواندن .env
 env_value() {
     [ -f "$APP_ROOT/.env" ] || { echo ''; return 0; }
