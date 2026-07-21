@@ -276,7 +276,53 @@ sudo apt install -y nginx mariadb-server unzip git \
 ```
 Node.js 18+ فقط برای ساخت assetها لازم است؛ می‌توانید `npm run build` را روی سیستم خودتان بزنید و پوشهٔ `public/build` را همراه پروژه بالا ببرید.
 
-### گام‌ها
+### راه‌اندازی با اسکریپت (روش پیشنهادی)
+
+```bash
+cd /var/www/sakena
+./scripts/setup.sh
+```
+
+بار اول فایل `.env` ساخته می‌شود و اسکریپت متوقف می‌شود تا اطلاعات دیتابیس و
+`APP_URL` را وارد کنید؛ بعد دوباره همان دستور را بزنید. از آن به بعد اسکریپت
+خودش composer، ساخت assetها، migration، دسترسی‌ها و کش‌ها را انجام می‌دهد.
+
+```bash
+./scripts/setup.sh --demo      # به‌همراه دادهٔ نمونه
+./scripts/setup.sh --sqlite    # تست سریع بدون MySQL
+```
+
+**برای به‌روزرسانی‌های بعدی:**
+```bash
+./scripts/deploy.sh            # اگر پوشه مخزن git باشد، خودش pull می‌کند
+./scripts/deploy.sh --no-pull  # وقتی فایل‌ها را با FTP/rsync آپلود کرده‌اید
+```
+
+`deploy.sh` سایت را در حالت تعمیرات می‌گذارد، وابستگی‌ها و assetها را به‌روز
+می‌کند، migrationهای جدید را اجرا می‌کند، کش‌ها را بازمی‌سازد و سایت را
+برمی‌گرداند. اگر وسط کار خطایی رخ دهد، سایت در حالت تعمیرات گیر نمی‌کند.
+
+#### این اسکریپت‌ها به چه چیزهایی دست نمی‌زنند
+
+روی سروری که سایت‌های دیگری هم دارد، این نکات مهم‌اند:
+
+- **کانفیگ nginx دست‌نخورده می‌ماند.** اسکریپت فقط یک نمونه کانفیگ در
+  `storage/app/nginx-<domain>.conf` می‌سازد تا خودتان مرور و اضافه کنید.
+- **MySQL و phpMyAdmin دست‌نخورده می‌مانند.** فقط به دیتابیسی که در `.env`
+  مشخص کرده‌اید وصل می‌شود و `migrate` می‌زند.
+- **نسخه‌های دیگر PHP دست‌نخورده می‌مانند.** اگر سایت دیگری روی PHP 7.4 سرو
+  می‌شود، آسیبی نمی‌بیند. اسکریپت عمداً `php` پیش‌فرض سرور را فرض نمی‌گیرد و
+  اول دنبال `php8.5`/`php8.4`/`php8.3` می‌گردد و نسخه را اعتبارسنجی می‌کند.
+  composer هم با همان PHP اجرا می‌شود تا شبانگ آن ما را به نسخهٔ ۷.۴ نبرد.
+- **هیچ‌چیزی با `sudo` اجرا نمی‌شود.** هرجا دسترسی root لازم باشد (مثل
+  `chown` روی `storage` یا `reload` کردن php-fpm)، فقط دستورش چاپ می‌شود.
+
+اگر باینری PHP شما نام یا مسیر غیرمعمول دارد:
+```bash
+PHP_BIN=/opt/php84/bin/php ./scripts/deploy.sh
+```
+
+### راه‌اندازی دستی (اگر اسکریپت را نمی‌خواهید)
 ```bash
 cd /var/www/sakena
 composer install --no-dev --optimize-autoloader
@@ -286,7 +332,7 @@ cp .env.example .env && php artisan key:generate
 # و اطلاعات MySQL را وارد کنید
 
 php artisan migrate --force          # --seed را فقط اگر دادهٔ نمونه می‌خواهید
-npm ci && npm run build              # اگر روی سرور Node دارید
+npm ci && npm run build              # این مرحله الزامی است؛ public/build در گیت نیست
 
 php artisan config:cache
 php artisan route:cache
@@ -300,6 +346,8 @@ sudo chmod -R 775 storage bootstrap/cache
 ```
 
 ### Nginx
+`scripts/setup.sh` یک نسخهٔ کامل‌تر از همین بلوک را با دامنه و سوکت PHP سرور
+شما در `storage/app/nginx-<domain>.conf` می‌سازد. اگر می‌خواهید دستی بنویسید،
 ریشهٔ سایت باید به پوشهٔ **`public/`** اشاره کند، نه ریشهٔ پروژه:
 ```nginx
 server {
