@@ -84,9 +84,9 @@ class MyBillController extends Controller
             'status' => $bill->status->value,
             'statusLabel' => $bill->status->label(),
             'dueDate' => $bill->due_date ? Jalali::date($bill->due_date) : null,
-            // مسیر PDF و پرداخت هنوز در پنل Blade سرو می‌شوند
-            'pdfUrl' => route('bills.pdf', $bill),
-            'payUrl' => route('payments.show', $bill),
+            // PDF یک دانلود مستقیم است و صفحه‌ی پرداخت مسیر داخلی SPA
+            'pdfUrl' => route('bills.invoice', $bill),
+            'payPath' => '/pay/'.$bill->id,
         ];
     }
 

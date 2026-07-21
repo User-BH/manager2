@@ -1,6 +1,6 @@
 import { useCallback, useState } from 'react'
 import { motion } from 'framer-motion'
-import { Plus, Pencil, Trash2, Building2 } from 'lucide-react'
+import { Plus, Pencil, Trash2, Building2, FileText } from 'lucide-react'
 import { Card } from '@/components/ui/Card'
 import { Modal } from '@/components/ui/Modal'
 import { SearchInput } from '@/components/ui/SearchInput'
@@ -136,6 +136,15 @@ export function UnitsPage() {
                       </td>
                       <td className="py-3">
                         <div className="flex items-center justify-end gap-1">
+                          <a
+                            href={`/units/${unit.id}/statement.pdf`}
+                            aria-label={`تسویه‌حساب واحد ${unit.unitNumber}`}
+                            title="تسویه‌حساب (PDF)"
+                            className="flex h-8 w-8 items-center justify-center rounded-lg transition-colors hover:bg-(--surface-sunken)"
+                            style={{ color: 'var(--text-secondary)' }}
+                          >
+                            <FileText size={15} />
+                          </a>
                           <button
                             onClick={() => setEditing(unit)}
                             aria-label={`ویرایش واحد ${unit.unitNumber}`}

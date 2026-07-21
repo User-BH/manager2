@@ -25,7 +25,7 @@ interface MyBill {
   statusLabel: string
   dueDate: string | null
   pdfUrl: string
-  payUrl: string
+  payPath: string
 }
 
 interface BillDetail extends MyBill {
@@ -181,7 +181,7 @@ export function MyBillsPage() {
 
                     {bill.remaining > 0 && (
                       <a
-                        href={bill.payUrl}
+                        href={bill.payPath}
                         className="flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-bold text-white"
                         style={{ backgroundColor: 'var(--color-brand-500)' }}
                       >

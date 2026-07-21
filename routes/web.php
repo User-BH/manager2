@@ -1,14 +1,7 @@
 <?php
 
-use App\Http\Controllers\Admin;
-use App\Http\Controllers\AnnouncementController;
-use App\Http\Controllers\Auth\LoginController;
-use App\Http\Controllers\BillController;
-use App\Http\Controllers\DashboardController;
-use App\Http\Controllers\GoodPayerController;
-use App\Http\Controllers\PaymentController;
-use App\Http\Controllers\System;
-use App\Livewire\Messenger;
+use App\Http\Controllers\DownloadController;
+use App\Http\Controllers\GatewayController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -16,127 +9,56 @@ use Illuminate\Support\Facades\Route;
 | اپلیکیشن React (SPA)
 |--------------------------------------------------------------------------
 |
-| هر مسیری که با /api یا /legacy شروع نشود، همین یک ویو را برمی‌گرداند و
-| react-router سمت کلاینت تصمیم می‌گیرد کدام صفحه رندر شود. به همین دلیل
-| رفرش کردن روی مسیرهای داخلی (مثل /units) هم درست کار می‌کند.
+| هر مسیری که با /api یا یکی از مسیرهای زیر شروع نشود، همین یک ویو را
+| برمی‌گرداند و react-router سمت کلاینت تصمیم می‌گیرد کدام صفحه رندر شود.
+| به همین دلیل رفرش کردن روی مسیرهای داخلی (مثل /units) هم درست کار می‌کند.
 |
 */
 
 Route::view('/', 'spa')->name('home');
 
-// احراز هویت فقط در React انجام می‌شود. این روت نام «login» را نگه می‌دارد
-// چون میدل‌ور Authenticate لاراول کاربر واردنشده را به route('login')
-// می‌فرستد؛ حالا آن مقصد صفحه‌ی ورودِ SPA است.
+// نام «login» را لاراول برای ریدایرکت کاربر واردنشده استفاده می‌کند؛
+// مقصدش صفحه‌ی ورودِ SPA است.
 Route::view('/auth', 'spa')->name('login');
 
 /*
 |--------------------------------------------------------------------------
-| صفحات Blade قدیمی — موقت
+| مسیرهایی که عمداً SPA نیستند
 |--------------------------------------------------------------------------
 |
-| تا وقتی معادل React همه‌ی صفحه‌ها ساخته نشده، پنل قبلی زیر /legacy در
-| دسترس می‌ماند تا کار مدیریت مجتمع متوقف نشود. نام روت‌ها عمداً دست‌نخورده
-| مانده‌اند؛ فقط پیشوند URL اضافه شده، پس همه‌ی ویوهای Blade بدون تغییر
-| کار می‌کنند.
+| اینجا فقط چیزهایی می‌مانند که ذاتاً نمی‌توانند JSON باشند: فایل‌هایی که
+| مرورگر مستقیم بازشان می‌کند، و رفت‌وبرگشت با درگاه بانکی که از دامنه‌ی
+| دیگری برمی‌گردد.
 |
 */
 
-Route::prefix('legacy')->group(function () {
-    // صفحه‌ی ورودِ Blade حذف شده و ورود از طریق React انجام می‌شود؛ چون هر دو
-    // از یک نشست استفاده می‌کنند، کاربری که در SPA وارد شده مستقیماً به این
-    // صفحه‌ها هم دسترسی دارد. فقط خروج اینجا می‌ماند چون لایوت Blade به آن
-    // فرم دارد.
-    Route::post('/logout', [LoginController::class, 'logout'])->middleware('auth')->name('logout');
+Route::middleware('auth')->group(function () {
+    // خروجی‌ها
+    Route::get('bills/{bill}/invoice.pdf', [DownloadController::class, 'billInvoice'])
+        ->name('bills.invoice');
+    Route::get('units/{unit}/statement.pdf', [DownloadController::class, 'unitStatement'])
+        ->name('units.statement');
+    Route::get('bills/export.xlsx', [DownloadController::class, 'billsExport'])
+        ->name('bills.export');
 
-    // --- Authenticated ---
-    Route::middleware('auth')->group(function () {
-        Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
-
-        // Shared pages (all roles)
-        Route::get('/announcements', [AnnouncementController::class, 'index'])->name('announcements.index');
-        Route::get('/messenger', Messenger::class)->name('messenger');
-        Route::get('/good-payers', [GoodPayerController::class, 'index'])->name('good-payers');
-
-        // Resident bills & payments
-        Route::get('/my/bills', [BillController::class, 'index'])->name('bills.index');
-        Route::get('/my/bills/{bill}', [BillController::class, 'show'])->name('bills.show');
-        Route::get('/my/bills/{bill}/pdf', [BillController::class, 'pdf'])->name('bills.pdf');
-        Route::get('/pay/{bill}', [PaymentController::class, 'show'])->name('payments.show');
-        Route::post('/pay/{bill}/online', [PaymentController::class, 'startOnline'])->name('payments.online');
-        Route::match(['get', 'post'], '/pay/callback/{payment}', [PaymentController::class, 'callback'])
-            ->name('payments.callback')
-            ->withoutMiddleware([\Illuminate\Foundation\Http\Middleware\ValidateCsrfToken::class]);
-        Route::post('/pay/{bill}/receipt', [PaymentController::class, 'uploadReceipt'])->name('payments.receipt');
-
-        // --- Complex admin area ---
-        Route::middleware('role:super_admin,complex_admin')->prefix('admin')->name('admin.')->group(function () {
-            Route::get('units/{unit}/statement', [Admin\UnitController::class, 'statement'])->name('units.statement');
-            Route::get('units/{unit}/statement/pdf', [Admin\UnitController::class, 'statementPdf'])->name('units.statement.pdf');
-            Route::resource('units', Admin\UnitController::class)->except('show');
-            Route::resource('residents', Admin\ResidentController::class)->except('show');
-            Route::patch('residents/{resident}/toggle-active', [Admin\ResidentController::class, 'toggleActive'])->name('residents.toggle-active');
-            Route::patch('residents/{resident}/toggle-message', [Admin\ResidentController::class, 'toggleMessage'])->name('residents.toggle-message');
-
-            Route::get('managers', [Admin\ManagerController::class, 'index'])->name('managers.index');
-            Route::post('managers', [Admin\ManagerController::class, 'store'])->name('managers.store');
-            Route::delete('managers/{manager}', [Admin\ManagerController::class, 'destroy'])->name('managers.destroy');
-
-            Route::resource('charge-rules', Admin\ChargeRuleController::class)->only('index', 'store', 'destroy');
-            Route::patch('charge-rules/{charge_rule}/toggle', [Admin\ChargeRuleController::class, 'toggle'])->name('charge-rules.toggle');
-
-            Route::get('expenses', [Admin\ExpenseController::class, 'index'])->name('expenses.index');
-            Route::post('expenses', [Admin\ExpenseController::class, 'storeExpense'])->name('expenses.store');
-            Route::delete('expenses/{expense}', [Admin\ExpenseController::class, 'destroyExpense'])->name('expenses.destroy');
-            Route::post('incomes', [Admin\ExpenseController::class, 'storeIncome'])->name('incomes.store');
-            Route::delete('incomes/{income}', [Admin\ExpenseController::class, 'destroyIncome'])->name('incomes.destroy');
-
-            Route::get('bills', [Admin\BillManagerController::class, 'index'])->name('bills.index');
-            Route::get('bills/export', [Admin\BillManagerController::class, 'export'])->name('bills.export');
-            Route::post('bills/generate', [Admin\BillManagerController::class, 'generate'])->name('bills.generate');
-            Route::post('bills/remind', [Admin\BillManagerController::class, 'remind'])->name('bills.remind');
-
-            Route::get('discounts', [Admin\DiscountController::class, 'index'])->name('discounts.index');
-            Route::post('discounts', [Admin\DiscountController::class, 'store'])->name('discounts.store');
-            Route::delete('discounts/{discount}', [Admin\DiscountController::class, 'destroy'])->name('discounts.destroy');
-
-            Route::get('payments', [Admin\PaymentReviewController::class, 'index'])->name('payments.index');
-            Route::get('payments/{payment}/receipt', [Admin\PaymentReviewController::class, 'receipt'])->name('payments.receipt');
-            Route::post('payments/{payment}/approve', [Admin\PaymentReviewController::class, 'approve'])->name('payments.approve');
-            Route::post('payments/{payment}/reject', [Admin\PaymentReviewController::class, 'reject'])->name('payments.reject');
-
-            Route::get('announcements', [Admin\AnnouncementManagerController::class, 'index'])->name('announcements.index');
-            Route::post('announcements', [Admin\AnnouncementManagerController::class, 'store'])->name('announcements.store');
-            Route::delete('announcements/{announcement}', [Admin\AnnouncementManagerController::class, 'destroy'])->name('announcements.destroy');
-
-            Route::get('settings', [Admin\SettingController::class, 'edit'])->name('settings.edit');
-            Route::put('settings', [Admin\SettingController::class, 'update'])->name('settings.update');
-
-            Route::get('backup', [Admin\BackupController::class, 'index'])->name('backup.index');
-            Route::post('backup', [Admin\BackupController::class, 'store'])->name('backup.store');
-        });
-
-        // --- System super-admin area ---
-        Route::middleware('role:super_admin')->prefix('system')->name('system.')->group(function () {
-            Route::get('complexes', [System\ComplexController::class, 'index'])->name('complexes.index');
-            Route::post('complexes', [System\ComplexController::class, 'store'])->name('complexes.store');
-            Route::post('complexes/{complex}/select', [System\ComplexController::class, 'select'])->name('complexes.select');
-            Route::post('complexes/clear', [System\ComplexController::class, 'clear'])->name('complexes.clear');
-
-            Route::get('sms', [System\SmsSettingController::class, 'edit'])->name('sms.edit');
-            Route::put('sms', [System\SmsSettingController::class, 'update'])->name('sms.update');
-            Route::post('sms/test', [System\SmsSettingController::class, 'test'])->name('sms.test');
-
-            Route::get('backup', [System\SystemBackupController::class, 'index'])->name('backup.index');
-            Route::post('backup', [System\SystemBackupController::class, 'store'])->name('backup.store');
-            Route::get('backup/{backup}/download', [System\SystemBackupController::class, 'download'])->name('backup.download');
-            Route::post('backup/restore', [System\SystemBackupController::class, 'restore'])->name('backup.restore');
-        });
-    });
+    // شروع پرداخت آنلاین: مرورگر باید واقعاً به سایت بانک برود
+    Route::post('pay/{bill}/online', [GatewayController::class, 'start'])->name('payments.online');
 });
 
+// بازگشت از درگاه. بدون CSRF، چون درخواست از دامنه‌ی بانک می‌آید و توکن
+// نشستِ ما را ندارد؛ اعتبارسنجی با تاییدیه‌ی خود درگاه انجام می‌شود.
+Route::match(['get', 'post'], 'pay/callback/{payment}', [GatewayController::class, 'callback'])
+    ->middleware('auth')
+    ->name('payments.callback')
+    ->withoutMiddleware([\Illuminate\Foundation\Http\Middleware\PreventRequestForgery::class]);
+
 /*
-| catch-all: باید آخرین روت فایل باشد. مسیرهای api و legacy و فایل‌های
-| ساخته‌شده‌ی Vite را نمی‌گیرد.
+| catch-all: باید آخرین روت فایل باشد.
+|
+| فقط مسیرهایی استثنا می‌شوند که اصلاً روت لاراولی ندارند (api و فایل‌های
+| ساخته‌شده). مسیرهای بالا لازم نیست اینجا تکرار شوند چون زودتر ثبت شده‌اند
+| و روتر خودش اول آن‌ها را امتحان می‌کند؛ استثنا کردنشان صفحه‌های SPA مثل
+| /units و /bills را از کار می‌انداخت.
 */
 Route::get('/{path}', fn () => view('spa'))
-    ->where('path', '^(?!api|legacy|build|storage)[^?]*$');
+    ->where('path', '^(?!api|build|storage)[^?]*$');

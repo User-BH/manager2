@@ -7,13 +7,9 @@ import { fileURLToPath, URL } from 'node:url';
 export default defineConfig({
     plugins: [
         laravel({
-            // main.tsx is the SPA entry. js-legacy/app.js still backs the old
-            // Blade screens under /legacy until every page exists in React.
-            input: [
-                'resources/css/app.css',
-                'resources/js/main.tsx',
-                'resources/js-legacy/app.js',
-            ],
+            // Single entry: the SPA. The Blade panel and its Chart.js bundle
+            // are gone now that every screen exists in React.
+            input: ['resources/css/app.css', 'resources/js/main.tsx'],
             refresh: true,
         }),
         react(),

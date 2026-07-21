@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { motion } from 'framer-motion'
-import { Receipt, Loader2, Sparkles } from 'lucide-react'
+import { Receipt, Loader2, Sparkles, FileSpreadsheet } from 'lucide-react'
 import { Card } from '@/components/ui/Card'
 import { StatCard } from '@/components/ui/StatCard'
 import { EmptyState, ErrorState, LoadingState } from '@/components/ui/PageState'
@@ -92,6 +92,17 @@ export function BillsPage() {
                 </option>
               ))}
             </select>
+          )}
+
+          {data && data.data.length > 0 && (
+            <a
+              href={`/bills/export.xlsx?period=${encodeURIComponent(data.period)}`}
+              className="flex items-center gap-1.5 rounded-xl border px-4 py-2.5 text-[13px] font-semibold"
+              style={{ borderColor: 'var(--border-default)', color: 'var(--text-secondary)' }}
+            >
+              <FileSpreadsheet size={15} />
+              خروجی Excel
+            </a>
           )}
 
           <button

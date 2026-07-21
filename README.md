@@ -25,10 +25,11 @@
 |------|--------|-------|
 | بک‌اند | **Laravel 13 (PHP 8.4)** | ORM + Migration، RBAC، اکوسیستم فارسی غنی، مناسب CRUD مالی |
 | دیتابیس | **MySQL / MariaDB** (پروداکشن) — مدیریت با **phpMyAdmin** | طبق نیاز پروژه؛ Migrationها قابل‌حمل و روی SQLite هم اجرا می‌شوند |
-| فرانت | **Blade + Livewire + Tailwind v4 + Alpine** | سرور-رندر، سبک، RTL آسان، تعامل بدون SPA سنگین |
+| فرانت | **React 19 + TypeScript + react-router + Tailwind v4** | SPA کامل؛ لاراول فقط API و فایل‌های خروجی می‌دهد |
 | تاریخ شمسی | **morilog/jalali** | تبدیل میلادی↔جلالی، نمایش شمسی در کل UI |
 | فونت | **Vazirmatn (Self-Hosted)** | بدون CDN خارجی؛ فایل‌های `woff2` داخل پروژه |
-| نمودار | **Chart.js (bundled)** | self-hosted از طریق Vite |
+| نمودار | **Recharts** | هماهنگ با توکن‌های رنگی، در چانک جدا |
+| فرم | **React Hook Form + Zod** | اعتبارسنجی سمت کلاینت، آینه‌ی قواعد سرور |
 | پرداخت | درایور قابل‌تعویض (`PaymentGateway`) | سندباکس آماده؛ جای اتصال ملت/سامان مشخص |
 
 نکتهٔ ایران: تمام CSS/JS/فونت‌ها با Vite باندل و **self-host** می‌شوند؛ هیچ منبع خارجی برای نمایش UI لازم نیست.
@@ -42,7 +43,6 @@ app/
   Http/
     Controllers/         وب (Admin/*, System/*, ساکن)
     Middleware/          SetCurrentComplex, EnsureRole, EnsureActive
-  Livewire/              Messenger (پیام‌رسان)
   Services/
     Charge/              ChargeCalculator, BillGenerator, PenaltyCalculator, ChargeComponent
     Payment/             PaymentService, GatewayManager, PaymentGateway, FakeGateway
@@ -51,7 +51,8 @@ app/
     ReportService        محاسبات داشبورد و گزارش‌ها
   Exports/               BillsExport (خروجی Excel قبوض)
   Support/               Jalali، Phone (نرمال‌سازی شماره)، Pdf (mPDF)، TenantContext، SystemSettings
-resources/views/         layouts, components (card/stat/badge/input/...), صفحات
+resources/js/            اپلیکیشن React (صفحات، کامپوننت‌ها، هوک‌ها، لایه‌ی API)
+resources/views/         فقط spa.blade.php، قالب‌های PDF و فرم ریدایرکت درگاه
 database/migrations/     ساختار جداول
 database/seeders/        DemoSeeder (دادهٔ نمونهٔ کامل)
 ```
@@ -387,6 +388,26 @@ server {
 }
 ```
 سپس با `certbot --nginx` گواهی HTTPS بگیرید. **PWA و سرویس‌ورکر فقط روی HTTPS فعال می‌شوند.**
+
+### معماری فرانت‌اند
+
+کل رابط کاربری یک SPA است. لاراول برای هر مسیری که با `/api` شروع نشود همان
+`spa.blade.php` را برمی‌گرداند و react-router تصمیم می‌گیرد چه چیزی رندر شود.
+
+سه چیز عمداً SPA نیستند، چون ذاتاً نمی‌توانند JSON باشند:
+
+| مسیر | چرا |
+|------|-----|
+| `bills/{bill}/invoice.pdf`، `units/{unit}/statement.pdf`، `bills/export.xlsx` | فایل‌هایی که مرورگر مستقیم بازشان می‌کند |
+| `POST pay/{bill}/online` | مرورگر باید واقعاً به سایت بانک منتقل شود |
+| `pay/callback/{payment}` | بازگشت از دامنه‌ی بانک؛ CSRF ندارد و اعتبارسنجی با تاییدیه‌ی خود درگاه انجام می‌شود |
+
+احراز هویت با نشست و کوکی لاراول است، نه توکن: `/api` روی گروه میدل‌ور `web`
+سوار می‌شود، پس حفاظت CSRF و `role:` دقیقاً مثل قبل کار می‌کنند.
+
+**بارگذاری تدریجی:** هر صفحه‌ی داشبورد چانک جداست. بازدیدکننده‌ی صفحه‌ی اصلی
+حدود ۲۰۰ کیلوبایت فشرده می‌گیرد؛ Recharts (۱۰۹ کیلوبایت) فقط با باز کردن
+داشبورد دانلود می‌شود.
 
 ### تغییر دامنه
 

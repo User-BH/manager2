@@ -12,6 +12,7 @@ use App\Http\Controllers\Api\GoodPayerController;
 use App\Http\Controllers\Api\ManagerController;
 use App\Http\Controllers\Api\MessengerController;
 use App\Http\Controllers\Api\MyBillController;
+use App\Http\Controllers\Api\PaymentController;
 use App\Http\Controllers\Api\PaymentReviewController;
 use App\Http\Controllers\Api\ResidentController;
 use App\Http\Controllers\Api\SettingController;
@@ -64,6 +65,10 @@ Route::middleware('auth')->group(function () {
     // --- صورت‌حساب‌های خود کاربر (مدیر هم می‌تواند ببیند) ---
     Route::get('my-bills', [MyBillController::class, 'index'])->name('my-bills.index');
     Route::get('my-bills/{bill}', [MyBillController::class, 'show'])->name('my-bills.show');
+
+    // صفحه‌ی پرداخت یک قبض و ثبت رسید
+    Route::get('pay/{bill}', [PaymentController::class, 'show'])->name('pay.show');
+    Route::post('pay/{bill}/receipt', [PaymentController::class, 'uploadReceipt'])->name('pay.receipt');
 
     // --- مدیریت مجتمع ---
     // همان میدل‌ور نقشی که پنل Blade استفاده می‌کند، تا سطح دسترسی در هر دو
