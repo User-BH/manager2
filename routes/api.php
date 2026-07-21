@@ -4,10 +4,15 @@ use App\Http\Controllers\Api\AnnouncementController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\BackupController;
 use App\Http\Controllers\Api\BillController;
+use App\Http\Controllers\Api\ChargeRuleController;
 use App\Http\Controllers\Api\DashboardController;
+use App\Http\Controllers\Api\DiscountController;
+use App\Http\Controllers\Api\FinanceController;
 use App\Http\Controllers\Api\GoodPayerController;
+use App\Http\Controllers\Api\ManagerController;
 use App\Http\Controllers\Api\MessengerController;
 use App\Http\Controllers\Api\MyBillController;
+use App\Http\Controllers\Api\PaymentReviewController;
 use App\Http\Controllers\Api\ResidentController;
 use App\Http\Controllers\Api\SettingController;
 use App\Http\Controllers\Api\System\BackupController as SystemBackupController;
@@ -71,6 +76,37 @@ Route::middleware('auth')->group(function () {
 
         Route::get('bills', [BillController::class, 'index'])->name('bills.index');
         Route::post('bills/generate', [BillController::class, 'generate'])->name('bills.generate');
+
+        Route::get('managers', [ManagerController::class, 'index'])->name('managers.index');
+        Route::post('managers', [ManagerController::class, 'store'])->name('managers.store');
+        Route::delete('managers/{manager}', [ManagerController::class, 'destroy'])->name('managers.destroy');
+
+        Route::get('charge-rules', [ChargeRuleController::class, 'index'])->name('charge-rules.index');
+        Route::post('charge-rules', [ChargeRuleController::class, 'store'])->name('charge-rules.store');
+        Route::patch('charge-rules/{charge_rule}/toggle', [ChargeRuleController::class, 'toggle'])
+            ->name('charge-rules.toggle');
+        Route::delete('charge-rules/{charge_rule}', [ChargeRuleController::class, 'destroy'])
+            ->name('charge-rules.destroy');
+
+        Route::get('finance', [FinanceController::class, 'index'])->name('finance.index');
+        Route::post('finance/expenses', [FinanceController::class, 'storeExpense'])->name('finance.expenses.store');
+        Route::delete('finance/expenses/{expense}', [FinanceController::class, 'destroyExpense'])
+            ->name('finance.expenses.destroy');
+        Route::post('finance/incomes', [FinanceController::class, 'storeIncome'])->name('finance.incomes.store');
+        Route::delete('finance/incomes/{income}', [FinanceController::class, 'destroyIncome'])
+            ->name('finance.incomes.destroy');
+
+        Route::get('payments', [PaymentReviewController::class, 'index'])->name('payments.index');
+        Route::get('payments/{payment}/receipt', [PaymentReviewController::class, 'receipt'])
+            ->name('payments.receipt');
+        Route::post('payments/{payment}/approve', [PaymentReviewController::class, 'approve'])
+            ->name('payments.approve');
+        Route::post('payments/{payment}/reject', [PaymentReviewController::class, 'reject'])
+            ->name('payments.reject');
+
+        Route::get('discounts', [DiscountController::class, 'index'])->name('discounts.index');
+        Route::post('discounts', [DiscountController::class, 'store'])->name('discounts.store');
+        Route::delete('discounts/{discount}', [DiscountController::class, 'destroy'])->name('discounts.destroy');
 
         // --- تنظیمات مجتمع ---
         Route::get('settings', [SettingController::class, 'show'])->name('settings.show');

@@ -1,6 +1,5 @@
 import { Navigate, Route, Routes } from 'react-router-dom'
 import { DashboardLayout } from '@/components/layout/DashboardLayout'
-import { PlaceholderPage } from '@/components/common/PlaceholderPage'
 import { HomePage } from '@/pages/home/HomePage'
 import { AuthPage } from '@/pages/auth/AuthPage'
 import { ForbiddenPage } from '@/pages/error/ForbiddenPage'
@@ -17,6 +16,11 @@ import { ComplexBackupPage } from '@/pages/settings/ComplexBackupPage'
 import { ComplexesPage } from '@/pages/system/ComplexesPage'
 import { SmsPage } from '@/pages/system/SmsPage'
 import { SystemBackupPage } from '@/pages/system/SystemBackupPage'
+import { ManagersPage } from '@/pages/managers/ManagersPage'
+import { ChargeRulesPage } from '@/pages/charge-rules/ChargeRulesPage'
+import { FinancePage } from '@/pages/finance/FinancePage'
+import { PaymentReviewPage } from '@/pages/payments/PaymentReviewPage'
+import { DiscountsPage } from '@/pages/discounts/DiscountsPage'
 import { ProtectedRoute } from './ProtectedRoute'
 import type { UserRole } from '@/types'
 
@@ -52,11 +56,11 @@ export function AppRouter() {
           <Route path="/residents" element={<ResidentsPage />} />
           <Route path="/bills" element={<BillsPage />} />
 
-          <Route path="/managers" element={<PlaceholderPage title="مدیران مجتمع" />} />
-          <Route path="/charge-rules" element={<PlaceholderPage title="قوانین شارژ" />} />
-          <Route path="/finance" element={<PlaceholderPage title="هزینه‌ها و درآمدها" />} />
-          <Route path="/payments" element={<PlaceholderPage title="بررسی پرداخت‌ها" />} />
-          <Route path="/discounts" element={<PlaceholderPage title="تخفیف و بخشودگی" />} />
+          <Route path="/managers" element={<ManagersPage />} />
+          <Route path="/charge-rules" element={<ChargeRulesPage />} />
+          <Route path="/finance" element={<FinancePage />} />
+          <Route path="/payments" element={<PaymentReviewPage />} />
+          <Route path="/discounts" element={<DiscountsPage />} />
           <Route path="/settings/complex" element={<ComplexSettingsPage />} />
           <Route path="/settings/backup" element={<ComplexBackupPage />} />
         </Route>
