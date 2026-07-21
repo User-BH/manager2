@@ -376,6 +376,106 @@ fix_permissions() {
     fi
 }
 
+# ------------------------------------------------------------------ دیتابیس
+# بررسی اتصال، با نمایش *علت واقعی* خطا.
+#
+# نسخهٔ اول این تابع خروجی artisan را به /dev/null می‌فرستاد و فقط می‌گفت
+# «وصل نشد»، که برای عیب‌یابی از راه دور بی‌فایده است. حالا هم پیام Laravel
+# و هم خطای خام PDO چاپ می‌شود، چون هرکدام یک بخش از ماجرا را می‌گویند:
+# Laravel مشکلات پیکربندی را نشان می‌دهد و PDO مشکل واقعی شبکه/دسترسی را.
+check_database() {
+    local php="$1" out driver host port name user
+
+    driver="$(env_value DB_CONNECTION)"
+    host="$(env_value DB_HOST)"; port="$(env_value DB_PORT)"
+    name="$(env_value DB_DATABASE)"; user="$(env_value DB_USERNAME)"
+
+    step "بررسی اتصال به دیتابیس"
+
+    # کش کانفیگ باقی‌مانده از اجرای قبلی باعث می‌شود artisan مقادیر قدیمی را
+    # بخواند و تغییرات .env نادیده گرفته شود — یکی از شایع‌ترین علت‌های
+    # «ورودی‌ها درست است ولی وصل نمی‌شود».
+    if [ -f bootstrap/cache/config.php ]; then
+        "$php" artisan config:clear >/dev/null 2>&1 || true
+        note "کش کانفیگ قدیمی پاک شد تا مقادیر .env دوباره خوانده شوند"
+    fi
+
+    if out="$("$php" artisan db:show --json 2>&1)"; then
+        ok "اتصال برقرار است (${driver}${name:+ / $name})"
+        return 0
+    fi
+
+    {
+        printf '\n%s✗ اتصال به دیتابیس برقرار نشد.%s\n\n' "$C_ERR" "$C_OFF"
+
+        printf '  %sمقادیری که Laravel از .env خواند:%s\n' "$C_DIM" "$C_OFF"
+        printf '    DB_CONNECTION=%s\n' "${driver:-<خالی>}"
+        printf '    DB_HOST=%s   DB_PORT=%s\n' "${host:-<خالی>}" "${port:-<خالی>}"
+        printf '    DB_DATABASE=%s   DB_USERNAME=%s\n' "${name:-<خالی>}" "${user:-<خالی>}"
+        printf '    DB_PASSWORD=%s\n' "$([ -n "$(env_value DB_PASSWORD)" ] && echo '<تنظیم شده>' || echo '<خالی>')"
+
+        # فقط خط‌های معنادار؛ stack trace کامل Laravel ده‌ها خط است و بخش
+        # مفیدتر (خطای PDO) را از صفحه بیرون می‌راند.
+        printf '\n  %sپیام خطای Laravel:%s\n' "$C_DIM" "$C_OFF"
+        local summary
+        summary="$(printf '%s\n' "$out" | grep -aE 'SQLSTATE|Exception|Error|could not|Access denied' | head -3)"
+        printf '%s\n' "${summary:-$(printf '%s\n' "$out" | head -6)}" \
+            | sed 's/^[[:space:]]*//; s/^/    /'
+
+        # خطای خام PDO دقیق‌ترین سرنخ را می‌دهد: «Access denied»، «Unknown
+        # database»، «Connection refused» یا «No such file or directory»
+        # (یعنی سوکت اشتباه) هرکدام راه‌حل کاملاً متفاوتی دارند.
+        if [ "$driver" = "mysql" ] || [ "$driver" = "mariadb" ]; then
+            local pdo_err
+            pdo_err="$(DB_H="$host" DB_P="$port" DB_N="$name" DB_U="$user" \
+                DB_W="$(env_value DB_PASSWORD)" "$php" -r '
+                $dsn = sprintf("mysql:host=%s;port=%s;dbname=%s",
+                    getenv("DB_H") ?: "127.0.0.1", getenv("DB_P") ?: "3306", getenv("DB_N"));
+                try { new PDO($dsn, getenv("DB_U"), getenv("DB_W"),
+                        [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION]);
+                      echo "PDO_OK"; }
+                catch (Throwable $e) { echo $e->getMessage(); }
+            ' 2>&1)"
+
+            printf '\n  %sاتصال مستقیم PDO:%s\n' "$C_DIM" "$C_OFF"
+            if [ "$pdo_err" = "PDO_OK" ]; then
+                printf '    %sوصل شد!%s یعنی خود دیتابیس سالم است و مشکل از پیکربندی Laravel است.\n' "$C_WARN" "$C_OFF"
+                printf '    معمولاً یعنی کش کانفیگ مانده. این را بزنید:\n'
+                printf '      %s artisan config:clear && %s artisan cache:clear\n' "$php" "$php"
+            else
+                printf '    %s\n' "$pdo_err"
+
+                # روی کد عددی MySQL تطبیق می‌دهیم، نه متن پیام: متن بین
+                # لینوکس/ویندوز و بین نسخه‌های MariaDB فرق می‌کند، ولی کد ثابت است.
+                case "$pdo_err" in
+                    *"[1045]"*|*"Access denied"*)
+                        printf '\n  → نام کاربری یا رمز اشتباه است، یا کاربر از این host مجوز ندارد:\n'
+                        printf "    CREATE USER '%s'@'%s' IDENTIFIED BY 'رمز';\n" "${user:-USER}" "$([ "$host" = "127.0.0.1" ] && echo '127.0.0.1' || echo 'localhost')"
+                        printf "    GRANT ALL PRIVILEGES ON %s.* TO '%s'@'%s';\n" "${name:-DBNAME}" "${user:-USER}" "$([ "$host" = "127.0.0.1" ] && echo '127.0.0.1' || echo 'localhost')"
+                        printf '    FLUSH PRIVILEGES;\n'
+                        printf '\n    نکته: مجوز کاربر برای %s@localhost و %s@127.0.0.1 جداست.\n' "${user:-USER}" "${user:-USER}" ;;
+                    *"[1049]"*|*"Unknown database"*)
+                        printf '\n  → دیتابیس ساخته نشده است:\n'
+                        printf '    CREATE DATABASE %s CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;\n' "${name:-DBNAME}" ;;
+                    *"No such file or directory"*)
+                        printf '\n  → با «localhost» از سوکت یونیکس وصل می‌شود و مسیر سوکت پیدا نشد.\n'
+                        printf '    در .env مقدار DB_HOST=127.0.0.1 بگذارید تا از TCP وصل شود.\n' ;;
+                    *"[2002]"*|*"refused"*)
+                        printf '\n  → سرویس دیتابیس روی %s:%s پاسخ نمی‌دهد.\n' "${host:-127.0.0.1}" "${port:-3306}"
+                        printf '    sudo systemctl status mariadb    # یا mysql\n'
+                        printf '    ss -lntp | grep %s\n' "${port:-3306}"
+                        printf '\n    اگر MySQL فقط روی سوکت گوش می‌دهد، DB_HOST=localhost را امتحان کنید.\n' ;;
+                    *"[2006]"*|*"gone away"*)
+                        printf '\n  → اتصال قطع شد؛ معمولاً محدودیت max_allowed_packet یا timeout سرور است.\n' ;;
+                esac
+            fi
+        fi
+        printf '\n'
+    } >&2
+
+    exit 1
+}
+
 # ------------------------------------------------------------------ کش‌های Laravel
 rebuild_caches() {
     step "بازسازی کش‌های Laravel"

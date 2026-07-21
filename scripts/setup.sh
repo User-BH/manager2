@@ -94,14 +94,7 @@ fi
 build_assets
 
 # ---------------------------------------------------------------- ۶) دیتابیس
-step "بررسی اتصال به دیتابیس"
-if ! "$PHP" artisan db:show --json >/dev/null 2>&1; then
-    die "اتصال به دیتابیس برقرار نشد.
-    مقادیر DB_* را در .env بررسی کنید. اگر MySQL روی همین سرور است و
-    phpMyAdmin دارید، مطمئن شوید دیتابیس و کاربرش ساخته شده‌اند:
-      CREATE DATABASE $(env_value DB_DATABASE) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
-fi
-ok "اتصال به دیتابیس برقرار است"
+check_database "$PHP"
 
 step "ساخت جدول‌ها"
 if [ "$WITH_DEMO" = "1" ]; then
