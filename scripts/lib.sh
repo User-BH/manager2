@@ -129,29 +129,98 @@ find_php() {
     exit 1
 }
 
+# نگاشت نام اکستنشن به نام بستهٔ سیستمی.
+#
+# این نگاشت لازم است چون نام بسته و نام اکستنشن یکی نیستند: بستهٔ php-xml
+# پنج اکستنشن (dom, simplexml, xml, xmlreader, xmlwriter) می‌دهد و pdo_mysql
+# از بستهٔ php-mysql می‌آید. بسته‌هایی به نام php8.4-ctype یا php8.4-json
+# اصلاً وجود ندارند؛ این‌ها یا در php-common هستند یا در هستهٔ PHP.
+ext_package() {
+    case "$1" in
+        dom|xml|simplexml|xmlreader|xmlwriter|xsl) echo xml ;;
+        pdo_mysql|mysqli|mysqlnd)                  echo mysql ;;
+        pdo_sqlite|sqlite3)                        echo sqlite3 ;;
+        pdo_pgsql|pgsql)                           echo pgsql ;;
+        # این‌ها در بستهٔ php-common هستند، نه بستهٔ هم‌نام خودشان
+        pdo|ctype|fileinfo|tokenizer|calendar|exif|ftp|iconv|phar|posix) echo common ;;
+        # این‌ها داخل هستهٔ PHP کامپایل می‌شوند و بستهٔ جدا ندارند
+        json|filter|hash|pcre|spl|session|standard|core|date|reflection|openssl) echo '@core' ;;
+        *) echo "$1" ;;   # mbstring، curl، gd، zip، bcmath، intl و…
+    esac
+}
+
 # اکستنشن‌های لازم Laravel + mPDF + maatwebsite/excel
 require_php_extensions() {
-    local php="$1" missing=() ext
-    for ext in pdo mbstring openssl tokenizer xml ctype json curl fileinfo gd zip bcmath; do
-        "$php" -m 2>/dev/null | grep -qix "$ext" || missing+=("$ext")
-    done
+    local php="$1" missing=() ext modules
+
+    # یک‌بار می‌خوانیم تا هم سریع‌تر باشد، هم بتوانیم هنگام خطا نشانش دهیم.
+    modules="$("$php" -m 2>/dev/null | tr -d '\r')"
+
+    [ -n "$modules" ] || die "دستور '$php -m' خروجی نداد؛ نصب PHP سالم به‌نظر نمی‌رسد."
+
+    local required="pdo mbstring openssl tokenizer xml ctype json curl fileinfo gd zip bcmath"
 
     # درایور دیتابیس: بسته به چیزی که در .env انتخاب شده
-    local driver; driver="$(env_value DB_CONNECTION)"
-    case "$driver" in
-        mysql|mariadb) "$php" -m | grep -qix pdo_mysql  || missing+=(pdo_mysql) ;;
-        sqlite)        "$php" -m | grep -qix pdo_sqlite || missing+=(pdo_sqlite) ;;
-        pgsql)         "$php" -m | grep -qix pdo_pgsql  || missing+=(pdo_pgsql) ;;
+    case "$(env_value DB_CONNECTION)" in
+        mysql|mariadb) required="$required pdo_mysql" ;;
+        sqlite)        required="$required pdo_sqlite" ;;
+        pgsql)         required="$required pdo_pgsql" ;;
     esac
 
-    if [ ${#missing[@]} -gt 0 ]; then
-        local v; v="$("$php" -r 'echo PHP_MAJOR_VERSION.".".PHP_MINOR_VERSION;')"
-        printf '\n%s✗ اکستنشن‌های PHP زیر نصب نیستند: %s%s\n' "$C_ERR" "${missing[*]}" "$C_OFF" >&2
-        note "روی Ubuntu/Debian:"
-        note "  sudo apt install $(printf "php${v}-%s " "${missing[@]}")"
-        note "این کار فقط بستهٔ PHP ${v} را نصب می‌کند و به نسخه‌های دیگر PHP روی سرور کاری ندارد."
-        exit 1
-    fi
+    for ext in $required; do
+        printf '%s\n' "$modules" | grep -qix "$ext" || missing+=("$ext")
+    done
+
+    [ ${#missing[@]} -gt 0 ] || return 0
+
+    local v pkgs=() core_missing=() pkg
+    v="$("$php" -r 'echo PHP_MAJOR_VERSION.".".PHP_MINOR_VERSION;')"
+
+    for ext in "${missing[@]}"; do
+        pkg="$(ext_package "$ext")"
+        if [ "$pkg" = "@core" ]; then
+            core_missing+=("$ext")
+            continue
+        fi
+        case " ${pkgs[*]-} " in *" $pkg "*) ;; *) pkgs+=("$pkg") ;; esac
+    done
+
+    {
+        printf '\n%s✗ اکستنشن‌های PHP زیر نصب نیستند: %s%s\n\n' "$C_ERR" "${missing[*]}" "$C_OFF"
+
+        if [ ${#pkgs[@]} -gt 0 ]; then
+            if command -v apt-get >/dev/null 2>&1; then
+                printf '  Ubuntu/Debian:\n    sudo apt install %s\n' "$(printf "php${v}-%s " "${pkgs[@]}")"
+            elif command -v dnf >/dev/null 2>&1 || command -v yum >/dev/null 2>&1; then
+                printf '  RHEL/AlmaLinux/Rocky:\n    sudo dnf install %s\n' "$(printf "php-%s " "${pkgs[@]}")"
+            else
+                printf '  بسته‌های لازم: %s\n' "${pkgs[*]}"
+            fi
+            printf '\n  سپس:  sudo systemctl restart php%s-fpm\n' "$v"
+            printf '  این کار فقط بسته‌های PHP %s را نصب می‌کند و نسخه‌های دیگر PHP دست‌نخورده می‌مانند.\n' "$v"
+        fi
+
+        # روی دبیان/اوبونتو ممکن است بسته نصب باشد ولی ماژول غیرفعال شده باشد؛
+        # در آن حالت apt کاری نمی‌کند و باید با phpenmod فعالش کرد.
+        if command -v phpenmod >/dev/null 2>&1; then
+            printf '\n  اگر apt گفت بسته‌ها از قبل نصب‌اند، یعنی ماژول‌ها غیرفعال شده‌اند:\n'
+            printf '    sudo phpenmod -v %s %s\n' "$v" "${missing[*]}"
+            printf '    sudo systemctl restart php%s-fpm\n' "$v"
+        fi
+
+        if [ ${#core_missing[@]} -gt 0 ]; then
+            printf '\n  %sهشدار:%s این اکستنشن‌ها معمولاً داخل هستهٔ PHP هستند و بستهٔ جدا ندارند:\n' "$C_WARN" "$C_OFF"
+            printf '    %s\n' "${core_missing[*]}"
+            printf '  نبودنشان یعنی نصب PHP ناقص است یا در php.ini غیرفعال شده‌اند.\n'
+            printf '  فایل‌های پیکربندی را ببینید:  %s --ini\n' "$php"
+        fi
+
+        printf '\n  %sاکستنشن‌هایی که همین حالا فعال‌اند:%s\n' "$C_DIM" "$C_OFF"
+        printf '%s\n' "$modules" | grep -v '^\[' | grep -v '^$' | paste -sd' ' - | fold -s -w 76 | sed 's/^/    /'
+        printf '\n'
+    } >&2
+
+    exit 1
 }
 
 find_composer() {
