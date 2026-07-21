@@ -3,6 +3,8 @@
 @source '../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php';
 @source '../../storage/framework/views/*.php';
 @source '../**/*.blade.php';
+/* اپلیکیشن React — بدون این خط، هیچ‌کدام از کلاس‌های Tailwind داخل TSXها تولید نمی‌شود */
+@source '../js/**/*.{ts,tsx}';
 
 /* Dark mode is toggled by a `.dark` class on <html>, controlled by the theme switch. */
 @custom-variant dark (&:where(.dark, .dark *));
@@ -316,26 +318,26 @@ button:disabled {
    اگر عرض/فاصلهٔ آیتم یا تعداد تصاویر تغییر کرد، --gallery-block-width را هم
    در resources/views/home/partials/gallery.blade.php به‌روزرسانی کنید.
    ================================================================== */
-.marquee-viewport {
+.gallery-marquee-viewport {
     width: 100%;
     overflow: hidden;
     -webkit-mask-image: linear-gradient(90deg, transparent, black 4%, black 96%, transparent);
     mask-image: linear-gradient(90deg, transparent, black 4%, black 96%, transparent);
 }
 
-.marquee-track {
+.gallery-marquee-track {
     display: flex;
     align-items: stretch;
     width: max-content;
     will-change: transform;
-    animation: marquee-scroll var(--marquee-duration, 42s) linear infinite;
+    animation: gallery-marquee-scroll var(--marquee-duration, 42s) linear infinite;
 }
 
-.marquee-viewport:hover .marquee-track {
+.gallery-marquee-viewport:hover .gallery-marquee-track {
     animation-play-state: paused;
 }
 
-.marquee-item {
+.gallery-marquee-item {
     position: relative;
     flex: 0 0 auto;
     width: 280px;
@@ -346,7 +348,7 @@ button:disabled {
     box-shadow: 0 8px 20px -8px color-mix(in srgb, var(--text-primary) 18%, transparent);
 }
 
-@keyframes marquee-scroll {
+@keyframes gallery-marquee-scroll {
     from {
         transform: translate3d(0, 0, 0);
     }
@@ -356,10 +358,39 @@ button:disabled {
 }
 
 /* هاور با رنگ/گرادیان رسمی هر شبکهٔ اجتماعی در فوتر.
-   مقدار از متغیر --social-hover که هر لینک به‌صورت inline ست می‌کند خوانده
-   می‌شود، چون می‌تواند گرادیان باشد نه فقط یک رنگ ساده. */
+   مقدار از یک متغیر inline خوانده می‌شود، چون می‌تواند گرادیان باشد نه فقط
+   یک رنگ ساده. هر دو نام پشتیبانی می‌شود: کامپوننت React از --social-hover-bg
+   استفاده می‌کند و ویوهای Blade قدیمی از --social-hover. */
 .social-link:hover {
     background: var(--social-hover);
+}
+
+.social-icon-link:hover {
+    background: var(--social-hover-bg);
+}
+
+/* ------------------------------------------------------------------
+   اسلایدر Swiper — نقاط pagination بنر تبلیغاتی، هماهنگ با برند
+------------------------------------------------------------------ */
+.swiper-pagination-bullet,
+.swiper-button-prev,
+.swiper-button-next {
+    cursor: pointer;
+}
+
+.ad-banner-swiper .swiper-pagination-bullet {
+    background: white;
+    opacity: 0.55;
+    width: 7px;
+    height: 7px;
+}
+
+.ad-banner-swiper .swiper-pagination-bullet-active {
+    opacity: 1;
+    background: white;
+    width: 20px;
+    border-radius: 4px;
+    transition: width 0.25s ease;
 }
 
 /* ظاهر شدن تدریجی بخش‌های صفحهٔ فرود هنگام اسکرول (IntersectionObserver در app.js).
@@ -381,7 +412,7 @@ button:disabled {
 }
 
 @media (prefers-reduced-motion: reduce) {
-    .marquee-track {
+    .gallery-marquee-track {
         animation: none;
     }
     .reveal {

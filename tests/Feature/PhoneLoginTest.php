@@ -25,10 +25,12 @@ class PhoneLoginTest extends TestCase
     {
         $this->user();
 
-        $this->post('/login/password', [
-            'phone' => '0912 123 4567', // non-canonical, should normalise
+        $this->postJson('/api/login', [
+            'phone' => '0912 123 4567', // شکل غیراستاندارد؛ باید نرمال شود
             'password' => 'secret123',
-        ])->assertRedirect('/dashboard');
+        ])
+            ->assertOk()
+            ->assertJsonPath('user.phone', '09121234567');
 
         $this->assertAuthenticated();
     }
@@ -37,8 +39,27 @@ class PhoneLoginTest extends TestCase
     {
         $this->user();
 
-        $this->post('/login/password', ['phone' => '09121234567', 'password' => 'nope'])
-            ->assertSessionHasErrors('phone');
+        $this->postJson('/api/login', ['phone' => '09121234567', 'password' => 'nope'])
+            ->assertStatus(422)
+            ->assertJsonValidationErrors('phone');
+
+        $this->assertGuest();
+    }
+
+    public function test_inactive_user_cannot_sign_in(): void
+    {
+        $this->user()->update(['is_active' => false]);
+
+        $this->postJson('/api/login', ['phone' => '09121234567', 'password' => 'secret123'])
+            ->assertStatus(422)
+            ->assertJsonValidationErrors('phone');
+
+        $this->assertGuest();
+    }
+
+    public function test_logout_ends_the_session(): void
+    {
+        $this->actingAs($this->user())->postJson('/api/logout')->assertOk();
 
         $this->assertGuest();
     }
