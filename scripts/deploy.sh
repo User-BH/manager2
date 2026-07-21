@@ -110,6 +110,7 @@ fi
 # ---------------------------------------------------------------- ۵) پایانی
 fix_permissions
 rebuild_caches
+warn_if_debug_public
 
 bring_up
 trap - EXIT

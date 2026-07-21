@@ -110,6 +110,7 @@ fi
 # ---------------------------------------------------------------- ۷) پایانی
 fix_permissions
 rebuild_caches
+warn_if_debug_public
 
 # نمونه کانفیگ nginx تولید می‌شود ولی *اعمال نمی‌شود* — تصمیمش با شماست.
 "$(dirname "${BASH_SOURCE[0]}")/make-nginx-config.sh" "$PHP" || true

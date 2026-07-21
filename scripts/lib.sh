@@ -354,26 +354,61 @@ build_assets() {
 }
 
 # ------------------------------------------------------------------ دسترسی فایل
+# کاربری که واقعاً PHP را اجرا می‌کند. از روی پروسهٔ در حال اجرا می‌خوانیم،
+# چون حدس‌زدن «www-data» روی همهٔ توزیع‌ها درست نیست (nginx، apache، پنل‌های
+# میزبانی هرکدام کاربر خودشان را دارند). پروسهٔ master با root اجرا می‌شود،
+# پس آن را کنار می‌گذاریم و دنبال کاربر workerها می‌گردیم.
+detect_web_user() {
+    local u=''
+    for proc in php-fpm php8.4-fpm php8.3-fpm nginx apache2 httpd; do
+        u="$(ps -o user= -C "$proc" 2>/dev/null | sort -u | grep -v '^root$' | head -1)"
+        [ -n "$u" ] && { printf '%s' "$u"; return 0; }
+    done
+    for u in www-data nginx apache; do
+        id -u "$u" >/dev/null 2>&1 && { printf '%s' "$u"; return 0; }
+    done
+    printf ''
+}
+
 # storage و bootstrap/cache باید برای کاربر وب‌سرور قابل نوشتن باشند.
-# chown نیاز به root دارد، پس اگر لازم بود فقط دستورش را نشان می‌دهیم.
+#
+# نکتهٔ مهم: اگر اسکریپت با root اجرا شود، همهٔ فایل‌هایی که composer و artisan
+# می‌سازند مالکشان root می‌شود و php-fpm (که با www-data اجرا می‌شود) نمی‌تواند
+# در storage بنویسد. نتیجه‌اش خطای ۵۰۰ هنگام کامپایل قالب‌های Blade است. چون
+# در آن حالت خودمان root هستیم، مالکیت را همان‌جا اصلاح می‌کنیم.
 fix_permissions() {
     step "بررسی دسترسی نوشتن"
+
+    # روی کلون تازه ممکن است زیرپوشه‌ها ساخته نشده باشند
+    mkdir -p storage/framework/views storage/framework/cache/data \
+             storage/framework/sessions storage/logs bootstrap/cache 2>/dev/null || true
     chmod -R ug+rwX storage bootstrap/cache 2>/dev/null || true
 
-    local web_user=''
-    if id -u www-data >/dev/null 2>&1; then web_user=www-data
-    elif id -u nginx  >/dev/null 2>&1; then web_user=nginx
+    local web_user owner
+    web_user="$(detect_web_user)"
+    owner="$(stat -c '%U' storage 2>/dev/null || echo '?')"
+
+    if [ -z "$web_user" ]; then
+        ok "مجوزها تنظیم شد (کاربر وب‌سرور تشخیص داده نشد)"
+        return 0
     fi
 
-    local owner; owner="$(stat -c '%U' storage 2>/dev/null || echo '?')"
-
-    if [ -n "$web_user" ] && [ "$owner" != "$web_user" ] && [ "$(id -u)" != "0" ]; then
-        warn "مالک storage کاربر '$owner' است، نه '$web_user'."
-        note "اگر سایت خطای نوشتن داد، یک‌بار این را با دسترسی root بزنید:"
-        note "  sudo chown -R ${web_user}:${web_user} '$APP_ROOT/storage' '$APP_ROOT/bootstrap/cache'"
-    else
-        ok "دسترسی نوشتن روی storage و bootstrap/cache برقرار است"
+    if [ "$owner" = "$web_user" ]; then
+        ok "storage و bootstrap/cache متعلق به '$web_user' هستند"
+        return 0
     fi
+
+    if [ "$(id -u)" = "0" ]; then
+        chown -R "$web_user:$web_user" storage bootstrap/cache
+        ok "مالکیت storage و bootstrap/cache از '$owner' به '$web_user' تغییر کرد"
+        return 0
+    fi
+
+    # نه root هستیم و نه مالک درست است — این حالت قطعاً به خطای ۵۰۰ می‌رسد،
+    # پس نباید آن را به‌عنوان موفقیت گزارش کنیم.
+    warn "مالک storage کاربر '$owner' است، نه '$web_user' — سایت خطای ۵۰۰ می‌دهد."
+    note "این را با دسترسی root بزنید:"
+    note "  sudo chown -R ${web_user}:${web_user} '$APP_ROOT/storage' '$APP_ROOT/bootstrap/cache'"
 }
 
 # ------------------------------------------------------------------ اختلاف .env
@@ -533,6 +568,22 @@ rebuild_caches() {
         # در محیط توسعه کش کردن config باعث می‌شود تغییرات .env دیده نشود
         ok "کش‌ها پاک شدند (محیط production نیست، کش ساخته نشد)"
     fi
+}
+
+# APP_DEBUG=true روی سایت عمومی، کد منبع، مسیرها و گاهی مقادیر .env را در
+# صفحهٔ خطا به هر بازدیدکننده‌ای نشان می‌دهد.
+warn_if_debug_public() {
+    local url; url="$(env_value APP_URL)"
+
+    [ "$(env_value APP_DEBUG)" = "true" ] || return 0
+    case "$url" in ''|*localhost*|*127.0.0.1*) return 0 ;; esac
+
+    printf '\n%s! هشدار امنیتی: APP_DEBUG=true و سایت روی %s در دسترس عموم است.%s\n' \
+        "$C_WARN" "$url" "$C_OFF"
+    note "صفحهٔ خطا کد منبع و مسیرهای سرور را به هر بازدیدکننده نشان می‌دهد."
+    note "در .env این دو مقدار را بگذارید و دوباره اسکریپت را اجرا کنید:"
+    note "  APP_ENV=production"
+    note "  APP_DEBUG=false"
 }
 
 banner_php() {
