@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Enums\UserRole;
+use App\Models\Complex;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
@@ -49,6 +50,47 @@ class SpaShellTest extends TestCase
             ->assertJsonPath('user.phone', '09121234567')
             ->assertJsonPath('user.role', 'tenant')
             ->assertJsonPath('user.isAdmin', false);
+    }
+
+    public function test_complex_admins_cannot_reach_system_endpoints(): void
+    {
+        $complex = Complex::create(['name' => 'مجتمع تست', 'slug' => 'test-'.uniqid()]);
+
+        $admin = User::create([
+            'complex_id' => $complex->id,
+            'name' => 'مدیر', 'phone' => '09121230000', 'role' => UserRole::ComplexAdmin,
+            'password' => Hash::make('secret123'), 'is_active' => true,
+        ]);
+
+        // بخش سیستم فقط برای ادمین کل است؛ مدیر مجتمع نباید مجتمع بسازد یا
+        // تنظیمات پیامک و بکاپ کل سیستم را ببیند.
+        $this->actingAs($admin)->getJson('/api/system/complexes')->assertStatus(403);
+        $this->actingAs($admin)->getJson('/api/system/sms')->assertStatus(403);
+        $this->actingAs($admin)->getJson('/api/system/backups')->assertStatus(403);
+
+        // ولی تنظیمات و بکاپ مجتمع خودش در دسترس است
+        $this->actingAs($admin)->getJson('/api/settings')->assertOk();
+        $this->actingAs($admin)->getJson('/api/backups')->assertOk();
+    }
+
+    /** اعتبارنامه‌ی درگاه بانکی هرگز نباید در پاسخ API دیده شود. */
+    public function test_settings_never_expose_the_gateway_password(): void
+    {
+        $complex = Complex::create([
+            'name' => 'مجتمع رمزدار', 'slug' => 'secret-'.uniqid(),
+            'gateway_config' => ['terminal_id' => '123', 'username' => 'u', 'password' => 'SUPERSECRET'],
+        ]);
+
+        $admin = User::create([
+            'complex_id' => $complex->id,
+            'name' => 'مدیر', 'phone' => '09121230001', 'role' => UserRole::ComplexAdmin,
+            'password' => Hash::make('secret123'), 'is_active' => true,
+        ]);
+
+        $response = $this->actingAs($admin)->getJson('/api/settings')->assertOk();
+
+        $response->assertJsonPath('settings.gw_password_set', true);
+        $this->assertStringNotContainsString('SUPERSECRET', $response->getContent());
     }
 
     public function test_residents_cannot_reach_admin_endpoints(): void

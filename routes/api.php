@@ -2,11 +2,17 @@
 
 use App\Http\Controllers\Api\AnnouncementController;
 use App\Http\Controllers\Api\AuthController;
+use App\Http\Controllers\Api\BackupController;
 use App\Http\Controllers\Api\BillController;
 use App\Http\Controllers\Api\DashboardController;
+use App\Http\Controllers\Api\GoodPayerController;
 use App\Http\Controllers\Api\MessengerController;
 use App\Http\Controllers\Api\MyBillController;
 use App\Http\Controllers\Api\ResidentController;
+use App\Http\Controllers\Api\SettingController;
+use App\Http\Controllers\Api\System\BackupController as SystemBackupController;
+use App\Http\Controllers\Api\System\ComplexController as SystemComplexController;
+use App\Http\Controllers\Api\System\SmsController;
 use App\Http\Controllers\Api\UnitController;
 use Illuminate\Support\Facades\Route;
 
@@ -48,6 +54,8 @@ Route::middleware('auth')->group(function () {
     Route::delete('announcements/{announcement}', [AnnouncementController::class, 'destroy'])
         ->name('announcements.destroy');
 
+    Route::get('good-payers', [GoodPayerController::class, 'index'])->name('good-payers.index');
+
     // --- صورت‌حساب‌های خود کاربر (مدیر هم می‌تواند ببیند) ---
     Route::get('my-bills', [MyBillController::class, 'index'])->name('my-bills.index');
     Route::get('my-bills/{bill}', [MyBillController::class, 'show'])->name('my-bills.show');
@@ -63,5 +71,33 @@ Route::middleware('auth')->group(function () {
 
         Route::get('bills', [BillController::class, 'index'])->name('bills.index');
         Route::post('bills/generate', [BillController::class, 'generate'])->name('bills.generate');
+
+        // --- تنظیمات مجتمع ---
+        Route::get('settings', [SettingController::class, 'show'])->name('settings.show');
+        Route::put('settings', [SettingController::class, 'update'])->name('settings.update');
+
+        Route::get('backups', [BackupController::class, 'index'])->name('backups.index');
+        Route::post('backups', [BackupController::class, 'store'])->name('backups.store');
+        Route::get('backups/{backup}/download', [BackupController::class, 'download'])
+            ->name('backups.download');
+    });
+
+    // --- بخش سیستم: فقط ادمین کل ---
+    Route::middleware('role:super_admin')->prefix('system')->name('system.')->group(function () {
+        Route::get('complexes', [SystemComplexController::class, 'index'])->name('complexes.index');
+        Route::post('complexes', [SystemComplexController::class, 'store'])->name('complexes.store');
+        Route::post('complexes/{complex}/select', [SystemComplexController::class, 'select'])
+            ->name('complexes.select');
+        Route::post('complexes/clear', [SystemComplexController::class, 'clear'])->name('complexes.clear');
+
+        Route::get('sms', [SmsController::class, 'show'])->name('sms.show');
+        Route::put('sms', [SmsController::class, 'update'])->name('sms.update');
+        Route::post('sms/test', [SmsController::class, 'test'])->name('sms.test');
+
+        Route::get('backups', [SystemBackupController::class, 'index'])->name('backups.index');
+        Route::post('backups', [SystemBackupController::class, 'store'])->name('backups.store');
+        Route::get('backups/{backup}/download', [SystemBackupController::class, 'download'])
+            ->name('backups.download');
+        Route::post('backups/restore', [SystemBackupController::class, 'restore'])->name('backups.restore');
     });
 });

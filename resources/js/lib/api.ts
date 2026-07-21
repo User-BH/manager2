@@ -61,6 +61,10 @@ interface RequestOptions {
 async function send(path: string, options: RequestOptions): Promise<Response> {
   const { method = 'GET', body, signal } = options
 
+  // آپلود فایل باید به‌صورت FormData برود. در آن حالت Content-Type را خودمان
+  // ست نمی‌کنیم تا مرورگر boundary درست را اضافه کند.
+  const isFormData = body instanceof FormData
+
   return fetch(`/api${path}`, {
     method,
     signal,
@@ -69,10 +73,10 @@ async function send(path: string, options: RequestOptions): Promise<Response> {
     headers: {
       Accept: 'application/json',
       'X-Requested-With': 'XMLHttpRequest',
-      ...(body ? { 'Content-Type': 'application/json' } : {}),
+      ...(body && !isFormData ? { 'Content-Type': 'application/json' } : {}),
       ...(method === 'GET' ? {} : { 'X-CSRF-TOKEN': csrfToken }),
     },
-    body: body ? JSON.stringify(body) : undefined,
+    body: isFormData ? (body as FormData) : body ? JSON.stringify(body) : undefined,
   })
 }
 
