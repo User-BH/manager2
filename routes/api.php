@@ -1,8 +1,11 @@
 <?php
 
+use App\Http\Controllers\Api\AnnouncementController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\BillController;
 use App\Http\Controllers\Api\DashboardController;
+use App\Http\Controllers\Api\MessengerController;
+use App\Http\Controllers\Api\MyBillController;
 use App\Http\Controllers\Api\ResidentController;
 use App\Http\Controllers\Api\UnitController;
 use Illuminate\Support\Facades\Route;
@@ -27,11 +30,27 @@ Route::post('register', [AuthController::class, 'register'])->name('register');
 // وضعیت کاربر برای مهمان هم قابل فراخوانی است و null برمی‌گرداند؛ کلاینت
 // هنگام بالا آمدن یک‌بار صدایش می‌زند تا بفهمد نشست فعالی هست یا نه.
 Route::get('me', [AuthController::class, 'me'])->name('me');
+Route::get('csrf-token', [AuthController::class, 'csrfToken'])->name('csrf-token');
 
 // --- واردشده ---
 Route::middleware('auth')->group(function () {
     Route::post('logout', [AuthController::class, 'logout'])->name('logout');
     Route::get('dashboard', [DashboardController::class, 'index'])->name('dashboard');
+
+    // --- مشترک بین همه‌ی نقش‌ها ---
+    Route::get('messenger', [MessengerController::class, 'index'])->name('messenger.index');
+    Route::post('messenger', [MessengerController::class, 'store'])->name('messenger.store');
+    Route::patch('messenger/{message}/toggle-hide', [MessengerController::class, 'toggleHide'])
+        ->name('messenger.toggle-hide');
+
+    Route::get('announcements', [AnnouncementController::class, 'index'])->name('announcements.index');
+    Route::post('announcements', [AnnouncementController::class, 'store'])->name('announcements.store');
+    Route::delete('announcements/{announcement}', [AnnouncementController::class, 'destroy'])
+        ->name('announcements.destroy');
+
+    // --- صورت‌حساب‌های خود کاربر (مدیر هم می‌تواند ببیند) ---
+    Route::get('my-bills', [MyBillController::class, 'index'])->name('my-bills.index');
+    Route::get('my-bills/{bill}', [MyBillController::class, 'show'])->name('my-bills.show');
 
     // --- مدیریت مجتمع ---
     // همان میدل‌ور نقشی که پنل Blade استفاده می‌کند، تا سطح دسترسی در هر دو

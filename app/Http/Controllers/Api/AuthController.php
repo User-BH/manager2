@@ -27,7 +27,16 @@ class AuthController extends Controller
     /** کاربر واردشده‌ی فعلی، یا null برای مهمان. */
     public function me(Request $request): JsonResponse
     {
-        return response()->json(['user' => $this->userPayload($request->user())]);
+        return response()->json([
+            'user' => $this->userPayload($request->user()),
+            'csrfToken' => csrf_token(),
+        ]);
+    }
+
+    /** توکن CSRF تازه — کلاینت پس از خطای ۴۱۹ آن را می‌گیرد و دوباره تلاش می‌کند. */
+    public function csrfToken(): JsonResponse
+    {
+        return response()->json(['csrfToken' => csrf_token()]);
     }
 
     /** روش ۱: شماره تلفن + رمز عبور. */
@@ -57,9 +66,14 @@ class AuthController extends Controller
         }
 
         // جلوگیری از session fixation: شناسه‌ی نشست پس از ورود عوض می‌شود.
+        // این کار توکن CSRF را هم عوض می‌کند و چون SPA صفحه را رفرش نمی‌کند،
+        // توکن تازه باید در پاسخ برگردد وگرنه اولین درخواست نوشتنیِ بعدی ۴۱۹ می‌گیرد.
         $request->session()->regenerate();
 
-        return response()->json(['user' => $this->userPayload($request->user())]);
+        return response()->json([
+            'user' => $this->userPayload($request->user()),
+            'csrfToken' => csrf_token(),
+        ]);
     }
 
     /** روش ۲ (گام ۱): درخواست کد پیامکی. */
@@ -125,7 +139,10 @@ class AuthController extends Controller
         $request->session()->regenerate();
         $request->session()->forget('otp_phone');
 
-        return response()->json(['user' => $this->userPayload($user)]);
+        return response()->json([
+            'user' => $this->userPayload($user),
+            'csrfToken' => csrf_token(),
+        ]);
     }
 
     /**
@@ -184,7 +201,10 @@ class AuthController extends Controller
         $request->session()->invalidate();
         $request->session()->regenerateToken();
 
-        return response()->json(['message' => 'خارج شدید.']);
+        return response()->json([
+            'message' => 'خارج شدید.',
+            'csrfToken' => csrf_token(),
+        ]);
     }
 
     /** شکل ثابتی از کاربر که کلاینت روی آن حساب می‌کند. */

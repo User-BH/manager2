@@ -2,8 +2,7 @@
  * لایه‌ی ارتباط با API لاراول.
  *
  * احراز هویت با نشست و کوکی انجام می‌شود، نه توکن. پس هر درخواستِ
- * تغییردهنده باید توکن CSRF را همراه ببرد؛ توکن از تگ meta در قالب
- * spa.blade.php خوانده می‌شود.
+ * تغییردهنده باید توکن CSRF را همراه ببرد.
  */
 
 export class ApiError extends Error {
@@ -24,8 +23,33 @@ export class ApiError extends Error {
   }
 }
 
-function csrfToken(): string {
-  return document.querySelector<HTMLMetaElement>('meta[name="csrf-token"]')?.content ?? ''
+/*
+ * توکن CSRF در متغیر نگه داشته می‌شود، نه اینکه هر بار از متاتگ خوانده شود.
+ *
+ * دلیلش مهم است: هنگام ورود، لاراول نشست را regenerate می‌کند و توکن CSRF هم
+ * عوض می‌شود. چون این یک SPA است و صفحه رفرش نمی‌شود، متاتگ همان توکن قدیمی
+ * را نگه می‌دارد و اولین درخواست نوشتنیِ بعد از ورود با ۴۱۹ رد می‌شد.
+ */
+let csrfToken =
+  document.querySelector<HTMLMetaElement>('meta[name="csrf-token"]')?.content ?? ''
+
+export function setCsrfToken(token: string | undefined | null): void {
+  if (token) csrfToken = token
+}
+
+async function refreshCsrfToken(): Promise<void> {
+  try {
+    const response = await fetch('/api/csrf-token', {
+      credentials: 'same-origin',
+      headers: { Accept: 'application/json' },
+    })
+    if (!response.ok) return
+
+    const payload = await response.json()
+    setCsrfToken(payload.csrfToken)
+  } catch {
+    // اگر شبکه هم قطع باشد، خطای اصلی به تماس‌گیرنده برمی‌گردد
+  }
 }
 
 interface RequestOptions {
@@ -34,10 +58,10 @@ interface RequestOptions {
   signal?: AbortSignal
 }
 
-export async function api<T>(path: string, options: RequestOptions = {}): Promise<T> {
+async function send(path: string, options: RequestOptions): Promise<Response> {
   const { method = 'GET', body, signal } = options
 
-  const response = await fetch(`/api${path}`, {
+  return fetch(`/api${path}`, {
     method,
     signal,
     // کوکی نشست باید همراه درخواست برود
@@ -46,17 +70,28 @@ export async function api<T>(path: string, options: RequestOptions = {}): Promis
       Accept: 'application/json',
       'X-Requested-With': 'XMLHttpRequest',
       ...(body ? { 'Content-Type': 'application/json' } : {}),
-      ...(method === 'GET' ? {} : { 'X-CSRF-TOKEN': csrfToken() }),
+      ...(method === 'GET' ? {} : { 'X-CSRF-TOKEN': csrfToken }),
     },
     body: body ? JSON.stringify(body) : undefined,
   })
+}
+
+export async function api<T>(path: string, options: RequestOptions = {}): Promise<T> {
+  let response = await send(path, options)
+
+  // ۴۱۹ یعنی توکن کهنه شده (معمولاً بعد از ورود یا انقضای نشست). یک‌بار توکن
+  // را تازه می‌کنیم و دوباره می‌فرستیم تا کاربر مجبور به رفرش دستی نشود.
+  if (response.status === 419) {
+    await refreshCsrfToken()
+    response = await send(path, options)
+  }
 
   if (response.status === 204) {
     return undefined as T
   }
 
-  // پاسخ‌های غیر JSON (مثل صفحه‌ی خطای ۵۰۰ یا ریدایرکت به صفحه‌ی ورود)
-  // نباید با JSON.parse بترکند و پیام بی‌ربط بدهند.
+  // پاسخ‌های غیر JSON (مثل صفحه‌ی خطای ۵۰۰) نباید با JSON.parse بترکند و
+  // پیام بی‌ربط بدهند.
   const contentType = response.headers.get('content-type') ?? ''
   if (!contentType.includes('application/json')) {
     if (!response.ok) {
@@ -71,6 +106,9 @@ export async function api<T>(path: string, options: RequestOptions = {}): Promis
   }
 
   const payload = await response.json()
+
+  // هر پاسخی که توکن تازه دارد، نسخه‌ی محلی را به‌روز می‌کند
+  setCsrfToken(payload?.csrfToken)
 
   if (!response.ok) {
     throw new ApiError(

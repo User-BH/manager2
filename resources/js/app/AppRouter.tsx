@@ -8,11 +8,13 @@ import { DashboardPage } from '@/pages/dashboard/DashboardPage'
 import { UnitsPage } from '@/pages/units/UnitsPage'
 import { ResidentsPage } from '@/pages/residents/ResidentsPage'
 import { BillsPage } from '@/pages/bills/BillsPage'
+import { MessengerPage } from '@/pages/messenger/MessengerPage'
+import { AnnouncementsPage } from '@/pages/announcements/AnnouncementsPage'
+import { MyBillsPage } from '@/pages/my-bills/MyBillsPage'
 import { ProtectedRoute } from './ProtectedRoute'
 import type { UserRole } from '@/types'
 
 const ADMINS: UserRole[] = ['super_admin', 'complex_admin']
-const RESIDENTS: UserRole[] = ['owner', 'tenant']
 const SUPER: UserRole[] = ['super_admin']
 
 export function AppRouter() {
@@ -27,8 +29,12 @@ export function AppRouter() {
       <Route element={<ProtectedRoute />}>
         <Route element={<DashboardLayout />}>
           <Route path="/dashboard" element={<DashboardPage />} />
-          <Route path="/announcements" element={<PlaceholderPage title="اطلاعیه‌ها" />} />
-          <Route path="/messenger" element={<PlaceholderPage title="پیام‌رسان" />} />
+          <Route path="/announcements" element={<AnnouncementsPage />} />
+          <Route path="/messenger" element={<MessengerPage />} />
+
+          {/* صورت‌حساب‌ها زیر روت مشترک است چون مدیر هم واحد شخصی دارد و
+              باید بتواند قبوض خودش را ببیند، نه فقط ساکنین. */}
+          <Route path="/my-bills" element={<MyBillsPage />} />
           <Route path="/top-residents" element={<PlaceholderPage title="ساکنین خوش‌حساب" />} />
         </Route>
       </Route>
@@ -47,13 +53,6 @@ export function AppRouter() {
           <Route path="/discounts" element={<PlaceholderPage title="تخفیف و بخشودگی" />} />
           <Route path="/settings/complex" element={<PlaceholderPage title="تنظیمات مجتمع" />} />
           <Route path="/settings/backup" element={<PlaceholderPage title="بکاپ مجتمع" />} />
-        </Route>
-      </Route>
-
-      {/* --- ساکن --- */}
-      <Route element={<ProtectedRoute roles={RESIDENTS} />}>
-        <Route element={<DashboardLayout />}>
-          <Route path="/my-bills" element={<PlaceholderPage title="صورت‌حساب‌های من" />} />
         </Route>
       </Route>
 

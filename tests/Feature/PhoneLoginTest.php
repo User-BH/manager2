@@ -64,6 +64,37 @@ class PhoneLoginTest extends TestCase
         $this->assertGuest();
     }
 
+    /**
+     * ورود، نشست را regenerate می‌کند و توکن CSRF عوض می‌شود. چون SPA صفحه را
+     * رفرش نمی‌کند، توکن تازه باید در پاسخ برگردد تا کلاینت بتواند به‌روزش کند.
+     *
+     * در عمل لاراول ۱۳ درخواست‌های same-origin مرورگر را از روی هدر
+     * Sec-Fetch-Site می‌پذیرد و به توکن نمی‌رسد؛ این برای مرورگرهای قدیمی‌تر
+     * و هر کلاینتی است که آن هدر را نمی‌فرستد.
+     */
+    public function test_login_returns_a_fresh_csrf_token(): void
+    {
+        $this->user();
+
+        $response = $this->postJson('/api/login', [
+            'phone' => '09121234567',
+            'password' => 'secret123',
+        ])->assertOk();
+
+        $token = $response->json('csrfToken');
+
+        $this->assertIsString($token);
+        $this->assertNotEmpty($token);
+        $this->assertSame(session()->token(), $token);
+    }
+
+    public function test_csrf_token_endpoint_is_available_to_guests(): void
+    {
+        $this->getJson('/api/csrf-token')
+            ->assertOk()
+            ->assertJsonStructure(['csrfToken']);
+    }
+
     public function test_otp_request_and_verify_logs_user_in(): void
     {
         $user = $this->user();
