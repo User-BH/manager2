@@ -376,6 +376,46 @@ fix_permissions() {
     fi
 }
 
+# ------------------------------------------------------------------ اختلاف .env
+# وقتی PDO با مقادیر خام .env وصل می‌شود ولی Laravel «Access denied» می‌گیرد،
+# یعنی پارسر Dotenv مقدار دیگری از همان خط برداشت کرده.
+#
+# Dotenv روی مقدارِ بدون کوتیشن این کارها را می‌کند:
+#   • از اولین #، بقیهٔ خط را کامنت حساب می‌کند   →  pa#ss  به  pa  تبدیل می‌شود
+#   • ${VAR} و گاهی $VAR را جایگزین می‌کند
+#   • فاصله‌های ابتدا و انتها را حذف می‌کند
+# در حالی که خواندن ساده با sed (کاری که PDO probe می‌کند) عین متن را برمی‌دارد.
+#
+# طول رمز را مقایسه می‌کنیم، نه خودش را؛ رمز هیچ‌وقت چاپ نمی‌شود.
+explain_env_mismatch() {
+    local php="$1" raw_len laravel_len raw
+
+    raw="$(env_value DB_PASSWORD)"
+    raw_len="${#raw}"
+
+    laravel_len="$("$php" -r '
+        require "vendor/autoload.php";
+        $app = require "bootstrap/app.php";
+        $app->make(Illuminate\Contracts\Console\Kernel::class)->bootstrap();
+        $c = config("database.default");
+        echo strlen((string) config("database.connections.$c.password"));
+    ' 2>/dev/null | tail -1)"
+
+    printf '\n  %sطول رمز عبور:%s\n' "$C_DIM" "$C_OFF"
+    printf '    آنچه در .env نوشته شده : %s کاراکتر\n' "$raw_len"
+    printf '    آنچه Laravel می‌خواند   : %s کاراکتر\n' "${laravel_len:-؟}"
+
+    if [ -n "$laravel_len" ] && [ "$laravel_len" != "$raw_len" ]; then
+        printf '\n    %s← همین است.%s Laravel رمز را ناقص می‌خواند.\n' "$C_ERR" "$C_OFF"
+    fi
+
+    printf '\n  %sراه‌حل: رمز را داخل کوتیشن تکی بگذارید:%s\n' "$C_INFO" "$C_OFF"
+    printf "    DB_PASSWORD='رمز-دقیق-شما'\n"
+    printf '\n    کوتیشن تکی جلوی کامنت‌شدن از # و جایگزینی $ را می‌گیرد.\n'
+    printf '    اگر خود رمز کوتیشن تکی دارد، از کوتیشن دوتایی استفاده کنید.\n'
+    printf '\n    سپس دوباره:  ./scripts/setup.sh\n'
+}
+
 # ------------------------------------------------------------------ دیتابیس
 # بررسی اتصال، با نمایش *علت واقعی* خطا.
 #
@@ -439,9 +479,10 @@ check_database() {
 
             printf '\n  %sاتصال مستقیم PDO:%s\n' "$C_DIM" "$C_OFF"
             if [ "$pdo_err" = "PDO_OK" ]; then
-                printf '    %sوصل شد!%s یعنی خود دیتابیس سالم است و مشکل از پیکربندی Laravel است.\n' "$C_WARN" "$C_OFF"
-                printf '    معمولاً یعنی کش کانفیگ مانده. این را بزنید:\n'
-                printf '      %s artisan config:clear && %s artisan cache:clear\n' "$php" "$php"
+                printf '    %sوصل شد!%s\n\n' "$C_WARN" "$C_OFF"
+                printf '  → دیتابیس، کاربر و رمز همگی درست‌اند. مشکل این است که Laravel\n'
+                printf '    مقدار متفاوتی از .env می‌خواند.\n'
+                explain_env_mismatch "$php"
             else
                 printf '    %s\n' "$pdo_err"
 
