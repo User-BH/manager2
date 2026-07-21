@@ -7,7 +7,6 @@ import {
   History,
   Search,
   Trash2,
-  X,
 } from 'lucide-react'
 import { Card } from '@/components/ui/Card'
 import { useDocumentTitle, useDebounce, useLocalStorage } from '@/hooks'
@@ -144,18 +143,50 @@ export function CalculatorPage() {
     setExpression('')
     setResult('')
     setError(null)
+    inputRef.current?.focus()
   }, [])
+
+  // ورود به صفحه: input بلافاصله فوکوس می‌گیرد تا کاربر بدون کلیک تایپ کند.
+  // این افکت بعد از mount اجرا می‌شود، پس ref حتماً مقداردهی شده است.
+  useEffect(() => {
+    inputRef.current?.focus()
+  }, [])
+
+  /*
+   * با عوض شدن درجه/رادیان، نتیجه‌ای که روی صفحه هست باید در حالت تازه
+   * دوباره حساب شود. بدون این، کاربر sin(30) را در درجه می‌دید (۰.۵)، حالت
+   * را رادیان می‌کرد ولی همان ۰.۵ می‌ماند و فکر می‌کرد سوییچ کار نمی‌کند.
+   */
+  useEffect(() => {
+    setResult((current) => {
+      if (!current) return current
+      try {
+        return formatResult(evaluate(expression, angleMode))
+      } catch {
+        return ''
+      }
+    })
+    // فقط با تغییر حالت زاویه، نه با هر تایپ
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [angleMode])
 
   // صفحه‌کلید فیزیکی: ماشین حساب بدون آن روی دسکتاپ کند است
   useEffect(() => {
     function handleKey(event: KeyboardEvent) {
       const target = event.target as HTMLElement | null
-      // اگر کاربر داخل ورودی دیگری تایپ می‌کند، دخالت نکن
+      // اگر کاربر داخل ورودی دیگری (مثلاً جستجوی تاریخچه) تایپ می‌کند، دخالت نکن
       if (target && target !== inputRef.current && /^(INPUT|TEXTAREA)$/.test(target.tagName)) return
 
       if (event.key === 'Enter' || event.key === '=') {
         event.preventDefault()
         compute()
+        return
+      }
+      // کلید Delete کل عبارت را پاک می‌کند (نقش AC)، برخلاف Backspace که
+      // فقط یک نویسه برمی‌دارد.
+      if (event.key === 'Delete') {
+        event.preventDefault()
+        clearAll()
         return
       }
       if (event.key === 'Escape') {
@@ -619,6 +650,51 @@ function Keypad({
   )
 }
 
+/**
+ * رنگ پایه، متن و رنگ هاورِ هر تنوعِ کلید.
+ *
+ * رنگ هاور عمداً یک ته‌رنگ سبزِ دیده‌شدنی است، نه سفیدِ محو. چون
+ * background-color این‌لاین بر :hover در CSS غلبه می‌کند، این مقادیر به‌جای
+ * style این‌لاین در متغیرهای CSS گذاشته می‌شوند و کلاس .calc-key در app.css
+ * هم پایه و هم هاور را از همان متغیرها می‌خواند.
+ */
+function keyColors(variant: NonNullable<KeySpec['variant']>, active: boolean) {
+  if (active) {
+    return {
+      bg: 'var(--color-brand-500)',
+      fg: '#fff',
+      hover: 'color-mix(in srgb, #fff 12%, var(--color-brand-500))',
+    }
+  }
+
+  switch (variant) {
+    case 'digit':
+      return {
+        bg: 'var(--surface-sunken)',
+        fg: 'var(--text-primary)',
+        hover: 'color-mix(in srgb, var(--color-brand-500) 14%, var(--surface-sunken))',
+      }
+    case 'operator':
+      return {
+        bg: 'var(--surface-base)',
+        fg: 'var(--color-brand-600)',
+        hover: 'color-mix(in srgb, var(--color-brand-500) 20%, var(--surface-base))',
+      }
+    case 'danger':
+      return {
+        bg: 'color-mix(in srgb, var(--state-danger) 10%, transparent)',
+        fg: 'var(--state-danger)',
+        hover: 'color-mix(in srgb, var(--state-danger) 22%, var(--surface-base))',
+      }
+    default: // function
+      return {
+        bg: 'var(--surface-base)',
+        fg: 'var(--text-secondary)',
+        hover: 'color-mix(in srgb, var(--color-brand-500) 13%, var(--surface-base))',
+      }
+  }
+}
+
 function Key({
   spec,
   active,
@@ -629,24 +705,7 @@ function Key({
   onPress: () => void
 }) {
   const variant = spec.variant ?? 'digit'
-
-  const background = active
-    ? 'var(--color-brand-500)'
-    : variant === 'digit'
-      ? 'var(--surface-sunken)'
-      : variant === 'danger'
-        ? 'color-mix(in srgb, var(--state-danger) 10%, transparent)'
-        : 'var(--surface-base)'
-
-  const color = active
-    ? '#fff'
-    : variant === 'digit'
-      ? 'var(--text-primary)'
-      : variant === 'danger'
-        ? 'var(--state-danger)'
-        : variant === 'operator'
-          ? 'var(--color-brand-600)'
-          : 'var(--text-secondary)'
+  const colors = keyColors(variant, Boolean(active))
 
   return (
     <button
@@ -654,10 +713,14 @@ function Key({
       title={spec.title}
       type="button"
       className={cn(
-        'rounded-xl border py-2.5 font-mono text-[14px] font-bold transition-all duration-100 hover:brightness-[1.06] active:scale-95',
+        'calc-key rounded-xl border py-2.5 font-mono text-[14px] font-bold',
         variant === 'digit' && 'text-[16px]',
       )}
-      style={{ backgroundColor: background, color, borderColor: 'var(--border-subtle)' }}
+      style={{
+        ['--key-bg' as string]: colors.bg,
+        ['--key-fg' as string]: colors.fg,
+        ['--key-hover' as string]: colors.hover,
+      }}
     >
       {spec.label}
     </button>
@@ -765,7 +828,7 @@ function HistoryPanel({
                 <button
                   onClick={() => onReuse(entry)}
                   title="بازگرداندن این عبارت به ماشین حساب"
-                  className="w-full rounded-lg px-2 py-2.5 text-right transition-colors hover:bg-(--surface-sunken)"
+                  className="w-full rounded-lg px-2 py-2.5 pl-16 text-right transition-colors hover:bg-(--surface-sunken)"
                 >
                   <span
                     dir="ltr"
@@ -800,23 +863,29 @@ function HistoryPanel({
                   </span>
                 </button>
 
-                <div className="absolute left-1 top-2 flex gap-0.5 opacity-0 transition-opacity focus-within:opacity-100 group-hover:opacity-100">
+                {/*
+                  سطل زباله‌ی هر ردیف همیشه دیده می‌شود (نه فقط با هاور)، چون
+                  کاربر ممکن است بخواهد فقط چند مورد را پاک کند نه کل تاریخچه.
+                  «درج نتیجه» چون کم‌کاربردتر است فقط با هاور ظاهر می‌شود.
+                */}
+                <div className="absolute left-1.5 top-2.5 flex items-center gap-0.5">
                   <button
                     onClick={() => onUseResult(entry)}
                     aria-label="درج نتیجه در عبارت"
                     title="درج نتیجه در عبارت"
-                    className="flex h-6 w-6 items-center justify-center rounded-lg hover:bg-(--border-subtle)"
+                    className="flex h-7 w-7 items-center justify-center rounded-lg opacity-0 transition-opacity hover:bg-(--border-subtle) focus-visible:opacity-100 group-hover:opacity-100"
                     style={{ color: 'var(--color-brand-600)' }}
                   >
-                    <Delete size={12} className="rotate-180" />
+                    <Delete size={13} className="rotate-180" />
                   </button>
                   <button
                     onClick={() => onRemove(entry.id)}
-                    aria-label="حذف از تاریخچه"
-                    className="flex h-6 w-6 items-center justify-center rounded-lg hover:bg-(--border-subtle)"
-                    style={{ color: 'var(--text-tertiary)' }}
+                    aria-label="حذف این مورد از تاریخچه"
+                    title="حذف این مورد"
+                    className="flex h-7 w-7 items-center justify-center rounded-lg transition-colors hover:bg-(--surface-sunken)"
+                    style={{ color: 'var(--color-danger)' }}
                   >
-                    <X size={12} />
+                    <Trash2 size={14} />
                   </button>
                 </div>
               </motion.li>

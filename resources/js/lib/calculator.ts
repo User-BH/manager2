@@ -142,6 +142,73 @@ function tokenize(input: string): Token[] {
   return tokens
 }
 
+/** توکنی که یک «مقدار» را تمام می‌کند: عدد، ثابت، پرانتز بسته، یا پسوندی (! و ٪). */
+function endsValue(token: Token): boolean {
+  return (
+    token.type === 'number' ||
+    token.type === 'constant' ||
+    (token.type === 'paren' && token.value === ')') ||
+    (token.type === 'operator' && OPERATORS[token.value]?.postfix === true)
+  )
+}
+
+/** توکنی که یک «مقدار» را شروع می‌کند: عدد، ثابت، تابع، یا پرانتز باز. */
+function startsValue(token: Token): boolean {
+  return (
+    token.type === 'number' ||
+    token.type === 'constant' ||
+    token.type === 'function' ||
+    (token.type === 'paren' && token.value === '(')
+  )
+}
+
+/**
+ * ضرب ضمنی، همان‌طور که در ریاضی نوشته می‌شود.
+ *
+ * کاربر انتظار دارد «8sin(58)» یعنی ۸ ضربدر sin(۵۸)، «2(3+4)» یعنی
+ * ۲ ضربدر پرانتز، و «(1+2)(3+4)» ضرب دو پرانتز. بدون این، همه‌ی این‌ها
+ * «عبارت ناقص» می‌دادند. قاعده: بین توکنی که یک مقدار را تمام می‌کند و
+ * توکنی که مقدار تازه‌ای شروع می‌کند، یک «*» گذاشته می‌شود.
+ */
+function insertImplicitMultiplication(tokens: Token[]): Token[] {
+  const result: Token[] = []
+
+  for (let i = 0; i < tokens.length; i++) {
+    const previous = tokens[i - 1]
+    if (previous && endsValue(previous) && startsValue(tokens[i])) {
+      result.push({ type: 'operator', value: '*' })
+    }
+    result.push(tokens[i])
+  }
+
+  return result
+}
+
+/**
+ * پرانتزهای بازِ بسته‌نشده را در انتها می‌بندد.
+ *
+ * وقتی کاربر «sin(58» می‌نویسد و «=» می‌زند، انتظار دارد ماشین حساب خودش
+ * پرانتز را ببندد و نتیجه را بدهد، نه اینکه خطای «پرانتزها متوازن نیستند»
+ * بگیرد. ولی پرانتز بسته‌ی اضافه (مثل «1+2)») همچنان خطاست، چون آنجا
+ * حدس زدنِ نیت کاربر ممکن نیست.
+ */
+function balanceParens(tokens: Token[]): Token[] {
+  let depth = 0
+  for (const token of tokens) {
+    if (token.type === 'paren') {
+      depth += token.value === '(' ? 1 : -1
+      if (depth < 0) throw new CalculationError('پرانتزها متوازن نیستند.')
+    }
+  }
+
+  const balanced = [...tokens]
+  for (let i = 0; i < depth; i++) {
+    balanced.push({ type: 'paren', value: ')' })
+  }
+
+  return balanced
+}
+
 /** shunting-yard: از نماد میان‌وندی به نماد پسوندی (RPN). */
 function toRpn(tokens: Token[]): Token[] {
   const output: Token[] = []
@@ -336,7 +403,11 @@ export function evaluate(expression: string, mode: AngleMode = 'deg'): number {
   const trimmed = expression.trim()
   if (!trimmed) throw new CalculationError('عبارتی وارد نشده است.')
 
-  return evaluateRpn(toRpn(tokenize(trimmed)), mode)
+  // ترتیب مهم است: اول ضرب ضمنی درج می‌شود، بعد پرانتزهای باز بسته می‌شوند،
+  // و در آخر به RPN تبدیل و ارزیابی می‌شود.
+  const tokens = balanceParens(insertImplicitMultiplication(tokenize(trimmed)))
+
+  return evaluateRpn(toRpn(tokens), mode)
 }
 
 /**
