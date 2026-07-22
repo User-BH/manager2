@@ -387,8 +387,10 @@ function Display({
   const status = displayStatus(error, result, preview)
 
   return (
+    // مانیتور چسبان: با اسکرولِ صفحه (به‌ویژه روی موبایل که کیبورد و تاریخچه
+    // بلندند) سرِ جای خود بالای صفحه می‌ماند تا عبارت و نتیجه همیشه دیده شوند.
     <div
-      className="rounded-2xl border p-4"
+      className="sticky top-0 z-20 rounded-2xl border p-4 shadow-sm"
       style={{ backgroundColor: 'var(--surface-sunken)', borderColor: 'var(--border-subtle)' }}
     >
       <div className="mb-2 flex items-center gap-2 text-[10.5px]" style={{ color: 'var(--text-tertiary)' }}>
