@@ -1,15 +1,13 @@
-import type { CSSProperties } from 'react'
-import Zoom from 'react-medium-image-zoom'
+import { useState, type CSSProperties } from 'react'
 import { ZoomIn } from 'lucide-react'
-import { galleryImages } from '@/data/images'
+import { galleryItems } from '@/data/images'
 import { RevealOnScroll } from './RevealOnScroll'
-
-import 'react-medium-image-zoom/dist/styles.css'
+import { GalleryLightbox } from './GalleryLightbox'
 
 // این سه مقدار باید دقیقاً با مقادیر متناظرشان در index.css (.gallery-marquee-item) یکی باشند
 const ITEM_WIDTH_PX = 280
 const ITEM_GAP_PX = 20
-const ITEMS_PER_BLOCK = galleryImages.length
+const ITEMS_PER_BLOCK = galleryItems.length
 
 // عرض دقیق px یک «بلوک» کامل از تصاویر اصلی - این عدد دقیقاً مسافتی است که
 // انیمیشن باید جابه‌جا شود تا چرخه بدون درز و بدون خطای انباشتی تکرار شود.
@@ -19,7 +17,7 @@ const BLOCK_WIDTH_PX = ITEMS_PER_BLOCK * (ITEM_WIDTH_PX + ITEM_GAP_PX)
 // آرایه سه بار پشت‌سرهم تکرار می‌شود تا حتی در صفحه‌نمایش‌های خیلی عریض هم
 // همیشه حداقل یک کپی کامل دیگر در ادامه‌ی مسیر دیده شود و هیچ‌گاه فضای خالی نیاید
 const REPEAT_COUNT = 3
-const loopedImages = Array.from({ length: REPEAT_COUNT }).flatMap(() => galleryImages)
+const loopedImages = Array.from({ length: REPEAT_COUNT }).flatMap(() => galleryItems)
 
 // سرعت ثابت حرکت: حدود ۵۷ پیکسل بر ثانیه، فارغ از اینکه چند تصویر در گالری باشد
 const PIXELS_PER_SECOND = 57
@@ -31,6 +29,8 @@ const trackStyle = {
 } as CSSProperties
 
 export function GallerySwiperSection() {
+  const [openIndex, setOpenIndex] = useState<number | null>(null)
+
   return (
     <section id="gallery" className="overflow-hidden py-20" style={{ backgroundColor: 'var(--surface-sunken)' }}>
       <div className="mx-auto max-w-6xl px-4 sm:px-6" dir="rtl">
@@ -49,24 +49,43 @@ export function GallerySwiperSection() {
             dir="ltr" روی خود ویوپورت صریح است تا کلیپ/اورفلو مستقل از جهت RTL صفحه باشد. */}
         <div className="gallery-marquee-viewport" dir="ltr">
           <div className="gallery-marquee-track" style={trackStyle}>
-            {loopedImages.map((src, index) => (
-              <div key={index} className="gallery-marquee-item group">
-                <Zoom>
-                  <img
-                    src={src}
-                    alt={`نمای فضای مجتمع مسکونی ${(index % galleryImages.length) + 1}`}
-                    className="h-full w-full cursor-zoom-in object-cover transition-transform duration-700 group-hover:scale-110"
-                    draggable={false}
-                  />
-                </Zoom>
-                <div className="pointer-events-none absolute inset-0 flex items-center justify-center bg-black/0 opacity-0 transition-opacity duration-300 group-hover:bg-black/15 group-hover:opacity-100">
+            {loopedImages.map((item, index) => (
+              <button
+                key={index}
+                onClick={() => setOpenIndex(index % galleryItems.length)}
+                aria-label={`بزرگ‌نمایی: ${item.title}`}
+                className="gallery-marquee-item group"
+              >
+                <img
+                  src={item.src}
+                  alt={item.title}
+                  width={800}
+                  height={1000}
+                  loading="lazy"
+                  decoding="async"
+                  className="h-full w-full cursor-zoom-in object-cover transition-transform duration-700 group-hover:scale-110"
+                  draggable={false}
+                />
+
+                {/* پوشش هاور: آیکون ذره‌بین + عنوانِ همان تصویر */}
+                <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center gap-2 bg-black/0 opacity-0 transition-opacity duration-300 group-hover:bg-black/35 group-hover:opacity-100">
                   <ZoomIn size={26} className="text-white drop-shadow" />
+                  <span className="px-3 text-center text-[12.5px] font-bold text-white drop-shadow">
+                    {item.title}
+                  </span>
                 </div>
-              </div>
+              </button>
             ))}
           </div>
         </div>
       </div>
+
+      <GalleryLightbox
+        items={galleryItems}
+        index={openIndex}
+        onClose={() => setOpenIndex(null)}
+        onNavigate={setOpenIndex}
+      />
     </section>
   )
 }

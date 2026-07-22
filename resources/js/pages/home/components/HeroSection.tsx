@@ -1,11 +1,9 @@
 import { useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { motion, useScroll, useTransform } from 'framer-motion'
-import Zoom from 'react-medium-image-zoom'
 import { ArrowLeft, PlayCircle } from 'lucide-react'
 import { heroHighlights } from '@/data/landingContent'
 import { heroImages as imageUrls } from '@/data/images'
-import 'react-medium-image-zoom/dist/styles.css'
 
 export function HeroSection() {
   const navigate = useNavigate()
@@ -83,6 +81,7 @@ export function HeroSection() {
               <ArrowLeft size={16} className="transition-transform group-hover:-translate-x-1" />
             </button>
             <button
+              onClick={() => navigate('/demo')}
               className="flex items-center gap-2 rounded-2xl border px-6 py-3.5 text-sm font-semibold transition-colors hover:bg-(--surface-sunken)"
               style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)' }}
             >
@@ -122,14 +121,19 @@ export function HeroSection() {
             className="absolute -inset-4 -z-10 rounded-[2rem] opacity-60 blur-2xl"
             style={{ backgroundColor: 'var(--color-brand-200)' }}
           />
-          <div className="overflow-hidden rounded-[1.75rem] border shadow-2xl" style={{ borderColor: 'var(--border-subtle)' }}>
-            <Zoom>
-              <img
-                src={imageUrls.buildingMain}
-                alt="نمای ساختمان مجتمع مسکونی مدرن"
-                className="h-[340px] w-full cursor-zoom-in object-cover sm:h-[420px]"
-              />
-            </Zoom>
+          <div className="group overflow-hidden rounded-[1.75rem] border shadow-2xl" style={{ borderColor: 'var(--border-subtle)' }}>
+            {/* تصویر بالای صفحه: زودتر از همه لازم است، پس نه lazy بلکه
+                با اولویت بالا بارگذاری می‌شود. width/height واقعی هم
+                گذاشته شده تا چیدمان هنگام لود نپرد. */}
+            <img
+              src={imageUrls.buildingMain}
+              alt="نمای ساختمان مجتمع مسکونی مدرن"
+              width={1100}
+              height={1466}
+              fetchPriority="high"
+              decoding="async"
+              className="h-[340px] w-full object-cover transition-transform duration-700 group-hover:scale-105 sm:h-[420px]"
+            />
           </div>
         </motion.div>
       </div>

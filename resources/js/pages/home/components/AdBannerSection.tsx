@@ -34,6 +34,10 @@ export function AdBannerSection() {
               <img
                 src={ad.image}
                 alt={ad.title}
+                width={1600}
+                height={520}
+                loading="lazy"
+                decoding="async"
                 className="absolute inset-0 h-full w-full object-cover transition-transform duration-700 group-hover:scale-105"
                 draggable={false}
               />

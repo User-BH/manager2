@@ -5,11 +5,14 @@ import { Menu, X } from 'lucide-react'
 import { useToggle } from '@/hooks'
 import { ThemeToggle } from '@/components/layout/ThemeToggle'
 import { Logo } from '@/components/common/Logo'
+import { scrollToSection } from '@/lib/scroll'
 
+/** به‌جای href لنگری، شناسه‌ی بخش؛ حرکت با اسکرول نرم انجام می‌شود و آدرس
+    سایت دست‌نخورده می‌ماند. */
 const navLinks = [
-  { label: 'ویژگی‌ها', href: '#features' },
-  { label: 'گالری', href: '#gallery' },
-  { label: 'نظرات', href: '#testimonials' },
+  { label: 'ویژگی‌ها', section: 'features' },
+  { label: 'گالری', section: 'gallery' },
+  { label: 'نظرات', section: 'testimonials' },
 ]
 
 export function HomeNavbar() {
@@ -45,14 +48,19 @@ export function HomeNavbar() {
 
         <nav className="hidden items-center gap-7 md:flex">
           {navLinks.map((link) => (
-            <a
-              key={link.href}
-              href={link.href}
-              className="text-[13.5px] font-medium transition-colors hover:opacity-80"
+            <button
+              key={link.section}
+              onClick={() => scrollToSection(link.section)}
+              className="group relative text-[13.5px] font-medium transition-colors hover:opacity-80"
               style={{ color: 'var(--text-secondary)' }}
             >
               {link.label}
-            </a>
+              {/* خط زیرِ متن که با هاور از وسط باز می‌شود */}
+              <span
+                className="absolute -bottom-1 left-1/2 h-0.5 w-0 -translate-x-1/2 rounded-full transition-all duration-300 group-hover:w-full"
+                style={{ backgroundColor: 'var(--color-brand-500)' }}
+              />
+            </button>
           ))}
         </nav>
 
@@ -95,15 +103,17 @@ export function HomeNavbar() {
         >
           <div className="flex flex-col gap-3">
             {navLinks.map((link) => (
-              <a
-                key={link.href}
-                href={link.href}
-                onClick={() => setMobileOpen(false)}
-                className="text-sm font-medium"
+              <button
+                key={link.section}
+                onClick={() => {
+                  setMobileOpen(false)
+                  scrollToSection(link.section)
+                }}
+                className="text-right text-sm font-medium"
                 style={{ color: 'var(--text-secondary)' }}
               >
                 {link.label}
-              </a>
+              </button>
             ))}
             <div className="mt-2 flex gap-2">
               <button

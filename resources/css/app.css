@@ -346,6 +346,13 @@ button:disabled {
     border-radius: 1rem;
     overflow: hidden;
     box-shadow: 0 8px 20px -8px color-mix(in srgb, var(--text-primary) 18%, transparent);
+    /* حالا این آیتم یک <button> است تا لایت‌باکس با صفحه‌کلید هم باز شود؛
+       پس پیش‌فرض‌های دکمه باید صفر شوند. */
+    padding: 0;
+    border: 0;
+    display: block;
+    background: none;
+    appearance: none;
 }
 
 @keyframes gallery-marquee-scroll {
@@ -713,4 +720,112 @@ button:disabled {
 
 .rmdp-panel-body li {
     background-color: var(--color-brand-500);
+}
+
+/* ---------------------------------------------------------------------------
+   اسکرول‌بار سراسری
+   ---------------------------------------------------------------------------
+   نوارِ پیش‌فرضِ خاکستریِ مرورگر با نوارِ باریکِ گرادیانِ برند جایگزین می‌شود.
+   با هاور کمی پهن‌تر و پررنگ‌تر می‌شود تا گرفتنش راحت باشد. رنگ‌ها از همان
+   توکن‌های تم می‌آیند، پس در حالت تاریک هم خودبه‌خود درست می‌شود.
+--------------------------------------------------------------------------- */
+html {
+    /* فایرفاکس فقط همین دو ویژگی را می‌شناسد */
+    scrollbar-width: thin;
+    scrollbar-color: var(--color-brand-400) transparent;
+}
+
+::-webkit-scrollbar {
+    width: 11px;
+    height: 11px;
+}
+
+::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+    background: linear-gradient(
+        180deg,
+        var(--color-brand-400) 0%,
+        var(--color-brand-500) 60%,
+        var(--color-brand-600) 100%
+    );
+    border-radius: 9999px;
+    /* حاشیهٔ شفاف، نوار را باریک‌تر از ستون اسکرول نشان می‌دهد */
+    border: 3px solid transparent;
+    background-clip: content-box;
+    transition: background 0.2s ease;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: linear-gradient(
+        180deg,
+        var(--color-brand-300) 0%,
+        var(--color-brand-400) 60%,
+        var(--color-brand-500) 100%
+    );
+    background-clip: content-box;
+    border: 2px solid transparent;
+}
+
+::-webkit-scrollbar-corner {
+    background: transparent;
+}
+
+/* عمداً `scroll-behavior: smooth` سراسری گذاشته نشده.
+   دلیل: انیمیشنِ اسکرول در lib/scroll.ts هر فریم `window.scrollTo` صدا
+   می‌زند؛ اگر CSS هم smooth باشد، هر فراخوانی خودش یک انیمیشنِ جدا شروع
+   می‌کند و با انیمیشنِ ما می‌جنگد — نتیجه حرکتِ کند و کشدار می‌شود. */
+
+/* ---------------------------------------------------------------------------
+   نوار پیشرفت پخش‌کننده‌ی ویدیو (صفحه‌ی دمو)
+   ---------------------------------------------------------------------------
+   یک <input type="range"> است تا کشیدن و صفحه‌کلید رایگان به دست بیاید، ولی
+   ظاهرِ پیش‌فرضش کاملاً بازنویسی شده: بخشِ پخش‌شده با رنگ برند پر می‌شود
+   (متغیر --played از کامپوننت می‌آید) و دستگیره فقط با هاور بزرگ می‌شود.
+--------------------------------------------------------------------------- */
+.demo-progress {
+    -webkit-appearance: none;
+    appearance: none;
+    height: 5px;
+    border-radius: 9999px;
+    background: linear-gradient(
+        to right,
+        var(--color-brand-400) 0%,
+        var(--color-brand-400) var(--played, 0%),
+        rgba(255, 255, 255, 0.28) var(--played, 0%),
+        rgba(255, 255, 255, 0.28) 100%
+    );
+    outline: none;
+    cursor: pointer;
+}
+
+.demo-progress::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 13px;
+    height: 13px;
+    border-radius: 9999px;
+    background: #fff;
+    border: 2px solid var(--color-brand-400);
+    transition: transform 0.15s ease;
+}
+
+.demo-progress:hover::-webkit-slider-thumb {
+    transform: scale(1.25);
+}
+
+.demo-progress::-moz-range-thumb {
+    width: 13px;
+    height: 13px;
+    border-radius: 9999px;
+    background: #fff;
+    border: 2px solid var(--color-brand-400);
+}
+
+.demo-progress::-moz-range-track {
+    height: 5px;
+    border-radius: 9999px;
+    background: rgba(255, 255, 255, 0.28);
 }

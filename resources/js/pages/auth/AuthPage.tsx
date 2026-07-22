@@ -36,6 +36,9 @@ export function AuthPage() {
         <img
           src={authBackgroundImage}
           alt="نمای مجتمع مسکونی"
+          width={1100}
+          height={733}
+          decoding="async"
           className="h-full w-full object-cover"
         />
         <div

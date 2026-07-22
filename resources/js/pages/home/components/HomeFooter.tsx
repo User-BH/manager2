@@ -1,5 +1,7 @@
 import type { CSSProperties } from 'react'
+import { Link } from 'react-router-dom'
 import { Mail, Phone, MapPin } from 'lucide-react'
+import { scrollToSection } from '@/lib/scroll'
 import { Logo } from '@/components/common/Logo'
 import { InstagramIcon, TelegramIcon, WhatsappIcon, RubikaIcon } from '@/components/common/SocialIcons'
 import { BRAND_NAME, contactInfo, socialLinks } from '@/config/brand'
@@ -54,25 +56,26 @@ export function HomeFooter() {
             </div>
           </div>
 
-          {/* ستون لینک‌های سریع */}
+          {/* ستون لینک‌های سریع — بخش‌های همین صفحه با اسکرول نرم، بدون تغییر آدرس */}
           <FooterLinkGroup
             title="دسترسی سریع"
             links={[
-              { label: 'ویژگی‌ها', href: '#features' },
-              { label: 'گالری', href: '#gallery' },
-              { label: 'نظرات کاربران', href: '#testimonials' },
-              { label: 'ورود به پنل', href: '/auth' },
+              { label: 'ویژگی‌ها', section: 'features' },
+              { label: 'گالری', section: 'gallery' },
+              { label: 'نظرات کاربران', section: 'testimonials' },
+              { label: 'مشاهده دمو', to: '/demo' },
+              { label: 'ورود به پنل', to: '/auth' },
             ]}
           />
 
-          {/* ستون لینک‌های قانونی */}
+          {/* ستون پشتیبانی — همه به صفحه‌ی پشتیبانی و آکاردیونِ مربوطه می‌روند */}
           <FooterLinkGroup
             title="پشتیبانی"
             links={[
-              { label: 'سوالات متداول', href: '#' },
-              { label: 'قوانین و مقررات', href: '#' },
-              { label: 'حریم خصوصی', href: '#' },
-              { label: 'تماس با ما', href: '#' },
+              { label: 'سوالات متداول', to: '/support?topic=faq' },
+              { label: 'قوانین و مقررات', to: '/support?topic=terms' },
+              { label: 'حریم خصوصی', to: '/support?topic=privacy' },
+              { label: 'تماس با ما', to: '/support?topic=contact' },
             ]}
           />
 
@@ -129,7 +132,14 @@ export function HomeFooter() {
   )
 }
 
-function FooterLinkGroup({ title, links }: { title: string; links: { label: string; href: string }[] }) {
+/** یا به بخشی از همین صفحه اسکرول می‌کند (`section`) یا به مسیری می‌رود (`to`). */
+interface FooterLink {
+  label: string
+  section?: string
+  to?: string
+}
+
+function FooterLinkGroup({ title, links }: { title: string; links: FooterLink[] }) {
   return (
     <div>
       <p className="text-sm font-bold" style={{ color: 'var(--text-primary)' }}>
@@ -138,13 +148,23 @@ function FooterLinkGroup({ title, links }: { title: string; links: { label: stri
       <ul className="mt-4 flex flex-col gap-2.5">
         {links.map((link) => (
           <li key={link.label}>
-            <a
-              href={link.href}
-              className="text-[13px] transition-colors hover:opacity-80"
-              style={{ color: 'var(--text-secondary)' }}
-            >
-              {link.label}
-            </a>
+            {link.to ? (
+              <Link
+                to={link.to}
+                className="inline-block text-[13px] transition-all duration-200 hover:-translate-x-1 hover:opacity-80"
+                style={{ color: 'var(--text-secondary)' }}
+              >
+                {link.label}
+              </Link>
+            ) : (
+              <button
+                onClick={() => link.section && scrollToSection(link.section)}
+                className="inline-block text-[13px] transition-all duration-200 hover:-translate-x-1 hover:opacity-80"
+                style={{ color: 'var(--text-secondary)' }}
+              >
+                {link.label}
+              </button>
+            )}
           </li>
         ))}
       </ul>

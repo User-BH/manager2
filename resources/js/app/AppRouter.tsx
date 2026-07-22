@@ -14,6 +14,8 @@ import type { UserRole } from '@/types'
  * دیده می‌شوند و نباید پشت یک چانک دوم منتظر بمانند.
  */
 const ForbiddenPage = lazy(() => import('@/pages/error/ForbiddenPage').then((m) => ({ default: m.ForbiddenPage })))
+const DemoPage = lazy(() => import('@/pages/demo/DemoPage').then((m) => ({ default: m.DemoPage })))
+const SupportPage = lazy(() => import('@/pages/support/SupportPage').then((m) => ({ default: m.SupportPage })))
 const DashboardPage = lazy(() => import('@/pages/dashboard/DashboardPage').then((m) => ({ default: m.DashboardPage })))
 const UnitsPage = lazy(() => import('@/pages/units/UnitsPage').then((m) => ({ default: m.UnitsPage })))
 const ResidentsPage = lazy(() => import('@/pages/residents/ResidentsPage').then((m) => ({ default: m.ResidentsPage })))
@@ -48,6 +50,8 @@ export function AppRouter() {
         {/* --- عمومی --- */}
         <Route path="/" element={<HomePage />} />
         <Route path="/auth" element={<AuthPage />} />
+        <Route path="/demo" element={<DemoPage />} />
+        <Route path="/support" element={<SupportPage />} />
         <Route path="/forbidden" element={<ForbiddenPage />} />
 
         {/* --- مشترک بین همه‌ی نقش‌های واردشده --- */}
