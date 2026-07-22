@@ -37,6 +37,8 @@ const MAX_HISTORY = 200
 export function CalculatorPage() {
   const [expression, setExpression] = useState('')
   const [result, setResult] = useState('')
+  // عبارتی که نتیجه‌ی فعلی را ساخت؛ زیرِ نتیجه نشان داده می‌شود
+  const [resultExpr, setResultExpr] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [angleMode, setAngleMode] = useState<AngleMode>('deg')
   const [secondFn, setSecondFn] = useState(false)
@@ -74,6 +76,7 @@ export function CalculatorPage() {
       const formatted = formatResult(value)
 
       setResult(formatted)
+      setResultExpr(trimmed)
       setError(null)
 
       setHistory((prev) =>
@@ -109,6 +112,7 @@ export function CalculatorPage() {
   const insert = useCallback((text: string) => {
     setError(null)
     setResult('')
+    setResultExpr('')
 
     setExpression((prev) => {
       const input = inputRef.current
@@ -136,12 +140,14 @@ export function CalculatorPage() {
   const backspace = useCallback(() => {
     setError(null)
     setResult('')
+    setResultExpr('')
     setExpression((prev) => prev.slice(0, -1))
   }, [])
 
   const clearAll = useCallback(() => {
     setExpression('')
     setResult('')
+    setResultExpr('')
     setError(null)
     inputRef.current?.focus()
   }, [])
@@ -267,16 +273,17 @@ export function CalculatorPage() {
               // نتیجه‌ی محاسبه‌ی قبلی باید برود، وگرنه کاربر عبارت تازه را
               // می‌بیند ولی زیرش عددِ محاسبه‌ی قبلی مانده و گمراه می‌شود
               setResult('')
+              setResultExpr('')
               setExpression(value)
             }}
             inputRef={inputRef}
             result={result}
+            resultExpr={resultExpr}
             preview={preview}
             error={error}
             memory={memory}
             angleMode={angleMode}
             onCopy={copyResult}
-            onSubmit={compute}
           />
 
           <MemoryRow
@@ -332,28 +339,37 @@ function displayStatus(
   return null
 }
 
+/** نویسه‌های مجازِ تایپ با کیبورد: رقم (فارسی/لاتین)، ممیز، فاصله و نمادها.
+    توابع (sin و…) عمداً نیستند؛ فقط با دکمه‌های ماشین حساب درج می‌شوند. */
+const ALLOWED_INPUT = /[^0-9۰-۹٠-٩.+\-*/%^()\s]/
+
+/** عبارت را برای نمایش زیر نتیجه زیباتر می‌کند: × ÷ − و ارقام فارسی. */
+function prettyExpr(expr: string): string {
+  return toPersianDigits(expr.replace(/\*/g, '×').replace(/\//g, '÷').replace(/-/g, '−'))
+}
+
 function Display({
   expression,
   onExpressionChange,
   inputRef,
   result,
+  resultExpr,
   preview,
   error,
   memory,
   angleMode,
   onCopy,
-  onSubmit,
 }: {
   expression: string
   onExpressionChange: (value: string) => void
   inputRef: React.RefObject<HTMLInputElement | null>
   result: string
+  resultExpr: string
   preview: string
   error: string | null
   memory: number
   angleMode: AngleMode
   onCopy: () => void
-  onSubmit: () => void
 }) {
   const status = displayStatus(error, result, preview)
 
@@ -399,14 +415,16 @@ function Display({
         dir="ltr"
         value={expression}
         onChange={(event) => onExpressionChange(normalizeDigits(event.target.value))}
-        onKeyDown={(event) => {
-          if (event.key === 'Enter') {
+        onBeforeInput={(event) => {
+          // جلوی تایپ/چسباندنِ حرف (مثل sin) را می‌گیرد؛ Enter و = را
+          // شنونده‌ی سراسری صفحه‌کلید مدیریت می‌کند، نه اینجا.
+          const data = (event.nativeEvent as InputEvent).data
+          if (data && ALLOWED_INPUT.test(data)) {
             event.preventDefault()
-            onSubmit()
           }
         }}
         placeholder="0"
-        inputMode="text"
+        inputMode="numeric"
         aria-label="عبارت ریاضی"
         spellCheck={false}
         className="w-full bg-transparent text-left font-mono text-[26px] font-bold outline-none"
@@ -421,7 +439,7 @@ function Display({
         تمام نمی‌شد اصلاً نمایش داده نمی‌شد. این شکل، وابسته به تمام شدن
         انیمیشن نیست.
       */}
-      <div className="mt-1 flex min-h-[26px] items-center justify-end">
+      <div className="mt-1 flex min-h-[26px] flex-col items-end justify-center">
         {status && (
           <motion.p
             key={`${status.kind}-${status.text}`}
@@ -433,7 +451,7 @@ function Display({
               status.kind === 'error'
                 ? 'text-[12.5px] font-semibold'
                 : status.kind === 'result'
-                  ? 'font-mono text-[20px] font-extrabold'
+                  ? 'font-mono text-[22px] font-extrabold'
                   : 'font-mono text-[15px]'
             }
             style={{
@@ -446,6 +464,20 @@ function Display({
             }}
           >
             {status.kind === 'error' ? status.text : `= ${toPersianDigits(status.text)}`}
+          </motion.p>
+        )}
+
+        {/* محاسبه‌ای که به این نتیجه رسید، درست زیرِ خودِ نتیجه */}
+        {status?.kind === 'result' && resultExpr && (
+          <motion.p
+            key={`src-${resultExpr}`}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            dir="ltr"
+            className="mt-0.5 font-mono text-[12.5px]"
+            style={{ color: 'var(--text-tertiary)' }}
+          >
+            {prettyExpr(resultExpr)}
           </motion.p>
         )}
       </div>
@@ -492,9 +524,12 @@ function MemoryRow({
         </button>
       ))}
 
-      <span className="mr-auto font-mono text-[11px] tabular-nums" style={{ color: 'var(--text-tertiary)' }}>
-        حافظه: {toPersianDigits(formatResult(memory))}
-      </span>
+      {/* فقط وقتی حافظه مقدار دارد نشان داده می‌شود؛ «حافظه: ۰» همیشگی نویز بود. */}
+      {memory !== 0 && (
+        <span className="mr-auto font-mono text-[11px] tabular-nums" style={{ color: 'var(--color-brand-600)' }}>
+          حافظه: {toPersianDigits(formatResult(memory))}
+        </span>
+      )}
     </div>
   )
 }

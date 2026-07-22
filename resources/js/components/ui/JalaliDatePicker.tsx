@@ -70,7 +70,11 @@ export function JalaliDatePicker({
         editable={false}
         inputClass={error ? 'jalali-input jalali-input-error' : 'jalali-input'}
         containerClassName="jalali-container"
-        calendarPosition="bottom-right"
+        // همیشه بالای اینپوت باز شود و با عوض شدن ماه (که ارتفاع تقویم کمی
+        // فرق می‌کند) بالا-پایین نپرد. fixMainPosition جلوی چرخشِ خودکارِ
+        // popper را می‌گیرد.
+        calendarPosition="top-right"
+        fixMainPosition
         placeholder={placeholder}
         arrow={false}
       />

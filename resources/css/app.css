@@ -557,19 +557,10 @@ button:disabled {
     padding: 0.7rem 0.95rem;
     border-radius: 0.875rem;
     /* toast یک grid است؛ فاصله‌ی ستون‌ها همان فاصله‌ی آیکون و متن است، پس
-       متنِ کوتاه دیگر نه می‌شکند و نه به آیکون می‌چسبد. */
-    column-gap: 0.55rem;
-}
-
-.swal2-toast.swal-app-toast .swal2-icon {
-    width: 1.55rem;
-    height: 1.55rem;
-    min-width: 1.55rem;
-    margin: 0;
-}
-
-.swal2-toast.swal-app-toast .swal2-icon .swal2-icon-content {
-    font-size: 1rem;
+       متنِ کوتاه دیگر نه می‌شکند و نه به آیکون می‌چسبد. اندازه‌ی خودِ آیکون
+       عمداً دست‌نخورده می‌ماند: هندسه‌ی داخلی تیک/ضربدر با اندازه‌ی پیش‌فرض
+       تنظیم شده و تغییرِ width آن را خراب می‌کند. */
+    column-gap: 0.5rem;
 }
 
 .swal2-toast.swal-app-toast .swal-app-title {
