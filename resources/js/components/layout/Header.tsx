@@ -4,6 +4,7 @@ import { SearchBox } from './SearchBox'
 import { NotificationBell } from './NotificationBell'
 import { ThemeToggle } from './ThemeToggle'
 import { UserMenu } from './UserMenu'
+import { Tooltip } from '@/components/ui/Tooltip'
 import { useSidebar } from '@/context/SidebarContext'
 
 export function Header() {
@@ -35,26 +36,28 @@ export function Header() {
           ماشین حساب یک صفحه‌ی معمولی است نه پاپ‌آپ: با NavLink هم آدرسش
           قابل بوکمارک می‌شود و هم هدر و سایدبار سر جایشان می‌مانند و فقط
           وسط صفحه عوض می‌شود — همان رفتاری که بقیه‌ی صفحه‌ها دارند.
+          تولتیپ سفارشی به‌جای title بومی، تا در تم تاریک هم جذاب باشد.
         */}
-        <NavLink
-          to="/calculator"
-          aria-label="ماشین حساب"
-          title="ماشین حساب مهندسی"
-          className="flex h-9 w-9 items-center justify-center rounded-full border transition-colors hover:bg-(--surface-sunken)"
-          style={({ isActive }) => ({
-            borderColor: isActive ? 'var(--color-brand-500)' : 'var(--border-subtle)',
-            backgroundColor: isActive
-              ? 'color-mix(in srgb, var(--color-brand-500) 12%, transparent)'
-              : undefined,
-          })}
-        >
-          {({ isActive }) => (
-            <Calculator
-              size={17}
-              style={{ color: isActive ? 'var(--color-brand-600)' : 'var(--text-secondary)' }}
-            />
-          )}
-        </NavLink>
+        <Tooltip label="ماشین حساب مهندسی">
+          <NavLink
+            to="/calculator"
+            aria-label="ماشین حساب"
+            className="flex h-9 w-9 items-center justify-center rounded-full border transition-colors hover:bg-(--surface-sunken)"
+            style={({ isActive }) => ({
+              borderColor: isActive ? 'var(--color-brand-500)' : 'var(--border-subtle)',
+              backgroundColor: isActive
+                ? 'color-mix(in srgb, var(--color-brand-500) 12%, transparent)'
+                : undefined,
+            })}
+          >
+            {({ isActive }) => (
+              <Calculator
+                size={17}
+                style={{ color: isActive ? 'var(--color-brand-600)' : 'var(--text-secondary)' }}
+              />
+            )}
+          </NavLink>
+        </Tooltip>
 
         <NotificationBell />
 

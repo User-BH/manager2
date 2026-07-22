@@ -284,6 +284,7 @@ export function CalculatorPage() {
             memory={memory}
             angleMode={angleMode}
             onCopy={copyResult}
+            onInsert={insert}
           />
 
           <MemoryRow
@@ -343,6 +344,16 @@ function displayStatus(
     توابع (sin و…) عمداً نیستند؛ فقط با دکمه‌های ماشین حساب درج می‌شوند. */
 const ALLOWED_INPUT = /[^0-9۰-۹٠-٩.+\-*/%^()\s]/
 
+/**
+ * متنِ چسبانده‌شده را پاک‌سازی می‌کند: ارقام فارسی به لاتین و هر نویسه‌ی
+ * غیرمجاز حذف می‌شود. برخلاف تایپ (که نویسه‌به‌نویسه فیلتر می‌شود)، paste را
+ * کامل رد نمی‌کنیم؛ چون «۱۲+۳» معتبر را هم رد می‌کرد و کاربر گیج می‌شد. حالا
+ * بخش معتبرش درج می‌شود و بقیه دور ریخته می‌شود.
+ */
+function sanitizePaste(text: string): string {
+  return normalizeDigits(text).replace(/[^0-9.+\-*/%^()\s]/g, '')
+}
+
 /** عبارت را برای نمایش زیر نتیجه زیباتر می‌کند: × ÷ − و ارقام فارسی. */
 function prettyExpr(expr: string): string {
   return toPersianDigits(expr.replace(/\*/g, '×').replace(/\//g, '÷').replace(/-/g, '−'))
@@ -359,6 +370,7 @@ function Display({
   memory,
   angleMode,
   onCopy,
+  onInsert,
 }: {
   expression: string
   onExpressionChange: (value: string) => void
@@ -370,6 +382,7 @@ function Display({
   memory: number
   angleMode: AngleMode
   onCopy: () => void
+  onInsert: (text: string) => void
 }) {
   const status = displayStatus(error, result, preview)
 
@@ -416,12 +429,20 @@ function Display({
         value={expression}
         onChange={(event) => onExpressionChange(normalizeDigits(event.target.value))}
         onBeforeInput={(event) => {
-          // جلوی تایپ/چسباندنِ حرف (مثل sin) را می‌گیرد؛ Enter و = را
-          // شنونده‌ی سراسری صفحه‌کلید مدیریت می‌کند، نه اینجا.
+          // جلوی تایپِ نویسه‌به‌نویسه‌ی حرف (مثل sin) را می‌گیرد؛ Enter و = را
+          // شنونده‌ی سراسری صفحه‌کلید مدیریت می‌کند، نه اینجا. (paste را
+          // onPaste جدا و با پاک‌سازی مدیریت می‌کند.)
           const data = (event.nativeEvent as InputEvent).data
           if (data && ALLOWED_INPUT.test(data)) {
             event.preventDefault()
           }
+        }}
+        onPaste={(event) => {
+          // به‌جای رد کردنِ کلِ paste، فقط بخش معتبرش درج می‌شود
+          event.preventDefault()
+          const pasted = event.clipboardData.getData('text')
+          const clean = sanitizePaste(pasted)
+          if (clean) onInsert(clean)
         }}
         placeholder="0"
         inputMode="numeric"
