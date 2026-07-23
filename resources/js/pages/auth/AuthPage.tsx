@@ -115,6 +115,25 @@ export function AuthPage() {
               </p>
             </div>
 
+            {/*
+              * دلیلِ بیرون‌انداخته‌شدن، اگر کاربر با نشستِ بسته‌شده به اینجا
+              * رسیده باشد (مثلاً حسابش وسط کار غیرفعال شده). بدون این، فقط
+              * ناگهان روی صفحه‌ی ورود می‌افتاد بی‌هیچ توضیحی.
+              */}
+            {searchParams.get('reason') && (
+              <div
+                className="mb-5 flex items-start gap-2 rounded-xl border px-3.5 py-3 text-[12.5px] leading-6"
+                style={{
+                  borderColor: 'var(--color-danger)',
+                  backgroundColor: 'color-mix(in srgb, var(--color-danger) 10%, transparent)',
+                  color: 'var(--text-primary)',
+                }}
+              >
+                <ShieldCheck size={16} className="mt-0.5 shrink-0" style={{ color: 'var(--color-danger)' }} />
+                <span>{searchParams.get('reason')}</span>
+              </div>
+            )}
+
             <AuthTabs active={tab} onChange={setTab} />
 
             <div className="mt-7">

@@ -43,6 +43,16 @@ class MessengerController extends Controller
 
         return response()->json([
             'messages' => $query->get()->map(fn (Message $m) => $this->present($m, $user))->values(),
+            /*
+             * شناسه‌ی پیام‌های مخفی‌شده، مستقل از پنجره‌ی واکشی.
+             *
+             * واکشی افزایشی فقط پیام‌های جدیدتر از `since` را می‌آورد، پس
+             * کلاینتی که پیامی را پیش از مخفی‌شدنش گرفته، هرگز خبردار
+             * نمی‌شد و متن را روی صفحه نگه می‌داشت. با این فهرست، نسخه‌ی
+             * کهنه‌ی خودش را هم پاک می‌کند.
+             */
+            'hiddenIds' => Message::where('complex_id', $complex->id)
+                ->where('is_hidden', true)->pluck('id')->all(),
             'canSend' => $complex->messenger_enabled && $user->can_message,
             'reason' => $this->blockReason($complex, $user),
             'isAdmin' => $user->isAdmin(),
@@ -91,15 +101,29 @@ class MessengerController extends Controller
         return response()->json(['message' => $this->present($message->fresh(), $user)]);
     }
 
+    /**
+     * یک پیام برای این بیننده.
+     *
+     * پیامِ مخفی‌شده متنش را از دست می‌دهد، نه فقط رنگش را. پیش از این متن
+     * کامل برای همه فرستاده می‌شد و رابط کاربری صرفاً کم‌رنگش می‌کرد، یعنی
+     * «مخفی کردن» عملاً هیچ چیزی را مخفی نمی‌کرد: هرکس با Inspect یا با
+     * صداکردن مستقیم API متن را می‌خواند.
+     *
+     * مدیر متن را می‌بیند، چون بدون دیدنش نمی‌تواند درباره‌ی برگرداندن یا
+     * نگه‌داشتنش تصمیم بگیرد.
+     */
     private function present(Message $message, User $viewer): array
     {
+        $hidden = (bool) $message->is_hidden;
+        $mayReadHidden = $viewer->isAdmin();
+
         return [
             'id' => $message->id,
-            'body' => $message->body,
+            'body' => $hidden && ! $mayReadHidden ? null : $message->body,
             'authorName' => $message->author_name,
             'unitLabel' => $message->unit_label,
             'isMine' => $message->user_id === $viewer->id,
-            'isHidden' => (bool) $message->is_hidden,
+            'isHidden' => $hidden,
             'sentAt' => Jalali::dateTime($message->created_at),
         ];
     }

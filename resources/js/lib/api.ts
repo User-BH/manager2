@@ -115,6 +115,16 @@ export async function api<T>(path: string, options: RequestOptions = {}): Promis
   setCsrfToken(payload?.csrfToken)
 
   if (!response.ok) {
+    /*
+     * حساب کاربر وسط نشست غیرفعال شده. سرور نشست را همان‌جا بسته، پس هر
+     * درخواست بعدی هم رد می‌شود و ماندن روی صفحه‌ی داشبورد فقط خطا پشت خطا
+     * تولید می‌کند. یک ناوبری کامل (نه ناوبری SPA) هم کاربر را به صفحه‌ی
+     * ورود می‌برد و هم کل حالتِ درون‌حافظه‌ای را پاک می‌کند.
+     */
+    if (payload?.accountDisabled) {
+      window.location.href = `/auth?reason=${encodeURIComponent(payload.message ?? '')}`
+    }
+
     throw new ApiError(
       payload.message ?? 'خطایی رخ داد.',
       response.status,

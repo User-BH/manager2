@@ -7,6 +7,7 @@ import { z } from 'zod'
 import { ErrorState, InlineSpinner } from '@/components/ui/PageState'
 import { useDocumentTitle } from '@/hooks'
 import { api, ApiError } from '@/lib/api'
+import { alertError, toastSuccess } from '@/lib/alert'
 import { cn } from '@/lib/cn'
 
 const messageSchema = z.object({
@@ -17,7 +18,8 @@ type MessageFormValues = z.infer<typeof messageSchema>
 
 interface ChatMessage {
   id: number
-  body: string
+  /** پیامِ مخفی‌شده برای ساکنین متنی ندارد؛ سرور اصلاً نمی‌فرستدش. */
+  body: string | null
   authorName: string
   unitLabel: string
   isMine: boolean
@@ -27,6 +29,8 @@ interface ChatMessage {
 
 interface MessengerResponse {
   messages: ChatMessage[]
+  /** شناسه‌ی همه‌ی پیام‌های مخفی‌شده، برای پاک‌کردن نسخه‌های کهنه‌ی کلاینت. */
+  hiddenIds: number[]
   canSend: boolean
   reason: string | null
   isAdmin?: boolean
@@ -86,13 +90,29 @@ export function MessengerPage() {
         }
 
         setMessages((current) => {
-          if (!incremental) return data.messages
+          const hidden = new Set(data.hiddenIds ?? [])
+          const isAdmin = Boolean(data.isAdmin)
+
+          /*
+           * پیامی که پس از بارگذاری مخفی شده، در واکشی افزایشی برنمی‌گردد
+           * (چون شناسه‌اش قدیمی‌تر از `since` است). پس نسخه‌ی محلی را با
+           * فهرست hiddenIds هماهنگ می‌کنیم، وگرنه متنی که مدیر پنهان کرده
+           * تا وقتی کاربر صفحه را رفرش نکند روی صفحه‌اش می‌ماند.
+           */
+          const sync = (list: ChatMessage[]) =>
+            list.map((m) =>
+              hidden.has(m.id) && !m.isHidden
+                ? { ...m, isHidden: true, body: isAdmin ? m.body : null }
+                : m,
+            )
+
+          if (!incremental) return sync(data.messages)
 
           // فقط پیام‌هایی که هنوز نداریم اضافه شوند
           const known = new Set(current.map((m) => m.id))
           const fresh = data.messages.filter((m) => !known.has(m.id))
 
-          return fresh.length ? [...current, ...fresh] : current
+          return sync(fresh.length ? [...current, ...fresh] : current)
         })
 
         setError(null)
@@ -135,12 +155,17 @@ export function MessengerPage() {
   }
 
   async function toggleHide(message: ChatMessage) {
-    const { message: updated } = await api<{ message: ChatMessage }>(
-      `/messenger/${message.id}/toggle-hide`,
-      { method: 'PATCH' },
-    )
+    try {
+      const { message: updated } = await api<{ message: ChatMessage }>(
+        `/messenger/${message.id}/toggle-hide`,
+        { method: 'PATCH' },
+      )
 
-    setMessages((current) => current.map((m) => (m.id === updated.id ? updated : m)))
+      setMessages((current) => current.map((m) => (m.id === updated.id ? updated : m)))
+      toastSuccess(updated.isHidden ? 'پیام برای ساکنین پنهان شد.' : 'پیام دوباره نمایش داده می‌شود.')
+    } catch (err) {
+      alertError(err, 'تغییر وضعیت پیام ممکن نشد.')
+    }
   }
 
   if (isLoading) return <InlineSpinner />
@@ -200,7 +225,14 @@ export function MessengerPage() {
                       <span>{message.unitLabel}</span>
                     </div>
 
-                    <p className="whitespace-pre-line leading-6">{message.body}</p>
+                    {message.body === null ? (
+                      <p className="flex items-center gap-1.5 text-[12.5px] italic leading-6 opacity-80">
+                        <EyeOff size={12} />
+                        این پیام توسط مدیر پنهان شده است.
+                      </p>
+                    ) : (
+                      <p className="whitespace-pre-line leading-6">{message.body}</p>
+                    )}
 
                     <div
                       className="mt-1.5 flex items-center gap-2 text-[10px]"
