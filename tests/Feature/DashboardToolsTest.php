@@ -234,11 +234,14 @@ class DashboardToolsTest extends TestCase
             'published_at' => now(),
         ]);
 
+        // ۴۰۴ و نه ۴۰۳: از وقتی بایندینگ خودش به مجتمع فعال محدود شده، درخواست
+        // اصلاً به کنترلر نمی‌رسد. این بهتر هم هست، چون پاسخ ۴۰۳ تأیید می‌کرد
+        // که چنین شناسه‌ای در مجتمع دیگری وجود دارد.
         $this->actingAs($this->admin)->putJson("/api/announcements/{$foreign->id}", [
             'title' => 'نفوذ',
             'body' => 'متن',
             'audience' => 'all',
-        ])->assertStatus(403);
+        ])->assertNotFound();
 
         $this->assertDatabaseHas('announcements', ['id' => $foreign->id, 'title' => 'مال مجتمع دیگر']);
     }

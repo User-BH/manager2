@@ -52,6 +52,35 @@ return Application::configure(basePath: dirname(__DIR__))
             \App\Http\Middleware\SetCurrentComplex::class,
         ]);
 
+        /*
+        | ترتیب اجرا مهم است، نه ترتیب نوشتن.
+        |
+        | لاراول میدل‌ورها را بر اساس فهرست اولویت مرتب می‌کند و
+        | SubstituteBindings ته آن فهرست است. پس با اینکه دو میدل‌ور بالا
+        | «بعد» از آن نوشته شده‌اند، عملاً هم بعد از آن اجرا می‌شدند: مدل از
+        | روی پارامتر مسیر خوانده می‌شد در حالی که TenantContext هنوز خالی بود
+        | و ComplexScope هیچ فیلتری نمی‌گذاشت.
+        |
+        | نتیجه‌اش نشت واقعی بین مجتمع‌ها بود؛ مدیر یک مجتمع می‌توانست با
+        | دست‌کاری شناسه در URL، واحد یا اطلاعیه یا هزینه‌ی مجتمع دیگری را
+        | ویرایش و حذف کند. اینجا صراحتاً پیش از بایندینگ می‌نشینند.
+        |
+        | این لایه‌ی اول است؛ لایه‌ی دوم `resolveRouteBinding` در
+        | BelongsToComplex است که حتی اگر این ترتیب روزی به‌هم بخورد،
+        | جداسازی را نگه می‌دارد.
+        */
+        $middleware->prependToPriorityList(
+            before: \Illuminate\Routing\Middleware\SubstituteBindings::class,
+            prepend: \App\Http\Middleware\SetCurrentComplex::class,
+        );
+
+        // و بررسی فعال بودن حساب پیش از هر دو، تا کاربر غیرفعال اصلاً به
+        // مرحله‌ی خواندن داده نرسد.
+        $middleware->prependToPriorityList(
+            before: \App\Http\Middleware\SetCurrentComplex::class,
+            prepend: \App\Http\Middleware\EnsureActive::class,
+        );
+
         $middleware->alias([
             'role' => \App\Http\Middleware\EnsureRole::class,
         ]);
