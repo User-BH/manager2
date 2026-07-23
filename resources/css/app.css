@@ -364,6 +364,41 @@ button:disabled {
     }
 }
 
+/* نوارِ نورِ رونده دور چت‌باکس پشتیبانی و دکمه‌اش.
+   یک گرادیان مخروطی که دور محور می‌چرخد؛ چون کامپوننت با padding کوچک روی
+   این لایه می‌نشیند، فقط یک خط نازکِ متحرک از لبه دیده می‌شود. */
+@property --support-chat-angle {
+    syntax: '<angle>';
+    initial-value: 0deg;
+    inherits: false;
+}
+
+@keyframes support-chat-spin {
+    to {
+        --support-chat-angle: 360deg;
+    }
+}
+
+.support-chat-frame {
+    background: conic-gradient(
+        from var(--support-chat-angle),
+        var(--color-brand-500),
+        color-mix(in srgb, var(--color-brand-300) 70%, white),
+        var(--color-brand-600),
+        color-mix(in srgb, var(--color-brand-400) 80%, white),
+        var(--color-brand-500)
+    );
+    animation: support-chat-spin 4s linear infinite;
+}
+
+/* کاربری که «کاهش حرکت» را روشن کرده، لبه‌ی ثابت می‌بیند نه چرخان. */
+@media (prefers-reduced-motion: reduce) {
+    .support-chat-frame {
+        animation: none;
+        background: linear-gradient(135deg, var(--color-brand-500), var(--color-brand-400));
+    }
+}
+
 /* هاور با رنگ/گرادیان رسمی هر شبکهٔ اجتماعی در فوتر.
    مقدار از یک متغیر inline خوانده می‌شود، چون می‌تواند گرادیان باشد نه فقط
    یک رنگ ساده. هر دو نام پشتیبانی می‌شود: کامپوننت React از --social-hover-bg

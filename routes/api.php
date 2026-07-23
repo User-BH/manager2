@@ -21,6 +21,7 @@ use App\Http\Controllers\Api\ResidentController;
 use App\Http\Controllers\Api\SearchController;
 use App\Http\Controllers\Api\SettingController;
 use App\Http\Controllers\Api\SubscriptionController;
+use App\Http\Controllers\Api\SupportChatController;
 use App\Http\Controllers\Api\System\AdvertisementController as SystemAdvertisementController;
 use App\Http\Controllers\Api\System\AuditLogController;
 use App\Http\Controllers\Api\System\BackupController as SystemBackupController;
@@ -60,6 +61,14 @@ Route::get('csrf-token', [AuthController::class, 'csrfToken'])->name('csrf-token
 
 // بنرهای صفحه‌ی فرود؛ عمومی است چون صفحه پیش از ورود کاربر دیده می‌شود.
 Route::get('ads', [AdvertisementController::class, 'index'])->name('ads.index');
+
+/*
+| چت پشتیبانی صفحه‌ی فرود. مخاطبش بازدیدکننده‌ی هنوز ثبت‌نام‌نکرده است، پس
+| عمومی می‌ماند؛ محدودیت نرخ جای احراز هویت را می‌گیرد.
+*/
+Route::get('support/starters', [SupportChatController::class, 'starters'])->name('support.starters');
+Route::post('support/chat', [SupportChatController::class, 'reply'])
+    ->middleware('throttle:support-chat')->name('support.chat');
 
 // --- واردشده ---
 Route::middleware('auth')->group(function () {

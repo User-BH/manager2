@@ -1,6 +1,7 @@
 import { useNavigate } from 'react-router-dom'
 import { ArrowLeft } from 'lucide-react'
 import { RevealOnScroll } from './RevealOnScroll'
+import { CtaMascot } from './CtaMascot'
 
 export function CtaSection() {
   const navigate = useNavigate()
@@ -22,14 +23,25 @@ export function CtaSection() {
             ثبت‌نام رایگان است و در کمتر از ۵ دقیقه پنل مجتمع شما آماده می‌شود.
           </p>
 
-          <button
-            onClick={() => navigate('/auth?tab=register')}
-            className="group relative mt-8 inline-flex items-center gap-2 rounded-2xl bg-white px-7 py-3.5 text-sm font-bold transition-transform duration-200 hover:scale-105"
-            style={{ color: 'var(--color-brand-600)' }}
-          >
-            شروع رایگان
-            <ArrowLeft size={16} className="transition-transform group-hover:-translate-x-1" />
-          </button>
+          {/*
+            دکمه و شخصیت روی یک محور عمودی: دکمه بالا، شخصیت درست زیرش با
+            دست‌های بالا‌برده که تا لبه‌ی پایینِ دکمه می‌رسند و «نگهش داشته‌اند».
+            حاشیه‌ی منفیِ بالای شخصیت عمدی است تا کف دست‌ها روی دکمه بنشیند.
+          */}
+          <div className="relative z-10 mt-9 flex flex-col items-center">
+            <button
+              onClick={() => navigate('/auth?tab=register')}
+              className="group relative z-10 inline-flex items-center gap-2 rounded-2xl bg-white px-7 py-3.5 text-sm font-bold shadow-lg transition-transform duration-200 hover:scale-105"
+              style={{ color: 'var(--color-brand-600)' }}
+            >
+              شروع رایگان
+              <ArrowLeft size={16} className="transition-transform group-hover:-translate-x-1" />
+            </button>
+
+            <div className="pointer-events-none -mt-4 -mb-16">
+              <CtaMascot />
+            </div>
+          </div>
         </div>
       </RevealOnScroll>
     </section>

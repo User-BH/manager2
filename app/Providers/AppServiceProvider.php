@@ -120,6 +120,12 @@ class AppServiceProvider extends ServiceProvider
             Limit::perHour(20)->by($request->user()?->id ?: $request->ip()),
         ]);
 
+        // چت پشتیبانی: عمومی است، پس سقفش هم باید سخاوتمند باشد (یک گفت‌وگوی
+        // واقعی چند پیام دارد) و هم جلوی اسکریپت را بگیرد.
+        RateLimiter::for('support-chat', fn (Request $request) => [
+            Limit::perMinute(20)->by($request->ip()),
+        ]);
+
         // آپلود رسید: هم فضا مصرف می‌کند و هم صف بررسی مدیر را پر می‌کند
         RateLimiter::for('receipt-upload', fn (Request $request) => [
             Limit::perHour(20)->by($request->user()?->id ?: $request->ip()),

@@ -9,6 +9,7 @@ import { GallerySwiperSection } from './components/GallerySwiperSection'
 import { TestimonialsSection } from './components/TestimonialsSection'
 import { CtaSection } from './components/CtaSection'
 import { HomeFooter } from './components/HomeFooter'
+import { FloatingActions } from './components/FloatingActions'
 
 export function HomePage() {
   useDocumentTitle('صفحه اصلی')
@@ -33,6 +34,8 @@ export function HomePage() {
       </main>
 
       <HomeFooter />
+
+      <FloatingActions />
     </div>
   )
 }
