@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Api\AdvertisementController;
 use App\Http\Controllers\Api\AnnouncementController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\BackupController;
@@ -20,6 +21,7 @@ use App\Http\Controllers\Api\ResidentController;
 use App\Http\Controllers\Api\SearchController;
 use App\Http\Controllers\Api\SettingController;
 use App\Http\Controllers\Api\SubscriptionController;
+use App\Http\Controllers\Api\System\AdvertisementController as SystemAdvertisementController;
 use App\Http\Controllers\Api\System\BackupController as SystemBackupController;
 use App\Http\Controllers\Api\System\ComplexController as SystemComplexController;
 use App\Http\Controllers\Api\System\SmsController;
@@ -54,6 +56,9 @@ Route::post('register', [AuthController::class, 'register'])
 // هنگام بالا آمدن یک‌بار صدایش می‌زند تا بفهمد نشست فعالی هست یا نه.
 Route::get('me', [AuthController::class, 'me'])->name('me');
 Route::get('csrf-token', [AuthController::class, 'csrfToken'])->name('csrf-token');
+
+// بنرهای صفحه‌ی فرود؛ عمومی است چون صفحه پیش از ورود کاربر دیده می‌شود.
+Route::get('ads', [AdvertisementController::class, 'index'])->name('ads.index');
 
 // --- واردشده ---
 Route::middleware('auth')->group(function () {
@@ -181,6 +186,16 @@ Route::middleware('auth')->group(function () {
             ->name('subscriptions.approve');
         Route::post('subscriptions/{subscription}/reject', [SubscriptionReviewController::class, 'reject'])
             ->name('subscriptions.reject');
+
+        // تبلیغات صفحه‌ی فرود سطح پلتفرم‌اند (نه متعلق به یک مجتمع)
+        Route::get('ads', [SystemAdvertisementController::class, 'index'])->name('ads.index');
+        Route::post('ads', [SystemAdvertisementController::class, 'store'])->name('ads.store');
+        // POST و نه PUT: آپلود فایل با multipart از PUT در PHP خوانده نمی‌شود
+        Route::post('ads/{advertisement}', [SystemAdvertisementController::class, 'update'])->name('ads.update');
+        Route::patch('ads/{advertisement}/toggle', [SystemAdvertisementController::class, 'toggle'])
+            ->name('ads.toggle');
+        Route::delete('ads/{advertisement}', [SystemAdvertisementController::class, 'destroy'])
+            ->name('ads.destroy');
 
         Route::get('backups', [SystemBackupController::class, 'index'])->name('backups.index');
         Route::post('backups', [SystemBackupController::class, 'store'])->name('backups.store');

@@ -1,7 +1,8 @@
+import { useEffect, useState } from 'react'
 import { Swiper, SwiperSlide } from 'swiper/react'
 import { Autoplay, EffectFade, Pagination } from 'swiper/modules'
 import { ExternalLink } from 'lucide-react'
-import { adSlides } from '@/data/adSlides'
+import { api } from '@/lib/api'
 
 import 'swiper/css'
 import 'swiper/css/effect-fade'
@@ -9,20 +10,64 @@ import 'swiper/css/pagination'
 
 const AD_DURATION_MS = 7000
 
+export interface AdSlide {
+  id: number
+  title: string
+  subtitle: string | null
+  href: string
+  image: string
+}
+
+/**
+ * بنرهای تبلیغاتی صفحه‌ی فرود.
+ *
+ * داده از پنل مدیریت می‌آید (`/api/ads`)، نه از فایل ثابت؛ پس ادمین کل
+ * می‌تواند بدون بیلد و استقرار دوباره، تبلیغ اضافه یا کم کند.
+ */
 export function AdBannerSection() {
+  const [ads, setAds] = useState<AdSlide[] | null>(null)
+
+  useEffect(() => {
+    const controller = new AbortController()
+
+    api<{ ads: AdSlide[] }>('/ads', { signal: controller.signal })
+      .then((data) => setAds(data.ads))
+      // تبلیغات بخش فرعی صفحه‌اند؛ خطایشان نباید به کاربر هشدار بدهد،
+      // فقط بخش نمایش داده نمی‌شود.
+      .catch(() => setAds([]))
+
+    return () => controller.abort()
+  }, [])
+
+  // در حال بارگذاری: قابی هم‌اندازه‌ی بنر تا صفحه هنگام رسیدن داده نپرد
+  if (ads === null) {
+    return (
+      <section className="mx-auto max-w-6xl px-4 pt-6 sm:px-6" aria-hidden>
+        <div className="h-44 w-full animate-pulse rounded-3xl bg-[var(--surface-2)] sm:h-56 lg:h-64" />
+      </section>
+    )
+  }
+
+  if (ads.length === 0) return null
+
   return (
     <section className="mx-auto max-w-6xl px-4 pt-6 sm:px-6">
       <Swiper
         modules={[Autoplay, EffectFade, Pagination]}
         effect="fade"
         fadeEffect={{ crossFade: true }}
-        loop
-        autoplay={{ delay: AD_DURATION_MS, disableOnInteraction: false, pauseOnMouseEnter: true }}
-        pagination={{ clickable: true }}
+        // با یک اسلاید، حلقه و صفحه‌بندی بی‌معنی است
+        loop={ads.length > 1}
+        autoplay={
+          ads.length > 1
+            ? { delay: AD_DURATION_MS, disableOnInteraction: false, pauseOnMouseEnter: true }
+            : false
+        }
+        pagination={ads.length > 1 ? { clickable: true } : false}
         dir="rtl"
         className="ad-banner-swiper overflow-hidden rounded-3xl shadow-lg"
       >
-        {adSlides.map((ad) => (
+        {ads.map((ad) => (
           <SwiperSlide key={ad.id}>
             <a
               href={ad.href}
@@ -62,7 +107,9 @@ export function AdBannerSection() {
                   <h3 className="mt-2 text-lg font-extrabold text-white drop-shadow-sm sm:text-xl">
                     {ad.title}
                   </h3>
-                  <p className="mt-1 text-xs leading-6 text-white/90 sm:text-[13px]">{ad.subtitle}</p>
+                  {ad.subtitle && (
+                    <p className="mt-1 text-xs leading-6 text-white/90 sm:text-[13px]">{ad.subtitle}</p>
+                  )}
                   <span className="mt-2 inline-flex items-center gap-1.5 text-xs font-semibold text-white">
                     مشاهده پیشنهاد
                     <ExternalLink size={13} />

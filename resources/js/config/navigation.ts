@@ -17,6 +17,7 @@ import {
   Smartphone,
   Server,
   Crown,
+  Megaphone as MegaphoneIcon,
 } from 'lucide-react'
 import type { NavSection, UserRole } from '@/types'
 
@@ -75,6 +76,7 @@ export const navSections: NavSection[] = [
     items: [
       { label: 'مدیریت مجتمع‌ها', path: '/system/complexes', icon: Building, roles: SUPER },
       { label: 'اشتراک‌ها', path: '/system/subscriptions', icon: Crown, roles: SUPER },
+      { label: 'تبلیغات صفحه اصلی', path: '/system/ads', icon: MegaphoneIcon, roles: SUPER },
       { label: 'پنل پیامک', path: '/system/sms', icon: Smartphone, roles: SUPER },
       { label: 'بکاپ کل سیستم', path: '/system/backup', icon: Server, roles: SUPER },
     ],

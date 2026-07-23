@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\AdvertisementImageController;
 use App\Http\Controllers\DownloadController;
 use App\Http\Controllers\GatewayController;
 use App\Http\Controllers\SubscriptionCheckoutController;
@@ -32,6 +33,9 @@ Route::view('/auth', 'spa')->name('login');
 | دیگری برمی‌گردد.
 |
 */
+
+// تصویر بنر تبلیغاتی؛ بدون احراز هویت، چون روی صفحه‌ی فرود عمومی است.
+Route::get('ads/{advertisement}/image', AdvertisementImageController::class)->name('ads.image');
 
 Route::middleware('auth')->group(function () {
     // خروجی‌ها

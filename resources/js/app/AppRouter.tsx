@@ -31,6 +31,7 @@ const ComplexesPage = lazy(() => import('@/pages/system/ComplexesPage').then((m)
 const SmsPage = lazy(() => import('@/pages/system/SmsPage').then((m) => ({ default: m.SmsPage })))
 const SystemBackupPage = lazy(() => import('@/pages/system/SystemBackupPage').then((m) => ({ default: m.SystemBackupPage })))
 const SystemSubscriptionsPage = lazy(() => import('@/pages/system/SubscriptionsPage').then((m) => ({ default: m.SubscriptionsPage })))
+const AdvertisementsPage = lazy(() => import('@/pages/system/ads/AdvertisementsPage').then((m) => ({ default: m.AdvertisementsPage })))
 const ManagersPage = lazy(() => import('@/pages/managers/ManagersPage').then((m) => ({ default: m.ManagersPage })))
 const ChargeRulesPage = lazy(() => import('@/pages/charge-rules/ChargeRulesPage').then((m) => ({ default: m.ChargeRulesPage })))
 const FinancePage = lazy(() => import('@/pages/finance/FinancePage').then((m) => ({ default: m.FinancePage })))
@@ -99,6 +100,7 @@ export function AppRouter() {
           <Route element={<DashboardLayout />}>
             <Route path="/system/complexes" element={<ComplexesPage />} />
             <Route path="/system/subscriptions" element={<SystemSubscriptionsPage />} />
+            <Route path="/system/ads" element={<AdvertisementsPage />} />
             <Route path="/system/sms" element={<SmsPage />} />
             <Route path="/system/backup" element={<SystemBackupPage />} />
           </Route>
