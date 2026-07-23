@@ -78,6 +78,19 @@ class AppServiceProvider extends ServiceProvider
         RateLimiter::for('gateway-callback', fn (Request $request) => [
             Limit::perMinute(30)->by($request->ip()),
         ]);
+
+        /*
+         * بازیابی کل سیستم. هر اجرای واقعی، کل داده را جایگزین می‌کند و یک
+         * بکاپ ایمنی روی دیسک می‌گذارد، پس تکرار سریعش نه معنا دارد نه رایگان است.
+         *
+         * ولی اجرای آزمایشی (`dry_run`) فقط فایل را می‌خواند و چیزی را عوض
+         * نمی‌کند. اگر همان سقف را داشته باشد، ادمینی که چند فایل را بررسی
+         * می‌کند یا عبارت تایید را چند بار اشتباه تایپ می‌کند، درست وسط یک
+         * بحران یک ساعت از بازیابی محروم می‌شود. پس فقط اجرای واقعی سقف دارد.
+         */
+        RateLimiter::for('system-restore', fn (Request $request) => $request->boolean('dry_run')
+            ? Limit::none()
+            : Limit::perHour(10)->by($request->user()?->id ?: $request->ip()));
     }
 
     /** کلید یکتا بر پایه‌ی شماره‌ی نرمال‌شده + IP. */

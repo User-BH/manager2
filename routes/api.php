@@ -201,6 +201,8 @@ Route::middleware('auth')->group(function () {
         Route::post('backups', [SystemBackupController::class, 'store'])->name('backups.store');
         Route::get('backups/{backup}/download', [SystemBackupController::class, 'download'])
             ->name('backups.download');
-        Route::post('backups/restore', [SystemBackupController::class, 'restore'])->name('backups.restore');
+        // مخرب‌ترین عملیات سامانه؛ حتی برای ادمین کل هم سقف داشته باشد
+        Route::post('backups/restore', [SystemBackupController::class, 'restore'])
+            ->middleware('throttle:system-restore')->name('backups.restore');
     });
 });
