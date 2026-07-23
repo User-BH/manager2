@@ -1,10 +1,18 @@
 import { useState } from 'react'
+import { Link } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { motion } from 'framer-motion'
-import { User, Phone, Lock, Building2, UserPlus, Loader2, AlertCircle, CheckCircle2 } from 'lucide-react'
-import { FormField } from './FormField'
+import { AlertCircle, Building2, CheckCircle2, Loader2, Lock, Phone, User, UserPlus } from 'lucide-react'
+import { RestrictedField } from './RestrictedField'
 import { registerSchema, type RegisterFormValues } from '../schemas/registerSchema'
+import {
+  filterAsciiPassword,
+  filterHints,
+  filterMobile,
+  filterPersianAlphanumeric,
+  filterPersianLetters,
+} from '@/lib/inputFilters'
 import { api, ApiError } from '@/lib/api'
 
 export function RegisterForm({ onRegistered }: { onRegistered?: () => void }) {
@@ -13,6 +21,7 @@ export function RegisterForm({ onRegistered }: { onRegistered?: () => void }) {
   const [done, setDone] = useState<string | null>(null)
 
   const {
+    control,
     register,
     handleSubmit,
     setError,
@@ -45,8 +54,7 @@ export function RegisterForm({ onRegistered }: { onRegistered?: () => void }) {
         },
       })
 
-      // حساب ساخته می‌شود اما غیرفعال است تا مدیر مجتمع تاییدش کند، پس اینجا
-      // کاربر را وارد نمی‌کنیم؛ فقط نتیجه را نشان می‌دهیم.
+      // حساب ساخته می‌شود اما غیرفعال است تا مدیر مجتمع تاییدش کند.
       setDone(message)
       onRegistered?.()
     } catch (error) {
@@ -98,9 +106,10 @@ export function RegisterForm({ onRegistered }: { onRegistered?: () => void }) {
   return (
     <motion.form
       onSubmit={handleSubmit(onSubmit)}
-      initial={{ opacity: 0, x: -12 }}
-      animate={{ opacity: 1, x: 0 }}
-      transition={{ duration: 0.3 }}
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      transition={{ duration: 0.25 }}
       className="flex flex-col gap-4"
     >
       {formError && (
@@ -116,54 +125,83 @@ export function RegisterForm({ onRegistered }: { onRegistered?: () => void }) {
         </div>
       )}
 
-      <FormField
+      <RestrictedField
+        control={control}
+        name="fullName"
         label="نام و نام خانوادگی"
         icon={User}
         placeholder="مثلاً علی محمدی"
         error={errors.fullName?.message}
-        {...register('fullName')}
+        filter={filterPersianLetters}
+        hint={filterHints.persianLetters}
       />
 
-      <FormField
+      <RestrictedField
+        control={control}
+        name="complexName"
         label="نام مجتمع"
         icon={Building2}
         placeholder="مثلاً مجتمع نگین"
         error={errors.complexName?.message}
-        {...register('complexName')}
+        filter={filterPersianAlphanumeric}
+        hint={filterHints.persianAlphanumeric}
       />
 
-      <FormField
+      <RestrictedField
+        control={control}
+        name="phone"
         label="شماره موبایل"
         icon={Phone}
         placeholder="۰۹xxxxxxxxx"
         inputMode="numeric"
+        dir="ltr"
         error={errors.phone?.message}
-        {...register('phone')}
+        filter={filterMobile}
+        hint={filterHints.mobile}
       />
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-        <FormField
+        <RestrictedField
+          control={control}
+          name="password"
           label="رمز عبور"
           icon={Lock}
           type="password"
-          placeholder="حداقل ۸ کاراکتر"
+          placeholder="حداقل ۸ نویسه"
+          dir="ltr"
           error={errors.password?.message}
-          {...register('password')}
+          filter={filterAsciiPassword}
+          hint={filterHints.asciiPassword}
         />
-        <FormField
+        <RestrictedField
+          control={control}
+          name="confirmPassword"
           label="تکرار رمز عبور"
           icon={Lock}
           type="password"
           placeholder="تکرار رمز عبور"
+          dir="ltr"
           error={errors.confirmPassword?.message}
-          {...register('confirmPassword')}
+          filter={filterAsciiPassword}
+          hint={filterHints.asciiPassword}
         />
       </div>
 
       <div className="flex flex-col gap-1">
         <label className="flex items-start gap-2 text-xs" style={{ color: 'var(--text-secondary)' }}>
           <input type="checkbox" className="mt-0.5 h-4 w-4 rounded" {...register('acceptTerms')} />
-          <span>قوانین و مقررات استفاده از پنل را مطالعه کرده‌ام و می‌پذیرم.</span>
+          <span>
+            {/* لینک قوانین: کلیک به صفحه‌ی پشتیبانی، بخش قوانین */}
+            <Link
+              to="/support?topic=terms"
+              target="_blank"
+              className="font-semibold underline"
+              style={{ color: 'var(--color-brand-600)' }}
+            >
+              قوانین و مقررات استفاده از پنل
+            </Link>{' '}
+            را مطالعه کرده‌ام و می‌پذیرم.
+          </span>
         </label>
         {errors.acceptTerms && (
           <p className="text-xs" style={{ color: 'var(--color-danger)' }}>

@@ -11,7 +11,12 @@ export const registerSchema = z
       .min(1, 'شماره موبایل را وارد کنید')
       .regex(/^09\d{9}$/, 'شماره موبایل باید به‌فرمت ۰۹xxxxxxxxx باشد'),
     complexName: z.string().min(1, 'نام مجتمع را وارد کنید').min(2, 'نام مجتمع خیلی کوتاه است'),
-    password: z.string().min(8, 'رمز عبور باید حداقل ۸ کاراکتر باشد'),
+    password: z
+      .string()
+      .min(8, 'رمز عبور باید حداقل ۸ کاراکتر باشد')
+      // آینه‌ی قاعده‌ی سرور: حرف و عدد الزامی است
+      .regex(/[A-Za-z]/, 'رمز باید شامل حرف انگلیسی باشد')
+      .regex(/\d/, 'رمز باید شامل عدد باشد'),
     confirmPassword: z.string().min(1, 'تکرار رمز عبور را وارد کنید'),
     acceptTerms: z.boolean().refine((val) => val === true, {
       message: 'برای ادامه باید قوانین را بپذیرید',

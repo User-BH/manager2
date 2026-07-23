@@ -24,6 +24,8 @@ const AuthPage = lazy(() => import('@/pages/auth/AuthPage').then((m) => ({ defau
  */
 const DashboardLayout = lazy(() => import('@/components/layout/DashboardLayout').then((m) => ({ default: m.DashboardLayout })))
 const ForbiddenPage = lazy(() => import('@/pages/error/ForbiddenPage').then((m) => ({ default: m.ForbiddenPage })))
+const VerifyOtpPage = lazy(() => import('@/pages/auth/VerifyOtpPage').then((m) => ({ default: m.VerifyOtpPage })))
+const ForgotPasswordPage = lazy(() => import('@/pages/auth/ForgotPasswordPage').then((m) => ({ default: m.ForgotPasswordPage })))
 const DemoPage = lazy(() => import('@/pages/demo/DemoPage').then((m) => ({ default: m.DemoPage })))
 const SupportPage = lazy(() => import('@/pages/support/SupportPage').then((m) => ({ default: m.SupportPage })))
 const DashboardPage = lazy(() => import('@/pages/dashboard/DashboardPage').then((m) => ({ default: m.DashboardPage })))
@@ -63,6 +65,8 @@ export function AppRouter() {
         {/* --- عمومی --- */}
         <Route path="/" element={<HomePage />} />
         <Route path="/auth" element={<AuthPage />} />
+        <Route path="/auth/verify" element={<VerifyOtpPage />} />
+        <Route path="/auth/forgot" element={<ForgotPasswordPage />} />
         <Route path="/demo" element={<DemoPage />} />
         <Route path="/support" element={<SupportPage />} />
         <Route path="/forbidden" element={<ForbiddenPage />} />

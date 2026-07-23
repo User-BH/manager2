@@ -1,23 +1,33 @@
 import { useState } from 'react'
-import { useLocation, useNavigate } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { motion } from 'framer-motion'
-import { Lock, Phone, LogIn, Loader2, AlertCircle } from 'lucide-react'
-import { FormField } from './FormField'
+import { AlertCircle, Loader2, Lock, LogIn, Phone } from 'lucide-react'
+import { RestrictedField } from './RestrictedField'
+import { SlidePuzzle } from './SlidePuzzle'
 import { loginSchema, type LoginFormValues } from '../schemas/loginSchema'
+import { filterAsciiPassword, filterHints, filterMobile } from '@/lib/inputFilters'
 import { useAuth } from '@/context/AuthContext'
 import { api, ApiError } from '@/lib/api'
 import type { CurrentUser } from '@/types'
 
+interface LoginResponse {
+  otpRequired?: boolean
+  phone?: string
+  dev_code?: string | null
+  user?: CurrentUser
+}
+
 export function LoginForm() {
   const navigate = useNavigate()
-  const location = useLocation()
   const { setUser } = useAuth()
   const [submitting, setSubmitting] = useState(false)
   const [formError, setFormError] = useState<string | null>(null)
+  const [human, setHuman] = useState(false)
 
   const {
+    control,
     register,
     handleSubmit,
     setError,
@@ -28,26 +38,34 @@ export function LoginForm() {
   })
 
   async function onSubmit(values: LoginFormValues) {
+    if (!human) {
+      setFormError('لطفاً پازل امنیتی را کامل کنید.')
+      return
+    }
+
     setSubmitting(true)
     setFormError(null)
 
     try {
-      const { user } = await api<{ user: CurrentUser }>('/login', {
-        method: 'POST',
-        body: values,
-      })
+      const data = await api<LoginResponse>('/login', { method: 'POST', body: values })
 
-      setUser(user)
+      // دستگاه مورداعتماد: بدون مرحله‌ی دوم مستقیم وارد شد
+      if (data.user) {
+        setUser(data.user)
+        navigate('/dashboard', { replace: true })
+        return
+      }
 
-      // بازگشت به همان مسیری که کاربر قصد بازدیدش را داشت
-      const from = (location.state as { from?: { pathname?: string } } | null)?.from?.pathname
-      navigate(from ?? '/dashboard', { replace: true })
+      // مرحله‌ی دوم: به صفحه‌ی تایید کد می‌رویم
+      if (data.otpRequired) {
+        navigate('/auth/verify', {
+          state: { phone: data.phone, devCode: data.dev_code ?? null },
+        })
+      }
     } catch (error) {
       if (error instanceof ApiError) {
-        // خطاهای اعتبارسنجی لاراول زیر همان فیلد نشان داده می‌شوند
         const phoneError = error.fieldError('phone')
         const passwordError = error.fieldError('password')
-
         if (phoneError) setError('phone', { message: phoneError })
         if (passwordError) setError('password', { message: passwordError })
         if (!phoneError && !passwordError) setFormError(error.message)
@@ -62,9 +80,10 @@ export function LoginForm() {
   return (
     <motion.form
       onSubmit={handleSubmit(onSubmit)}
-      initial={{ opacity: 0, x: 12 }}
-      animate={{ opacity: 1, x: 0 }}
-      transition={{ duration: 0.3 }}
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      transition={{ duration: 0.25 }}
       className="flex flex-col gap-4"
     >
       {formError && (
@@ -80,34 +99,50 @@ export function LoginForm() {
         </div>
       )}
 
-      <FormField
+      <RestrictedField
+        control={control}
+        name="phone"
         label="شماره موبایل"
         icon={Phone}
         placeholder="۰۹xxxxxxxxx"
         inputMode="numeric"
+        dir="ltr"
         autoComplete="username"
         error={errors.phone?.message}
-        {...register('phone')}
+        filter={filterMobile}
+        hint={filterHints.mobile}
       />
 
-      <FormField
+      <RestrictedField
+        control={control}
+        name="password"
         label="رمز عبور"
         icon={Lock}
         type="password"
         placeholder="رمز عبور خود را وارد کنید"
+        dir="ltr"
         autoComplete="current-password"
         error={errors.password?.message}
-        {...register('password')}
+        filter={filterAsciiPassword}
+        hint={filterHints.asciiPassword}
       />
+
+      {/* پازل امنیتی «ربات نیستم» */}
+      <div
+        className="rounded-2xl border p-3"
+        style={{ borderColor: 'var(--border-subtle)', backgroundColor: 'var(--surface-base)' }}
+      >
+        <SlidePuzzle onSolved={setHuman} />
+      </div>
 
       <div className="flex items-center justify-between">
         <label className="flex items-center gap-2 text-xs" style={{ color: 'var(--text-secondary)' }}>
           <input type="checkbox" className="h-4 w-4 rounded" {...register('remember')} />
           مرا به‌خاطر بسپار
         </label>
-        <button type="button" className="text-xs font-medium" style={{ color: 'var(--color-brand-600)' }}>
+        <Link to="/auth/forgot" className="text-xs font-medium" style={{ color: 'var(--color-brand-600)' }}>
           رمز عبور را فراموش کرده‌اید؟
-        </button>
+        </Link>
       </div>
 
       <button

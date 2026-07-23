@@ -2,7 +2,6 @@ import { useEffect, useState } from 'react'
 import { Link, Navigate, useLocation, useSearchParams } from 'react-router-dom'
 import { AnimatePresence, motion } from 'framer-motion'
 import { ArrowRight, ShieldCheck } from 'lucide-react'
-import { AuthTabs, type AuthTab } from './components/AuthTabs'
 import { LoginForm } from './components/LoginForm'
 import { RegisterForm } from './components/RegisterForm'
 import { ThemeToggle } from '@/components/layout/ThemeToggle'
@@ -12,6 +11,18 @@ import { useAuth } from '@/context/AuthContext'
 import { useDocumentTitle } from '@/hooks'
 import { BRAND_NAME } from '@/config/brand'
 
+type AuthTab = 'login' | 'register'
+
+const SLIDE = { type: 'spring', stiffness: 260, damping: 30 } as const
+
+/**
+ * صفحه‌ی ورود/ثبت‌نام با انیمیشنِ کشویی.
+ *
+ * روی دسکتاپ دو پنل کنار هم‌اند: تصویرِ برند و فرم. با تعویض بین ورود و
+ * ثبت‌نام، تصویر و فرم هم‌زمان به سمت مخالف سُر می‌خورند و محتوای فرم عوض
+ * می‌شود. روی موبایل، جایی برای دو پنل نیست، پس فقط فرم با یک تعویضِ ملایم
+ * نشان داده می‌شود.
+ */
 export function AuthPage() {
   const [searchParams] = useSearchParams()
   const initialTab: AuthTab = searchParams.get('tab') === 'register' ? 'register' : 'login'
@@ -25,139 +36,163 @@ export function AuthPage() {
     setTab(searchParams.get('tab') === 'register' ? 'register' : 'login')
   }, [searchParams])
 
-  /*
-   * کاربری که از قبل وارد شده نباید صفحه‌ی ورود را ببیند.
-   *
-   * `state.from` را ProtectedRoute می‌گذارد و تا حالا نادیده گرفته می‌شد.
-   * اهمیتش وقتی روشن می‌شود که نشست کاربر وسط پرداخت منقضی شده باشد: بازگشت
-   * از بانک او را به اینجا می‌آورد و بعد از ورود باید به همان
-   * `/my-bills?payment=success&tracking=…` برگردد تا نتیجه‌ی پرداخت و کد
-   * رهگیری‌اش را ببیند، نه به داشبورد.
-   */
   if (!isLoading && isAuthenticated) {
     const from = (location.state as { from?: { pathname: string; search?: string } } | null)?.from
-
     return <Navigate to={from ? `${from.pathname}${from.search ?? ''}` : '/dashboard'} replace />
   }
 
-  return (
-    <div className="flex min-h-screen" style={{ backgroundColor: 'var(--surface-canvas)' }}>
-      {/* پنل تصویری سمت چپ - فقط در دسکتاپ */}
-      <div className="relative hidden w-1/2 overflow-hidden lg:block">
-        <img
-          src={authBackgroundImage}
-          alt="نمای مجتمع مسکونی"
-          width={1100}
-          height={733}
-          decoding="async"
-          className="h-full w-full object-cover"
-        />
-        <div
-          className="absolute inset-0"
-          style={{
-            background:
-              'linear-gradient(135deg, color-mix(in srgb, var(--color-brand-700) 88%, transparent), color-mix(in srgb, var(--color-brand-400) 70%, transparent))',
-          }}
-        />
+  const isLogin = tab === 'login'
+  const reason = searchParams.get('reason')
 
-        <div className="relative flex h-full flex-col justify-between p-10 text-white" dir="rtl">
-          <div className="flex items-center gap-2.5">
-            <LogoMark size={34} monochrome />
-            <span className="text-sm font-bold">{BRAND_NAME}</span>
-          </div>
+  const heading = (
+    <div className="mb-6 text-center">
+      <h1 className="text-xl font-extrabold" style={{ color: 'var(--text-primary)' }}>
+        {isLogin ? 'ورود به پنل مدیریت' : 'ساخت حساب مجتمع جدید'}
+      </h1>
+      <p className="mt-2 text-[13px]" style={{ color: 'var(--text-tertiary)' }}>
+        {isLogin
+          ? 'با شماره موبایل و رمز عبور خود وارد شوید'
+          : 'در کمتر از ۵ دقیقه پنل مجتمع خود را راه‌اندازی کنید'}
+      </p>
+    </div>
+  )
 
+  const reasonBanner = reason && (
+    <div
+      className="mb-5 flex items-start gap-2 rounded-xl border px-3.5 py-3 text-[12.5px] leading-6"
+      style={{
+        borderColor: 'var(--color-danger)',
+        backgroundColor: 'color-mix(in srgb, var(--color-danger) 10%, transparent)',
+        color: 'var(--text-primary)',
+      }}
+    >
+      <ShieldCheck size={16} className="mt-0.5 shrink-0" style={{ color: 'var(--color-danger)' }} />
+      <span>{reason}</span>
+    </div>
+  )
+
+  const switcher = (
+    <p className="mt-6 text-center text-xs" style={{ color: 'var(--text-tertiary)' }}>
+      {isLogin ? 'هنوز حساب مجتمع نساخته‌اید؟ ' : 'حساب مجتمع دارید؟ '}
+      <button
+        onClick={() => setTab(isLogin ? 'register' : 'login')}
+        className="font-semibold"
+        style={{ color: 'var(--color-brand-600)' }}
+      >
+        {isLogin ? 'ثبت‌نام کنید' : 'وارد شوید'}
+      </button>
+    </p>
+  )
+
+  const formArea = (
+    <div className="w-full max-w-sm" dir="rtl">
+      {heading}
+      {reasonBanner}
+      {/*
+        بدون AnimatePresence با mode="wait": آن حالت منتظر پایانِ انیمیشنِ
+        خروجِ فرم قبلی می‌ماند و اگر انیمیشن اجرا نشود (مثلاً تبِ پس‌زمینه که
+        requestAnimationFrame در آن معلق است) فرمِ تازه هرگز سوار نمی‌شود.
+        هر فرم خودش انیمیشن ورود دارد؛ تعویض مستقیم امن‌تر است.
+      */}
+      {isLogin ? (
+        <LoginForm key="login" />
+      ) : (
+        <RegisterForm key="register" onRegistered={() => setTab('login')} />
+      )}
+      {switcher}
+    </div>
+  )
+
+  const brandPanel = (
+    <>
+      <img
+        src={authBackgroundImage}
+        alt="نمای مجتمع مسکونی"
+        className="h-full w-full object-cover"
+        draggable={false}
+      />
+      <div
+        className="absolute inset-0"
+        style={{
+          background:
+            'linear-gradient(135deg, color-mix(in srgb, var(--color-brand-700) 88%, transparent), color-mix(in srgb, var(--color-brand-400) 70%, transparent))',
+        }}
+      />
+      <div className="relative flex h-full flex-col justify-between p-10 text-white" dir="rtl">
+        <div className="flex items-center gap-2.5">
+          <LogoMark size={34} monochrome />
+          <span className="text-sm font-bold">{BRAND_NAME}</span>
+        </div>
+
+        <AnimatePresence mode="wait">
           <motion.div
-            initial={{ opacity: 0, y: 24 }}
+            key={tab}
+            initial={{ opacity: 0, y: 18 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 0.15 }}
+            exit={{ opacity: 0, y: -18 }}
+            transition={{ duration: 0.4 }}
           >
             <h2 className="text-2xl font-extrabold leading-relaxed">
-              با {BRAND_NAME}، مدیریت مجتمع را به ساده‌ترین شکل ممکن تجربه کنید
+              {isLogin
+                ? `با ${BRAND_NAME}، مدیریت مجتمع را به ساده‌ترین شکل ممکن تجربه کنید`
+                : 'همین حالا مجتمع خود را بسازید و مدیریتش را ساده کنید'}
             </h2>
             <div className="mt-5 flex items-center gap-2 text-sm text-white/85">
               <ShieldCheck size={16} />
-              اطلاعات شما با بالاترین استاندارد امنیتی محافظت می‌شود
+              {isLogin
+                ? 'ورود دومرحله‌ای با پیامک، برای امنیت بیشتر'
+                : 'اطلاعات شما با بالاترین استاندارد امنیتی محافظت می‌شود'}
             </div>
           </motion.div>
-        </div>
+        </AnimatePresence>
+      </div>
+    </>
+  )
+
+  return (
+    <div className="min-h-screen" style={{ backgroundColor: 'var(--surface-canvas)' }}>
+      {/* نوار بالا */}
+      <div className="flex items-center justify-between px-5 py-4 sm:px-8" dir="rtl">
+        <Link
+          to="/"
+          className="flex items-center gap-1.5 text-sm font-medium"
+          style={{ color: 'var(--text-secondary)' }}
+        >
+          <ArrowRight size={16} />
+          بازگشت به صفحه اصلی
+        </Link>
+        <ThemeToggle />
       </div>
 
-      {/* پنل فرم */}
-      <div className="flex w-full flex-col px-5 py-6 sm:px-10 lg:w-1/2 lg:px-16">
-        <div className="flex items-center justify-between" dir="rtl">
-          <Link
-            to="/"
-            className="flex items-center gap-1.5 text-sm font-medium"
-            style={{ color: 'var(--text-secondary)' }}
-          >
-            <ArrowRight size={16} />
-            بازگشت به صفحه اصلی
-          </Link>
-          <ThemeToggle />
-        </div>
+      {/* --- دسکتاپ: دو پنلِ کشویی --- */}
+      <div
+        className="relative mx-4 mb-6 hidden overflow-hidden rounded-3xl border lg:block"
+        style={{ height: 'calc(100vh - 6rem)', borderColor: 'var(--border-subtle)' }}
+      >
+        {/* پنل فرم — زیرِ پنل تصویر */}
+        <motion.div
+          className="absolute top-0 flex h-full w-1/2 items-center justify-center overflow-y-auto px-10 py-8"
+          style={{ left: 0, zIndex: 10, backgroundColor: 'var(--surface-canvas)' }}
+          animate={{ x: isLogin ? '100%' : '0%' }}
+          transition={SLIDE}
+        >
+          {formArea}
+        </motion.div>
 
-        <div className="flex flex-1 flex-col items-center justify-center py-10">
-          <motion.div
-            initial={{ opacity: 0, y: 16 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5 }}
-            className="w-full max-w-sm"
-            dir="rtl"
-          >
-            <div className="mb-7 text-center">
-              <h1 className="text-xl font-extrabold" style={{ color: 'var(--text-primary)' }}>
-                {tab === 'login' ? 'ورود به پنل مدیریت' : 'ساخت حساب مجتمع جدید'}
-              </h1>
-              <p className="mt-2 text-[13px]" style={{ color: 'var(--text-tertiary)' }}>
-                {tab === 'login'
-                  ? 'با شماره موبایل و رمز عبور خود وارد شوید'
-                  : 'در کمتر از ۵ دقیقه پنل مجتمع خود را راه‌اندازی کنید'}
-              </p>
-            </div>
+        {/* پنل تصویر — رویِ پنل فرم می‌لغزد */}
+        <motion.div
+          className="absolute top-0 h-full w-1/2 overflow-hidden"
+          style={{ left: 0, zIndex: 20 }}
+          animate={{ x: isLogin ? '0%' : '100%' }}
+          transition={SLIDE}
+        >
+          {brandPanel}
+        </motion.div>
+      </div>
 
-            {/*
-              * دلیلِ بیرون‌انداخته‌شدن، اگر کاربر با نشستِ بسته‌شده به اینجا
-              * رسیده باشد (مثلاً حسابش وسط کار غیرفعال شده). بدون این، فقط
-              * ناگهان روی صفحه‌ی ورود می‌افتاد بی‌هیچ توضیحی.
-              */}
-            {searchParams.get('reason') && (
-              <div
-                className="mb-5 flex items-start gap-2 rounded-xl border px-3.5 py-3 text-[12.5px] leading-6"
-                style={{
-                  borderColor: 'var(--color-danger)',
-                  backgroundColor: 'color-mix(in srgb, var(--color-danger) 10%, transparent)',
-                  color: 'var(--text-primary)',
-                }}
-              >
-                <ShieldCheck size={16} className="mt-0.5 shrink-0" style={{ color: 'var(--color-danger)' }} />
-                <span>{searchParams.get('reason')}</span>
-              </div>
-            )}
-
-            <AuthTabs active={tab} onChange={setTab} />
-
-            <div className="mt-7">
-              <AnimatePresence mode="wait">
-                {tab === 'login' ? (
-                  <LoginForm key="login" />
-                ) : (
-                  <RegisterForm key="register" onRegistered={() => setTab('login')} />
-                )}
-              </AnimatePresence>
-            </div>
-
-            <p className="mt-6 text-center text-xs" style={{ color: 'var(--text-tertiary)' }}>
-              {tab === 'login' ? 'هنوز حساب مجتمع نساخته‌اید؟ ' : 'حساب مجتمع دارید؟ '}
-              <button
-                onClick={() => setTab(tab === 'login' ? 'register' : 'login')}
-                className="font-semibold"
-                style={{ color: 'var(--color-brand-600)' }}
-              >
-                {tab === 'login' ? 'ثبت‌نام کنید' : 'وارد شوید'}
-              </button>
-            </p>
-          </motion.div>
-        </div>
+      {/* --- موبایل: فقط فرم --- */}
+      <div className="flex items-start justify-center px-5 pb-12 pt-4 lg:hidden">
+        {formArea}
       </div>
     </div>
   )
