@@ -3,6 +3,7 @@
 namespace App\Services\Payment;
 
 use App\Models\Complex;
+use App\Services\Subscription\PlanGate;
 use RuntimeException;
 
 /**
@@ -12,8 +13,20 @@ use RuntimeException;
  */
 class GatewayManager
 {
+    public function __construct(protected PlanGate $plans) {}
+
     public function for(Complex $complex): PaymentGateway
     {
+        // درگاه بانکی واقعی از امکانات پروست. بررسی اینجاست و نه فقط هنگام
+        // ذخیره‌ی تنظیمات، وگرنه مجتمعی که یک‌بار ملت را تنظیم کرده بود پس از
+        // انقضای اشتراکش تا ابد از درگاه واقعی استفاده می‌کرد.
+        if ($this->isRealGateway($complex) && ! $this->plans->isPro($complex)) {
+            throw new RuntimeException(
+                'اشتراک پرو این مجتمع منقضی شده و درگاه بانکی غیرفعال است. '
+                .'برای فعال‌سازی دوباره، اشتراک را تمدید کنید یا از «واریز و آپلود رسید» استفاده کنید.'
+            );
+        }
+
         return match ($complex->payment_gateway) {
             // سندباکس فقط بیرون از production؛ وگرنه تسویه‌ی قبض بدون پول
             'fake' => Sandbox::gateway(),
@@ -36,6 +49,14 @@ class GatewayManager
             return Sandbox::isAllowed();
         }
 
+        // اشتراکِ منقضی‌شده یعنی دکمه‌ی پرداخت آنلاین نیاید؛ بهتر از این است
+        // که ساکن دکمه را بزند و وسط راه به خطا بخورد.
+        return $this->isRealGateway($complex) && $this->plans->isPro($complex);
+    }
+
+    /** آیا این مجتمع روی درگاه بانکی واقعی تنظیم شده؟ */
+    private function isRealGateway(Complex $complex): bool
+    {
         return in_array($complex->payment_gateway, ['mellat', 'saman'], true);
     }
 }

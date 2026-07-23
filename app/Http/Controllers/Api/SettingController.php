@@ -6,13 +6,14 @@ use App\Http\Controllers\Controller;
 use App\Models\Complex;
 use App\Services\Payment\Sandbox;
 use App\Services\Subscription\PlanGate;
+use App\Support\Audit;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 
 class SettingController extends Controller
 {
-    public function show(): JsonResponse
+    public function show(PlanGate $plans): JsonResponse
     {
         $complex = $this->requireComplex();
         $gateway = $complex->gateway_config ?? [];
@@ -52,6 +53,9 @@ class SettingController extends Controller
             // کلاینت با این دو، هشدار مناسب را بالای بخش درگاه نشان می‌دهد
             'sandboxAllowed' => Sandbox::isAllowed(),
             'sandboxActive' => $complex->payment_gateway === 'fake',
+            // درگاه واقعی تنظیم شده ولی اشتراک پرو ندارد ⇒ پرداخت آنلاین خوابیده
+            'gatewayBlockedByPlan' => in_array($complex->payment_gateway, ['mellat', 'saman'], true)
+                && ! $plans->isPro($complex),
         ]);
     }
 
@@ -137,6 +141,7 @@ class SettingController extends Controller
         ]);
 
         $existing = $complex->gateway_config ?? [];
+        $previousGateway = $complex->payment_gateway;
 
         $complex->update([
             'name' => $data['name'],
@@ -161,6 +166,14 @@ class SettingController extends Controller
             'penalty_value' => $data['penalty_value'],
             'penalty_grace_days' => $data['penalty_grace_days'],
         ]);
+
+        // تغییر درگاه بانکی مستقیم روی مسیر پول اثر دارد و باید ردیابی شود
+        if ($previousGateway !== $data['payment_gateway']) {
+            Audit::log('settings.gateway_changed', 'تغییر درگاه پرداخت مجتمع', $complex, [
+                'from' => $previousGateway,
+                'to' => $data['payment_gateway'],
+            ]);
+        }
 
         return response()->json(['message' => 'تنظیمات مجتمع ذخیره شد.']);
     }

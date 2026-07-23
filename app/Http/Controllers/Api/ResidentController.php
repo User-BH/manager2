@@ -7,6 +7,7 @@ use App\Enums\UserRole;
 use App\Http\Controllers\Controller;
 use App\Models\Unit;
 use App\Models\User;
+use App\Support\Audit;
 use App\Support\Phone;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -95,6 +96,12 @@ class ResidentController extends Controller
     public function destroy(User $resident): JsonResponse
     {
         $this->guard($resident);
+
+        Audit::log('resident.deleted', 'حذف ساکن', $resident, [
+            'name' => $resident->name,
+            'phone' => $resident->phone,
+        ]);
+
         $resident->delete();
 
         return response()->json(['message' => 'ساکن حذف شد.']);
@@ -104,6 +111,13 @@ class ResidentController extends Controller
     {
         $this->guard($resident);
         $resident->update(['is_active' => ! $resident->is_active]);
+
+        Audit::log(
+            $resident->is_active ? 'resident.activated' : 'resident.deactivated',
+            $resident->is_active ? 'فعال‌سازی حساب ساکن' : 'غیرفعال‌سازی حساب ساکن',
+            $resident,
+            ['name' => $resident->name],
+        );
 
         return response()->json(['resident' => $this->present($resident->fresh('currentUnits'))]);
     }
@@ -119,6 +133,13 @@ class ResidentController extends Controller
     {
         $this->guard($resident);
         $resident->update(['can_message' => ! $resident->can_message]);
+
+        Audit::log(
+            $resident->can_message ? 'resident.messaging_allowed' : 'resident.messaging_blocked',
+            $resident->can_message ? 'بازکردن پیام‌رسان برای ساکن' : 'بستن پیام‌رسان برای ساکن',
+            $resident,
+            ['name' => $resident->name],
+        );
 
         return response()->json([
             'resident' => $this->present($resident->fresh('currentUnits')),

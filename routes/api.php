@@ -22,6 +22,7 @@ use App\Http\Controllers\Api\SearchController;
 use App\Http\Controllers\Api\SettingController;
 use App\Http\Controllers\Api\SubscriptionController;
 use App\Http\Controllers\Api\System\AdvertisementController as SystemAdvertisementController;
+use App\Http\Controllers\Api\System\AuditLogController;
 use App\Http\Controllers\Api\System\BackupController as SystemBackupController;
 use App\Http\Controllers\Api\System\ComplexController as SystemComplexController;
 use App\Http\Controllers\Api\System\SmsController;
@@ -66,7 +67,8 @@ Route::middleware('auth')->group(function () {
     Route::get('dashboard', [DashboardController::class, 'index'])->name('dashboard');
 
     // --- مشترک بین همه‌ی نقش‌ها ---
-    Route::get('messenger', [MessengerController::class, 'index'])->name('messenger.index');
+    Route::get('messenger', [MessengerController::class, 'index'])
+        ->middleware('throttle:messenger')->name('messenger.index');
     Route::post('messenger', [MessengerController::class, 'store'])->name('messenger.store');
     Route::patch('messenger/{message}/toggle-hide', [MessengerController::class, 'toggleHide'])
         ->name('messenger.toggle-hide');
@@ -87,7 +89,8 @@ Route::middleware('auth')->group(function () {
         ->name('notifications.read');
 
     // جستجوی سراسری. هر گروه داخل کنترلر همان قید نقشی صفحه‌ی خودش را دارد.
-    Route::get('search', [SearchController::class, 'index'])->name('search');
+    Route::get('search', [SearchController::class, 'index'])
+        ->middleware('throttle:search')->name('search');
 
     // پروفایل و حساب کاربری — همیشه دربارهٔ خودِ کاربر واردشده
     Route::get('profile', [ProfileController::class, 'show'])->name('profile.show');
@@ -97,7 +100,7 @@ Route::middleware('auth')->group(function () {
     Route::get('subscription', [SubscriptionController::class, 'show'])->name('subscription.show');
     // خرید با واریز و آپلود رسید — تنها راه خرید تا وقتی درگاه اشتراک فعال نشده
     Route::post('subscription/receipt', [SubscriptionController::class, 'uploadReceipt'])
-        ->name('subscription.receipt');
+        ->middleware('throttle:receipt-upload')->name('subscription.receipt');
     Route::post('subscription/{subscription}/cancel', [SubscriptionController::class, 'cancel'])
         ->name('subscription.cancel');
 
@@ -107,7 +110,8 @@ Route::middleware('auth')->group(function () {
 
     // صفحه‌ی پرداخت یک قبض و ثبت رسید
     Route::get('pay/{bill}', [PaymentController::class, 'show'])->name('pay.show');
-    Route::post('pay/{bill}/receipt', [PaymentController::class, 'uploadReceipt'])->name('pay.receipt');
+    Route::post('pay/{bill}/receipt', [PaymentController::class, 'uploadReceipt'])
+        ->middleware('throttle:receipt-upload')->name('pay.receipt');
 
     // --- مدیریت مجتمع ---
     // همان میدل‌ور نقشی که پنل Blade استفاده می‌کند، تا سطح دسترسی در هر دو
@@ -121,7 +125,8 @@ Route::middleware('auth')->group(function () {
             ->name('residents.toggle-messaging');
 
         Route::get('bills', [BillController::class, 'index'])->name('bills.index');
-        Route::post('bills/generate', [BillController::class, 'generate'])->name('bills.generate');
+        Route::post('bills/generate', [BillController::class, 'generate'])
+            ->middleware('throttle:bills-generate')->name('bills.generate');
 
         Route::get('managers', [ManagerController::class, 'index'])->name('managers.index');
         Route::post('managers', [ManagerController::class, 'store'])->name('managers.store');
@@ -159,7 +164,8 @@ Route::middleware('auth')->group(function () {
         Route::put('settings', [SettingController::class, 'update'])->name('settings.update');
 
         Route::get('backups', [BackupController::class, 'index'])->name('backups.index');
-        Route::post('backups', [BackupController::class, 'store'])->name('backups.store');
+        Route::post('backups', [BackupController::class, 'store'])
+            ->middleware('throttle:backups')->name('backups.store');
         Route::get('backups/{backup}/download', [BackupController::class, 'download'])
             ->name('backups.download');
     });
@@ -197,8 +203,13 @@ Route::middleware('auth')->group(function () {
         Route::delete('ads/{advertisement}', [SystemAdvertisementController::class, 'destroy'])
             ->name('ads.destroy');
 
+        // لاگ فعالیت فقط خواندنی است؛ رویداد ثبت‌شده نباید از رابط کاربری
+        // قابل حذف باشد، وگرنه ارزش ردیابی‌اش را از دست می‌دهد.
+        Route::get('audit-logs', [AuditLogController::class, 'index'])->name('audit-logs.index');
+
         Route::get('backups', [SystemBackupController::class, 'index'])->name('backups.index');
-        Route::post('backups', [SystemBackupController::class, 'store'])->name('backups.store');
+        Route::post('backups', [SystemBackupController::class, 'store'])
+            ->middleware('throttle:backups')->name('backups.store');
         Route::get('backups/{backup}/download', [SystemBackupController::class, 'download'])
             ->name('backups.download');
         // مخرب‌ترین عملیات سامانه؛ حتی برای ادمین کل هم سقف داشته باشد

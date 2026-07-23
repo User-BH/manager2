@@ -7,6 +7,7 @@ use App\Models\Subscription;
 use App\Support\Jalali;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use App\Support\Audit;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
@@ -78,6 +79,12 @@ class SubscriptionReviewController extends Controller
             'reviewed_at' => now(),
         ]);
 
+        Audit::log('subscription.approved', 'تایید و فعال‌سازی اشتراک', $subscription, [
+            'plan' => $subscription->plan->value,
+            'amount' => (float) $subscription->amount,
+            'months' => $subscription->months,
+        ], $subscription->complex_id);
+
         return response()->json([
             'message' => 'اشتراک تایید و فعال شد.',
             'subscription' => $this->present($subscription->fresh(['complex', 'user'])),
@@ -98,6 +105,11 @@ class SubscriptionReviewController extends Controller
             'reviewed_by' => Auth::id(),
             'reviewed_at' => now(),
         ]);
+
+        Audit::log('subscription.rejected', 'رد درخواست اشتراک', $subscription, [
+            'plan' => $subscription->plan->value,
+            'note' => $data['note'] ?? null,
+        ], $subscription->complex_id);
 
         return response()->json(['message' => 'درخواست اشتراک رد شد.']);
     }

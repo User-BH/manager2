@@ -19,6 +19,9 @@ use Illuminate\Support\Facades\Auth;
  */
 class MessengerController extends Controller
 {
+    /** تعداد پیامی که در بارگذاری اول برمی‌گردد. */
+    private const WINDOW = 200;
+
     public function index(Request $request): JsonResponse
     {
         $user = Auth::user();
@@ -32,17 +35,29 @@ class MessengerController extends Controller
             ]);
         }
 
-        $query = Message::where('complex_id', $complex->id)->orderBy('created_at');
+        $base = Message::where('complex_id', $complex->id);
+        $total = (clone $base)->count();
 
-        // واکشی افزایشی: فقط پیام‌های بعد از آخرین شناسه‌ای که کلاینت دارد
         if ($since = $request->integer('since')) {
-            $query->where('id', '>', $since);
+            // واکشی افزایشی: فقط پیام‌های بعد از آخرین شناسه‌ای که کلاینت دارد
+            $messages = (clone $base)->where('id', '>', $since)->orderBy('id')->get();
         } else {
-            $query->limit(200);
+            /*
+             * تازه‌ترین ۲۰۰ پیام، نه قدیمی‌ترین.
+             *
+             * پیش از این مرتب‌سازی صعودی با `limit` ترکیب می‌شد، یعنی ۲۰۰ تای
+             * *اول* برمی‌گشت. هر مجتمعی که از ۲۰۰ پیام می‌گذشت، کاربر تازه‌وارد
+             * تاریخچه‌ی باستانی می‌دید و گفت‌وگوی جاری برایش نامرئی می‌شد.
+             * اینجا نزولی می‌گیریم و بعد برای نمایش برمی‌گردانیم.
+             */
+            $messages = (clone $base)->orderByDesc('id')->limit(self::WINDOW)->get()->reverse()->values();
         }
 
         return response()->json([
-            'messages' => $query->get()->map(fn (Message $m) => $this->present($m, $user))->values(),
+            'messages' => $messages->map(fn (Message $m) => $this->present($m, $user))->values(),
+            // آیا پیام قدیمی‌تری بیرون از این پنجره مانده؟ کلاینت با این، به‌جای
+            // اینکه وانمود کند تاریخچه از اینجا شروع شده، به کاربر می‌گوید.
+            'hasOlder' => $since ? false : $total > self::WINDOW,
             /*
              * شناسه‌ی پیام‌های مخفی‌شده، مستقل از پنجره‌ی واکشی.
              *

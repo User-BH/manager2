@@ -43,6 +43,8 @@ interface SettingsResponse {
   sandboxAllowed: boolean
   /** آیا همین حالا روی درگاه آزمایشی است؟ */
   sandboxActive: boolean
+  /** درگاه واقعی تنظیم شده ولی اشتراک پرو منقضی است. */
+  gatewayBlockedByPlan: boolean
 }
 
 export function ComplexSettingsPage() {
@@ -155,6 +157,7 @@ export function ComplexSettingsPage() {
 
       <Card title="درگاه پرداخت" subtitle="اعتبارنامه فقط روی سرور نگهداری می‌شود و در پاسخ API برنمی‌گردد" delay={0.05}>
         <GatewayNotice allowed={data.sandboxAllowed} active={data.sandboxActive} />
+        <PlanNotice blocked={data.gatewayBlockedByPlan} />
 
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <SelectField
@@ -260,6 +263,34 @@ function GatewayNotice({ allowed, active }: { allowed: boolean; active: boolean 
             قبض تسویه می‌گردد. فقط برای تست است و روی سرور واقعی به‌طور خودکار غیرفعال می‌شود.
           </>
         )}
+      </span>
+    </div>
+  )
+}
+
+/**
+ * درگاه بانکی واقعی تنظیم است ولی اشتراک پرو منقضی شده.
+ *
+ * بدون این پیام، مدیر فقط می‌دید که دکمه‌ی پرداخت آنلاین از صفحه‌ی ساکنین
+ * ناپدید شده و دلیلش را نمی‌فهمید.
+ */
+function PlanNotice({ blocked }: { blocked: boolean }) {
+  if (!blocked) return null
+
+  return (
+    <div
+      className="mb-4 flex items-start gap-2.5 rounded-xl border px-3.5 py-3 text-[12.5px] leading-6"
+      style={{
+        borderColor: 'var(--color-warning)',
+        backgroundColor: 'color-mix(in srgb, var(--color-warning) 10%, transparent)',
+        color: 'var(--text-primary)',
+      }}
+    >
+      <AlertTriangle size={16} className="mt-0.5 shrink-0" style={{ color: 'var(--color-warning)' }} />
+      <span>
+        اشتراک <b>پرو</b> این مجتمع منقضی شده است، بنابراین درگاه بانکی غیرفعال شده و ساکنین فقط
+        «واریز و آپلود رسید» را می‌بینند. اعتبارنامهٔ درگاه دست‌نخورده باقی مانده و با تمدید اشتراک
+        دوباره فعال می‌شود.
       </span>
     </div>
   )

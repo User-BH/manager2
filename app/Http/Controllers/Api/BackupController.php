@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Backup;
+use App\Support\Audit;
 use App\Support\Jalali;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Auth;
@@ -62,6 +63,10 @@ class BackupController extends Controller
             'size' => Storage::disk('local')->size($path),
             'note' => 'بکاپ دستی مجتمع',
             'created_by' => Auth::id(),
+        ]);
+
+        Audit::log('backup.created', 'ساخت نسخه پشتیبان مجتمع', $backup, [
+            'size_kb' => (int) round(((int) $backup->size) / 1024),
         ]);
 
         return response()->json([

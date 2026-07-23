@@ -91,6 +91,39 @@ class AppServiceProvider extends ServiceProvider
         RateLimiter::for('system-restore', fn (Request $request) => $request->boolean('dry_run')
             ? Limit::none()
             : Limit::perHour(10)->by($request->user()?->id ?: $request->ip()));
+
+        /*
+        | مسیرهای گران.
+        |
+        | تا پیش از این فقط مسیرهای ورود سقف داشتند و بقیه آزاد بودند. هیچ‌کدام
+        | از این‌ها «حمله» لازم ندارند تا سرور را زمین بزنند؛ یک اسکریپت ساده یا
+        | حتی یک تب که گیر کرده کافی است.
+        */
+
+        // جستجو در هر فراخوانی شش کوئری LIKE '%…%' روی جدول‌های بزرگ می‌زند
+        RateLimiter::for('search', fn (Request $request) => [
+            Limit::perMinute(40)->by($request->user()?->id ?: $request->ip()),
+        ]);
+
+        // پیام‌رسان هر ۸ ثانیه poll می‌شود (≈۷ در دقیقه)؛ سقف جای تنفس دارد
+        RateLimiter::for('messenger', fn (Request $request) => [
+            Limit::perMinute(40)->by($request->user()?->id ?: $request->ip()),
+        ]);
+
+        // هر بکاپ یک فایل کامل روی دیسک می‌سازد
+        RateLimiter::for('backups', fn (Request $request) => [
+            Limit::perHour(12)->by($request->user()?->id ?: $request->ip()),
+        ]);
+
+        // صدور قبض برای کل مجتمع، سنگین‌ترین محاسبه‌ی سامانه است
+        RateLimiter::for('bills-generate', fn (Request $request) => [
+            Limit::perHour(20)->by($request->user()?->id ?: $request->ip()),
+        ]);
+
+        // آپلود رسید: هم فضا مصرف می‌کند و هم صف بررسی مدیر را پر می‌کند
+        RateLimiter::for('receipt-upload', fn (Request $request) => [
+            Limit::perHour(20)->by($request->user()?->id ?: $request->ip()),
+        ]);
     }
 
     /** کلید یکتا بر پایه‌ی شماره‌ی نرمال‌شده + IP. */

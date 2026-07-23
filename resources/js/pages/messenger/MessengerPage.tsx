@@ -31,6 +31,8 @@ interface MessengerResponse {
   messages: ChatMessage[]
   /** شناسه‌ی همه‌ی پیام‌های مخفی‌شده، برای پاک‌کردن نسخه‌های کهنه‌ی کلاینت. */
   hiddenIds: number[]
+  /** آیا پیام قدیمی‌تری بیرون از پنجره‌ی بارگذاری‌شده مانده؟ */
+  hasOlder?: boolean
   canSend: boolean
   reason: string | null
   isAdmin?: boolean
@@ -47,6 +49,7 @@ export function MessengerPage() {
   })
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [hasOlder, setHasOlder] = useState(false)
 
   const listRef = useRef<HTMLDivElement>(null)
   const lastIdRef = useRef(0)
@@ -84,6 +87,7 @@ export function MessengerPage() {
         const data = await api<MessengerResponse>(`/messenger${query}`)
 
         setMeta({ canSend: data.canSend, reason: data.reason, isAdmin: Boolean(data.isAdmin) })
+        if (!incremental) setHasOlder(Boolean(data.hasOlder))
 
         if (data.messages.length > 0) {
           lastIdRef.current = Math.max(...data.messages.map((m) => m.id))
@@ -128,10 +132,41 @@ export function MessengerPage() {
   useEffect(() => {
     void load(false).then(() => scrollToBottom(true))
 
-    // دریافت پیام‌های جدید؛ فقط شناسه‌های بعد از آخرین پیام درخواست می‌شود
-    const timer = setInterval(() => void load(true), POLL_INTERVAL)
+    /*
+     * دریافت پیام‌های جدید، فقط وقتی تب دیده می‌شود.
+     *
+     * پیش از این تایمر بی‌قید کار می‌کرد؛ یک تب بازِ رهاشده روزی حدود ۱۰٬۸۰۰
+     * درخواست به سرور می‌زد برای کاربری که اصلاً به صفحه نگاه نمی‌کند.
+     */
+    let timer: ReturnType<typeof setInterval> | null = null
 
-    return () => clearInterval(timer)
+    const start = () => {
+      if (timer === null) timer = setInterval(() => void load(true), POLL_INTERVAL)
+    }
+    const stop = () => {
+      if (timer !== null) {
+        clearInterval(timer)
+        timer = null
+      }
+    }
+
+    const onVisibility = () => {
+      if (document.hidden) {
+        stop()
+      } else {
+        // بازگشت به تب: یک‌بار فوری به‌روزرسانی، نه انتظار تا تیک بعدی
+        void load(true)
+        start()
+      }
+    }
+
+    if (!document.hidden) start()
+    document.addEventListener('visibilitychange', onVisibility)
+
+    return () => {
+      stop()
+      document.removeEventListener('visibilitychange', onVisibility)
+    }
   }, [load, scrollToBottom])
 
   useEffect(() => {
@@ -196,6 +231,16 @@ export function MessengerPage() {
           </div>
         ) : (
           <ul className="flex flex-col gap-3">
+            {/* پنجره‌ی بارگذاری محدود است؛ نباید وانمود کنیم تاریخچه از اینجا شروع شده */}
+            {hasOlder && (
+              <li
+                className="mx-auto rounded-full px-3 py-1 text-[11px]"
+                style={{ backgroundColor: 'var(--surface-sunken)', color: 'var(--text-tertiary)' }}
+              >
+                فقط ۲۰۰ پیام آخر نمایش داده می‌شود
+              </li>
+            )}
+
             <AnimatePresence initial={false}>
               {messages.map((message) => (
                 <motion.li

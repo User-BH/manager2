@@ -9,6 +9,7 @@ use App\Support\Jalali;
 use App\Support\Phone;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use App\Support\Audit;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rule;
@@ -85,6 +86,11 @@ class ManagerController extends Controller
                 'message' => 'نمی‌توانید حساب خودتان را حذف کنید.',
             ], 422);
         }
+
+        Audit::log('manager.deleted', 'حذف مدیر مجتمع', $manager, [
+            'name' => $manager->name,
+            'phone' => $manager->phone,
+        ]);
 
         $manager->delete();
 
