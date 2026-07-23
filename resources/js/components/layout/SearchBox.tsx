@@ -61,6 +61,8 @@ export function SearchBox() {
         value={query}
         onChange={(event) => setQuery(event.target.value)}
         placeholder="جستجو در واحدها، ساکنین، قبوض..."
+        // placeholder برچسب حساب نمی‌شود؛ صفحه‌خوان بدون این فقط «ویرایش متن» می‌گوید
+        aria-label="جستجو در واحدها، ساکنین و قبوض"
         className="w-full rounded-xl border py-2 pr-10 pl-24 text-[13.5px] outline-none transition-all duration-200 focus:ring-2"
         style={{
           backgroundColor: 'var(--surface-sunken)',

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 import {
+  Image as ImageIcon,
   Maximize,
   Minimize,
   Pause,
@@ -9,6 +10,7 @@ import {
   Volume2,
   VolumeX,
 } from 'lucide-react'
+import { galleryItems } from '@/data/images'
 import { toPersianDigits } from '@/lib/format'
 
 export interface VideoChapter {
@@ -262,29 +264,93 @@ export function VideoPlayer({
   )
 }
 
-/** وقتی فایل ویدیو هنوز روی سرور نیست. */
+/**
+ * جایگزین وقتی فایل ویدیو روی سرور نیست.
+ *
+ * نسخه‌ی قبلی به بازدیدکننده می‌گفت فایل را در `public/videos` بگذارد — یعنی
+ * دستورالعمل داخلیِ توسعه روی یک صفحه‌ی عمومی. حالا به‌جایش یک تور تصویری
+ * خودکار از خودِ مجتمع نشان داده می‌شود که برای بازدیدکننده معنا دارد، و صفحه
+ * حتی بدون ویدیو هم کارِ خودش را می‌کند.
+ */
 function MissingVideoNotice({ poster }: { poster: string }) {
+  const slides = galleryItems.slice(0, 5)
+  const [index, setIndex] = useState(0)
+  const [paused, setPaused] = useState(false)
+
+  useEffect(() => {
+    if (paused) return
+
+    const timer = setInterval(() => setIndex((i) => (i + 1) % slides.length), 4500)
+
+    return () => clearInterval(timer)
+  }, [paused, slides.length])
+
+  const slide = slides[index] ?? { src: poster, title: '', description: '', tags: [] }
+
   return (
     <div
-      className="relative flex aspect-video w-full items-center justify-center overflow-hidden rounded-3xl border"
+      className="relative aspect-video w-full overflow-hidden rounded-3xl border"
       style={{ borderColor: 'var(--border-subtle)' }}
+      onMouseEnter={() => setPaused(true)}
+      onMouseLeave={() => setPaused(false)}
     >
-      <img src={poster} alt="" className="absolute inset-0 h-full w-full object-cover" />
-      <div className="absolute inset-0" style={{ backgroundColor: 'color-mix(in srgb, #05100c 78%, transparent)' }} />
+      <AnimatePresence mode="wait">
+        <motion.img
+          key={slide.src}
+          src={slide.src}
+          alt={slide.title}
+          initial={{ opacity: 0, scale: 1.04 }}
+          animate={{ opacity: 1, scale: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
+          className="absolute inset-0 h-full w-full object-cover"
+        />
+      </AnimatePresence>
 
-      <div className="relative max-w-md px-6 text-center">
-        <span
-          className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl text-white"
-          style={{ backgroundColor: 'color-mix(in srgb, var(--color-brand-500) 85%, transparent)' }}
-        >
-          <Play size={26} fill="currentColor" />
+      <div
+        className="absolute inset-0"
+        style={{
+          background:
+            'linear-gradient(0deg, color-mix(in srgb, #05100c 88%, transparent) 0%, color-mix(in srgb, #05100c 30%, transparent) 55%, transparent 100%)',
+        }}
+      />
+
+      <div className="absolute inset-x-0 bottom-0 p-5 sm:p-7" dir="rtl">
+        <span className="inline-flex items-center gap-1.5 rounded-full bg-white/15 px-2.5 py-1 text-[11px] font-semibold text-white backdrop-blur">
+          <ImageIcon size={12} />
+          تور تصویری
         </span>
-        <p className="mt-4 text-base font-extrabold text-white">ویدیوی دمو هنوز بارگذاری نشده است</p>
-        <p className="mt-2 text-[12.5px] leading-7 text-white/75">
-          فایل را با نام <span className="font-mono">demo.mp4</span> داخل پوشه‌ی{' '}
-          <span className="font-mono">public/videos</span> بگذارید تا همین‌جا پخش شود.
-          راهنمای کامل در <span className="font-mono">public/videos/README.md</span> است.
-        </p>
+
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={slide.title}
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -8 }}
+            transition={{ duration: 0.4 }}
+          >
+            <h3 className="mt-2.5 text-lg font-extrabold text-white sm:text-xl">{slide.title}</h3>
+            <p className="mt-1.5 max-w-xl text-[12.5px] leading-7 text-white/80 sm:text-[13.5px]">
+              {slide.description}
+            </p>
+          </motion.div>
+        </AnimatePresence>
+
+        {/* نشانگر اسلاید، هم‌زمان دکمه‌ی پرش */}
+        <div className="mt-4 flex items-center gap-1.5">
+          {slides.map((s, i) => (
+            <button
+              key={s.src}
+              onClick={() => setIndex(i)}
+              aria-label={`اسلاید ${i + 1}: ${s.title}`}
+              className="h-1 rounded-full transition-all duration-300"
+              style={{
+                width: i === index ? 28 : 12,
+                backgroundColor: i === index ? '#fff' : 'rgba(255,255,255,0.35)',
+              }}
+            />
+          ))}
+        </div>
       </div>
     </div>
   )

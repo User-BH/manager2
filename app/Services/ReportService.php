@@ -11,6 +11,7 @@ use App\Models\Income;
 use App\Models\Payment;
 use App\Models\Unit;
 use App\Support\Jalali;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Collection;
 
 class ReportService
@@ -105,20 +106,54 @@ class ReportService
     }
 
     /** Income vs expense series for the last N periods (oldest first). */
+    /**
+     * نمودار روند چند ماه اخیر.
+     *
+     * پیش از این برای هر ماه سه کوئری جدا زده می‌شد (پرداخت، درآمد، هزینه)،
+     * یعنی نمودار شش‌ماهه به‌تنهایی ۲۱ رفت‌وبرگشت به دیتابیس داشت و بیش از دو
+     * سوم کل کوئری‌های داشبورد را می‌ساخت. حالا هر جدول یک‌بار با
+     * `GROUP BY period` خوانده می‌شود: سه کوئری، مستقل از تعداد ماه‌ها.
+     */
     public function trend(string $period, int $months = 6): array
     {
-        $labels = [];
-        $income = [];
-        $expense = [];
-
+        $periods = [];
         for ($i = $months - 1; $i >= 0; $i--) {
-            $p = Jalali::shiftPeriod($period, -$i);
-            $labels[] = Jalali::periodLabel($p);
-            $income[] = $this->monthlyIncome($p);
-            $expense[] = $this->monthlyExpense($p);
+            $periods[] = Jalali::shiftPeriod($period, -$i);
         }
 
-        return compact('labels', 'income', 'expense');
+        $charges = $this->sumByPeriod(
+            Payment::where('status', PaymentStatus::Success),
+            $periods,
+        );
+        $incomes = $this->sumByPeriod(Income::query(), $periods);
+        $expenses = $this->sumByPeriod(Expense::query(), $periods);
+
+        return [
+            'labels' => array_map(fn (string $p) => Jalali::periodLabel($p), $periods),
+            'income' => array_map(
+                fn (string $p) => ($charges[$p] ?? 0.0) + ($incomes[$p] ?? 0.0),
+                $periods,
+            ),
+            'expense' => array_map(fn (string $p) => $expenses[$p] ?? 0.0, $periods),
+        ];
+    }
+
+    /**
+     * جمع مبلغ به تفکیک دوره، در یک کوئری.
+     *
+     * @param  array<int,string>  $periods
+     * @return array<string,float>
+     */
+    private function sumByPeriod(Builder $query, array $periods): array
+    {
+        return $query
+            ->where('complex_id', $this->complex->id)
+            ->whereIn('period', $periods)
+            ->groupBy('period')
+            ->selectRaw('period, SUM(amount) as total')
+            ->pluck('total', 'period')
+            ->map(fn ($total) => (float) $total)
+            ->all();
     }
 
     public function paymentStatusCounts(string $period): array

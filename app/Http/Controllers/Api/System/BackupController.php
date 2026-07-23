@@ -99,6 +99,9 @@ class BackupController extends Controller
 
     public function download(Backup $backup): StreamedResponse
     {
+        // این مسیر فقط بکاپ‌های سیستمی را می‌دهد؛ بکاپ مجتمع مسیر خودش را دارد
+        // که مالکیت را بررسی می‌کند. یکی‌کردنشان دو سطح دسترسی را قاتی می‌کرد.
+        abort_unless($backup->type === 'full', 404);
         abort_if(! $backup->path || ! Storage::disk('local')->exists($backup->path), 404);
 
         return Storage::disk('local')->download($backup->path);

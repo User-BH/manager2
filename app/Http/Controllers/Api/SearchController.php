@@ -36,6 +36,14 @@ class SearchController extends Controller
         $user = Auth::user();
         $term = trim((string) $request->string('q'));
 
+        /*
+         * `%` و `_` در LIKE معنی ویژه دارند. بدون این پاکسازی، جستجوی «%»
+         * کل جدول را برمی‌گرداند و «_» با هر تک‌نویسه‌ای جور می‌شد — یعنی
+         * نتیجه بی‌ربط می‌شد و کاربر گمان می‌کرد جستجو خراب است.
+         * (خطر تزریق نبود؛ مقادیر bind می‌شوند.)
+         */
+        $term = $this->stripLikeWildcards($term);
+
         if (mb_strlen($term) < 2) {
             return response()->json([
                 'query' => $term,
@@ -60,6 +68,19 @@ class SearchController extends Controller
             'total' => array_sum(array_column($groups, 'count')),
             'groups' => $groups,
         ]);
+    }
+
+    /**
+     * برداشتن نویسه‌های ویژه‌ی LIKE از عبارت جستجو.
+     *
+     * چرا حذف و نه اسکیپ؟ اسکیپ‌کردن به بند `ESCAPE` نیاز دارد و نوشتنِ آن
+     * بین MySQL (تولید) و SQLite (توسعه و تست) یکسان نیست؛ نتیجه کدی می‌شد که
+     * روی یکی درست کار کند و روی دیگری نه. این نویسه‌ها در نام و شماره‌ی واحد
+     * و شماره‌ی تلفن معنایی ندارند، پس حذفشان چیزی از جستجو کم نمی‌کند.
+     */
+    private function stripLikeWildcards(string $term): string
+    {
+        return str_replace(['%', '_', '\\'], '', $term);
     }
 
     private function units(string $term): array

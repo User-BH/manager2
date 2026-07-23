@@ -1,18 +1,28 @@
 import { Suspense, lazy } from 'react'
 import { Navigate, Route, Routes } from 'react-router-dom'
 import { Loader2 } from 'lucide-react'
-import { DashboardLayout } from '@/components/layout/DashboardLayout'
 import { HomePage } from '@/pages/home/HomePage'
-import { AuthPage } from '@/pages/auth/AuthPage'
 import { ProtectedRoute } from './ProtectedRoute'
 import type { UserRole } from '@/types'
 
 /*
  * هر صفحه‌ی داشبورد چانک جدا می‌شود تا بازدیدکننده‌ی صفحه‌ی اصلی
  * مجبور نباشد Recharts و کل صفحات مدیریتی را هم دانلود کند.
- * صفحه‌ی اصلی و ورود عمداً eager می‌مانند چون اولین چیزی هستند که
- * دیده می‌شوند و نباید پشت یک چانک دوم منتظر بمانند.
+ * صفحه‌ی اصلی عمداً eager می‌ماند چون اولین چیزی است که دیده می‌شود و
+ * نباید پشت یک چانک دوم منتظر بماند.
  */
+/*
+ * صفحه‌ی ورود هم lazy است: کل پشته‌ی اعتبارسنجی فرم (react-hook-form + zod،
+ * حدود ۱۰۰ کیلوبایت) فقط از اینجا می‌آید و بازدیدکننده‌ی صفحه‌ی فرود — که
+ * هیچ فرمی نمی‌بیند — نباید بابتش هزینه بدهد.
+ */
+const AuthPage = lazy(() => import('@/pages/auth/AuthPage').then((m) => ({ default: m.AuthPage })))
+
+/*
+ * پوسته‌ی داشبورد (نوار کناری، هدر، جستجو، اعلان‌ها، ماشین‌حساب) عمداً lazy است:
+ * بازدیدکننده‌ی صفحه‌ی فرود هرگز آن را نمی‌بیند و نباید دانلودش کند.
+ */
+const DashboardLayout = lazy(() => import('@/components/layout/DashboardLayout').then((m) => ({ default: m.DashboardLayout })))
 const ForbiddenPage = lazy(() => import('@/pages/error/ForbiddenPage').then((m) => ({ default: m.ForbiddenPage })))
 const DemoPage = lazy(() => import('@/pages/demo/DemoPage').then((m) => ({ default: m.DemoPage })))
 const SupportPage = lazy(() => import('@/pages/support/SupportPage').then((m) => ({ default: m.SupportPage })))
