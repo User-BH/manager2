@@ -16,6 +16,7 @@ import {
   Building,
   Smartphone,
   Server,
+  Crown,
 } from 'lucide-react'
 import type { NavSection, UserRole } from '@/types'
 
@@ -73,6 +74,7 @@ export const navSections: NavSection[] = [
     title: 'سیستم',
     items: [
       { label: 'مدیریت مجتمع‌ها', path: '/system/complexes', icon: Building, roles: SUPER },
+      { label: 'اشتراک‌ها', path: '/system/subscriptions', icon: Crown, roles: SUPER },
       { label: 'پنل پیامک', path: '/system/sms', icon: Smartphone, roles: SUPER },
       { label: 'بکاپ کل سیستم', path: '/system/backup', icon: Server, roles: SUPER },
     ],

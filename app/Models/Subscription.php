@@ -13,8 +13,10 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 class Subscription extends Model
 {
     protected $fillable = [
-        'complex_id', 'user_id', 'plan', 'status', 'amount', 'months',
+        'complex_id', 'user_id', 'plan', 'status', 'method', 'amount', 'months',
         'starts_at', 'ends_at', 'gateway', 'ref_id', 'tracking_code', 'paid_at',
+        'receipt_path', 'receipt_original_name', 'receipt_paid_on',
+        'reviewed_by', 'reviewed_at', 'review_note',
     ];
 
     protected function casts(): array
@@ -26,7 +28,20 @@ class Subscription extends Model
             'starts_at' => 'datetime',
             'ends_at' => 'datetime',
             'paid_at' => 'datetime',
+            'receipt_paid_on' => 'date',
+            'reviewed_at' => 'datetime',
         ];
+    }
+
+    public function reviewer(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'reviewed_by');
+    }
+
+    /** مسیر خرید: پرداخت آنلاین یا آپلود رسید. */
+    public function methodLabel(): string
+    {
+        return $this->method === 'receipt' ? 'واریز و آپلود رسید' : 'پرداخت آنلاین';
     }
 
     public function complex(): BelongsTo
@@ -51,8 +66,10 @@ class Subscription extends Model
     {
         return match ($this->status) {
             'active' => $this->isActive() ? 'فعال' : 'منقضی‌شده',
-            'pending' => 'در انتظار پرداخت',
-            'failed' => 'ناموفق',
+            // رسیدِ ثبت‌شده منتظر بررسی است، نه منتظر پرداخت؛ پرداخت انجام
+            // شده و فقط تاییدش مانده.
+            'pending' => $this->method === 'receipt' ? 'در انتظار بررسی' : 'در انتظار پرداخت',
+            'failed' => $this->method === 'receipt' ? 'رد شده' : 'ناموفق',
             'canceled' => 'لغو شده',
             default => 'منقضی‌شده',
         };

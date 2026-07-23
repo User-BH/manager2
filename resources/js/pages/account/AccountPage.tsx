@@ -3,72 +3,47 @@ import { Link, useSearchParams } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import {
   BadgeCheck,
+  Building2,
   CalendarClock,
   Check,
   CreditCard,
   Crown,
   Headphones,
+  Hourglass,
   Loader2,
+  Receipt,
   Sparkles,
   UserRound,
 } from 'lucide-react'
 import { Card } from '@/components/ui/Card'
+import { Modal } from '@/components/ui/Modal'
 import { ErrorState, LoadingState } from '@/components/ui/PageState'
 import { useApi } from '@/hooks/useApi'
 import { useDocumentTitle } from '@/hooks'
 import { api } from '@/lib/api'
 import { alertError, alertInfo, alertSuccess, confirmAction, toastSuccess } from '@/lib/alert'
 import { formatMoney, formatNumber } from '@/lib/format'
+import { ReceiptUploadForm } from './ReceiptUploadForm'
+import type { SubscriptionPlanOption, SubscriptionResponse, SubscriptionRow } from './types'
 
-interface Plan {
-  value: string
-  label: string
-  price: number
-  priceLabel: string
-  months: number
-  features: string[]
-  savingPercent: number
-}
-
-interface SubscriptionResponse {
-  current: {
-    id: number
-    plan: string
-    planLabel: string
-    statusLabel: string
-    startsAt: string | null
-    endsAt: string | null
-    daysLeft: number
-    trackingCode: string | null
-  } | null
-  freeFeatures: string[]
-  plans: Plan[]
-  checkoutEnabled: boolean
-  /** مسیر وبِ شروع پرداخت؛ فرم واقعی به آن POST می‌شود. */
-  checkoutAction: string
-  supportPhone: string
-  history: {
-    id: number
-    planLabel: string
-    amount: number
-    amountLabel: string
-    status: string
-    statusLabel: string
-    trackingCode: string | null
-    createdAt: string
-    endsAt: string | null
-  }[]
+const STATUS_COLOR: Record<string, string> = {
+  active: 'var(--state-success)',
+  pending: 'var(--state-info)',
+  failed: 'var(--color-danger)',
+  canceled: 'var(--text-tertiary)',
+  expired: 'var(--text-tertiary)',
 }
 
 /**
- * «تنظیمات حساب».
+ * «تنظیمات حساب» — وضعیت اشتراک مجتمع، مصرف در برابر سقف پلن، خرید و سابقه.
  *
- * layout آن با پروفایل هم فرق دارد: کارت‌های پلن کنار هم و زیرشان سابقه‌ی
- * خرید. هدر و سایدبار مثل بقیه‌ی صفحه‌ها سر جای خود می‌مانند.
+ * اشتراک به مجتمع تعلق دارد نه به کاربر، پس هر مدیرِ همان مجتمع همین صفحه
+ * را با همان وضعیت می‌بیند.
  */
 export function AccountPage() {
   const [params, setParams] = useSearchParams()
   const [busyPlan, setBusyPlan] = useState<string | null>(null)
+  const [receiptOpen, setReceiptOpen] = useState(false)
   const formRef = useRef<HTMLFormElement>(null)
 
   useDocumentTitle('تنظیمات حساب')
@@ -78,7 +53,6 @@ export function AccountPage() {
   /*
    * بازگشت از درگاه با پارامتر در آدرس اعلام می‌شود (نه با state)، چون
    * مرورگر واقعاً از دامنه‌ی بانک برگشته و هیچ state ری‌اکتی زنده نمانده.
-   * بعد از نمایش پیام، پارامتر از آدرس پاک می‌شود تا رفرش دوباره پیام ندهد.
    */
   useEffect(() => {
     const checkout = params.get('checkout')
@@ -86,10 +60,7 @@ export function AccountPage() {
 
     if (checkout === 'success') {
       const tracking = params.get('tracking')
-      void alertSuccess(
-        'اشتراک شما فعال شد.',
-        tracking ? `کد رهگیری: ${tracking}` : undefined,
-      )
+      void alertSuccess('اشتراک شما فعال شد.', tracking ? `کد رهگیری: ${tracking}` : undefined)
       reload()
     } else if (checkout === 'failed') {
       void alertInfo('پرداخت انجام نشد.', 'مبلغی از حساب شما کسر نشده است. می‌توانید دوباره تلاش کنید.')
@@ -102,7 +73,6 @@ export function AccountPage() {
     next.delete('tracking')
     next.delete('message')
     setParams(next, { replace: true })
-    // فقط با تغییر آدرس اجرا شود
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [params])
 
@@ -110,16 +80,10 @@ export function AccountPage() {
   if (error) return <ErrorState message={error} onRetry={reload} />
   if (!data) return null
 
-  async function startCheckout(plan: Plan) {
-    if (!data) return
+  const pendingRequest = data.history.find((row) => row.status === 'pending') ?? null
 
-    if (!data.checkoutEnabled) {
-      void alertInfo(
-        'خرید آنلاین هنوز فعال نیست.',
-        `برای فعال‌سازی اشتراک با پشتیبانی ${data.supportPhone} تماس بگیرید.`,
-      )
-      return
-    }
+  async function startCheckout(plan: SubscriptionPlanOption) {
+    if (!data) return
 
     const ok = await confirmAction({
       title: `خرید ${plan.label}`,
@@ -132,8 +96,7 @@ export function AccountPage() {
 
     /*
      * فرم واقعی submit می‌شود، نه fetch: مرورگر باید صفحه را ترک کند و به
-     * سایت بانک برود. با fetch فقط HTML بانک در جواب می‌آمد و کاربر هرگز
-     * به درگاه نمی‌رسید.
+     * سایت بانک برود.
      */
     const form = formRef.current
     if (!form) return
@@ -160,8 +123,6 @@ export function AccountPage() {
     }
   }
 
-  const isPro = data.current !== null
-
   return (
     <div className="flex flex-col gap-5">
       {/* فرم پنهانِ شروع پرداخت — تنها راهی که مرورگر واقعاً به بانک می‌رود */}
@@ -177,7 +138,8 @@ export function AccountPage() {
             تنظیمات حساب
           </h1>
           <p className="mt-1 text-[13px]" style={{ color: 'var(--text-tertiary)' }}>
-            وضعیت اشتراک، ارتقا به پرو و سابقه‌ی پرداخت‌ها
+            {data.complexName ? `${data.complexName} — ` : ''}
+            پلن فعلی: {data.currentPlanLabel}
           </p>
         </div>
 
@@ -191,13 +153,15 @@ export function AccountPage() {
         </Link>
       </header>
 
-      <CurrentPlanBanner
-        current={data.current}
-        onCancel={cancelSubscription}
-      />
+      {/* درخواست در انتظار بررسی */}
+      {pendingRequest && <PendingBanner request={pendingRequest} />}
+
+      <CurrentPlanBanner current={data.current} onCancel={cancelSubscription} />
+
+      {data.usage && <UsageCard usage={data.usage} planLabel={data.currentPlanLabel} />}
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
-        <FreePlanCard features={data.freeFeatures} isCurrent={!isPro} />
+        <FreePlanCard features={data.freeFeatures} isCurrent={data.currentPlan === 'free'} />
 
         {data.plans.map((plan, index) => (
           <PlanCard
@@ -205,15 +169,17 @@ export function AccountPage() {
             plan={plan}
             delay={0.05 * (index + 1)}
             busy={busyPlan === plan.value}
-            disabled={busyPlan !== null}
-            onBuy={() => void startCheckout(plan)}
+            disabled={busyPlan !== null || pendingRequest !== null}
+            checkoutEnabled={data.checkoutEnabled}
+            onBuyOnline={() => void startCheckout(plan)}
+            onBuyReceipt={() => setReceiptOpen(true)}
           />
         ))}
       </div>
 
       {!data.checkoutEnabled && (
         <div
-          className="flex items-center gap-2.5 rounded-2xl border p-4 text-[12.5px]"
+          className="flex flex-wrap items-center gap-2.5 rounded-2xl border p-4 text-[12.5px]"
           style={{
             borderColor: 'var(--border-subtle)',
             backgroundColor: 'color-mix(in srgb, var(--state-info) 8%, transparent)',
@@ -221,7 +187,11 @@ export function AccountPage() {
           }}
         >
           <Headphones size={16} style={{ color: 'var(--state-info)' }} />
-          خرید آنلاین روی این نصب هنوز فعال نشده است. برای ارتقا به پرو با پشتیبانی{' '}
+          درگاه پرداخت آنلاین روی این نصب فعال نیست؛ خرید از راه{' '}
+          <span className="font-bold" style={{ color: 'var(--text-primary)' }}>
+            واریز و آپلود رسید
+          </span>{' '}
+          انجام می‌شود. در صورت نیاز با پشتیبانی{' '}
           <span className="font-bold" style={{ color: 'var(--text-primary)' }}>
             {data.supportPhone}
           </span>{' '}
@@ -230,6 +200,17 @@ export function AccountPage() {
       )}
 
       <HistoryCard history={data.history} />
+
+      <Modal open={receiptOpen} title="خرید اشتراک با واریز" onClose={() => setReceiptOpen(false)}>
+        <ReceiptUploadForm
+          plans={data.plans}
+          bank={data.bankInfo}
+          onDone={() => {
+            setReceiptOpen(false)
+            reload()
+          }}
+        />
+      </Modal>
     </div>
   )
 }
@@ -239,11 +220,102 @@ function csrfToken(): string {
   return document.querySelector<HTMLMetaElement>('meta[name="csrf-token"]')?.content ?? ''
 }
 
+function PendingBanner({ request }: { request: SubscriptionRow }) {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      className="flex flex-wrap items-center gap-3 rounded-2xl border p-4"
+      style={{
+        borderColor: 'var(--state-info)',
+        backgroundColor: 'color-mix(in srgb, var(--state-info) 8%, transparent)',
+      }}
+    >
+      <Hourglass size={18} style={{ color: 'var(--state-info)' }} />
+      <div className="min-w-0 flex-1">
+        <p className="text-[13.5px] font-bold" style={{ color: 'var(--text-primary)' }}>
+          درخواست «{request.planLabel}» در انتظار بررسی است
+        </p>
+        <p className="mt-0.5 text-[12px]" style={{ color: 'var(--text-tertiary)' }}>
+          {request.methodLabel} · ثبت‌شده در {request.createdAt} · مبلغ {request.amountLabel} تومان
+        </p>
+      </div>
+    </motion.div>
+  )
+}
+
+/** مصرف فعلی در برابر سقف پلن — تا کاربر بداند چرا محدود شده. */
+function UsageCard({
+  usage,
+  planLabel,
+}: {
+  usage: { units: number; unitLimit: number | null }
+  planLabel: string
+}) {
+  const unlimited = usage.unitLimit === null
+  const percent = unlimited ? 0 : Math.min(100, (usage.units / (usage.unitLimit || 1)) * 100)
+  const nearLimit = !unlimited && percent >= 80
+
+  return (
+    <Card>
+      <div className="flex flex-wrap items-center gap-3">
+        <span
+          className="flex h-10 w-10 items-center justify-center rounded-xl"
+          style={{
+            backgroundColor: 'color-mix(in srgb, var(--color-brand-500) 12%, transparent)',
+            color: 'var(--color-brand-600)',
+          }}
+        >
+          <Building2 size={18} />
+        </span>
+
+        <div className="min-w-0 flex-1">
+          <p className="text-[13.5px] font-bold" style={{ color: 'var(--text-primary)' }}>
+            واحدهای ثبت‌شده
+          </p>
+          <p className="mt-0.5 text-[12px]" style={{ color: 'var(--text-tertiary)' }}>
+            {unlimited
+              ? `${formatNumber(usage.units)} واحد — بدون محدودیت در ${planLabel}`
+              : `${formatNumber(usage.units)} از ${formatNumber(usage.unitLimit ?? 0)} واحد مجاز در ${planLabel}`}
+          </p>
+        </div>
+
+        {!unlimited && (
+          <span
+            className="text-[15px] font-extrabold tabular-nums"
+            style={{ color: nearLimit ? 'var(--color-danger)' : 'var(--color-brand-600)' }}
+          >
+            {formatNumber(Math.round(percent))}٪
+          </span>
+        )}
+      </div>
+
+      {!unlimited && (
+        <div className="mt-3 h-2 overflow-hidden rounded-full" style={{ backgroundColor: 'var(--surface-sunken)' }}>
+          <motion.div
+            initial={{ width: 0 }}
+            animate={{ width: `${percent}%` }}
+            transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
+            className="h-full rounded-full"
+            style={{ backgroundColor: nearLimit ? 'var(--color-danger)' : 'var(--color-brand-500)' }}
+          />
+        </div>
+      )}
+
+      {nearLimit && (
+        <p className="mt-2.5 text-[12px]" style={{ color: 'var(--color-danger)' }}>
+          به سقف پلن رایگان نزدیک شده‌اید. برای ثبت واحد بیشتر، اشتراک پرو را فعال کنید.
+        </p>
+      )}
+    </Card>
+  )
+}
+
 function CurrentPlanBanner({
   current,
   onCancel,
 }: {
-  current: SubscriptionResponse['current']
+  current: SubscriptionRow | null
   onCancel: (id: number) => void
 }) {
   if (!current) {
@@ -258,10 +330,10 @@ function CurrentPlanBanner({
         <Sparkles size={20} style={{ color: 'var(--color-accent-500)' }} />
         <div className="min-w-0 flex-1">
           <p className="text-[14px] font-bold" style={{ color: 'var(--text-primary)' }}>
-            حساب شما روی پلن رایگان است.
+            این مجتمع روی پلن رایگان است.
           </p>
           <p className="mt-0.5 text-[12px]" style={{ color: 'var(--text-tertiary)' }}>
-            با ارتقا به پرو، محدودیت تعداد واحد برداشته می‌شود و درگاه پرداخت و پنل پیامک باز می‌شود.
+            با ارتقا به پرو، سقف تعداد واحد برداشته می‌شود و اتصال درگاه بانکی و خروجی Excel باز می‌شود.
           </p>
         </div>
       </motion.div>
@@ -301,6 +373,7 @@ function CurrentPlanBanner({
               تا {current.endsAt}
             </span>
             <span>{formatNumber(current.daysLeft)} روز باقی‌مانده</span>
+            <span>{current.methodLabel}</span>
             {current.trackingCode && <span dir="ltr">کد رهگیری: {current.trackingCode}</span>}
           </p>
         </div>
@@ -332,7 +405,7 @@ function FreePlanCard({ features, isCurrent }: { features: string[]; isCurrent: 
               color: 'var(--color-brand-600)',
             }}
           >
-            پلن فعلی شما
+            پلن فعلی
           </span>
         )}
       </div>
@@ -354,23 +427,22 @@ function PlanCard({
   delay,
   busy,
   disabled,
-  onBuy,
+  checkoutEnabled,
+  onBuyOnline,
+  onBuyReceipt,
 }: {
-  plan: Plan
+  plan: SubscriptionPlanOption
   delay: number
   busy: boolean
   disabled: boolean
-  onBuy: () => void
+  checkoutEnabled: boolean
+  onBuyOnline: () => void
+  onBuyReceipt: () => void
 }) {
   const highlighted = plan.savingPercent > 0
 
   return (
-    <Card
-      delay={delay}
-      className="relative flex flex-col"
-      // پلن سالانه با قاب پررنگ‌تر متمایز می‌شود، بدون تغییر ساختار کارت
-      {...(highlighted ? {} : {})}
-    >
+    <Card delay={delay} className="relative flex flex-col">
       {highlighted && (
         <span
           className="absolute -top-2.5 right-5 rounded-full px-2.5 py-0.5 text-[10.5px] font-extrabold text-white"
@@ -396,15 +468,37 @@ function PlanCard({
 
       <FeatureList features={plan.features} />
 
-      <button
-        onClick={onBuy}
-        disabled={disabled}
-        className="mt-4 flex items-center justify-center gap-1.5 rounded-xl py-3 text-[13px] font-bold text-white transition-transform hover:scale-[1.02] disabled:opacity-60"
-        style={{ backgroundColor: 'var(--color-brand-500)' }}
-      >
-        {busy ? <Loader2 size={15} className="animate-spin" /> : <CreditCard size={15} />}
-        {busy ? 'در حال انتقال به درگاه…' : 'خرید و پرداخت'}
-      </button>
+      <div className="mt-4 flex flex-col gap-2">
+        {/* پرداخت آنلاین فقط وقتی درگاه واقعاً فعال است نشان داده می‌شود */}
+        {checkoutEnabled && (
+          <button
+            onClick={onBuyOnline}
+            disabled={disabled}
+            className="flex items-center justify-center gap-1.5 rounded-xl py-3 text-[13px] font-bold text-white transition-transform hover:scale-[1.02] disabled:opacity-60"
+            style={{ backgroundColor: 'var(--color-brand-500)' }}
+          >
+            {busy ? <Loader2 size={15} className="animate-spin" /> : <CreditCard size={15} />}
+            {busy ? 'در حال انتقال به درگاه…' : 'پرداخت آنلاین'}
+          </button>
+        )}
+
+        <button
+          onClick={onBuyReceipt}
+          disabled={disabled}
+          className={
+            'flex items-center justify-center gap-1.5 rounded-xl py-3 text-[13px] font-bold transition-transform hover:scale-[1.02] disabled:opacity-60 ' +
+            (checkoutEnabled ? 'border' : 'text-white')
+          }
+          style={
+            checkoutEnabled
+              ? { borderColor: 'var(--border-default)', color: 'var(--text-primary)' }
+              : { backgroundColor: 'var(--color-brand-500)' }
+          }
+        >
+          <Receipt size={15} />
+          واریز و آپلود رسید
+        </button>
+      </div>
     </Card>
   )
 }
@@ -426,31 +520,24 @@ function FeatureList({ features, muted }: { features: string[]; muted?: boolean 
   )
 }
 
-function HistoryCard({ history }: { history: SubscriptionResponse['history'] }) {
-  const STATUS_COLOR: Record<string, string> = {
-    active: 'var(--state-success)',
-    pending: 'var(--state-info)',
-    failed: 'var(--color-danger)',
-    canceled: 'var(--text-tertiary)',
-    expired: 'var(--text-tertiary)',
-  }
-
+function HistoryCard({ history }: { history: SubscriptionRow[] }) {
   return (
-    <Card title="سابقه پرداخت اشتراک" delay={0.2}>
+    <Card title="سابقه اشتراک" delay={0.2}>
       {history.length === 0 ? (
         <p className="py-8 text-center text-[12.5px]" style={{ color: 'var(--text-tertiary)' }}>
           هنوز خریدی ثبت نشده است.
         </p>
       ) : (
         <div className="overflow-x-auto">
-          <table className="w-full min-w-[560px] text-right text-[13px]">
+          <table className="w-full min-w-[680px] text-right text-[13px]">
             <thead>
               <tr style={{ color: 'var(--text-tertiary)' }}>
                 <th className="pb-3 font-medium">پلن</th>
+                <th className="pb-3 font-medium">روش</th>
                 <th className="pb-3 font-medium">مبلغ</th>
+                <th className="pb-3 font-medium">خریدار</th>
                 <th className="pb-3 font-medium">تاریخ</th>
                 <th className="pb-3 font-medium">اعتبار تا</th>
-                <th className="pb-3 font-medium">کد رهگیری</th>
                 <th className="pb-3 font-medium">وضعیت</th>
               </tr>
             </thead>
@@ -460,17 +547,20 @@ function HistoryCard({ history }: { history: SubscriptionResponse['history'] }) 
                   <td className="py-3 font-semibold" style={{ color: 'var(--text-primary)' }}>
                     {row.planLabel}
                   </td>
+                  <td className="py-3" style={{ color: 'var(--text-secondary)' }}>
+                    {row.methodLabel}
+                  </td>
                   <td className="py-3 tabular-nums" style={{ color: 'var(--text-secondary)' }}>
                     {row.amountLabel}
+                  </td>
+                  <td className="py-3" style={{ color: 'var(--text-tertiary)' }}>
+                    {row.buyerName ?? '—'}
                   </td>
                   <td className="py-3 tabular-nums" style={{ color: 'var(--text-tertiary)' }}>
                     {row.createdAt}
                   </td>
                   <td className="py-3 tabular-nums" style={{ color: 'var(--text-tertiary)' }}>
                     {row.endsAt ?? '—'}
-                  </td>
-                  <td className="py-3 font-mono text-[11px]" dir="ltr" style={{ color: 'var(--text-tertiary)' }}>
-                    {row.trackingCode ?? '—'}
                   </td>
                   <td className="py-3">
                     <span
@@ -482,6 +572,11 @@ function HistoryCard({ history }: { history: SubscriptionResponse['history'] }) 
                     >
                       {row.statusLabel}
                     </span>
+                    {row.status === 'failed' && row.reviewNote && (
+                      <span className="mt-1 block text-[10.5px]" style={{ color: 'var(--text-tertiary)' }}>
+                        {row.reviewNote}
+                      </span>
+                    )}
                   </td>
                 </tr>
               ))}

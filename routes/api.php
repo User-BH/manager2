@@ -23,6 +23,7 @@ use App\Http\Controllers\Api\SubscriptionController;
 use App\Http\Controllers\Api\System\BackupController as SystemBackupController;
 use App\Http\Controllers\Api\System\ComplexController as SystemComplexController;
 use App\Http\Controllers\Api\System\SmsController;
+use App\Http\Controllers\Api\System\SubscriptionReviewController;
 use App\Http\Controllers\Api\UnitController;
 use Illuminate\Support\Facades\Route;
 
@@ -38,10 +39,16 @@ use Illuminate\Support\Facades\Route;
 */
 
 // --- مهمان ---
-Route::post('login', [AuthController::class, 'login'])->name('login');
-Route::post('login/otp/request', [AuthController::class, 'requestOtp'])->name('login.otp.request');
-Route::post('login/otp/verify', [AuthController::class, 'verifyOtp'])->name('login.otp.verify');
-Route::post('register', [AuthController::class, 'register'])->name('register');
+// محدودیت نرخ (تعریف در AppServiceProvider) جلوی حدس‌زدن رمز و کد، و
+// مصرف بی‌رویه‌ی اعتبار پیامک را می‌گیرد.
+Route::post('login', [AuthController::class, 'login'])
+    ->middleware('throttle:login')->name('login');
+Route::post('login/otp/request', [AuthController::class, 'requestOtp'])
+    ->middleware('throttle:otp-request')->name('login.otp.request');
+Route::post('login/otp/verify', [AuthController::class, 'verifyOtp'])
+    ->middleware('throttle:otp-verify')->name('login.otp.verify');
+Route::post('register', [AuthController::class, 'register'])
+    ->middleware('throttle:register')->name('register');
 
 // وضعیت کاربر برای مهمان هم قابل فراخوانی است و null برمی‌گرداند؛ کلاینت
 // هنگام بالا آمدن یک‌بار صدایش می‌زند تا بفهمد نشست فعالی هست یا نه.
@@ -83,6 +90,9 @@ Route::middleware('auth')->group(function () {
     Route::put('profile/password', [ProfileController::class, 'updatePassword'])->name('profile.password');
 
     Route::get('subscription', [SubscriptionController::class, 'show'])->name('subscription.show');
+    // خرید با واریز و آپلود رسید — تنها راه خرید تا وقتی درگاه اشتراک فعال نشده
+    Route::post('subscription/receipt', [SubscriptionController::class, 'uploadReceipt'])
+        ->name('subscription.receipt');
     Route::post('subscription/{subscription}/cancel', [SubscriptionController::class, 'cancel'])
         ->name('subscription.cancel');
 
@@ -158,6 +168,17 @@ Route::middleware('auth')->group(function () {
         Route::get('sms', [SmsController::class, 'show'])->name('sms.show');
         Route::put('sms', [SmsController::class, 'update'])->name('sms.update');
         Route::post('sms/test', [SmsController::class, 'test'])->name('sms.test');
+
+        // بررسی رسیدهای اشتراک: پول اشتراک به حساب سرویس‌دهنده می‌رود، پس
+        // تاییدش کار ادمین کل است نه مدیر مجتمعی که خودش پرداخت کرده.
+        Route::get('subscriptions', [SubscriptionReviewController::class, 'index'])
+            ->name('subscriptions.index');
+        Route::get('subscriptions/{subscription}/receipt', [SubscriptionReviewController::class, 'receipt'])
+            ->name('subscriptions.receipt');
+        Route::post('subscriptions/{subscription}/approve', [SubscriptionReviewController::class, 'approve'])
+            ->name('subscriptions.approve');
+        Route::post('subscriptions/{subscription}/reject', [SubscriptionReviewController::class, 'reject'])
+            ->name('subscriptions.reject');
 
         Route::get('backups', [SystemBackupController::class, 'index'])->name('backups.index');
         Route::post('backups', [SystemBackupController::class, 'store'])->name('backups.store');

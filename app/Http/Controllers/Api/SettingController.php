@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Services\Subscription\PlanGate;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -53,9 +54,18 @@ class SettingController extends Controller
         ]);
     }
 
-    public function update(Request $request): JsonResponse
+    public function update(Request $request, PlanGate $plans): JsonResponse
     {
         $complex = $this->requireComplex();
+
+        /*
+         * اتصال درگاه بانکیِ واقعی از امکانات پرو است. «سندباکس» و «بدون
+         * درگاه» آزادند تا کاربر رایگان بتواند مسیر پرداخت را بیازماید و
+         * تنظیمات فعلی‌اش هم قفل نشود.
+         */
+        if (in_array($request->input('payment_gateway'), ['mellat', 'saman'], true)) {
+            $plans->assertCanUseRealGateway($complex);
+        }
 
         $data = $request->validate([
             'name' => ['required', 'string', 'max:150'],

@@ -151,6 +151,26 @@ export function alertInfo(title: string, text?: string): Promise<unknown> {
  * تا کاربر مجبور نشود فرم را چند بار بفرستد تا همه‌ی ایرادها را ببیند.
  */
 export function alertError(error: unknown, fallback = 'انجام این کار ممکن نشد.'): void {
+  /*
+   * ۴۰۲ یعنی محدودیت پلن، نه خطا. به‌جای پیام قرمزِ «خطا»، پیشنهاد ارتقا
+   * با دکمه‌ی رفتن به صفحه‌ی اشتراک نشان داده می‌شود.
+   */
+  if (error instanceof ApiError && error.status === 402) {
+    void app
+      .fire({
+        title: 'نیازمند اشتراک پرو',
+        text: error.message,
+        icon: 'info',
+        showCancelButton: true,
+        confirmButtonText: 'مشاهده پلن‌ها',
+        cancelButtonText: 'بستن',
+      })
+      .then((result) => {
+        if (result.isConfirmed) window.location.assign('/account')
+      })
+    return
+  }
+
   if (error instanceof ApiError) {
     const fields = Object.values(error.errors).flat()
 

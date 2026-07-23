@@ -6,6 +6,7 @@ use App\Enums\OccupancyStatus;
 use App\Http\Controllers\Controller;
 use App\Models\Building;
 use App\Models\Unit;
+use App\Services\Subscription\PlanGate;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -42,9 +43,14 @@ class UnitController extends Controller
         ]);
     }
 
-    public function store(Request $request): JsonResponse
+    public function store(Request $request, PlanGate $plans): JsonResponse
     {
-        $this->requireComplex();
+        $complex = $this->requireComplex();
+
+        // سقف تعداد واحد پلن رایگان — پیش از اعتبارسنجی تا کاربر بی‌دلیل
+        // فرم را پر نکند و بعد رد شود.
+        $plans->assertCanAddUnit($complex);
+
         $unit = Unit::create($this->validateData($request));
 
         return response()->json(['unit' => $this->present($unit->load('building'))], 201);

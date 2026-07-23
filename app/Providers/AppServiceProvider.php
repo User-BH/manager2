@@ -2,8 +2,12 @@
 
 namespace App\Providers;
 
+use App\Support\Phone;
+use Illuminate\Cache\RateLimiting\Limit;
+use Illuminate\Http\Request;
 use Illuminate\Pagination\Paginator;
 use Illuminate\Support\Facades\Date;
+use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
@@ -19,5 +23,56 @@ class AppServiceProvider extends ServiceProvider
     {
         Paginator::useTailwind();
         Date::macro('jalali', fn () => \App\Support\Jalali::date($this));
+
+        $this->registerRateLimiters();
+    }
+
+    /**
+     * محدودیت نرخ درخواست روی مسیرهای احراز هویت.
+     *
+     * بدون این‌ها، هم حدس‌زدن رمز و کد پیامکی بی‌هزینه بود و هم مهم‌تر:
+     * هر کسی می‌توانست با درخواست انبوهِ کد، اعتبار پیامکِ سامانه را
+     * (که پولی است) تمام کند.
+     *
+     * کلید هر محدودیت ترکیبی از IP و شماره تلفن است تا نه یک IP بتواند
+     * روی شماره‌های مختلف مانور بدهد و نه چند IP روی یک شماره.
+     */
+    private function registerRateLimiters(): void
+    {
+        // ورود با رمز: ۵ تلاش در دقیقه برای هر شماره، و ۲۰ در دقیقه برای هر IP
+        RateLimiter::for('login', fn (Request $request) => [
+            Limit::perMinute(5)->by($this->phoneKey($request)),
+            Limit::perMinute(20)->by($request->ip()),
+        ]);
+
+        /*
+         * درخواست کد پیامکی سخت‌گیرانه‌ترین است، چون هر درخواست یک پیامکِ
+         * واقعی و هزینه‌دار می‌فرستد. OtpService خودش ۶۰ ثانیه فاصله‌ی
+         * ارسال مجدد دارد ولی آن فقط per-phone است و جلوی حمله روی
+         * شماره‌های متعدد را نمی‌گیرد.
+         */
+        RateLimiter::for('otp-request', fn (Request $request) => [
+            Limit::perMinutes(10, 3)->by($this->phoneKey($request)),
+            Limit::perMinutes(10, 15)->by($request->ip()),
+        ]);
+
+        // تایید کد: کد ۵ رقمی است، پس تعداد تلاش باید کم بماند
+        RateLimiter::for('otp-verify', fn (Request $request) => [
+            Limit::perMinute(5)->by($this->phoneKey($request)),
+            Limit::perMinute(20)->by($request->ip()),
+        ]);
+
+        // ثبت‌نام: جلوگیری از ساخت انبوه حساب
+        RateLimiter::for('register', fn (Request $request) => [
+            Limit::perHour(5)->by($request->ip()),
+        ]);
+    }
+
+    /** کلید یکتا بر پایه‌ی شماره‌ی نرمال‌شده + IP. */
+    private function phoneKey(Request $request): string
+    {
+        $phone = (string) $request->input('phone', '');
+
+        return Phone::normalize($phone).'|'.$request->ip();
     }
 }

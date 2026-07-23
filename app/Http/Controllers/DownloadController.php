@@ -6,6 +6,7 @@ use App\Enums\PaymentStatus;
 use App\Exports\BillsExport;
 use App\Models\Bill;
 use App\Models\Unit;
+use App\Services\Subscription\PlanGate;
 use App\Support\Jalali;
 use App\Support\Pdf;
 use Illuminate\Http\Request;
@@ -55,11 +56,14 @@ class DownloadController extends Controller
         );
     }
 
-    /** خروجی Excel قبوض یک دوره. */
-    public function billsExport(Request $request)
+    /** خروجی Excel قبوض یک دوره — از امکانات پلن پرو. */
+    public function billsExport(Request $request, PlanGate $plans)
     {
         abort_unless(Auth::user()->isAdmin(), 403);
-        $this->requireComplex();
+        $complex = $this->requireComplex();
+
+        // خروجی PDF در پلن رایگان آزاد است؛ فقط Excel محدود شده.
+        $plans->assertCanExportExcel($complex);
 
         $period = $request->query('period', Jalali::currentPeriod());
 

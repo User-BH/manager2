@@ -20,20 +20,27 @@ class SubscriptionCheckoutController extends Controller
 
     public function start(Request $request)
     {
+        $user = Auth::user();
+
+        // اشتراک برای مجتمع خریداری می‌شود، پس فقط مدیر می‌تواند بخرد؛
+        // ساکن نباید بتواند پرداختی انجام دهد که هیچ اثری برایش ندارد.
+        abort_unless($user->isAdmin(), 403, 'خرید اشتراک فقط برای مدیران مجتمع است.');
+
         $request->validate([
             'plan' => ['required', 'string', 'in:pro,pro_yearly'],
         ], [], ['plan' => 'پلن']);
 
         $plan = SubscriptionPlan::from($request->string('plan')->value());
-        $user = Auth::user();
+        $complex = $this->requireComplex();
 
         // مبلغ از enum خوانده می‌شود، نه از درخواست؛ وگرنه کلاینت می‌توانست
         // پلن پرو را به قیمت دلخواه بخرد.
         $subscription = Subscription::create([
-            'complex_id' => $this->currentComplex()?->id,
+            'complex_id' => $complex->id,
             'user_id' => $user->id,
             'plan' => $plan,
             'status' => 'pending',
+            'method' => 'online',
             'amount' => $plan->price(),
             'months' => $plan->months(),
         ]);

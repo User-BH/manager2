@@ -3,6 +3,7 @@
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
+use Illuminate\Http\Exceptions\ThrottleRequestsException;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -56,5 +57,24 @@ return Application::configure(basePath: dirname(__DIR__))
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
-        //
+        /*
+        | پیام پیش‌فرض لاراول برای عبور از محدودیت نرخ انگلیسی است
+        | («Too Many Attempts.») و کاربر فارسی‌زبان از آن چیزی نمی‌فهمد.
+        | اینجا به پیام فارسی با زمان انتظار تبدیل می‌شود.
+        */
+        $exceptions->render(function (ThrottleRequestsException $e, Request $request) {
+            if (! $request->expectsJson()) {
+                return null;
+            }
+
+            $seconds = (int) ($e->getHeaders()['Retry-After'] ?? 60);
+            $wait = $seconds > 90
+                ? \App\Support\Jalali::digits((int) ceil($seconds / 60)).' دقیقه'
+                : \App\Support\Jalali::digits($seconds).' ثانیه';
+
+            return response()->json([
+                'message' => "تعداد تلاش‌ها بیش از حد مجاز است. لطفاً {$wait} دیگر دوباره تلاش کنید.",
+                'retryAfter' => $seconds,
+            ], 429, $e->getHeaders());
+        });
     })->create();
