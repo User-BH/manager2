@@ -309,6 +309,52 @@ class SubscriptionFlowTest extends TestCase
         $this->assertSame('pending', $subscription->fresh()->status);
     }
 
+    /* ---------------- خرید آنلاین از راه درایور مشترک ---------------- */
+
+    /**
+     * درگاه اشتراک همان درایورهای بانکیِ شارژ را استفاده می‌کند (از راه واسط
+     * GatewayOrder). این تست ثابت می‌کند مسیر آنلاین برای اشتراک هم کامل کار
+     * می‌کند، نه فقط برای قبض.
+     */
+    public function test_online_checkout_activates_the_subscription(): void
+    {
+        config(['subscription.gateway' => 'sandbox']);
+
+        $this->actingAs($this->admin)
+            ->post('/subscription/checkout', ['plan' => 'pro'])
+            ->assertRedirect();
+
+        $subscription = Subscription::firstOrFail();
+        $this->assertSame('online', $subscription->method);
+        $this->assertSame('fake', $subscription->gateway);
+        $this->assertNotNull($subscription->ref_id);
+
+        $this->actingAs($this->admin)
+            ->get("/subscription/callback/{$subscription->id}?ref={$subscription->ref_id}")
+            ->assertRedirectContains('checkout=success');
+
+        $subscription->refresh();
+        $this->assertSame('active', $subscription->status);
+        $this->assertNotNull($subscription->tracking_code);
+    }
+
+    public function test_checkout_is_disabled_when_a_real_gateway_has_no_terminal(): void
+    {
+        // درگاه ملت بدون شماره ترمینال نباید «فعال» شمرده شود، وگرنه کاربر
+        // وسط راه به خطای بانک می‌خورد.
+        config(['subscription.gateway' => 'mellat', 'subscription.config.terminal_id' => null]);
+
+        $this->actingAs($this->admin)->getJson('/api/subscription')
+            ->assertOk()
+            ->assertJsonPath('checkoutEnabled', false);
+
+        config(['subscription.config.terminal_id' => '123456']);
+
+        $this->actingAs($this->admin)->getJson('/api/subscription')
+            ->assertOk()
+            ->assertJsonPath('checkoutEnabled', true);
+    }
+
     /* ------------------ اشتراک متعلق به مجتمع است ------------------ */
 
     public function test_subscription_is_shared_by_every_admin_of_the_complex(): void

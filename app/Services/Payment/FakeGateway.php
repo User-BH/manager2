@@ -2,7 +2,6 @@
 
 namespace App\Services\Payment;
 
-use App\Models\Payment;
 use Illuminate\Support\Str;
 
 /**
@@ -12,21 +11,21 @@ use Illuminate\Support\Str;
  */
 class FakeGateway implements PaymentGateway
 {
-    public function request(Payment $payment): array
+    public function request(GatewayOrder $order): array
     {
         $refId = 'FAKE-'.Str::upper(Str::random(12));
-        $payment->update(['gateway' => 'fake', 'ref_id' => $refId]);
+        $order->markGatewayRequested('fake', $refId);
 
         return [
-            'redirect_url' => route('payments.callback', ['payment' => $payment->id, 'ref' => $refId]),
+            'redirect_url' => $order->gatewayCallbackUrl().'?ref='.$refId,
             'ref_id' => $refId,
         ];
     }
 
-    public function verify(Payment $payment, array $callback): ?string
+    public function verify(GatewayOrder $order, array $callback): ?string
     {
         // The sandbox approves any callback that echoes the issued ref id.
-        if (($callback['ref'] ?? null) === $payment->ref_id) {
+        if (($callback['ref'] ?? null) === $order->gatewayRefId()) {
             return 'TRK-'.Str::upper(Str::random(10));
         }
 

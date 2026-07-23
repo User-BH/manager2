@@ -26,11 +26,24 @@ export function UserMenu() {
         className="flex items-center gap-2 rounded-xl border py-1.5 pr-1.5 pl-2.5 transition-colors duration-200 hover:bg-(--surface-sunken)"
         style={{ borderColor: 'var(--border-subtle)' }}
       >
-        <div className="text-right">
-          <p className="text-[13px] font-semibold leading-tight" style={{ color: 'var(--text-primary)' }}>
+        {/*
+          روی موبایل فقط آواتار می‌ماند. دلیل: نام در عرض کم به دو خط می‌شکست
+          و ارتفاع دکمه از ۶۴ پیکسلِ هدر بیشتر می‌شد (اندازه‌گیری: ۷۶px) و از
+          هدر بیرون می‌زد. در عرض‌های بزرگ‌تر هم نام تک‌خطی و کوتاه‌شده است تا
+          نام‌های بلند همان مشکل را نسازند.
+        */}
+        <div className="hidden max-w-[9rem] text-right sm:block">
+          <p
+            className="truncate whitespace-nowrap text-[13px] font-semibold leading-tight"
+            style={{ color: 'var(--text-primary)' }}
+            title={user?.name ?? undefined}
+          >
             {user?.name ?? 'کاربر'}
           </p>
-          <p className="text-[11px] leading-tight" style={{ color: 'var(--text-tertiary)' }}>
+          <p
+            className="truncate whitespace-nowrap text-[11px] leading-tight"
+            style={{ color: 'var(--text-tertiary)' }}
+          >
             {user?.roleLabel ?? ''}
           </p>
         </div>

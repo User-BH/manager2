@@ -9,6 +9,7 @@ use App\Models\Unit;
 use App\Services\Subscription\PlanGate;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 
 class UnitController extends Controller
 {
@@ -97,7 +98,12 @@ class UnitController extends Controller
 
         return $request->validate([
             'unit_number' => ['required', 'string', 'max:20'],
-            'building_id' => ['nullable', 'exists:buildings,id'],
+            // exists خام به مجتمع محدود نیست؛ بدون این قید می‌شد واحد را به
+            // ساختمانِ مجتمع دیگری چسباند.
+            'building_id' => [
+                'nullable',
+                Rule::exists('buildings', 'id')->where('complex_id', $this->requireComplex()->id),
+            ],
             'floor' => ['required', 'integer', 'min:-5', 'max:200'],
             'area' => ['required', 'numeric', 'min:0'],
             'residents_count' => ['required', 'integer', 'min:0'],

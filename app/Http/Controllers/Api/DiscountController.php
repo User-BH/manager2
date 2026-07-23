@@ -9,6 +9,7 @@ use App\Support\Jalali;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Validation\Rule;
 
 class DiscountController extends Controller
 {
@@ -43,14 +44,23 @@ class DiscountController extends Controller
 
     public function store(Request $request): JsonResponse
     {
-        $this->requireComplex();
+        $complex = $this->requireComplex();
 
         $data = $request->validate([
-            'unit_id' => ['required', 'exists:units,id'],
-            'period' => ['required', 'string', 'max:7'],
+            // exists خام به مجتمع محدود نیست؛ بدون این قید می‌شد با دستکاری
+            // شناسه، تخفیف را به واحدِ مجتمع دیگری بست.
+            'unit_id' => [
+                'required',
+                Rule::exists('units', 'id')->where('complex_id', $complex->id),
+            ],
+            // الگوی دوره‌ی شمسی؛ پیش از این هر رشته‌ای پذیرفته می‌شد و تخفیفی
+            // ثبت می‌شد که با هیچ دوره‌ای مطابقت نمی‌کرد.
+            'period' => ['required', 'regex:/^\d{4}-\d{2}$/'],
             'amount' => ['required', 'numeric', 'min:0'],
             'reason' => ['nullable', 'string', 'max:150'],
-        ], [], ['unit_id' => 'واحد', 'amount' => 'مبلغ تخفیف', 'period' => 'دوره']);
+        ], [
+            'period.regex' => 'دوره باید به شکل ۱۴۰۴-۰۳ باشد.',
+        ], ['unit_id' => 'واحد', 'amount' => 'مبلغ تخفیف', 'period' => 'دوره']);
 
         // هر واحد در هر دوره فقط یک تخفیف دارد؛ ثبت دوباره جایگزینش می‌کند.
         Discount::updateOrCreate(

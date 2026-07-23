@@ -2,7 +2,6 @@
 
 namespace App\Services\Payment;
 
-use App\Models\Payment;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 
@@ -22,10 +21,10 @@ class MellatGateway implements PaymentGateway
 
     public function __construct(protected array $config, protected string $currency = 'toman') {}
 
-    public function request(Payment $payment): array
+    public function request(GatewayOrder $order): array
     {
-        $amount = $this->toRial($payment->amount);
-        $orderId = $payment->id;
+        $amount = $this->toRial($order->gatewayAmount());
+        $orderId = $order->gatewayOrderId();
 
         $body = $this->soapBody('bpPayRequest', [
             'terminalId' => $this->config['terminal_id'] ?? '',
@@ -35,8 +34,8 @@ class MellatGateway implements PaymentGateway
             'amount' => $amount,
             'localDate' => now()->format('Ymd'),
             'localTime' => now()->format('His'),
-            'additionalData' => 'شارژ ساختمان',
-            'callBackUrl' => route('payments.callback', $payment),
+            'additionalData' => $order->gatewayDescription(),
+            'callBackUrl' => $order->gatewayCallbackUrl(),
             'payerId' => 0,
         ]);
 
@@ -49,7 +48,7 @@ class MellatGateway implements PaymentGateway
             throw new \RuntimeException('اتصال به درگاه ملت ناموفق بود (کد '.$resCode.').');
         }
 
-        $payment->update(['gateway' => 'mellat', 'ref_id' => $refId]);
+        $order->markGatewayRequested('mellat', $refId);
 
         // Mellat requires an auto-submitted POST to the start-pay page.
         return [
@@ -60,20 +59,20 @@ class MellatGateway implements PaymentGateway
         ];
     }
 
-    public function verify(Payment $payment, array $callback): ?string
+    public function verify(GatewayOrder $order, array $callback): ?string
     {
         if ((string) ($callback['ResCode'] ?? '') !== '0') {
             return null;
         }
 
-        $saleOrderId = $callback['SaleOrderId'] ?? $payment->id;
+        $saleOrderId = $callback['SaleOrderId'] ?? $order->gatewayOrderId();
         $saleReferenceId = $callback['SaleReferenceId'] ?? '';
 
         $args = [
             'terminalId' => $this->config['terminal_id'] ?? '',
             'userName' => $this->config['username'] ?? '',
             'userPassword' => $this->config['password'] ?? '',
-            'orderId' => $payment->id,
+            'orderId' => $order->gatewayOrderId(),
             'saleOrderId' => $saleOrderId,
             'saleReferenceId' => $saleReferenceId,
         ];

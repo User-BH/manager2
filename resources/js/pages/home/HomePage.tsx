@@ -14,7 +14,11 @@ export function HomePage() {
   useDocumentTitle('صفحه اصلی')
 
   return (
-    <div style={{ backgroundColor: 'var(--surface-canvas)' }}>
+    // overflow-x-clip تورِ ایمنی است: اگر عنصری (مثلاً انیمیشنِ ورودِ یک بخش
+    // که هنوز اجرا نشده) کمی از لبه بیرون بزند، صفحه اسکرول افقی و قابلیت
+    // zoom out پیدا نکند. عمداً clip است نه hidden، چون hidden یک کانتینر
+    // اسکرول می‌سازد و position: sticky داخلش را خراب می‌کند.
+    <div className="overflow-x-clip" style={{ backgroundColor: 'var(--surface-canvas)' }}>
       <ScrollProgressBar />
       <HomeNavbar />
 

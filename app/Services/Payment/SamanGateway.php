@@ -2,7 +2,6 @@
 
 namespace App\Services\Payment;
 
-use App\Models\Payment;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 
@@ -23,21 +22,21 @@ class SamanGateway implements PaymentGateway
 
     public function __construct(protected array $config, protected string $currency = 'toman') {}
 
-    public function request(Payment $payment): array
+    public function request(GatewayOrder $order): array
     {
         try {
             $response = Http::timeout(30)->post(self::TOKEN_URL, [
                 'action' => 'token',
                 'TerminalId' => $this->config['terminal_id'] ?? '',
-                'Amount' => $this->toRial($payment->amount),
-                'ResNum' => (string) $payment->id,
-                'RedirectUrl' => route('payments.callback', $payment),
-                'CellNumber' => optional($payment->user)->phone,
+                'Amount' => $this->toRial($order->gatewayAmount()),
+                'ResNum' => (string) $order->gatewayOrderId(),
+                'RedirectUrl' => $order->gatewayCallbackUrl(),
+                'CellNumber' => $order->gatewayPayerPhone(),
             ]);
 
             $token = $response->json('token');
             if ($response->json('status') == 1 && $token) {
-                $payment->update(['gateway' => 'saman', 'ref_id' => $token]);
+                $order->markGatewayRequested('saman', $token);
 
                 return [
                     'method' => 'POST',
@@ -55,7 +54,7 @@ class SamanGateway implements PaymentGateway
         throw new \RuntimeException('اتصال به درگاه سامان ناموفق بود.');
     }
 
-    public function verify(Payment $payment, array $callback): ?string
+    public function verify(GatewayOrder $order, array $callback): ?string
     {
         // Bank posts back State/RefNum on success.
         if (($callback['State'] ?? '') !== 'OK') {

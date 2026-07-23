@@ -5,10 +5,11 @@ namespace App\Models;
 use App\Enums\PaymentMethod;
 use App\Enums\PaymentStatus;
 use App\Models\Concerns\BelongsToComplex;
+use App\Services\Payment\GatewayOrder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
-class Payment extends Model
+class Payment extends Model implements GatewayOrder
 {
     use BelongsToComplex;
 
@@ -44,5 +45,42 @@ class Payment extends Model
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
+    }
+
+    /* ---------------- GatewayOrder ---------------- */
+
+    public function gatewayOrderId(): int
+    {
+        return $this->id;
+    }
+
+    public function gatewayAmount(): float
+    {
+        return (float) $this->amount;
+    }
+
+    public function gatewayCallbackUrl(): string
+    {
+        return route('payments.callback', $this);
+    }
+
+    public function gatewayPayerPhone(): ?string
+    {
+        return $this->user?->phone;
+    }
+
+    public function gatewayDescription(): string
+    {
+        return 'شارژ ساختمان';
+    }
+
+    public function gatewayRefId(): ?string
+    {
+        return $this->ref_id;
+    }
+
+    public function markGatewayRequested(string $gateway, string $refId): void
+    {
+        $this->update(['gateway' => $gateway, 'ref_id' => $refId]);
     }
 }

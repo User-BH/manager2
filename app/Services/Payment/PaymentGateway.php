@@ -2,7 +2,6 @@
 
 namespace App\Services\Payment;
 
-use App\Models\Payment;
 
 /**
  * Contract every payment gateway driver implements. Real drivers
@@ -13,8 +12,8 @@ use App\Models\Payment;
 interface PaymentGateway
 {
     /** @return array{redirect_url:string,ref_id:string} */
-    public function request(Payment $payment): array;
+    public function request(GatewayOrder $order): array;
 
     /** Verify a bank callback; returns the tracking code on success or null. */
-    public function verify(Payment $payment, array $callback): ?string;
+    public function verify(GatewayOrder $order, array $callback): ?string;
 }

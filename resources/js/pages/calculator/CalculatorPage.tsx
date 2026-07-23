@@ -387,12 +387,30 @@ function Display({
   const status = displayStatus(error, result, preview)
 
   return (
-    // مانیتور چسبان: با اسکرولِ صفحه (به‌ویژه روی موبایل که کیبورد و تاریخچه
-    // بلندند) سرِ جای خود بالای صفحه می‌ماند تا عبارت و نتیجه همیشه دیده شوند.
+    /*
+     * مانیتور چسبان: با اسکرولِ صفحه سرِ جای خود بالای صفحه می‌ماند تا عبارت
+     * و نتیجه همیشه دیده شوند.
+     *
+     * دو نکته‌ی چیدمانی:
+     * ۱) margin منفی افقی، لفافه را تا لبه‌های کارت پهن می‌کند تا محتوای
+     *    پشتش از کنارها بیرون نزند.
+     * ۲) `box-shadow` با آفستِ منفی و بدون بلور، نواری هم‌رنگِ کارت بالای
+     *    لفافه می‌کشد. بدون آن، بینِ نوارِ بالای صفحه و مانیتور یک شکاف شفاف
+     *    می‌ماند (به اندازه‌ی padding خودِ ناحیه‌ی اسکرول) و دکمه‌هایی مثل
+     *    sin و cos هنگام اسکرول از داخل همان شکاف دیده می‌شدند. ارتفاع ۲rem
+     *    هر دو حالت p-4 موبایل و p-6 دسکتاپ را می‌پوشاند.
+     */
     <div
-      className="sticky top-0 z-20 rounded-2xl border p-4 shadow-sm"
-      style={{ backgroundColor: 'var(--surface-sunken)', borderColor: 'var(--border-subtle)' }}
+      className="sticky top-0 z-20 -mx-5 px-5 pb-2 pt-1"
+      style={{
+        backgroundColor: 'var(--surface-base)',
+        boxShadow: '0 -2rem 0 var(--surface-base)',
+      }}
     >
+      <div
+        className="rounded-2xl border p-4 shadow-sm"
+        style={{ backgroundColor: 'var(--surface-sunken)', borderColor: 'var(--border-subtle)' }}
+      >
       <div className="mb-2 flex items-center gap-2 text-[10.5px]" style={{ color: 'var(--text-tertiary)' }}>
         <span
           className="rounded px-1.5 py-0.5 font-bold"
@@ -503,6 +521,7 @@ function Display({
             {prettyExpr(resultExpr)}
           </motion.p>
         )}
+        </div>
       </div>
     </div>
   )

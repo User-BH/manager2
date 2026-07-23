@@ -1,5 +1,6 @@
 import { motion } from 'framer-motion'
 import type { ReactNode } from 'react'
+import { useMediaQuery } from '@/hooks'
 
 interface RevealOnScrollProps {
   children: ReactNode
@@ -23,7 +24,19 @@ export function RevealOnScroll({
   direction = 'up',
   className,
 }: RevealOnScrollProps) {
-  const offset = directionOffset[direction]
+  /*
+   * روی صفحه‌ی باریک هیچ جابه‌جایی افقی انجام نمی‌شود.
+   *
+   * دلیل: انیمیشن فقط وقتی اجرا می‌شود که بخش وارد ویوپورت شود؛ تا آن لحظه
+   * عنصر با `x: ±40` سرِ جای جابه‌جاشده می‌ماند. روی موبایل، کارتی که تقریباً
+   * تمام‌عرض است با ۴۰ پیکسل جابه‌جایی از لبه بیرون می‌زند و کل صفحه اسکرول
+   * افقی و قابلیت zoom out پیدا می‌کند. حرکت عمودی این مشکل را ندارد، چون
+   * صفحه در همان راستا اسکرول می‌شود.
+   */
+  const isNarrow = useMediaQuery('(max-width: 767px)')
+  const resolved = isNarrow && (direction === 'left' || direction === 'right') ? 'up' : direction
+
+  const offset = directionOffset[resolved]
 
   return (
     <motion.div

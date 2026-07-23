@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Enums\SubscriptionPlan;
+use App\Services\Payment\GatewayOrder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
@@ -10,7 +11,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * یک خرید اشتراک. عمداً از BelongsToComplex استفاده نمی‌کند چون ادمین کل
  * باید بتواند اشتراک همه‌ی مجتمع‌ها را ببیند و complex_id هم nullable است.
  */
-class Subscription extends Model
+class Subscription extends Model implements GatewayOrder
 {
     protected $fillable = [
         'complex_id', 'user_id', 'plan', 'status', 'method', 'amount', 'months',
@@ -42,6 +43,43 @@ class Subscription extends Model
     public function methodLabel(): string
     {
         return $this->method === 'receipt' ? 'واریز و آپلود رسید' : 'پرداخت آنلاین';
+    }
+
+    /* ---------------- GatewayOrder ---------------- */
+
+    public function gatewayOrderId(): int
+    {
+        return $this->id;
+    }
+
+    public function gatewayAmount(): float
+    {
+        return (float) $this->amount;
+    }
+
+    public function gatewayCallbackUrl(): string
+    {
+        return route('subscription.callback', $this);
+    }
+
+    public function gatewayPayerPhone(): ?string
+    {
+        return $this->user?->phone;
+    }
+
+    public function gatewayDescription(): string
+    {
+        return 'اشتراک '.$this->plan->label();
+    }
+
+    public function gatewayRefId(): ?string
+    {
+        return $this->ref_id;
+    }
+
+    public function markGatewayRequested(string $gateway, string $refId): void
+    {
+        $this->update(['gateway' => $gateway, 'ref_id' => $refId]);
     }
 
     public function complex(): BelongsTo

@@ -141,8 +141,14 @@ class ResidentController extends Controller
             ->where('user_id', $resident->id)
             ->update(['is_current' => false]);
 
+        /*
+         * complex_id در جدول pivot ستون NOT NULL است و برخلاف مدل‌ها،
+         * BelongsToComplex آن را برای رابطه‌ی چند-به-چند پر نمی‌کند. بدون
+         * این خط، اتصال ساکن به واحد همیشه با خطای پایگاه‌داده می‌ترکید.
+         */
         $resident->units()->syncWithoutDetaching([
             $data['unit_id'] => [
+                'complex_id' => $this->requireComplex()->id,
                 'relation' => $relation->value,
                 'is_current' => true,
                 'start_date' => now(),
@@ -161,7 +167,13 @@ class ResidentController extends Controller
             'email' => ['nullable', 'email', Rule::unique('users', 'email')->ignore($ignoreId)],
             'national_id' => ['nullable', 'string', 'max:20'],
             'role' => ['required', 'in:owner,tenant'],
-            'unit_id' => ['nullable', 'exists:units,id'],
+            // exists خام به مجتمع محدود نیست و ComplexScope هم روی کوئریِ
+            // اعتبارسنجی اعمال نمی‌شود؛ بدون این قید، شناسه‌ی واحدِ مجتمع
+            // دیگری هم پذیرفته می‌شد.
+            'unit_id' => [
+                'nullable',
+                Rule::exists('units', 'id')->where('complex_id', $this->requireComplex()->id),
+            ],
             'password' => [$ignoreId ? 'nullable' : 'required', 'nullable', 'string', 'min:6'],
         ], [
             'phone.regex' => 'شماره تلفن همراه باید به شکل ۰۹xxxxxxxxx باشد.',
