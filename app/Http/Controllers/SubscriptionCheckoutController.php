@@ -65,11 +65,19 @@ class SubscriptionCheckoutController extends Controller
 
     public function callback(Request $request, Subscription $subscription)
     {
-        abort_unless($subscription->user_id === Auth::id(), 403);
+        /*
+         * مثل بازگشت پرداخت قبض، این درخواست ممکن است بدون نشست برسد (انقضای
+         * نشست تا لحظه‌ی بازگشت از بانک). اعتبارش را تاییدیه‌ی درگاه تعیین
+         * می‌کند نه کوکی؛ ولی اگر نشستی هست باید خودِ خریدار باشد.
+         */
+        abort_unless(! Auth::check() || $subscription->user_id === Auth::id(), 403);
 
-        // بازگشت دوباره‌ی یک اشتراکِ قبلاً فعال‌شده نباید دوره را تمدید کند
-        if ($subscription->status === 'active') {
-            return redirect('/account?checkout=success&tracking='.urlencode((string) $subscription->tracking_code));
+        // تراکنشی که تکلیفش روشن شده دوباره تایید نمی‌شود: بازگشت دوباره نباید
+        // دوره را تمدید کند و نباید اشتراکِ فعال را «ناموفق» علامت بزند.
+        if ($subscription->status !== 'pending') {
+            return $subscription->status === 'active'
+                ? redirect('/account?checkout=success&tracking='.urlencode((string) $subscription->tracking_code))
+                : redirect('/account?checkout=failed');
         }
 
         $tracking = $this->gateways->driver()->verify($subscription, $request->all());

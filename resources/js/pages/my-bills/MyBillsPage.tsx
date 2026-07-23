@@ -1,4 +1,5 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { Receipt, Wallet, FileDown, CreditCard, ChevronLeft, Loader2 } from 'lucide-react'
 import { Card } from '@/components/ui/Card'
@@ -8,6 +9,7 @@ import { EmptyState, ErrorState, LoadingState } from '@/components/ui/PageState'
 import { useApi } from '@/hooks/useApi'
 import { useDocumentTitle } from '@/hooks'
 import { api } from '@/lib/api'
+import { alertError, alertInfo, alertSuccess } from '@/lib/alert'
 import { formatMoney, formatNumber } from '@/lib/format'
 import type { BillStatus } from '@/types'
 
@@ -57,16 +59,46 @@ const STATUS_COLOR: Record<BillStatus, string> = {
 export function MyBillsPage() {
   const [detail, setDetail] = useState<BillDetail | null>(null)
   const [loadingDetail, setLoadingDetail] = useState(false)
+  const [params, setParams] = useSearchParams()
 
   useDocumentTitle('صورت‌حساب‌های من')
 
   const { data, error, isLoading, reload } = useApi<MyBillsResponse>('/my-bills')
+
+  /*
+   * نتیجه‌ی بازگشت از درگاه با پارامتر آدرس می‌آید، نه با state ری‌اکت — چون
+   * مرورگر واقعاً از دامنه‌ی بانک برگشته و هیچ state زنده‌ای نمانده.
+   *
+   * پیش از این هیچ‌کس این پارامتر را نمی‌خواند: کاربر پس از پرداخت آنلاین
+   * فقط روی فهرست قبوض می‌افتاد بی‌هیچ پیامی و کد رهگیری‌اش را هم نمی‌دید.
+   */
+  useEffect(() => {
+    const result = params.get('payment')
+    if (!result) return
+
+    if (result === 'success') {
+      const tracking = params.get('tracking')
+      void alertSuccess('پرداخت با موفقیت انجام شد.', tracking ? `کد رهگیری: ${tracking}` : undefined)
+      reload()
+    } else {
+      void alertInfo('پرداخت انجام نشد.', 'اگر مبلغی از حساب شما کسر شده، طی ۷۲ ساعت برمی‌گردد.')
+    }
+
+    // پاک کردن پارامترها تا رفرش صفحه پیام را دوباره نشان ندهد
+    const next = new URLSearchParams(params)
+    next.delete('payment')
+    next.delete('tracking')
+    setParams(next, { replace: true })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [params])
 
   async function openDetail(bill: MyBill) {
     setLoadingDetail(true)
     try {
       const { bill: full } = await api<{ bill: BillDetail }>(`/my-bills/${bill.id}`)
       setDetail(full)
+    } catch (err) {
+      alertError(err, 'دریافت جزئیات قبض ممکن نشد.')
     } finally {
       setLoadingDetail(false)
     }

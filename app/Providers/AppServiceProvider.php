@@ -2,7 +2,9 @@
 
 namespace App\Providers;
 
+use App\Support\Jalali;
 use App\Support\Phone;
+use App\Support\TenantContext;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
 use Illuminate\Pagination\Paginator;
@@ -16,13 +18,13 @@ class AppServiceProvider extends ServiceProvider
     {
         // Active complex for the multi-tenant query scope. A null id means
         // "no scoping" (super-admin or console). Middleware sets it per request.
-        $this->app->singleton(\App\Support\TenantContext::class);
+        $this->app->singleton(TenantContext::class);
     }
 
     public function boot(): void
     {
         Paginator::useTailwind();
-        Date::macro('jalali', fn () => \App\Support\Jalali::date($this));
+        Date::macro('jalali', fn () => Jalali::date($this));
 
         $this->registerRateLimiters();
     }
@@ -65,6 +67,16 @@ class AppServiceProvider extends ServiceProvider
         // ثبت‌نام: جلوگیری از ساخت انبوه حساب
         RateLimiter::for('register', fn (Request $request) => [
             Limit::perHour(5)->by($request->ip()),
+        ]);
+
+        /*
+         * بازگشت از درگاه پشت میدل‌ور `auth` نیست (توضیحش در routes/web.php)،
+         * پس محدودیت نرخ جای آن را می‌گیرد تا نشود شناسه‌ی تراکنش‌ها را پیمود.
+         * سقف دست‌ودل‌بازانه است چون یک پرداختِ سالم فقط یک بار برمی‌گردد و
+         * رفرش‌های کاربر هم نباید به دیوار بخورند.
+         */
+        RateLimiter::for('gateway-callback', fn (Request $request) => [
+            Limit::perMinute(30)->by($request->ip()),
         ]);
     }
 

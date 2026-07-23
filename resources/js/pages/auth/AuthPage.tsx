@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Link, Navigate, useSearchParams } from 'react-router-dom'
+import { Link, Navigate, useLocation, useSearchParams } from 'react-router-dom'
 import { AnimatePresence, motion } from 'framer-motion'
 import { ArrowRight, ShieldCheck } from 'lucide-react'
 import { AuthTabs, type AuthTab } from './components/AuthTabs'
@@ -17,6 +17,7 @@ export function AuthPage() {
   const initialTab: AuthTab = searchParams.get('tab') === 'register' ? 'register' : 'login'
   const [tab, setTab] = useState<AuthTab>(initialTab)
   const { isAuthenticated, isLoading } = useAuth()
+  const location = useLocation()
 
   useDocumentTitle(tab === 'login' ? 'ورود به پنل' : 'ثبت‌نام')
 
@@ -24,9 +25,19 @@ export function AuthPage() {
     setTab(searchParams.get('tab') === 'register' ? 'register' : 'login')
   }, [searchParams])
 
-  // کاربری که از قبل وارد شده نباید صفحه‌ی ورود را ببیند.
+  /*
+   * کاربری که از قبل وارد شده نباید صفحه‌ی ورود را ببیند.
+   *
+   * `state.from` را ProtectedRoute می‌گذارد و تا حالا نادیده گرفته می‌شد.
+   * اهمیتش وقتی روشن می‌شود که نشست کاربر وسط پرداخت منقضی شده باشد: بازگشت
+   * از بانک او را به اینجا می‌آورد و بعد از ورود باید به همان
+   * `/my-bills?payment=success&tracking=…` برگردد تا نتیجه‌ی پرداخت و کد
+   * رهگیری‌اش را ببیند، نه به داشبورد.
+   */
   if (!isLoading && isAuthenticated) {
-    return <Navigate to="/dashboard" replace />
+    const from = (location.state as { from?: { pathname: string; search?: string } } | null)?.from
+
+    return <Navigate to={from ? `${from.pathname}${from.search ?? ''}` : '/dashboard'} replace />
   }
 
   return (

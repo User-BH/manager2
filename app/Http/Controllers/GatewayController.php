@@ -10,6 +10,7 @@ use App\Services\Payment\GatewayManager;
 use App\Services\Payment\PaymentService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 
 /**
  * پل بین اپلیکیشن و درگاه بانکی.
@@ -63,19 +64,63 @@ class GatewayController extends Controller
     {
         $this->authorizePayment($payment);
 
-        $tracking = $this->gateways->for($payment->complex)->verify($payment, $request->all());
-
-        if ($tracking) {
-            $payment->update(['tracking_code' => $tracking]);
-            $this->payments->settle($payment);
-
-            // بازگشت به صفحه‌ی SPA؛ نتیجه از روی پارامترها نمایش داده می‌شود.
-            return redirect('/my-bills?payment=success&tracking='.urlencode($tracking));
+        /*
+         * تراکنشی که تکلیفش روشن شده، دوباره تایید نمی‌شود.
+         *
+         * این مسیر GET است، پس رفرش صفحه یا دکمه‌ی back دوباره اجرایش می‌کند
+         * (بعضی درگاه‌ها هم بازگشت را دوبار می‌فرستند). پیش از این، تلاش دوم با
+         * درگاه واقعی چون تراکنش نزد بانک قبلاً verify شده بود کد خطا می‌گرفت و
+         * کد ما پرداختِ موفق را «ناموفق» علامت می‌زد: پول کم شده، قبض تسویه، و
+         * کاربر پیام شکست می‌دید.
+         */
+        if ($payment->status !== PaymentStatus::Pending) {
+            return $this->resultRedirect($payment);
         }
 
-        $payment->update(['status' => PaymentStatus::Failed]);
+        $tracking = $this->gateways->for($payment->complex)->verify($payment, $request->all());
 
-        return redirect('/my-bills?payment=failed');
+        if (! $tracking) {
+            // فقط تراکنشِ هنوز-در-انتظار را ناموفق کن؛ اگر درخواست موازی
+            // زودتر تسویه‌اش کرده، دست نزن.
+            Payment::withoutGlobalScopes()
+                ->whereKey($payment->id)
+                ->where('status', PaymentStatus::Pending)
+                ->update(['status' => PaymentStatus::Failed]);
+
+            return redirect('/my-bills?payment=failed');
+        }
+
+        /*
+         * تسویه پشت قفل ردیف، تا دو بازگشتِ هم‌زمان (مثلاً فراخوانی سرور-به-سرور
+         * بانک و بازگشت مرورگر) مبلغ را دوبار روی قبوض واحد ننشانند. تایید خودِ
+         * درگاه عمداً بیرون از قفل انجام می‌شود تا تراکنش دیتابیس پشت یک تماس
+         * شبکه‌ای باز نماند.
+         */
+        $settled = DB::transaction(function () use ($payment, $tracking): bool {
+            $fresh = Payment::withoutGlobalScopes()->lockForUpdate()->find($payment->id);
+
+            if (! $fresh || $fresh->status !== PaymentStatus::Pending) {
+                return false;
+            }
+
+            $fresh->update(['tracking_code' => $tracking]);
+            $this->payments->settle($fresh);
+
+            return true;
+        });
+
+        // بازگشت به صفحه‌ی SPA؛ نتیجه از روی پارامترها نمایش داده می‌شود.
+        return redirect('/my-bills?payment=success&tracking='.urlencode(
+            $settled ? $tracking : (string) $payment->fresh()?->tracking_code,
+        ));
+    }
+
+    /** نتیجه‌ی از پیش ثبت‌شده‌ی یک تراکنش، بدون تماس دوباره با درگاه. */
+    private function resultRedirect(Payment $payment)
+    {
+        return $payment->status === PaymentStatus::Success
+            ? redirect('/my-bills?payment=success&tracking='.urlencode((string) $payment->tracking_code))
+            : redirect('/my-bills?payment=failed');
     }
 
     private function authorizeBill(Bill $bill): void
@@ -85,8 +130,25 @@ class GatewayController extends Controller
         abort_unless($unitIds->contains($bill->unit_id), 403);
     }
 
+    /**
+     * بازگشت از بانک، برخلاف بقیه‌ی مسیرها، ممکن است نشست نداشته باشد.
+     *
+     * نشست کاربر ممکن است تا لحظه‌ی بازگشت منقضی شده باشد، یا بانک خودش
+     * سرور-به-سرور صدا بزند. پیش از این میدل‌ور `auth` چنین درخواستی را به
+     * صفحه‌ی ورود می‌فرستاد و تراکنش هرگز تایید نمی‌شد — یعنی پول از حساب
+     * کاربر کم شده بود و قبض پرداخت‌نشده می‌ماند.
+     *
+     * اعتبار این درخواست را تاییدیه‌ی خود درگاه تعیین می‌کند (ملت با
+     * `bpVerifyRequest` و اعتبارنامه‌ی ترمینال، سامان با توکن)، نه کوکی
+     * مرورگر؛ پس نبودِ نشست مانع نمی‌شود. ولی اگر نشستی هست، باید متعلق به
+     * همان کاربر یا یک مدیر باشد.
+     */
     private function authorizePayment(Payment $payment): void
     {
+        if (! Auth::check()) {
+            return;
+        }
+
         abort_unless($payment->user_id === Auth::id() || Auth::user()->isAdmin(), 403);
     }
 }
