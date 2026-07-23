@@ -12,6 +12,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\Rules\Password;
 
 class ManagerController extends Controller
 {
@@ -45,7 +46,8 @@ class ManagerController extends Controller
         $data = $request->validate([
             'name' => ['required', 'string', 'max:120'],
             'phone' => ['required', 'regex:/^09\d{9}$/', Rule::unique('users', 'phone')],
-            'password' => ['required', 'string', 'min:6'],
+            // مدیر مجتمع دسترسی مالی کامل دارد؛ رمزش نباید ضعیف‌تر از رمز پروفایل باشد.
+            'password' => ['required', Password::min(8)->letters()->numbers()],
         ], [
             'phone.regex' => 'شماره تلفن همراه باید به شکل ۰۹xxxxxxxxx باشد.',
             'phone.unique' => 'این شماره قبلا ثبت شده است.',

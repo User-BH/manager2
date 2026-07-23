@@ -51,16 +51,38 @@ class PaymentController extends Controller
     {
         $this->authorizeBill($bill);
 
+        /*
+         * سقف مبلغ: کمی بیشتر از مانده‌ی قبض اجازه داده می‌شود (برای سرراست
+         * کردن مبلغ یا کارمزد)، ولی نه هر عددی. پیش از این هیچ سقفی نبود و
+         * ساکن می‌توانست رسیدی با مبلغ نجومی ثبت کند که تاییدِ سهویِ آن،
+         * مانده‌ی واحد را منفی و اعتبار ساختگی ایجاد می‌کرد.
+         */
+        $maxAmount = max(1000, (int) ceil($bill->remaining() * 1.2));
+
         $data = $request->validate([
-            'amount' => ['required', 'numeric', 'min:1000'],
-            'paid_on' => ['nullable', 'date'],
+            'amount' => ['required', 'numeric', 'min:1000', 'max:'.$maxAmount],
+            'paid_on' => ['nullable', 'date', 'before_or_equal:today'],
             'description' => ['nullable', 'string', 'max:500'],
             'receipt' => ['required', 'file', 'mimes:jpg,jpeg,png,pdf', 'max:4096'],
-        ], [], [
+        ], [
+            'amount.max' => 'مبلغ رسید نمی‌تواند بیشتر از مانده‌ی قبض باشد.',
+            'paid_on.before_or_equal' => 'تاریخ واریز نمی‌تواند در آینده باشد.',
+            'receipt.mimes' => 'فایل رسید باید تصویر (jpg/png) یا PDF باشد.',
+            'receipt.max' => 'حجم فایل رسید نباید از ۴ مگابایت بیشتر باشد.',
+        ], [
             'amount' => 'مبلغ',
             'paid_on' => 'تاریخ واریز',
             'receipt' => 'فایل رسید',
         ]);
+
+        // یک قبض هم‌زمان بیش از یک رسیدِ در انتظار بررسی نداشته باشد، وگرنه
+        // صف بررسی مدیر با ارسال‌های تکراری پر می‌شود.
+        $alreadyPending = Payment::where('bill_id', $bill->id)
+            ->where('status', PaymentStatus::Pending)
+            ->where('method', PaymentMethod::Receipt)
+            ->exists();
+
+        abort_if($alreadyPending, 422, 'برای این قبض یک رسید در انتظار بررسی دارید.');
 
         // دیسک local خصوصی است؛ فایل فقط از مسیر کنترل‌شده‌ی بررسی پرداخت‌ها
         // سرو می‌شود، نه مستقیم از public.

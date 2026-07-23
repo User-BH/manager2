@@ -6,6 +6,7 @@ use App\Enums\SubscriptionPlan;
 use App\Services\Payment\GatewayOrder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Support\Facades\Storage;
 
 /**
  * یک خرید اشتراک. عمداً از BelongsToComplex استفاده نمی‌کند چون ادمین کل
@@ -80,6 +81,16 @@ class Subscription extends Model implements GatewayOrder
     public function markGatewayRequested(string $gateway, string $refId): void
     {
         $this->update(['gateway' => $gateway, 'ref_id' => $refId]);
+    }
+
+    /** با حذف اشتراک، فایل رسیدش هم از دیسک پاک می‌شود. */
+    protected static function booted(): void
+    {
+        static::deleting(function (Subscription $subscription) {
+            if ($subscription->receipt_path) {
+                Storage::disk('local')->delete($subscription->receipt_path);
+            }
+        });
     }
 
     public function complex(): BelongsTo

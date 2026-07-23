@@ -12,6 +12,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\Rules\Password;
 
 class ResidentController extends Controller
 {
@@ -107,6 +108,26 @@ class ResidentController extends Controller
         return response()->json(['resident' => $this->present($resident->fresh('currentUnits'))]);
     }
 
+    /**
+     * محدودکردن یک ساکن در پیام‌رسان.
+     *
+     * ستون `can_message` از قبل در MessengerController اعمال می‌شد ولی هیچ
+     * راهی برای تغییرش وجود نداشت؛ یعنی قابلیتِ «محدودیت کاربر» عملاً در
+     * دسترس مدیر نبود.
+     */
+    public function toggleMessaging(User $resident): JsonResponse
+    {
+        $this->guard($resident);
+        $resident->update(['can_message' => ! $resident->can_message]);
+
+        return response()->json([
+            'resident' => $this->present($resident->fresh('currentUnits')),
+            'message' => $resident->can_message
+                ? 'ارسال پیام برای این ساکن آزاد شد.'
+                : 'ارسال پیام برای این ساکن بسته شد.',
+        ]);
+    }
+
     private function present(User $user): array
     {
         return [
@@ -174,7 +195,9 @@ class ResidentController extends Controller
                 'nullable',
                 Rule::exists('units', 'id')->where('complex_id', $this->requireComplex()->id),
             ],
-            'password' => [$ignoreId ? 'nullable' : 'required', 'nullable', 'string', 'min:6'],
+            // همان قاعده‌ی تغییر رمز در پروفایل؛ پیش از این min:6 بود و حساب‌هایی
+            // که مدیر می‌ساخت می‌توانستند رمز بسیار ضعیف داشته باشند.
+            'password' => [$ignoreId ? 'nullable' : 'required', 'nullable', Password::min(8)->letters()->numbers()],
         ], [
             'phone.regex' => 'شماره تلفن همراه باید به شکل ۰۹xxxxxxxxx باشد.',
             'phone.unique' => 'این شماره تلفن قبلا ثبت شده است.',

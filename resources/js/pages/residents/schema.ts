@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { strongPassword } from '@/lib/validation'
 
 /** آینه‌ی اعتبارسنجی Api\ResidentController. */
 export function residentSchema(isEditing: boolean) {
@@ -13,9 +14,11 @@ export function residentSchema(isEditing: boolean) {
     role: z.enum(['owner', 'tenant'], { message: 'نقش را انتخاب کنید' }),
     unit_id: z.string().optional(),
     // هنگام ویرایش، رمز خالی یعنی «تغییرش نده»
+    // قاعده همان قاعده‌ی تغییر رمز در پروفایل است؛ حسابی که مدیر می‌سازد
+    // نباید رمز ضعیف‌تری از حساب خودِ کاربر داشته باشد.
     password: isEditing
-      ? z.union([z.literal(''), z.string().min(6, 'رمز عبور باید حداقل ۶ کاراکتر باشد')]).optional()
-      : z.string().min(6, 'رمز عبور باید حداقل ۶ کاراکتر باشد'),
+      ? z.union([z.literal(''), strongPassword]).optional()
+      : strongPassword,
   })
 }
 

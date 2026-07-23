@@ -8,7 +8,7 @@ import { useApi } from '@/hooks/useApi'
 import { useDocumentTitle } from '@/hooks'
 import { useAuth } from '@/context/AuthContext'
 import { api, ApiError } from '@/lib/api'
-import { confirmAction } from '@/lib/alert'
+import { alertError, confirmAction, toastSuccess } from '@/lib/alert'
 
 export function SystemBackupPage() {
   const [busy, setBusy] = useState(false)
@@ -26,7 +26,10 @@ export function SystemBackupPage() {
     setBusy(true)
     try {
       await api('/system/backups', { method: 'POST' })
+      toastSuccess('نسخه پشتیبان کامل ساخته شد.')
       reload()
+    } catch (err) {
+      alertError(err, 'ساخت نسخه پشتیبان ممکن نشد.')
     } finally {
       setBusy(false)
     }

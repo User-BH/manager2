@@ -1,6 +1,9 @@
 import { useCallback, useState } from 'react'
 import { motion } from 'framer-motion'
-import { Plus, Pencil, Trash2, UserRound, ToggleLeft, ToggleRight } from 'lucide-react'
+import {
+  Plus, Pencil, Trash2, UserRound, ToggleLeft, ToggleRight,
+  MessageSquare, MessageSquareOff,
+} from 'lucide-react'
 import { Card } from '@/components/ui/Card'
 import { Modal } from '@/components/ui/Modal'
 import { SearchInput } from '@/components/ui/SearchInput'
@@ -44,8 +47,26 @@ export function ResidentsPage() {
   }
 
   async function handleToggle(resident: Resident) {
-    await api(`/residents/${resident.id}/toggle-active`, { method: 'PATCH' })
-    reload()
+    try {
+      await api(`/residents/${resident.id}/toggle-active`, { method: 'PATCH' })
+      reload()
+    } catch (error) {
+      alertError(error, 'تغییر وضعیت ساکن ممکن نشد.')
+    }
+  }
+
+  /** بستن/بازکردن اجازه‌ی ارسال پیام در پیام‌رسان. */
+  async function handleToggleMessaging(resident: Resident) {
+    try {
+      const { message } = await api<{ message: string }>(
+        `/residents/${resident.id}/toggle-messaging`,
+        { method: 'PATCH' },
+      )
+      toastSuccess(message)
+      reload()
+    } catch (error) {
+      alertError(error, 'تغییر دسترسی پیام‌رسان ممکن نشد.')
+    }
   }
 
   function handleSaved() {
@@ -162,6 +183,21 @@ export function ResidentsPage() {
                             style={{ color: resident.isActive ? 'var(--state-success)' : 'var(--text-tertiary)' }}
                           >
                             {resident.isActive ? <ToggleRight size={17} /> : <ToggleLeft size={17} />}
+                          </button>
+
+                          {/* محدودیت پیام‌رسان — سرور همین پرچم را هنگام ارسال پیام بررسی می‌کند */}
+                          <button
+                            onClick={() => handleToggleMessaging(resident)}
+                            aria-label={resident.canMessage ? 'بستن پیام‌رسان' : 'باز کردن پیام‌رسان'}
+                            title={
+                              resident.canMessage
+                                ? 'بستن ارسال پیام برای این ساکن'
+                                : 'اجازه‌ی ارسال پیام به این ساکن'
+                            }
+                            className="flex h-8 w-8 items-center justify-center rounded-lg transition-colors hover:bg-(--surface-sunken)"
+                            style={{ color: resident.canMessage ? 'var(--text-secondary)' : 'var(--color-danger)' }}
+                          >
+                            {resident.canMessage ? <MessageSquare size={15} /> : <MessageSquareOff size={15} />}
                           </button>
                           <button
                             onClick={() => setEditing(resident)}

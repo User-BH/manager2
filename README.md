@@ -65,7 +65,7 @@ database/seeders/        DemoSeeder (دادهٔ نمونهٔ کامل)
 
 ## ۴) طراحی دیتابیس
 
-جداول اصلی: `complexes`, `buildings`, `units`, `unit_user` (پیوت مالک/مستاجر با سابقهٔ جابه‌جایی), `users`, `charge_rules`, `expenses`, `incomes`, `bills`, `payments`, `announcements`, `messages`, `message_restrictions`, `audit_logs`, `backups`, `settings`.
+جداول اصلی: `complexes`, `buildings`, `units`, `unit_user` (پیوت مالک/مستاجر با سابقهٔ جابه‌جایی), `users`, `charge_rules`, `expenses`, `incomes`, `bills`, `payments`, `announcements`, `messages`, `audit_logs`, `backups`, `settings`, `subscriptions`.
 
 نکات کلیدی:
 - `unit_user` با `is_current` و `end_date` سابقهٔ مالک/مستاجر قبلی را حفظ می‌کند (جابه‌جایی مستاجر) و `share_percent` برای چند-مالکی.
@@ -106,7 +106,7 @@ database/seeders/        DemoSeeder (دادهٔ نمونهٔ کامل)
 
 ## ۱۰–۱۲) پیام‌رسان، اطلاعیه، بکاپ، یادآوری
 
-- **پیام‌رسان (Livewire):** فقط متن؛ نمایش نام/نقش/واحد/زمان شمسی؛ بستن کلی مجتمع، محدودیت کاربر، مخفی‌سازی پیام توسط مدیر.
+- **پیام‌رسان:** فقط متن؛ نمایش نام/نقش/واحد/زمان شمسی؛ بستن کلی مجتمع (`complexes.messenger_enabled`)، بستن ارسال پیام برای یک ساکن خاص (`users.can_message`، از صفحهٔ ساکنین)، و مخفی‌سازی پیام توسط مدیر.
 - **اطلاعیه:** عنوان/متن/مخاطب (همه/مالکین/مستاجرین)/سنجاق/فعال، نمایش در داشبورد.
 - **یادآوری پیامکی سررسید:** دستور `php artisan reminders:charges` (زمان‌بندی روزانه) + دکمهٔ دستی در صفحهٔ قبوض؛ برای قبوض معوق به شمارهٔ ساکن پیامک می‌فرستد (با فاصلهٔ ضدّاسپم).
 - **تسویه‌حساب واحد:** گزارش بدهی و سوابق پرداخت هر واحد برای زمان تخلیه/فروش، با خروجی PDF.
@@ -556,6 +556,16 @@ TRUSTED_PROXIES=*
 
 ### زمان‌بندی یادآوری پیامکی
 ```bash
+### کارهای زمان‌بندی‌شده
+
+| دستور | زمان | کار |
+|-------|------|-----|
+| `reminders:charges` | روزانه ۱۰:۰۰ | پیامک یادآوری قبوض معوق |
+| `subscriptions:maintain` | روزانه ۰۲:۰۰ | منقضی‌کردن اشتراک‌های سررسیدشده و بستن تراکنش‌های آنلاینِ رهاشده |
+| `receipts:prune` | جمعه‌ها ۰۳:۰۰ | پاک‌کردن فایل‌های رسیدِ یتیم (بازمانده‌ی حذف آبشاری) — با `--dry-run` فقط گزارش می‌دهد |
+
+هر سه با یک ورودی cron اجرا می‌شوند:
+
 # crontab -e
 * * * * * cd /var/www/sakena && php artisan schedule:run >> /dev/null 2>&1
 ```

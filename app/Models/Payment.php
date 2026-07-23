@@ -8,6 +8,7 @@ use App\Models\Concerns\BelongsToComplex;
 use App\Services\Payment\GatewayOrder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Support\Facades\Storage;
 
 class Payment extends Model implements GatewayOrder
 {
@@ -30,6 +31,21 @@ class Payment extends Model implements GatewayOrder
             'reviewed_at' => 'datetime',
             'receipt_paid_on' => 'date',
         ];
+    }
+
+    /**
+     * با حذف پرداخت، فایل رسیدش هم از دیسک پاک می‌شود.
+     *
+     * توجه: حذف‌های آبشاریِ خودِ دیتابیس (مثلاً حذف واحد) این رویداد را
+     * اجرا نمی‌کنند؛ آن فایل‌های یتیم را دستور `receipts:prune` جمع می‌کند.
+     */
+    protected static function booted(): void
+    {
+        static::deleting(function (Payment $payment) {
+            if ($payment->receipt_path) {
+                Storage::disk('local')->delete($payment->receipt_path);
+            }
+        });
     }
 
     public function unit(): BelongsTo

@@ -11,6 +11,7 @@ import { EmptyState, ErrorState, LoadingState } from '@/components/ui/PageState'
 import { useApi } from '@/hooks/useApi'
 import { useDocumentTitle } from '@/hooks'
 import { api, ApiError } from '@/lib/api'
+import { strongPassword } from '@/lib/validation'
 import { confirmAction, toastSuccess } from '@/lib/alert'
 
 const managerSchema = z.object({
@@ -19,7 +20,8 @@ const managerSchema = z.object({
     .string()
     .min(1, 'شماره موبایل را وارد کنید')
     .regex(/^09\d{9}$/, 'شماره موبایل باید به‌فرمت ۰۹xxxxxxxxx باشد'),
-  password: z.string().min(6, 'رمز عبور باید حداقل ۶ کاراکتر باشد'),
+  // مدیر مجتمع دسترسی مالی کامل دارد؛ رمزش نباید ضعیف باشد.
+  password: strongPassword,
 })
 
 type ManagerFormValues = z.infer<typeof managerSchema>

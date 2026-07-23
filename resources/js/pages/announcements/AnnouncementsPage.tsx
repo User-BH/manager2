@@ -21,6 +21,7 @@ const announcementSchema = z.object({
   body: z.string().min(1, 'متن اطلاعیه را وارد کنید').max(5000, 'متن بیش از حد طولانی است'),
   audience: z.string().min(1, 'مخاطب را انتخاب کنید'),
   is_pinned: z.boolean().optional(),
+  is_active: z.boolean().optional(),
 })
 
 type AnnouncementFormValues = z.infer<typeof announcementSchema>
@@ -377,8 +378,12 @@ function AnnouncementForm({
           body: announcement.body,
           audience: announcement.audience,
           is_pinned: announcement.isPinned,
+          is_active: announcement.isActive,
         }
-      : { title: '', body: '', audience: audienceOptions[0]?.value ?? 'all', is_pinned: false },
+      : {
+          title: '', body: '', audience: audienceOptions[0]?.value ?? 'all',
+          is_pinned: false, is_active: true,
+        },
   })
 
   async function onSubmit(values: AnnouncementFormValues) {
@@ -386,10 +391,7 @@ function AnnouncementForm({
 
     try {
       if (isEditing) {
-        await api(`/announcements/${announcement.id}`, {
-          method: 'PUT',
-          body: { ...values, is_active: announcement.isActive },
-        })
+        await api(`/announcements/${announcement.id}`, { method: 'PUT', body: values })
       } else {
         await api('/announcements', { method: 'POST', body: values })
       }
@@ -455,6 +457,11 @@ function AnnouncementForm({
       />
 
       <CheckField label="سنجاق شود (بالای فهرست بماند)" {...register('is_pinned')} />
+
+      {/* ستون is_active از قبل در دیتابیس و اعتبارسنجی سرور بود ولی هیچ
+          کنترلی برای تغییرش وجود نداشت؛ یعنی غیرفعال‌کردن اطلاعیه عملاً
+          در دسترس مدیر نبود. */}
+      <CheckField label="فعال باشد (برای ساکنین دیده شود)" {...register('is_active')} />
 
       <div className="mt-2 flex items-center gap-2">
         <button

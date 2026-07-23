@@ -73,8 +73,12 @@ export function ChargeRulesPage() {
   const { data, error, isLoading, reload } = useApi<RulesResponse>('/charge-rules')
 
   async function toggle(rule: ChargeRule) {
-    await api(`/charge-rules/${rule.id}/toggle`, { method: 'PATCH' })
-    reload()
+    try {
+      await api(`/charge-rules/${rule.id}/toggle`, { method: 'PATCH' })
+      reload()
+    } catch (error) {
+      alertError(error, 'تغییر وضعیت قانون ممکن نشد.')
+    }
   }
 
   async function remove(rule: ChargeRule) {

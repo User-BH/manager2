@@ -6,6 +6,7 @@ import { ErrorState, LoadingState } from '@/components/ui/PageState'
 import { useApi } from '@/hooks/useApi'
 import { useDocumentTitle } from '@/hooks'
 import { api } from '@/lib/api'
+import { alertError, toastSuccess } from '@/lib/alert'
 
 export function ComplexBackupPage() {
   const [busy, setBusy] = useState(false)
@@ -18,7 +19,10 @@ export function ComplexBackupPage() {
     setBusy(true)
     try {
       await api('/backups', { method: 'POST' })
+      toastSuccess('نسخه پشتیبان ساخته شد.')
       reload()
+    } catch (err) {
+      alertError(err, 'ساخت نسخه پشتیبان ممکن نشد.')
     } finally {
       setBusy(false)
     }

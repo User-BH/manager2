@@ -112,6 +112,8 @@ Route::middleware('auth')->group(function () {
         Route::apiResource('residents', ResidentController::class)->except('show');
         Route::patch('residents/{resident}/toggle-active', [ResidentController::class, 'toggleActive'])
             ->name('residents.toggle-active');
+        Route::patch('residents/{resident}/toggle-messaging', [ResidentController::class, 'toggleMessaging'])
+            ->name('residents.toggle-messaging');
 
         Route::get('bills', [BillController::class, 'index'])->name('bills.index');
         Route::post('bills/generate', [BillController::class, 'generate'])->name('bills.generate');

@@ -12,6 +12,7 @@ import { useApi } from '@/hooks/useApi'
 import { useDocumentTitle } from '@/hooks'
 import { useAuth } from '@/context/AuthContext'
 import { api, ApiError } from '@/lib/api'
+import { alertError } from '@/lib/alert'
 import { formatNumber } from '@/lib/format'
 
 const complexSchema = z.object({
@@ -56,6 +57,8 @@ export function ComplexesPage() {
       // اطلاعات کاربر باید تازه شود تا سایدبار و داشبورد به‌روز شوند.
       await refresh()
       reload()
+    } catch (error) {
+      alertError(error, 'انتخاب مجتمع ممکن نشد.')
     } finally {
       setSwitching(null)
     }
@@ -67,6 +70,8 @@ export function ComplexesPage() {
       await api('/system/complexes/clear', { method: 'POST' })
       await refresh()
       reload()
+    } catch (error) {
+      alertError(error, 'خروج از مجتمع ممکن نشد.')
     } finally {
       setSwitching(null)
     }

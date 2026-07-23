@@ -19,7 +19,7 @@ class BackupController extends Controller
     private const TABLES = [
         'complexes', 'users', 'buildings', 'units', 'unit_user',
         'charge_rules', 'expenses', 'incomes', 'bills', 'payments',
-        'discounts', 'announcements', 'messages', 'message_restrictions', 'settings',
+        'discounts', 'announcements', 'messages', 'settings', 'subscriptions',
     ];
 
     public function index(): JsonResponse
