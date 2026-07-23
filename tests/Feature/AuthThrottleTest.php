@@ -88,17 +88,21 @@ class AuthThrottleTest extends TestCase
             ->assertOk();
     }
 
-    /** درخواست کد پیامکی سخت‌گیرانه‌تر است، چون هر بار پیامک واقعی می‌فرستد. */
+    /**
+     * درخواست کد پیامکی سخت‌گیرانه‌تر است، چون هر بار پیامک واقعی می‌فرستد.
+     *
+     * از مسیر فراموشی رمز آزموده می‌شود که همان محدودیت `otp-request` را دارد؛
+     * حتی با داده‌ی نادرست هم شمارنده بالا می‌رود، چون میدل‌ور محدودیت پیش از
+     * کنترلر اجرا می‌شود.
+     */
     public function test_otp_request_is_throttled(): void
     {
-        User::create([
-            'name' => 'کاربر', 'phone' => '09120005555', 'role' => UserRole::Owner,
-            'password' => Hash::make('secret123'), 'is_active' => true,
-        ]);
-
         $blocked = false;
-        for ($i = 0; $i < 5; $i++) {
-            $status = $this->postJson('/api/login/otp/request', ['phone' => '09120005555'])->status();
+        for ($i = 0; $i < 6; $i++) {
+            $status = $this->postJson('/api/password/forgot', [
+                'phone' => '09120005555', 'complex_name' => 'وجود ندارد', 'birth_date' => '1370-01-01',
+            ])->status();
+
             if ($status === 429) {
                 $blocked = true;
                 break;

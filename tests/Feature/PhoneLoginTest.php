@@ -25,10 +25,19 @@ class PhoneLoginTest extends TestCase
     {
         $this->user();
 
-        $this->postJson('/api/login', [
+        // گام ۱: رمز درست کد پیامکی می‌فرستد، هنوز وارد نشده
+        $code = $this->postJson('/api/login', [
             'phone' => '0912 123 4567', // شکل غیراستاندارد؛ باید نرمال شود
             'password' => 'secret123',
         ])
+            ->assertOk()
+            ->assertJsonPath('otpRequired', true)
+            ->json('dev_code');
+
+        $this->assertGuest();
+
+        // گام ۲: تایید کد، ورود نهایی
+        $this->postJson('/api/login/verify', ['code' => $code])
             ->assertOk()
             ->assertJsonPath('user.phone', '09121234567');
 
@@ -76,10 +85,13 @@ class PhoneLoginTest extends TestCase
     {
         $this->user();
 
-        $response = $this->postJson('/api/login', [
+        // توکن تازه در گام دوم (ورود نهایی) برمی‌گردد، جایی که نشست regenerate می‌شود
+        $code = $this->postJson('/api/login', [
             'phone' => '09121234567',
             'password' => 'secret123',
-        ])->assertOk();
+        ])->json('dev_code');
+
+        $response = $this->postJson('/api/login/verify', ['code' => $code])->assertOk();
 
         $token = $response->json('csrfToken');
 

@@ -23,3 +23,6 @@ Schedule::command('receipts:prune')->weeklyOn(5, '03:00');
 | خصوصی. ده نسخه‌ی آخرِ هر مجتمع (و ده نسخه‌ی سیستمی) نگه داشته می‌شود.
 */
 Schedule::command('backups:prune --keep=10')->weeklyOn(5, '03:30');
+
+// دستگاه‌های مورداعتمادِ منقضی‌شده‌ی «مرا به خاطر بسپار»
+Schedule::command('trusted-devices:prune')->dailyAt('03:45');

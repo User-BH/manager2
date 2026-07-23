@@ -41,6 +41,11 @@ class User extends Authenticatable
         return $this->belongsTo(Complex::class);
     }
 
+    public function trustedDevices(): HasMany
+    {
+        return $this->hasMany(TrustedDevice::class);
+    }
+
     public function units(): BelongsToMany
     {
         return $this->belongsToMany(Unit::class)

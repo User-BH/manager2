@@ -35,7 +35,7 @@ class OtpService
             return ['ok' => false, 'dev_code' => null, 'error' => 'برای ارسال مجدد کد کمی صبر کنید.'];
         }
 
-        $code = (string) random_int(10000, 99999);
+        $code = (string) random_int(100000, 999999);
 
         OtpCode::create([
             'phone' => $phone,

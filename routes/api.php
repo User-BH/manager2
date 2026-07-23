@@ -45,12 +45,24 @@ use Illuminate\Support\Facades\Route;
 // --- مهمان ---
 // محدودیت نرخ (تعریف در AppServiceProvider) جلوی حدس‌زدن رمز و کد، و
 // مصرف بی‌رویه‌ی اعتبار پیامک را می‌گیرد.
+// گام ۱ ورود: رمز عبور. رمز درست پیامک می‌فرستد و منتظر مرحله‌ی دوم می‌ماند
+// (مگر دستگاه مورداعتماد باشد که هر دو مرحله را رد می‌کند).
 Route::post('login', [AuthController::class, 'login'])
     ->middleware('throttle:login')->name('login');
-Route::post('login/otp/request', [AuthController::class, 'requestOtp'])
-    ->middleware('throttle:otp-request')->name('login.otp.request');
-Route::post('login/otp/verify', [AuthController::class, 'verifyOtp'])
-    ->middleware('throttle:otp-verify')->name('login.otp.verify');
+// گام ۲ ورود: تایید کد پیامکی
+Route::post('login/verify', [AuthController::class, 'loginVerify'])
+    ->middleware('throttle:otp-verify')->name('login.verify');
+Route::post('login/resend', [AuthController::class, 'loginResend'])
+    ->middleware('throttle:otp-request')->name('login.resend');
+
+// فراموشی رمز: شماره + نام مجتمع + تاریخ تولد ← کد پیامکی ← رمز تازه
+Route::post('password/forgot', [AuthController::class, 'forgotPassword'])
+    ->middleware('throttle:otp-request')->name('password.forgot');
+Route::post('password/forgot/verify', [AuthController::class, 'forgotVerify'])
+    ->middleware('throttle:otp-verify')->name('password.forgot.verify');
+Route::post('password/reset', [AuthController::class, 'resetPassword'])
+    ->middleware('throttle:otp-verify')->name('password.reset');
+
 Route::post('register', [AuthController::class, 'register'])
     ->middleware('throttle:register')->name('register');
 

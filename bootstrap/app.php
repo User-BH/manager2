@@ -1,10 +1,18 @@
 <?php
 
+use App\Http\Middleware\AuthenticateTrustedDevice;
+use App\Http\Middleware\EnsureActive;
+use App\Http\Middleware\EnsureRole;
+use App\Http\Middleware\SetCurrentComplex;
+use App\Services\Auth\TrustedDeviceService;
+use App\Support\Jalali;
+use Illuminate\Contracts\Auth\Middleware\AuthenticatesRequests;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
 use Illuminate\Http\Exceptions\ThrottleRequestsException;
 use Illuminate\Http\Request;
+use Illuminate\Routing\Middleware\SubstituteBindings;
 use Illuminate\Support\Facades\Route;
 
 return Application::configure(basePath: dirname(__DIR__))
@@ -47,9 +55,20 @@ return Application::configure(basePath: dirname(__DIR__))
                 | Request::HEADER_X_FORWARDED_PROTO,
         );
 
+        /*
+         * کوکیِ دستگاه مورداعتماد از رمزنگاری کوکی مستثناست. مقدارش یک توکنِ
+         * تصادفیِ پرآنتروپی است که سمت سرور هش می‌شود (مثل توکن API یا recaller)،
+         * پس رمزنگاری امنیت تازه‌ای اضافه نمی‌کند. httpOnly هست و جاوااسکریپت
+         * نمی‌تواند بخواندش.
+         */
+        $middleware->encryptCookies(except: [
+            TrustedDeviceService::COOKIE,
+        ]);
+
         $middleware->web(append: [
-            \App\Http\Middleware\EnsureActive::class,
-            \App\Http\Middleware\SetCurrentComplex::class,
+            AuthenticateTrustedDevice::class,
+            EnsureActive::class,
+            SetCurrentComplex::class,
         ]);
 
         /*
@@ -70,19 +89,28 @@ return Application::configure(basePath: dirname(__DIR__))
         | جداسازی را نگه می‌دارد.
         */
         $middleware->prependToPriorityList(
-            before: \Illuminate\Routing\Middleware\SubstituteBindings::class,
-            prepend: \App\Http\Middleware\SetCurrentComplex::class,
+            before: SubstituteBindings::class,
+            prepend: SetCurrentComplex::class,
         );
 
         // و بررسی فعال بودن حساب پیش از هر دو، تا کاربر غیرفعال اصلاً به
         // مرحله‌ی خواندن داده نرسد.
         $middleware->prependToPriorityList(
-            before: \App\Http\Middleware\SetCurrentComplex::class,
-            prepend: \App\Http\Middleware\EnsureActive::class,
+            before: SetCurrentComplex::class,
+            prepend: EnsureActive::class,
+        );
+
+        // ورود خودکارِ دستگاه مورداعتماد باید پیش از میدل‌ور `auth` اجرا شود،
+        // وگرنه روی مسیرِ محافظت‌شده، نگهبان کاربر را رد می‌کند پیش از آنکه این
+        // میدل‌ور فرصت واردکردنش را داشته باشد. StartSession در فهرست اولویت
+        // جلوتر است، پس نشست تا این لحظه شروع شده.
+        $middleware->prependToPriorityList(
+            before: AuthenticatesRequests::class,
+            prepend: AuthenticateTrustedDevice::class,
         );
 
         $middleware->alias([
-            'role' => \App\Http\Middleware\EnsureRole::class,
+            'role' => EnsureRole::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
@@ -98,8 +126,8 @@ return Application::configure(basePath: dirname(__DIR__))
 
             $seconds = (int) ($e->getHeaders()['Retry-After'] ?? 60);
             $wait = $seconds > 90
-                ? \App\Support\Jalali::digits((int) ceil($seconds / 60)).' دقیقه'
-                : \App\Support\Jalali::digits($seconds).' ثانیه';
+                ? Jalali::digits((int) ceil($seconds / 60)).' دقیقه'
+                : Jalali::digits($seconds).' ثانیه';
 
             return response()->json([
                 'message' => "تعداد تلاش‌ها بیش از حد مجاز است. لطفاً {$wait} دیگر دوباره تلاش کنید.",
