@@ -3,9 +3,12 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Models\Complex;
+use App\Services\Payment\Sandbox;
 use App\Services\Subscription\PlanGate;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 
 class SettingController extends Controller
 {
@@ -39,18 +42,42 @@ class SettingController extends Controller
                     ['value' => 'toman', 'label' => 'تومان'],
                     ['value' => 'rial', 'label' => 'ریال'],
                 ],
-                'gateways' => [
-                    ['value' => 'none', 'label' => 'بدون درگاه'],
-                    ['value' => 'fake', 'label' => 'سندباکس (تست)'],
-                    ['value' => 'mellat', 'label' => 'به‌پرداخت ملت'],
-                    ['value' => 'saman', 'label' => 'سامان / سپ'],
-                ],
+                'gateways' => $this->gatewayOptions($complex),
                 'penaltyTypes' => [
                     ['value' => 'fixed', 'label' => 'مبلغ ثابت'],
                     ['value' => 'percent', 'label' => 'درصدی از مبلغ قبض'],
                     ['value' => 'percent_per_day', 'label' => 'درصد روزانه'],
                 ],
             ],
+            // کلاینت با این دو، هشدار مناسب را بالای بخش درگاه نشان می‌دهد
+            'sandboxAllowed' => Sandbox::isAllowed(),
+            'sandboxActive' => $complex->payment_gateway === 'fake',
+        ]);
+    }
+
+    /**
+     * فهرست درگاه‌های قابل انتخاب.
+     *
+     * سندباکس روی سرور واقعی اصلاً پیشنهاد نمی‌شود. ولی اگر مجتمعی از قبل
+     * روی سندباکس مانده باشد، گزینه با برچسب هشدار در فهرست می‌ماند — وگرنه
+     * مقدار فعلیِ فرم در هیچ گزینه‌ای نمی‌نشست و ذخیره‌ی ساده‌ی تنظیمات،
+     * درگاه را بی‌خبر عوض می‌کرد.
+     *
+     * @return array<int,array<string,string>>
+     */
+    private function gatewayOptions(Complex $complex): array
+    {
+        $options = [['value' => 'none', 'label' => 'بدون درگاه']];
+
+        if (Sandbox::isAllowed()) {
+            $options[] = ['value' => 'fake', 'label' => 'سندباکس (تست — بدون پول واقعی)'];
+        } elseif ($complex->payment_gateway === 'fake') {
+            $options[] = ['value' => 'fake', 'label' => 'سندباکس (روی این سرور غیرفعال است — تغییرش دهید)'];
+        }
+
+        return array_merge($options, [
+            ['value' => 'mellat', 'label' => 'به‌پرداخت ملت'],
+            ['value' => 'saman', 'label' => 'سامان / سپ'],
         ]);
     }
 
@@ -67,13 +94,27 @@ class SettingController extends Controller
             $plans->assertCanUseRealGateway($complex);
         }
 
+        /*
+         * سندباکس روی سرور واقعی پذیرفته نمی‌شود. بررسی اینجاست و نه فقط در
+         * فهرست گزینه‌ها، چون فهرست فقط رابط کاربری را می‌سازد و درخواست
+         * مستقیم به سرور آن را دور می‌زد.
+         *
+         * تنها استثنا: مجتمعی که از قبل روی سندباکس مانده، می‌تواند تنظیمات
+         * دیگرش را ذخیره کند بی‌آنکه فرم قفل شود. خودِ درگاه به‌هرحال در
+         * `GatewayManager` مسدود است، پس این استثنا پرداختی را باز نمی‌کند.
+         */
+        $sandboxAcceptable = Sandbox::isAllowed() || $complex->payment_gateway === 'fake';
+
         $data = $request->validate([
             'name' => ['required', 'string', 'max:150'],
             'address' => ['nullable', 'string', 'max:255'],
             'phone' => ['nullable', 'string', 'max:20'],
             'currency' => ['required', 'in:toman,rial'],
             'charge_due_day' => ['required', 'integer', 'min:1', 'max:31'],
-            'payment_gateway' => ['required', 'in:none,fake,mellat,saman'],
+            'payment_gateway' => [
+                'required',
+                Rule::in(array_filter(['none', $sandboxAcceptable ? 'fake' : null, 'mellat', 'saman'])),
+            ],
             'gw_terminal_id' => ['nullable', 'string', 'max:50'],
             'gw_username' => ['nullable', 'string', 'max:100'],
             'gw_password' => ['nullable', 'string', 'max:100'],
@@ -83,7 +124,9 @@ class SettingController extends Controller
             'penalty_type' => ['required', 'in:fixed,percent,percent_per_day'],
             'penalty_value' => ['required', 'numeric', 'min:0'],
             'penalty_grace_days' => ['required', 'integer', 'min:0', 'max:60'],
-        ], [], [
+        ], [
+            'payment_gateway.in' => 'درگاه آزمایشی روی سرور واقعی مجاز نیست؛ درگاه بانکی واقعی را انتخاب کنید یا «بدون درگاه» را بگذارید.',
+        ], [
             'name' => 'نام مجتمع',
             'currency' => 'واحد پول',
             'charge_due_day' => 'روز سررسید',

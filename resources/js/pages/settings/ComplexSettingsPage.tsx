@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { Loader2, Save, AlertCircle, CheckCircle2 } from 'lucide-react'
+import { Loader2, Save, AlertCircle, AlertTriangle, CheckCircle2 } from 'lucide-react'
 import { z } from 'zod'
 import { Card } from '@/components/ui/Card'
 import { CheckField, SelectField, TextField } from '@/components/ui/Field'
@@ -39,6 +39,10 @@ interface Option {
 interface SettingsResponse {
   settings: Omit<SettingsValues, 'gw_password'> & { gw_password_set: boolean }
   options: { currencies: Option[]; gateways: Option[]; penaltyTypes: Option[] }
+  /** آیا این سرور اجازه‌ی درگاه آزمایشی می‌دهد؟ (روی production خیر) */
+  sandboxAllowed: boolean
+  /** آیا همین حالا روی درگاه آزمایشی است؟ */
+  sandboxActive: boolean
 }
 
 export function ComplexSettingsPage() {
@@ -150,6 +154,8 @@ export function ComplexSettingsPage() {
       </Card>
 
       <Card title="درگاه پرداخت" subtitle="اعتبارنامه فقط روی سرور نگهداری می‌شود و در پاسخ API برنمی‌گردد" delay={0.05}>
+        <GatewayNotice allowed={data.sandboxAllowed} active={data.sandboxActive} />
+
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <SelectField
             label="درگاه"
@@ -216,5 +222,45 @@ export function ComplexSettingsPage() {
         </button>
       </div>
     </form>
+  )
+}
+
+/**
+ * هشدار درگاه آزمایشی.
+ *
+ * دو حالت کاملاً متفاوت دارد و نباید یکی گرفته شوند: روی سرور توسعه یعنی
+ * «حواست باشد پول واقعی جابه‌جا نمی‌شود»، ولی روی سرور واقعی یعنی «همین حالا
+ * پرداخت آنلاین از کار افتاده و باید درستش کنی».
+ */
+function GatewayNotice({ allowed, active }: { allowed: boolean; active: boolean }) {
+  if (!active) return null
+
+  const blocked = !allowed
+
+  return (
+    <div
+      className="mb-4 flex items-start gap-2.5 rounded-xl border px-3.5 py-3 text-[12.5px] leading-6"
+      style={{
+        borderColor: blocked ? 'var(--color-danger)' : 'var(--color-warning)',
+        backgroundColor: `color-mix(in srgb, ${blocked ? 'var(--color-danger)' : 'var(--color-warning)'} 10%, transparent)`,
+        color: 'var(--text-primary)',
+      }}
+    >
+      <AlertTriangle size={16} className="mt-0.5 shrink-0" style={{ color: blocked ? 'var(--color-danger)' : 'var(--color-warning)' }} />
+      <span>
+        {blocked ? (
+          <>
+            این مجتمع روی <b>درگاه آزمایشی</b> تنظیم است و روی سرور واقعی غیرفعال شده؛ پرداخت
+            آنلاین برای ساکنین نمایش داده نمی‌شود و فقط «واریز و آپلود رسید» کار می‌کند. یک درگاه
+            بانکی واقعی انتخاب کنید.
+          </>
+        ) : (
+          <>
+            درگاه <b>آزمایشی</b> فعال است: هر پرداخت بدون جابه‌جایی پول واقعی «موفق» ثبت می‌شود و
+            قبض تسویه می‌گردد. فقط برای تست است و روی سرور واقعی به‌طور خودکار غیرفعال می‌شود.
+          </>
+        )}
+      </span>
+    </div>
   )
 }

@@ -2,7 +2,7 @@
 
 namespace App\Services\Subscription;
 
-use App\Services\Payment\FakeGateway;
+use App\Services\Payment\Sandbox;
 use App\Services\Payment\MellatGateway;
 use App\Services\Payment\PaymentGateway;
 use App\Services\Payment\SamanGateway;
@@ -29,7 +29,7 @@ class SubscriptionGatewayManager
 
         // مبلغ پلن‌ها به تومان تعریف شده؛ درایور خودش به ریال تبدیل می‌کند.
         return match (config('subscription.gateway')) {
-            'sandbox' => new FakeGateway,
+            'sandbox' => Sandbox::gateway(),
             'mellat' => new MellatGateway($config, 'toman'),
             'saman' => new SamanGateway($config, 'toman'),
             default => throw new RuntimeException(
@@ -51,6 +51,7 @@ class SubscriptionGatewayManager
             return filled(config('subscription.config.terminal_id'));
         }
 
-        return true;
+        // سندباکس اشتراک هم روی سرور واقعی یعنی اشتراک پرو مجانی
+        return Sandbox::isAllowed();
     }
 }

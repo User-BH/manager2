@@ -15,15 +15,27 @@ class GatewayManager
     public function for(Complex $complex): PaymentGateway
     {
         return match ($complex->payment_gateway) {
-            'fake' => new FakeGateway,
+            // سندباکس فقط بیرون از production؛ وگرنه تسویه‌ی قبض بدون پول
+            'fake' => Sandbox::gateway(),
             'mellat' => new MellatGateway($complex->gateway_config ?? [], $complex->currency),
             'saman' => new SamanGateway($complex->gateway_config ?? [], $complex->currency),
             default => throw new RuntimeException('درگاه پرداخت برای این مجتمع فعال نیست. از آپلود رسید استفاده کنید.'),
         };
     }
 
+    /**
+     * آیا دکمه‌ی «پرداخت آنلاین» باید به کاربر نشان داده شود؟
+     *
+     * مجتمعی که پیش از این روی سندباکس تنظیم شده و حالا روی سرور واقعی
+     * بالا آمده، اینجا false می‌گیرد و فقط مسیر رسید را می‌بیند — بهتر از
+     * اینکه دکمه بیاید و وسط راه به خطا بخورد.
+     */
     public function isOnlineEnabled(Complex $complex): bool
     {
-        return in_array($complex->payment_gateway, ['fake', 'mellat', 'saman'], true);
+        if ($complex->payment_gateway === 'fake') {
+            return Sandbox::isAllowed();
+        }
+
+        return in_array($complex->payment_gateway, ['mellat', 'saman'], true);
     }
 }
