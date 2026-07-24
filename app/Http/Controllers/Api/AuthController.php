@@ -162,34 +162,31 @@ class AuthController extends Controller
     }
 
     /**
-     * فراموشی رمز — گام ۱: تایید هویت با شماره، نام مجتمع و تاریخ تولد.
+     * فراموشی رمز — گام ۱: فرستادن کد به شماره‌ی کاربر.
      *
-     * هر سه باید با هم بخوانند. اگر یکی هم غلط بود، پیام عمومی برمی‌گردد تا
-     * نشود با آزمون‌وخطا فهمید کدام درست بوده و اطلاعات کاربر را استخراج کرد.
+     * فقط شماره گرفته می‌شود؛ اثبات هویت با کد پیامکی است. محدودیت نرخِ
+     * `otp-request` جلوی سوءاستفاده و مصرف بی‌رویه‌ی اعتبار پیامک را می‌گیرد.
      */
     public function forgotPassword(Request $request, OtpService $otp): JsonResponse
     {
         $data = $request->validate([
             'phone' => ['required', 'string'],
-            'complex_name' => ['required', 'string', 'max:150'],
-            'birth_date' => ['required', 'date'],
-        ], [], [
-            'phone' => 'شماره موبایل',
-            'complex_name' => 'نام مجتمع',
-            'birth_date' => 'تاریخ تولد',
-        ]);
+        ], [], ['phone' => 'شماره موبایل']);
 
         $phone = Phone::normalize($data['phone']);
+        $user = User::where('phone', $phone)->first();
 
-        $user = User::where('phone', $phone)
-            ->whereHas('complex', fn ($q) => $q->where('name', trim($data['complex_name'])))
-            ->whereDate('birth_date', $data['birth_date'])
-            ->first();
-
-        $generic = 'اطلاعات واردشده با هیچ حسابی مطابقت ندارد. شماره، نام مجتمع و تاریخ تولد را بررسی کنید.';
-
+        /*
+         * پیام یکسان برای «شماره ثبت نشده» و «حساب غیرفعال»، تا نشود با
+         * آزمون‌وخطا فهمید کدام شماره در سامانه حساب دارد.
+         *
+         * اثباتِ هویت اینجا خودِ کدِ پیامکی است: فقط کسی که به آن سیم‌کارت
+         * دسترسی دارد می‌تواند ادامه دهد.
+         */
         if (! $user || ! $user->is_active) {
-            throw ValidationException::withMessages(['phone' => $generic]);
+            throw ValidationException::withMessages([
+                'phone' => 'حساب فعالی با این شماره پیدا نشد.',
+            ]);
         }
 
         $result = $otp->request($phone);
@@ -259,28 +256,48 @@ class AuthController extends Controller
 
         $request->session()->forget('reset.pending');
 
-        return response()->json(['message' => 'رمز عبور با موفقیت تغییر کرد. اکنون وارد شوید.']);
+        /*
+         * ورودِ خودکار پس از بازیابی.
+         *
+         * کاربر همین حالا با کد پیامکی ثابت کرده که صاحب این شماره است و رمز
+         * تازه را هم خودش گذاشته؛ فرستادنش به فرم ورود و یک پیامکِ دومرحله‌ایِ
+         * دیگر، بدون افزودن امنیت فقط اصطکاک است.
+         */
+        Auth::login($user);
+        $request->session()->regenerate();
+
+        return response()->json([
+            'message' => 'رمز عبور با موفقیت تغییر کرد.',
+            'user' => $this->userPayload($user),
+            'csrfToken' => csrf_token(),
+        ]);
     }
 
     /**
      * ثبت‌نام ساکن جدید.
      *
-     * کاربر با نقش «مالک» و در وضعیت غیرفعال ساخته می‌شود: تا وقتی مدیر مجتمع
-     * او را تایید و به واحدی متصل نکند، نباید به داده‌ی مجتمع دسترسی داشته
-     * باشد. نام مجتمع اجباری است چون هر کاربر باید به یک مجتمع تعلق داشته
-     * باشد وگرنه ComplexScope هیچ داده‌ای به او نشان نمی‌دهد.
+     * کاربر با نقش «مالک» و در وضعیت غیرفعال ساخته می‌شود: تا وقتی مدیر او را
+     * تایید و به مجتمع و واحدی متصل نکند، نباید به داده‌ای دسترسی داشته باشد.
+     *
+     * نام مجتمع دیگر پرسیده نمی‌شود، پس `complex_id` هنگام ثبت‌نام خالی است و
+     * مدیر آن را هنگام تایید تعیین می‌کند.
+     *
+     * پذیرش قوانین هم اجباری است و لحظه‌اش ثبت می‌شود؛ پیش از این فقط یک تیکِ
+     * سمت مرورگر بود که هیچ ردی به جا نمی‌گذاشت.
      */
     public function register(Request $request): JsonResponse
     {
         $data = $request->validate([
             'name' => ['required', 'string', 'max:255'],
             'phone' => ['required', 'string'],
-            'complex_name' => ['required', 'string', 'exists:complexes,name'],
             'password' => ['required', 'confirmed', Password::min(8)->letters()->numbers()],
-        ], [], [
+            'accept_terms' => ['required', 'accepted'],
+        ], [
+            'accept_terms.required' => 'برای ادامه باید قوانین و مقررات را بپذیرید.',
+            'accept_terms.accepted' => 'برای ادامه باید قوانین و مقررات را بپذیرید.',
+        ], [
             'name' => 'نام',
             'phone' => 'شماره تلفن',
-            'complex_name' => 'نام مجتمع',
             'password' => 'رمز عبور',
         ]);
 
@@ -296,15 +313,14 @@ class AuthController extends Controller
             ]);
         }
 
-        $complex = Complex::where('name', $data['complex_name'])->firstOrFail();
-
         User::create([
-            'complex_id' => $complex->id,
+            'complex_id' => null,
             'name' => $data['name'],
             'phone' => $phone,
             'password' => Hash::make($data['password']),
             'role' => UserRole::Owner,
             'is_active' => false,
+            'terms_accepted_at' => now(),
         ]);
 
         return response()->json([

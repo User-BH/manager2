@@ -4,8 +4,8 @@ import { Check, RefreshCw } from 'lucide-react'
 import { galleryImages } from '@/data/images'
 
 const WIDTH = 300
-const HEIGHT = 160
-const PIECE = 46
+const HEIGHT = 110
+const PIECE = 42
 const TOLERANCE = 8
 
 interface Puzzle {
@@ -83,7 +83,7 @@ export function SlidePuzzle({ onSolved }: { onSolved: (solved: boolean) => void 
     <div className="flex flex-col gap-2">
       <div className="flex items-center justify-between">
         <span className="text-[12px] font-medium" style={{ color: 'var(--text-secondary)' }}>
-          {solved ? 'تایید شد، شما ربات نیستید ✓' : 'تکه را در جای خالی بگذارید'}
+          {solved ? 'تایید شد، شما ربات نیستید ✓' : 'آخرین تکه پازل را کامل نمایید'}
         </span>
         <button
           type="button"
@@ -101,11 +101,16 @@ export function SlidePuzzle({ onSolved }: { onSolved: (solved: boolean) => void 
         className="relative overflow-hidden rounded-xl border"
         style={{ width: WIDTH, height: HEIGHT, maxWidth: '100%', borderColor: 'var(--border-subtle)' }}
       >
+        {/*
+          پس‌زمینه عمداً کم‌رنگ است و تکه با شفافیت کامل؛ این تفاوت باعث
+          می‌شود هم حفره و هم تکه به‌روشنی دیده شوند. پیش از این هر دو
+          یک‌شکل بودند و حفره تقریباً گم می‌شد.
+        */}
         <img
           src={puzzle.image}
           alt=""
           className="absolute inset-0 h-full w-full select-none object-cover"
-          style={{ width: WIDTH, height: HEIGHT }}
+          style={{ width: WIDTH, height: HEIGHT, opacity: 0.42 }}
           draggable={false}
         />
 
@@ -117,8 +122,9 @@ export function SlidePuzzle({ onSolved }: { onSolved: (solved: boolean) => void 
             top: puzzle.gapY,
             width: PIECE,
             height: PIECE,
-            backgroundColor: 'rgba(0,0,0,0.45)',
-            boxShadow: 'inset 0 2px 6px rgba(0,0,0,0.5)',
+            backgroundColor: 'rgba(0,0,0,0.55)',
+            border: '2px dashed rgba(255,255,255,0.9)',
+            boxShadow: 'inset 0 2px 10px rgba(0,0,0,0.65)',
           }}
         />
 
@@ -159,7 +165,7 @@ export function SlidePuzzle({ onSolved }: { onSolved: (solved: boolean) => void 
       {/* دستگیره‌ی کشویی زیر تصویر، برای هدایتِ راحت‌تر */}
       <div
         ref={trackRef}
-        className="relative h-9 rounded-xl border"
+        className="relative h-8 rounded-xl border"
         style={{ width: WIDTH, maxWidth: '100%', backgroundColor: 'var(--surface-sunken)', borderColor: 'var(--border-subtle)' }}
       >
         <div
@@ -181,7 +187,7 @@ export function SlidePuzzle({ onSolved }: { onSolved: (solved: boolean) => void 
           }}
           animate={failed ? { x: [0, -6, 6, -4, 0] } : {}}
           aria-label="کشیدن برای حل پازل"
-          className="absolute top-1/2 flex h-8 w-9 -translate-y-1/2 items-center justify-center rounded-lg text-white shadow"
+          className="absolute top-1/2 flex h-7 w-9 -translate-y-1/2 items-center justify-center rounded-lg text-white shadow"
           style={{
             left: (x / (WIDTH - PIECE)) * (WIDTH - 36),
             cursor: solved ? 'default' : 'grab',

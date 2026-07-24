@@ -10,7 +10,6 @@ export const registerSchema = z
       .string()
       .min(1, 'شماره موبایل را وارد کنید')
       .regex(/^09\d{9}$/, 'شماره موبایل باید به‌فرمت ۰۹xxxxxxxxx باشد'),
-    complexName: z.string().min(1, 'نام مجتمع را وارد کنید').min(2, 'نام مجتمع خیلی کوتاه است'),
     password: z
       .string()
       .min(8, 'رمز عبور باید حداقل ۸ کاراکتر باشد')

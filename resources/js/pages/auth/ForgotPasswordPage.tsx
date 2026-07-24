@@ -1,48 +1,41 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Building2, KeyRound, Loader2, Lock, Phone } from 'lucide-react'
+import { KeyRound, Loader2, Lock, Phone } from 'lucide-react'
 import { AuthScreen } from './components/AuthScreen'
 import { OtpBoxes } from './components/OtpBoxes'
 import { FormField } from './components/FormField'
-import { JalaliDatePicker } from '@/components/ui/JalaliDatePicker'
-import {
-  filterAsciiPassword,
-  filterMobile,
-  filterPersianAlphanumeric,
-} from '@/lib/inputFilters'
+import { PasswordStrength } from './components/PasswordStrength'
+import { filterAsciiPassword, filterMobile } from '@/lib/inputFilters'
 import { api, ApiError } from '@/lib/api'
 import { toastSuccess } from '@/lib/alert'
+import { useAuth } from '@/context/AuthContext'
 import { useDocumentTitle } from '@/hooks'
+import type { CurrentUser } from '@/types'
 
-type Step = 'identify' | 'code' | 'reset'
+type Step = 'phone' | 'code' | 'reset'
 
 const RESEND_SECONDS = 60
 
 /**
- * بازیابی رمز عبور در سه گام.
+ * بازیابی رمز عبور.
  *
- * ۱) هویت: شماره موبایل + نام مجتمع + تاریخ تولد. اگر با هم بخوانند کد
- *    پیامک می‌شود. (خطای عمومی تا نشود با آزمون‌وخطا اطلاعات استخراج کرد.)
- * ۲) کد: تایید کد شش‌رقمی.
- * ۳) رمز تازه: ورود و تکرار رمز، سپس بازگشت به صفحه‌ی ورود.
+ * ۱) فقط شماره موبایل؛ اثباتِ هویت خودِ کدِ پیامکی است.
+ * ۲) شش خانه برای کد. به‌محضِ کاملِ‌شدن، بدون فشار دکمه بررسی می‌شود؛ اگر
+ *    غلط بود پیام می‌دهد و «ارسال دوباره‌ی رمز یک‌بارمصرف» زیرش هست.
+ * ۳) رمز تازه؛ پس از ثبت، کاربر خودکار وارد داشبورد می‌شود و لازم نیست
+ *    دوباره فرم ورود را پر کند.
  */
 export function ForgotPasswordPage() {
   const navigate = useNavigate()
-  const [step, setStep] = useState<Step>('identify')
+  const { setUser } = useAuth()
+  const [step, setStep] = useState<Step>('phone')
 
   useDocumentTitle('بازیابی رمز عبور')
 
-  // گام ۱
   const [phone, setPhone] = useState('')
-  const [complexName, setComplexName] = useState('')
-  const [birthDate, setBirthDate] = useState('')
-
-  // گام ۲
   const [code, setCode] = useState('')
   const [devCode, setDevCode] = useState<string | null>(null)
   const [cooldown, setCooldown] = useState(0)
-
-  // گام ۳
   const [password, setPassword] = useState('')
   const [confirm, setConfirm] = useState('')
 
@@ -55,18 +48,19 @@ export function ForgotPasswordPage() {
     return () => clearTimeout(t)
   }, [cooldown])
 
-  async function identify(e: React.FormEvent) {
-    e.preventDefault()
+  async function sendCode(e?: React.FormEvent) {
+    e?.preventDefault()
     setBusy(true)
     setError(null)
 
     try {
       const data = await api<{ dev_code?: string | null }>('/password/forgot', {
         method: 'POST',
-        body: { phone, complex_name: complexName, birth_date: birthDate },
+        body: { phone },
       })
       setDevCode(data.dev_code ?? null)
       setCooldown(RESEND_SECONDS)
+      setCode('')
       setStep('code')
     } catch (err) {
       setError(err instanceof ApiError ? (err.fieldError('phone') ?? err.message) : 'ارتباط با سرور برقرار نشد.')
@@ -75,6 +69,7 @@ export function ForgotPasswordPage() {
     }
   }
 
+  /** با کاملِ‌شدن شش رقم، خودکار صدا زده می‌شود. */
   async function verify(value: string) {
     if (busy) return
     setBusy(true)
@@ -84,7 +79,11 @@ export function ForgotPasswordPage() {
       await api('/password/forgot/verify', { method: 'POST', body: { code: value } })
       setStep('reset')
     } catch (err) {
-      setError(err instanceof ApiError ? (err.fieldError('code') ?? err.message) : 'ارتباط با سرور برقرار نشد.')
+      setError(
+        err instanceof ApiError
+          ? (err.fieldError('code') ?? err.message)
+          : 'ارتباط با سرور برقرار نشد.',
+      )
       setCode('')
     } finally {
       setBusy(false)
@@ -103,12 +102,19 @@ export function ForgotPasswordPage() {
     setError(null)
 
     try {
-      await api('/password/reset', {
+      /*
+       * سرور پس از ثبت رمز تازه، خودش کاربر را وارد می‌کند و کاربر را
+       * برمی‌گرداند؛ هویتش همین حالا با کد پیامکی اثبات شده، پس نه فرم ورود
+       * لازم است نه یک پیامکِ دومرحله‌ایِ دیگر.
+       */
+      const { user } = await api<{ user: CurrentUser }>('/password/reset', {
         method: 'POST',
         body: { password, password_confirmation: confirm },
       })
-      toastSuccess('رمز عبور تغییر کرد. اکنون وارد شوید.')
-      navigate('/auth', { replace: true })
+
+      toastSuccess('رمز عبور تغییر کرد. خوش آمدید!')
+      setUser(user)
+      navigate('/dashboard', { replace: true })
     } catch (err) {
       setError(err instanceof ApiError ? (err.fieldError('password') ?? err.message) : 'ارتباط با سرور برقرار نشد.')
     } finally {
@@ -116,56 +122,31 @@ export function ForgotPasswordPage() {
     }
   }
 
-  async function resend() {
-    try {
-      const data = await api<{ dev_code?: string | null }>('/password/forgot', {
-        method: 'POST',
-        body: { phone, complex_name: complexName, birth_date: birthDate },
-      })
-      setDevCode(data.dev_code ?? null)
-      setCooldown(RESEND_SECONDS)
-    } catch {
-      setError('ارسال مجدد کد ممکن نشد.')
-    }
-  }
-
   const subtitles: Record<Step, string> = {
-    identify: 'برای بازیابی، هویت خود را تایید کنید.',
+    phone: 'شماره موبایل حساب خود را وارد کنید تا کد بازیابی برایتان فرستاده شود.',
     code: `کد شش‌رقمی به شماره ${phone} پیامک شد.`,
     reset: 'رمز عبور تازه‌ای انتخاب کنید.',
   }
 
   return (
     <AuthScreen title="بازیابی رمز عبور" subtitle={subtitles[step]}>
-      {step === 'identify' && (
-        <form onSubmit={identify} className="flex flex-col gap-4">
+      {step === 'phone' && (
+        <form onSubmit={sendCode} className="flex flex-col gap-4">
           <FormField
             label="شماره موبایل"
             icon={Phone}
             placeholder="۰۹xxxxxxxxx"
             inputMode="numeric"
             dir="ltr"
+            autoComplete="username"
             value={phone}
             onChange={(e) => setPhone(filterMobile(e.target.value).value)}
+            error={error ?? undefined}
           />
-          <FormField
-            label="نام مجتمع"
-            icon={Building2}
-            placeholder="مثلاً مجتمع نگین"
-            value={complexName}
-            onChange={(e) => setComplexName(filterPersianAlphanumeric(e.target.value).value)}
-          />
-          <JalaliDatePicker label="تاریخ تولد" value={birthDate} onChange={setBirthDate} maxToday />
-
-          {error && (
-            <p className="text-[12.5px]" style={{ color: 'var(--color-danger)' }}>
-              {error}
-            </p>
-          )}
 
           <button
             type="submit"
-            disabled={busy || !phone || !complexName || !birthDate}
+            disabled={busy || phone.length < 11}
             className="mt-1 flex items-center justify-center gap-2 rounded-xl py-3.5 text-sm font-bold text-white transition-transform hover:scale-[1.02] disabled:opacity-60 disabled:hover:scale-100"
             style={{ backgroundColor: 'var(--color-brand-500)' }}
           >
@@ -177,7 +158,14 @@ export function ForgotPasswordPage() {
 
       {step === 'code' && (
         <div className="flex flex-col gap-5">
-          <OtpBoxes value={code} onChange={setCode} onComplete={verify} disabled={busy} hasError={Boolean(error)} autoFocus />
+          <OtpBoxes
+            value={code}
+            onChange={setCode}
+            onComplete={verify}
+            disabled={busy}
+            hasError={Boolean(error)}
+            autoFocus
+          />
 
           {busy && (
             <div className="flex items-center justify-center gap-2 text-[13px]" style={{ color: 'var(--text-secondary)' }}>
@@ -196,12 +184,18 @@ export function ForgotPasswordPage() {
             </p>
           )}
 
+          {/* ارسال دوباره، اگر پیامک به دست کاربر نرسید */}
           <div className="text-center text-[12.5px]" style={{ color: 'var(--text-tertiary)' }}>
             {cooldown > 0 ? (
-              <span>ارسال مجدد کد تا {cooldown} ثانیه دیگر</span>
+              <span>ارسال دوباره‌ی رمز یک‌بارمصرف تا {cooldown} ثانیه دیگر</span>
             ) : (
-              <button type="button" onClick={resend} className="font-semibold" style={{ color: 'var(--color-brand-600)' }}>
-                ارسال مجدد کد
+              <button
+                type="button"
+                onClick={() => void sendCode()}
+                className="font-semibold underline"
+                style={{ color: 'var(--color-brand-600)' }}
+              >
+                ارسال دوباره‌ی رمز یک‌بارمصرف
               </button>
             )}
           </div>
@@ -210,16 +204,20 @@ export function ForgotPasswordPage() {
 
       {step === 'reset' && (
         <form onSubmit={reset} className="flex flex-col gap-4">
-          <FormField
-            label="رمز عبور تازه"
-            icon={Lock}
-            type="password"
-            placeholder="حداقل ۸ نویسه، شامل حرف و عدد"
-            dir="ltr"
-            autoComplete="new-password"
-            value={password}
-            onChange={(e) => setPassword(filterAsciiPassword(e.target.value).value)}
-          />
+          <div>
+            <FormField
+              label="رمز عبور تازه"
+              icon={Lock}
+              type="password"
+              placeholder="حداقل ۸ نویسه، شامل حرف و عدد"
+              dir="ltr"
+              autoComplete="new-password"
+              value={password}
+              onChange={(e) => setPassword(filterAsciiPassword(e.target.value).value)}
+            />
+            <PasswordStrength value={password} />
+          </div>
+
           <FormField
             label="تکرار رمز عبور"
             icon={Lock}
@@ -244,7 +242,7 @@ export function ForgotPasswordPage() {
             style={{ backgroundColor: 'var(--color-brand-500)' }}
           >
             {busy ? <Loader2 size={17} className="animate-spin" /> : <KeyRound size={17} />}
-            ثبت رمز تازه
+            ثبت رمز تازه و ورود
           </button>
         </form>
       )}

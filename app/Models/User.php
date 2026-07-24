@@ -19,7 +19,7 @@ class User extends Authenticatable
     protected $fillable = [
         'complex_id', 'name', 'email', 'phone', 'national_id',
         'birth_date', 'emergency_phone', 'address', 'bio',
-        'role', 'password', 'is_active', 'can_message',
+        'role', 'password', 'is_active', 'can_message', 'terms_accepted_at',
     ];
 
     protected $hidden = ['password', 'remember_token'];
@@ -33,6 +33,7 @@ class User extends Authenticatable
             'birth_date' => 'date',
             'is_active' => 'boolean',
             'can_message' => 'boolean',
+            'terms_accepted_at' => 'datetime',
         ];
     }
 

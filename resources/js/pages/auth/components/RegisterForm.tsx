@@ -1,18 +1,13 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
-import { useForm } from 'react-hook-form'
+import { useForm, useWatch } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { motion } from 'framer-motion'
-import { AlertCircle, Building2, CheckCircle2, Loader2, Lock, Phone, User, UserPlus } from 'lucide-react'
+import { AlertCircle, CheckCircle2, Loader2, Lock, Phone, User, UserPlus } from 'lucide-react'
 import { RestrictedField } from './RestrictedField'
+import { PasswordStrength } from './PasswordStrength'
 import { registerSchema, type RegisterFormValues } from '../schemas/registerSchema'
-import {
-  filterAsciiPassword,
-  filterHints,
-  filterMobile,
-  filterPersianAlphanumeric,
-  filterPersianLetters,
-} from '@/lib/inputFilters'
+import { filterAsciiPassword, filterHints, filterMobile, filterPersianLetters } from '@/lib/inputFilters'
 import { api, ApiError } from '@/lib/api'
 
 export function RegisterForm({ onRegistered }: { onRegistered?: () => void }) {
@@ -31,12 +26,14 @@ export function RegisterForm({ onRegistered }: { onRegistered?: () => void }) {
     defaultValues: {
       fullName: '',
       phone: '',
-      complexName: '',
       password: '',
       confirmPassword: '',
       acceptTerms: false,
     },
   })
+
+  // برای سنجه‌ی قدرت، مقدار زنده‌ی رمز لازم است
+  const passwordValue = useWatch({ control, name: 'password' }) ?? ''
 
   async function onSubmit(values: RegisterFormValues) {
     setSubmitting(true)
@@ -48,9 +45,10 @@ export function RegisterForm({ onRegistered }: { onRegistered?: () => void }) {
         body: {
           name: values.fullName,
           phone: values.phone,
-          complex_name: values.complexName,
           password: values.password,
           password_confirmation: values.confirmPassword,
+          // پذیرش قوانین سمت سرور هم ثبت می‌شود، نه فقط تیکِ مرورگر
+          accept_terms: values.acceptTerms,
         },
       })
 
@@ -62,8 +60,8 @@ export function RegisterForm({ onRegistered }: { onRegistered?: () => void }) {
         const map: Record<string, keyof RegisterFormValues> = {
           name: 'fullName',
           phone: 'phone',
-          complex_name: 'complexName',
           password: 'password',
+          accept_terms: 'acceptTerms',
         }
 
         let handled = false
@@ -138,17 +136,6 @@ export function RegisterForm({ onRegistered }: { onRegistered?: () => void }) {
 
       <RestrictedField
         control={control}
-        name="complexName"
-        label="نام مجتمع"
-        icon={Building2}
-        placeholder="مثلاً مجتمع نگین"
-        error={errors.complexName?.message}
-        filter={filterPersianAlphanumeric}
-        hint={filterHints.persianAlphanumeric}
-      />
-
-      <RestrictedField
-        control={control}
         name="phone"
         label="شماره موبایل"
         icon={Phone}
@@ -160,7 +147,7 @@ export function RegisterForm({ onRegistered }: { onRegistered?: () => void }) {
         hint={filterHints.mobile}
       />
 
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+      <div>
         <RestrictedField
           control={control}
           name="password"
@@ -173,19 +160,21 @@ export function RegisterForm({ onRegistered }: { onRegistered?: () => void }) {
           filter={filterAsciiPassword}
           hint={filterHints.asciiPassword}
         />
-        <RestrictedField
-          control={control}
-          name="confirmPassword"
-          label="تکرار رمز عبور"
-          icon={Lock}
-          type="password"
-          placeholder="تکرار رمز عبور"
-          dir="ltr"
-          error={errors.confirmPassword?.message}
-          filter={filterAsciiPassword}
-          hint={filterHints.asciiPassword}
-        />
+        <PasswordStrength value={passwordValue} />
       </div>
+
+      <RestrictedField
+        control={control}
+        name="confirmPassword"
+        label="تکرار رمز عبور"
+        icon={Lock}
+        type="password"
+        placeholder="تکرار رمز عبور"
+        dir="ltr"
+        error={errors.confirmPassword?.message}
+        filter={filterAsciiPassword}
+        hint={filterHints.asciiPassword}
+      />
 
       <div className="flex flex-col gap-1">
         <label className="flex items-start gap-2 text-xs" style={{ color: 'var(--text-secondary)' }}>

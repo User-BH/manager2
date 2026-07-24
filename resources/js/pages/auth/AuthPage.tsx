@@ -4,6 +4,7 @@ import { AnimatePresence, motion } from 'framer-motion'
 import { ArrowRight, ShieldCheck } from 'lucide-react'
 import { LoginForm } from './components/LoginForm'
 import { RegisterForm } from './components/RegisterForm'
+import { AuthTabs } from './components/AuthTabs'
 import { ThemeToggle } from '@/components/layout/ThemeToggle'
 import { LogoMark } from '@/components/common/LogoMark'
 import { authBackgroundImage } from '@/data/images'
@@ -45,11 +46,11 @@ export function AuthPage() {
   const reason = searchParams.get('reason')
 
   const heading = (
-    <div className="mb-6 text-center">
+    <div className="mb-4 text-center">
       <h1 className="text-xl font-extrabold" style={{ color: 'var(--text-primary)' }}>
         {isLogin ? 'ورود به پنل مدیریت' : 'ساخت حساب مجتمع جدید'}
       </h1>
-      <p className="mt-2 text-[13px]" style={{ color: 'var(--text-tertiary)' }}>
+      <p className="mt-1.5 text-[13px]" style={{ color: 'var(--text-tertiary)' }}>
         {isLogin
           ? 'با شماره موبایل و رمز عبور خود وارد شوید'
           : 'در کمتر از ۵ دقیقه پنل مجتمع خود را راه‌اندازی کنید'}
@@ -87,6 +88,12 @@ export function AuthPage() {
   const formArea = (
     <div className="w-full max-w-sm" dir="rtl">
       {heading}
+
+      {/* دو دکمه‌ی بالای فرم — لینکِ تعویضِ پایین صفحه هم سرِ جایش می‌ماند */}
+      <div className="mb-5">
+        <AuthTabs active={tab} onChange={setTab} />
+      </div>
+
       {reasonBanner}
       {/*
         بدون AnimatePresence با mode="wait": آن حالت منتظر پایانِ انیمیشنِ
@@ -171,12 +178,19 @@ export function AuthPage() {
       >
         {/* پنل فرم — زیرِ پنل تصویر */}
         <motion.div
-          className="absolute top-0 flex h-full w-1/2 items-center justify-center overflow-y-auto px-10 py-8"
+          className="scrollbar-thin absolute top-0 h-full w-1/2 overflow-y-auto"
           style={{ left: 0, zIndex: 10, backgroundColor: 'var(--surface-canvas)' }}
           animate={{ x: isLogin ? '100%' : '0%' }}
           transition={SLIDE}
         >
-          {formArea}
+          {/*
+            مرکزچینیِ امن: اگر فرم کوتاه‌تر از پنل باشد وسط می‌نشیند، و اگر
+            بلندتر شد (مثلاً با ظاهرشدن خطاهای زیر ورودی‌ها) از بالا اسکرول
+            می‌شود و سرتیترش بریده نمی‌شود.
+          */}
+          <div className="flex min-h-full items-center justify-center px-10 py-6">
+            {formArea}
+          </div>
         </motion.div>
 
         {/* پنل تصویر — رویِ پنل فرم می‌لغزد */}

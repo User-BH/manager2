@@ -189,32 +189,44 @@ class TwoFactorLoginTest extends TestCase
 
     /* --------------------- بازیابی رمز --------------------- */
 
-    public function test_forgot_password_needs_all_three_fields_to_match(): void
+    public function test_forgot_password_only_needs_the_phone(): void
     {
-        // نام مجتمع اشتباه
-        $this->postJson('/api/password/forgot', [
-            'phone' => '09120000010', 'complex_name' => 'مجتمع دیگر', 'birth_date' => '1370-01-01',
-        ])->assertStatus(422)->assertJsonValidationErrors('phone');
+        $this->postJson('/api/password/forgot', ['phone' => '09120000010'])
+            ->assertOk()
+            ->assertJsonPath('dev_code', fn ($code) => strlen((string) $code) === 6);
+    }
 
-        // تاریخ تولد اشتباه
-        $this->postJson('/api/password/forgot', [
-            'phone' => '09120000010', 'complex_name' => $this->complex->name, 'birth_date' => '1360-05-05',
-        ])->assertStatus(422)->assertJsonValidationErrors('phone');
+    public function test_forgot_password_refuses_an_unknown_phone(): void
+    {
+        $this->postJson('/api/password/forgot', ['phone' => '09129999999'])
+            ->assertStatus(422)->assertJsonValidationErrors('phone');
+
+        // برای شماره‌ی ناشناس هیچ پیامکی فرستاده نمی‌شود
+        $this->assertDatabaseCount('otp_codes', 0);
+    }
+
+    public function test_forgot_password_refuses_an_inactive_account(): void
+    {
+        $this->user->update(['is_active' => false]);
+
+        $this->postJson('/api/password/forgot', ['phone' => '09120000010'])
+            ->assertStatus(422)->assertJsonValidationErrors('phone');
     }
 
     public function test_the_full_password_reset_flow_changes_the_password(): void
     {
-        $code = $this->postJson('/api/password/forgot', [
-            'phone' => '09120000010',
-            'complex_name' => $this->complex->name,
-            'birth_date' => '1370-01-01',
-        ])->assertOk()->json('dev_code');
+        $code = $this->postJson('/api/password/forgot', ['phone' => '09120000010'])
+            ->assertOk()->json('dev_code');
 
         $this->postJson('/api/password/forgot/verify', ['code' => $code])->assertOk();
 
+        // پس از ثبت رمز تازه، سرور خودش کاربر را وارد می‌کند و برمی‌گرداند؛
+        // هویتش با کد پیامکی اثبات شده، پس پیامکِ دومرحله‌ایِ دیگر لازم نیست.
         $this->postJson('/api/password/reset', [
             'password' => 'newpass123', 'password_confirmation' => 'newpass123',
-        ])->assertOk();
+        ])->assertOk()->assertJsonPath('user.phone', '09120000010');
+
+        $this->assertAuthenticatedAs($this->user->fresh());
 
         // رمز واقعاً عوض شده. (ورودِ فوری را نمی‌آزماییم چون پیامکِ دومرحله‌ایِ
         // ورود به فاصله‌ی کوتاه پس از پیامکِ بازیابی به سقفِ ارسال مجدد می‌خورد؛
@@ -226,11 +238,7 @@ class TwoFactorLoginTest extends TestCase
 
     public function test_reset_is_refused_before_the_code_is_verified(): void
     {
-        $this->postJson('/api/password/forgot', [
-            'phone' => '09120000010',
-            'complex_name' => $this->complex->name,
-            'birth_date' => '1370-01-01',
-        ])->assertOk();
+        $this->postJson('/api/password/forgot', ['phone' => '09120000010'])->assertOk();
 
         // بدون تایید کد، تغییر رمز رد می‌شود
         $this->postJson('/api/password/reset', [
@@ -246,9 +254,7 @@ class TwoFactorLoginTest extends TestCase
             'expires_at' => now()->addDays(5),
         ]);
 
-        $code = $this->postJson('/api/password/forgot', [
-            'phone' => '09120000010', 'complex_name' => $this->complex->name, 'birth_date' => '1370-01-01',
-        ])->json('dev_code');
+        $code = $this->postJson('/api/password/forgot', ['phone' => '09120000010'])->json('dev_code');
         $this->postJson('/api/password/forgot/verify', ['code' => $code])->assertOk();
         $this->postJson('/api/password/reset', [
             'password' => 'newpass123', 'password_confirmation' => 'newpass123',
@@ -256,6 +262,53 @@ class TwoFactorLoginTest extends TestCase
 
         // تغییر رمز یعنی «به هیچ دستگاه قبلی اعتماد نکن»
         $this->assertSame(0, TrustedDevice::count());
+    }
+
+    /* --------------------- ثبت‌نام --------------------- */
+
+    public function test_registration_records_that_terms_were_accepted(): void
+    {
+        $this->postJson('/api/register', [
+            'name' => 'کاربر تازه',
+            'phone' => '09120000077',
+            'password' => 'newpass123',
+            'password_confirmation' => 'newpass123',
+            'accept_terms' => true,
+        ])->assertStatus(201);
+
+        $created = User::where('phone', '09120000077')->firstOrFail();
+
+        // تیک قوانین دیگر دکوری نیست؛ لحظه‌ی پذیرش در دیتابیس می‌ماند
+        $this->assertNotNull($created->terms_accepted_at);
+        // و حساب تا تایید مدیر غیرفعال است
+        $this->assertFalse((bool) $created->is_active);
+    }
+
+    public function test_registration_is_refused_without_accepting_terms(): void
+    {
+        $this->postJson('/api/register', [
+            'name' => 'کاربر تازه',
+            'phone' => '09120000078',
+            'password' => 'newpass123',
+            'password_confirmation' => 'newpass123',
+            'accept_terms' => false,
+        ])->assertStatus(422)->assertJsonValidationErrors('accept_terms');
+
+        $this->assertDatabaseMissing('users', ['phone' => '09120000078']);
+    }
+
+    public function test_registration_no_longer_asks_for_a_complex(): void
+    {
+        // نام مجتمع دیگر پرسیده نمی‌شود؛ مدیر هنگام تایید تعیینش می‌کند
+        $this->postJson('/api/register', [
+            'name' => 'بدون مجتمع',
+            'phone' => '09120000079',
+            'password' => 'newpass123',
+            'password_confirmation' => 'newpass123',
+            'accept_terms' => true,
+        ])->assertStatus(201);
+
+        $this->assertNull(User::where('phone', '09120000079')->firstOrFail()->complex_id);
     }
 
     /** یک کوکی دستگاهِ مورداعتمادِ معتبرِ تازه می‌سازد (ردیف + مقدار خام). */

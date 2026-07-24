@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -8,6 +8,8 @@ import { RestrictedField } from './RestrictedField'
 import { SlidePuzzle } from './SlidePuzzle'
 import { loginSchema, type LoginFormValues } from '../schemas/loginSchema'
 import { filterAsciiPassword, filterHints, filterMobile } from '@/lib/inputFilters'
+import { toastError } from '@/lib/alert'
+import { forgetRememberedPhone, loadRememberedPhone, saveRememberedPhone } from '@/lib/rememberMe'
 import { useAuth } from '@/context/AuthContext'
 import { api, ApiError } from '@/lib/api'
 import type { CurrentUser } from '@/types'
@@ -31,15 +33,31 @@ export function LoginForm() {
     register,
     handleSubmit,
     setError,
+    setValue,
     formState: { errors },
   } = useForm<LoginFormValues>({
     resolver: zodResolver(loginSchema),
     defaultValues: { phone: '', password: '', remember: false },
   })
 
+  /*
+   * اگر دفعه‌ی قبل «مرا به خاطر بسپار» زده بود، شماره‌اش را برمی‌گردانیم.
+   * این فقط راحتیِ پرکردن فرم است؛ احرازِ واقعی با کوکیِ دستگاه مورداعتماد
+   * است که سرور صادر می‌کند و همان ۱۰ روز اعتبار دارد.
+   */
+  useEffect(() => {
+    const remembered = loadRememberedPhone()
+    if (remembered) {
+      setValue('phone', remembered)
+      setValue('remember', true)
+    }
+  }, [setValue])
+
   async function onSubmit(values: LoginFormValues) {
     if (!human) {
-      setFormError('لطفاً پازل امنیتی را کامل کنید.')
+      // توست، نه پیام داخلِ فرم: اگر کاربر پایین صفحه باشد پیامِ درون‌فرمی را
+      // نمی‌بیند، ولی توست موقعیتِ ثابت دارد و همیشه دیده می‌شود.
+      toastError('لطفاً پازل امنیتی را کامل کنید.')
       return
     }
 
@@ -48,6 +66,11 @@ export function LoginForm() {
 
     try {
       const data = await api<LoginResponse>('/login', { method: 'POST', body: values })
+
+      // تیک «مرا به خاطر بسپار» واقعاً اثر دارد: شماره تا ۱۰ روز نگه داشته
+      // می‌شود و سرور هم دستگاه را مورداعتماد می‌کند.
+      if (values.remember) saveRememberedPhone(values.phone)
+      else forgetRememberedPhone()
 
       // دستگاه مورداعتماد: بدون مرحله‌ی دوم مستقیم وارد شد
       if (data.user) {
