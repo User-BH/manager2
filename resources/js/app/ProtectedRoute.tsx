@@ -1,4 +1,4 @@
-import { Navigate, Outlet, useLocation } from 'react-router-dom'
+import { Navigate, Outlet } from 'react-router-dom'
 import { Loader2 } from 'lucide-react'
 import { useAuth } from '@/context/AuthContext'
 import type { UserRole } from '@/types'
@@ -15,7 +15,6 @@ interface ProtectedRouteProps {
  */
 export function ProtectedRoute({ roles }: ProtectedRouteProps) {
   const { user, isAuthenticated, isLoading } = useAuth()
-  const location = useLocation()
 
   // تا وقتی /api/me جواب نداده نمی‌دانیم نشست فعالی هست یا نه. بدون این حالت،
   // هر بار رفرش صفحه کاربرِ واردشده برای یک لحظه به /auth پرت می‌شود.
@@ -31,7 +30,10 @@ export function ProtectedRoute({ roles }: ProtectedRouteProps) {
   }
 
   if (!isAuthenticated) {
-    return <Navigate to="/auth" replace state={{ from: location }} />
+    // صفحه‌ی ورود یک سندِ MPAِ جداست؛ با ناوبریِ واقعیِ مرورگر می‌رویم، نه
+    // مسیریابیِ داخلِ داشبورد.
+    window.location.replace('/auth')
+    return null
   }
 
   if (roles && user && !roles.includes(user.role)) {

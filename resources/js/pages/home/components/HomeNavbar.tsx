@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, useNavigate } from '@/lib/mpaNav'
 import { motion } from 'framer-motion'
 import { Menu, X } from 'lucide-react'
 import { useToggle } from '@/hooks'

@@ -1,7 +1,6 @@
 import { Suspense, lazy, useEffect } from 'react'
-import { Navigate, Route, Routes, useLocation } from 'react-router-dom'
+import { Route, Routes, useLocation } from 'react-router-dom'
 import { Loader2 } from 'lucide-react'
-import { HomePage } from '@/pages/home/HomePage'
 import { ProtectedRoute } from './ProtectedRoute'
 import type { UserRole } from '@/types'
 
@@ -16,18 +15,15 @@ import type { UserRole } from '@/types'
  * حدود ۱۰۰ کیلوبایت) فقط از اینجا می‌آید و بازدیدکننده‌ی صفحه‌ی فرود — که
  * هیچ فرمی نمی‌بیند — نباید بابتش هزینه بدهد.
  */
-const AuthPage = lazy(() => import('@/pages/auth/AuthPage').then((m) => ({ default: m.AuthPage })))
-
 /*
- * پوسته‌ی داشبورد (نوار کناری، هدر، جستجو، اعلان‌ها، ماشین‌حساب) عمداً lazy است:
- * بازدیدکننده‌ی صفحه‌ی فرود هرگز آن را نمی‌بیند و نباید دانلودش کند.
+ * پوسته‌ی داشبورد (نوار کناری، هدر، جستجو، اعلان‌ها، ماشین‌حساب) عمداً lazy است.
+ *
+ * صفحه‌های عمومی (خانه/دمو/پشتیبانی/ورود) دیگر اینجا نیستند: هرکدام یک سندِ
+ * MPAِ مستقل‌اند که لاراول مستقیم سرو می‌کند. این روتر فقط برای داشبوردِ SPA
+ * است، پس باندلِ داشبورد دیگر کدِ صفحه‌های عمومی را حمل نمی‌کند.
  */
 const DashboardLayout = lazy(() => import('@/components/layout/DashboardLayout').then((m) => ({ default: m.DashboardLayout })))
 const ForbiddenPage = lazy(() => import('@/pages/error/ForbiddenPage').then((m) => ({ default: m.ForbiddenPage })))
-const VerifyOtpPage = lazy(() => import('@/pages/auth/VerifyOtpPage').then((m) => ({ default: m.VerifyOtpPage })))
-const ForgotPasswordPage = lazy(() => import('@/pages/auth/ForgotPasswordPage').then((m) => ({ default: m.ForgotPasswordPage })))
-const DemoPage = lazy(() => import('@/pages/demo/DemoPage').then((m) => ({ default: m.DemoPage })))
-const SupportPage = lazy(() => import('@/pages/support/SupportPage').then((m) => ({ default: m.SupportPage })))
 const DashboardPage = lazy(() => import('@/pages/dashboard/DashboardPage').then((m) => ({ default: m.DashboardPage })))
 const UnitsPage = lazy(() => import('@/pages/units/UnitsPage').then((m) => ({ default: m.UnitsPage })))
 const ResidentsPage = lazy(() => import('@/pages/residents/ResidentsPage').then((m) => ({ default: m.ResidentsPage })))
@@ -82,13 +78,8 @@ export function AppRouter() {
     <Suspense fallback={<RouteFallback />}>
       <ScrollToTop />
       <Routes>
-        {/* --- عمومی --- */}
-        <Route path="/" element={<HomePage />} />
-        <Route path="/auth" element={<AuthPage />} />
-        <Route path="/auth/verify" element={<VerifyOtpPage />} />
-        <Route path="/auth/forgot" element={<ForgotPasswordPage />} />
-        <Route path="/demo" element={<DemoPage />} />
-        <Route path="/support" element={<SupportPage />} />
+        {/* صفحه‌های عمومی (/ , /auth , /demo , /support) اینجا نیستند؛ لاراول
+            آن‌ها را به‌صورت MPA سرو می‌کند. این روتر فقط داشبورد است. */}
         <Route path="/forbidden" element={<ForbiddenPage />} />
 
         {/* --- مشترک بین همه‌ی نقش‌های واردشده --- */}
@@ -141,8 +132,6 @@ export function AppRouter() {
             <Route path="/system/backup" element={<SystemBackupPage />} />
           </Route>
         </Route>
-
-        <Route path="/home" element={<Navigate to="/" replace />} />
 
         {/* مسیر نامعتبر */}
         <Route path="*" element={<ForbiddenPage />} />

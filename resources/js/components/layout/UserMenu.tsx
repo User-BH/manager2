@@ -16,7 +16,8 @@ export function UserMenu() {
   async function handleLogout() {
     await logout()
     setOpen(false)
-    navigate('/auth', { replace: true })
+    // ورود یک سندِ MPAِ جداست؛ خروج با ناوبریِ واقعیِ مرورگر انجام می‌شود
+    window.location.assign('/auth')
   }
 
   return (

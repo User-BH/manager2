@@ -1,4 +1,4 @@
-import { Link } from 'react-router-dom'
+import { Link } from '@/lib/mpaNav'
 import { motion } from 'framer-motion'
 import {
   ArrowRight,
@@ -12,7 +12,6 @@ import {
   Wallet,
   type LucideIcon,
 } from 'lucide-react'
-import { useDocumentTitle } from '@/hooks'
 import { heroImages } from '@/data/images'
 import { HomeNavbar } from '../home/components/HomeNavbar'
 import { FloatingActions } from '../home/components/FloatingActions'
@@ -94,7 +93,6 @@ const features: DemoFeature[] = [
  * دسترسی هم در دو دکمه‌ی شناورِ گوشه‌ی صفحه هست.
  */
 export function DemoPage() {
-  useDocumentTitle('دموی پنل مدیریت')
 
   return (
     <div style={{ backgroundColor: 'var(--surface-canvas)' }}>

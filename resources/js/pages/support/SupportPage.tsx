@@ -1,8 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
-import { useSearchParams } from 'react-router-dom'
+import { useSearchParams } from '@/lib/mpaNav'
 import { AnimatePresence, motion } from 'framer-motion'
 import { ChevronDown, LifeBuoy } from 'lucide-react'
-import { useDocumentTitle } from '@/hooks'
 import { scrollToElement } from '@/lib/scroll'
 import { HomeNavbar } from '../home/components/HomeNavbar'
 import { FloatingActions } from '../home/components/FloatingActions'
@@ -28,7 +27,6 @@ export function SupportPage() {
   const [openEntry, setOpenEntry] = useState<string | null>(null)
   const sectionRefs = useRef<Record<string, HTMLElement | null>>({})
 
-  useDocumentTitle('پشتیبانی و راهنما')
 
   function goToTopic(id: SupportTopicId) {
     setActiveTopic(id)

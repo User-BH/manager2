@@ -1,5 +1,5 @@
 import { useRef } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate } from '@/lib/mpaNav'
 import { motion, useScroll, useTransform } from 'framer-motion'
 import { ArrowLeft, PlayCircle } from 'lucide-react'
 import { heroHighlights } from '@/data/landingContent'

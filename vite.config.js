@@ -7,9 +7,22 @@ import { fileURLToPath, URL } from 'node:url';
 export default defineConfig({
     plugins: [
         laravel({
-            // Single entry: the SPA. The Blade panel and its Chart.js bundle
-            // are gone now that every screen exists in React.
-            input: ['resources/css/app.css', 'resources/js/main.tsx'],
+            /*
+             * چند entry:
+             *  - main.tsx: داشبوردِ SPA (روت‌های محافظت‌شده با react-router).
+             *  - entries/{home,demo,support,auth}.tsx: صفحه‌های عمومیِ MPA؛ هر
+             *    کدام یک island است که لاراول به‌صورت یک سندِ HTMLِ مستقل سرو
+             *    می‌کند. جداکردنِ entryها یعنی هر صفحه فقط کدِ خودش را می‌گیرد و
+             *    خزنده‌ها/هوش‌مصنوعی‌ها HTMLِ واقعیِ همان صفحه را با هدرِ مخصوصش می‌بینند.
+             */
+            input: [
+                'resources/css/app.css',
+                'resources/js/main.tsx',
+                'resources/js/entries/home.tsx',
+                'resources/js/entries/demo.tsx',
+                'resources/js/entries/support.tsx',
+                'resources/js/entries/auth.tsx',
+            ],
             refresh: true,
         }),
         react(),

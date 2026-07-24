@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Navigate, useLocation, useNavigate } from 'react-router-dom'
+import { Navigate, useLocation } from 'react-router-dom'
 import { Loader2, ShieldCheck } from 'lucide-react'
 import { AuthScreen } from './components/AuthScreen'
 import { OtpBoxes } from './components/OtpBoxes'
@@ -22,9 +22,8 @@ const RESEND_SECONDS = 60
  * محضِ کامل‌شدن، بدون فشار دکمه، ورود انجام و به داشبورد می‌رود.
  */
 export function VerifyOtpPage() {
-  const navigate = useNavigate()
   const location = useLocation()
-  const { setUser, isAuthenticated } = useAuth()
+  const { isAuthenticated } = useAuth()
   const state = (location.state as VerifyState | null) ?? {}
 
   const [code, setCode] = useState('')
@@ -47,7 +46,9 @@ export function VerifyOtpPage() {
     return <Navigate to="/auth" replace />
   }
   if (isAuthenticated) {
-    return <Navigate to="/dashboard" replace />
+    // داشبورد سندِ جداست
+    window.location.replace('/dashboard')
+    return null
   }
 
   async function submit(value: string) {
@@ -56,13 +57,13 @@ export function VerifyOtpPage() {
     setError(null)
 
     try {
-      const { user } = await api<{ user: CurrentUser }>('/login/verify', {
+      await api<{ user: CurrentUser }>('/login/verify', {
         method: 'POST',
         body: { code: value },
       })
 
-      setUser(user)
-      navigate('/dashboard', { replace: true })
+      // ورود کامل شد؛ به داشبورد (سندِ SPAِ جدا) می‌رویم
+      window.location.assign('/dashboard')
     } catch (err) {
       if (err instanceof ApiError && err.status === 422) {
         setError(err.fieldError('code') ?? err.message)

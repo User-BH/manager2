@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Link, Navigate, useLocation, useSearchParams } from 'react-router-dom'
+import { useLocation, useSearchParams } from 'react-router-dom'
 import { AnimatePresence, motion } from 'framer-motion'
 import { ArrowRight, ShieldCheck } from 'lucide-react'
 import { LoginForm } from './components/LoginForm'
@@ -38,8 +38,11 @@ export function AuthPage() {
   }, [searchParams])
 
   if (!isLoading && isAuthenticated) {
+    // داشبورد یک سندِ SPAِ جداست؛ پس رفتن به آن ناوبریِ واقعیِ مرورگر است نه
+    // مسیریابیِ داخلِ همین island.
     const from = (location.state as { from?: { pathname: string; search?: string } } | null)?.from
-    return <Navigate to={from ? `${from.pathname}${from.search ?? ''}` : '/dashboard'} replace />
+    window.location.replace(from ? `${from.pathname}${from.search ?? ''}` : '/dashboard')
+    return null
   }
 
   const isLogin = tab === 'login'
@@ -165,14 +168,14 @@ export function AuthPage() {
     <div className="min-h-screen" style={{ backgroundColor: 'var(--surface-canvas)' }}>
       {/* نوار بالا */}
       <div className="flex items-center justify-between px-5 py-4 sm:px-8" dir="rtl">
-        <Link
-          to="/"
+        <a
+          href="/"
           className="flex items-center gap-1.5 text-sm font-medium"
           style={{ color: 'var(--text-secondary)' }}
         >
           <ArrowRight size={16} />
           بازگشت به صفحه اصلی
-        </Link>
+        </a>
         <ThemeToggle />
       </div>
 

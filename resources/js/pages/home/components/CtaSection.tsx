@@ -1,4 +1,4 @@
-import { useNavigate } from 'react-router-dom'
+import { useNavigate } from '@/lib/mpaNav'
 import { ArrowLeft } from 'lucide-react'
 import { RevealOnScroll } from './RevealOnScroll'
 import { CtaMascot } from './CtaMascot'

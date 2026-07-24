@@ -1,5 +1,4 @@
 import { useEffect, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
 import { KeyRound, Loader2, Lock, Phone } from 'lucide-react'
 import { AuthScreen } from './components/AuthScreen'
 import { OtpBoxes } from './components/OtpBoxes'
@@ -8,7 +7,6 @@ import { PasswordStrength } from './components/PasswordStrength'
 import { filterAsciiPassword, filterMobile } from '@/lib/inputFilters'
 import { api, ApiError } from '@/lib/api'
 import { toastSuccess } from '@/lib/alert'
-import { useAuth } from '@/context/AuthContext'
 import { useDocumentTitle } from '@/hooks'
 import type { CurrentUser } from '@/types'
 
@@ -26,8 +24,6 @@ const RESEND_SECONDS = 60
  *    دوباره فرم ورود را پر کند.
  */
 export function ForgotPasswordPage() {
-  const navigate = useNavigate()
-  const { setUser } = useAuth()
   const [step, setStep] = useState<Step>('phone')
 
   useDocumentTitle('بازیابی رمز عبور')
@@ -107,14 +103,14 @@ export function ForgotPasswordPage() {
        * برمی‌گرداند؛ هویتش همین حالا با کد پیامکی اثبات شده، پس نه فرم ورود
        * لازم است نه یک پیامکِ دومرحله‌ایِ دیگر.
        */
-      const { user } = await api<{ user: CurrentUser }>('/password/reset', {
+      await api<{ user: CurrentUser }>('/password/reset', {
         method: 'POST',
         body: { password, password_confirmation: confirm },
       })
 
       toastSuccess('رمز عبور تغییر کرد. خوش آمدید!')
-      setUser(user)
-      navigate('/dashboard', { replace: true })
+      // ورود خودکار انجام شده؛ به داشبورد (سندِ جدا) می‌رویم
+      window.location.assign('/dashboard')
     } catch (err) {
       setError(err instanceof ApiError ? (err.fieldError('password') ?? err.message) : 'ارتباط با سرور برقرار نشد.')
     } finally {

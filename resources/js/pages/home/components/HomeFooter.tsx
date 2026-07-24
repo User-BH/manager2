@@ -1,5 +1,5 @@
 import type { CSSProperties } from 'react'
-import { Link } from 'react-router-dom'
+import { Link } from '@/lib/mpaNav'
 import { Mail, Phone, MapPin } from 'lucide-react'
 import { scrollToSection } from '@/lib/scroll'
 import { Logo } from '@/components/common/Logo'

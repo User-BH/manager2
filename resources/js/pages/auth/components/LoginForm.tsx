@@ -10,7 +10,6 @@ import { loginSchema, type LoginFormValues } from '../schemas/loginSchema'
 import { filterAsciiPassword, filterHints, filterMobile } from '@/lib/inputFilters'
 import { toastTopError } from '@/lib/alert'
 import { forgetRememberedPhone, loadRememberedPhone, saveRememberedPhone } from '@/lib/rememberMe'
-import { useAuth } from '@/context/AuthContext'
 import { api, ApiError } from '@/lib/api'
 import type { CurrentUser } from '@/types'
 
@@ -26,7 +25,6 @@ const WRONG_CREDENTIALS = 'شماره تلفن یا رمز عبور نادرست
 
 export function LoginForm() {
   const navigate = useNavigate()
-  const { setUser } = useAuth()
   const [submitting, setSubmitting] = useState(false)
   const [human, setHuman] = useState(false)
   // ورودِ ناموفق: هر دو اینپوت قرمز شوند (پیام در توست، نه زیر اینپوت)
@@ -76,14 +74,15 @@ export function LoginForm() {
       if (values.remember) saveRememberedPhone(values.phone)
       else forgetRememberedPhone()
 
-      // دستگاه مورداعتماد: بدون مرحله‌ی دوم مستقیم وارد شد
+      // دستگاه مورداعتماد: بدون مرحله‌ی دوم مستقیم وارد شد.
+      // داشبورد یک سندِ جداست، پس با ناوبریِ واقعیِ مرورگر می‌رویم؛ نشستِ
+      // سمت سرور آنجا دوباره خوانده می‌شود.
       if (data.user) {
-        setUser(data.user)
-        navigate('/dashboard', { replace: true })
+        window.location.assign('/dashboard')
         return
       }
 
-      // مرحله‌ی دوم: به صفحه‌ی تایید کد می‌رویم
+      // مرحله‌ی دوم: به صفحه‌ی تایید کد می‌رویم (داخلِ همین island است)
       if (data.otpRequired) {
         navigate('/auth/verify', {
           state: { phone: data.phone, devCode: data.dev_code ?? null },

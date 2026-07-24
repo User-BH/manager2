@@ -1,4 +1,3 @@
-import { useDocumentTitle } from '@/hooks'
 import { ScrollProgressBar } from './components/ScrollProgressBar'
 import { HomeNavbar } from './components/HomeNavbar'
 import { HeroSection } from './components/HeroSection'
@@ -12,8 +11,8 @@ import { HomeFooter } from './components/HomeFooter'
 import { FloatingActions } from './components/FloatingActions'
 
 export function HomePage() {
-  useDocumentTitle('صفحه اصلی')
-
+  // عنوان و متادیتا سمتِ سرور تنظیم می‌شوند (SEO)، پس اینجا document.title را
+  // بازنویسی نمی‌کنیم.
   return (
     // overflow-x-clip تورِ ایمنی است: اگر عنصری (مثلاً انیمیشنِ ورودِ یک بخش
     // که هنوز اجرا نشده) کمی از لبه بیرون بزند، صفحه اسکرول افقی و قابلیت

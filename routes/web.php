@@ -9,20 +9,38 @@ use Illuminate\Support\Facades\Route;
 
 /*
 |--------------------------------------------------------------------------
-| اپلیکیشن React (SPA)
+| صفحه‌های عمومیِ MPA (island)
 |--------------------------------------------------------------------------
 |
-| هر مسیری که با /api یا یکی از مسیرهای زیر شروع نشود، همین یک ویو را
-| برمی‌گرداند و react-router سمت کلاینت تصمیم می‌گیرد کدام صفحه رندر شود.
-| به همین دلیل رفرش کردن روی مسیرهای داخلی (مثل /units) هم درست کار می‌کند.
+| خانه/دمو/پشتیبانی/ورود هرکدام یک سندِ HTMLِ مستقل‌اند که سمتِ سرور رندر
+| می‌شوند: عنوان، توضیح، Open Graph و JSON-LDِ مخصوصِ خودشان را دارند (از
+| config/seo.php) و فقط entryِ همان صفحه را بار می‌کنند. این یعنی خزنده‌ها و
+| هوش‌مصنوعی‌ها به‌جای یک پوسته‌ی خالی، HTMLِ واقعیِ هر صفحه را می‌بینند.
 |
 */
 
-Route::view('/', 'spa')->name('home');
+Route::view('/', 'public.home', [
+    'seo' => config('seo.home'),
+    'entry' => 'resources/js/entries/home.tsx',
+])->name('home');
 
-// نام «login» را لاراول برای ریدایرکت کاربر واردنشده استفاده می‌کند؛
-// مقصدش صفحه‌ی ورودِ SPA است.
-Route::view('/auth', 'spa')->name('login');
+Route::view('/demo', 'public.demo', [
+    'seo' => config('seo.demo'),
+    'entry' => 'resources/js/entries/demo.tsx',
+])->name('demo');
+
+Route::view('/support', 'public.support', [
+    'seo' => config('seo.support'),
+    'entry' => 'resources/js/entries/support.tsx',
+])->name('support');
+
+// جریانِ سه‌گامیِ ورود؛ هر سه مسیر همان islandِ auth را سرو می‌کنند و روترِ
+// کوچکِ داخلش گامِ درست را نشان می‌دهد. نام «login» را لاراول برای ریدایرکتِ
+// کاربرِ واردنشده استفاده می‌کند.
+$authView = ['seo' => config('seo.auth'), 'entry' => 'resources/js/entries/auth.tsx'];
+Route::view('/auth', 'public.auth', $authView)->name('login');
+Route::view('/auth/verify', 'public.auth', $authView);
+Route::view('/auth/forgot', 'public.auth', $authView);
 
 /*
 |--------------------------------------------------------------------------
@@ -79,12 +97,11 @@ Route::match(['get', 'post'], 'subscription/callback/{subscription}', [Subscript
     ->withoutMiddleware([PreventRequestForgery::class]);
 
 /*
-| catch-all: باید آخرین روت فایل باشد.
+| catch-all: داشبوردِ SPA.
 |
-| فقط مسیرهایی استثنا می‌شوند که اصلاً روت لاراولی ندارند (api و فایل‌های
-| ساخته‌شده). مسیرهای بالا لازم نیست اینجا تکرار شوند چون زودتر ثبت شده‌اند
-| و روتر خودش اول آن‌ها را امتحان می‌کند؛ استثنا کردنشان صفحه‌های SPA مثل
-| /units و /bills را از کار می‌انداخت.
+| هر مسیری که صفحه‌ی عمومیِ بالا، /api یا فایلِ ساخته‌شده نباشد (مثل /dashboard
+| و /units و /settings/complex) همین یک ویو را می‌گیرد و react-router سمتِ
+| کلاینت صفحه‌ی داشبوردیِ درست را رندر می‌کند. باید آخرین روتِ فایل باشد.
 */
 Route::get('/{path}', fn () => view('spa'))
     ->where('path', '^(?!api|build|storage)[^?]*$');
