@@ -72,6 +72,23 @@ class Advertisement extends Model
             return route('ads.image', ['advertisement' => $this->id, 'v' => $this->updated_at?->timestamp]);
         }
 
+        if (! $this->image_url) {
+            return null;
+        }
+
+        /*
+         * برای فایل‌های محلیِ داخل public (مثل /images/ad-nitropanel.webp)، نسخه
+         * را از زمانِ تغییرِ خودِ فایل می‌گیریم. بدون این، وقتی فایل با همان نام
+         * جایگزین می‌شد، مرورگر نسخه‌ی کش‌شده‌ی قدیمی را نشان می‌داد و تصویر تازه
+         * دیده نمی‌شد.
+         */
+        if (str_starts_with($this->image_url, '/')) {
+            $path = public_path(ltrim((string) parse_url($this->image_url, PHP_URL_PATH), '/'));
+            if (is_file($path)) {
+                return $this->image_url.'?v='.filemtime($path);
+            }
+        }
+
         return $this->image_url;
     }
 
