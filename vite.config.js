@@ -25,7 +25,16 @@ export default defineConfig({
             ],
             refresh: true,
         }),
-        react(),
+        react({
+            /*
+             * React Compiler: همه‌ی کامپوننت‌ها به‌صورت خودکار memoize می‌شوند
+             * (بدون useMemo/useCallback/React.memoِ دستی). کامپایلر هر جا مطمئن
+             * نباشد بی‌صدا از خیرِ همان کامپوننت می‌گذرد، پس امن است.
+             */
+            babel: {
+                plugins: [['babel-plugin-react-compiler', { target: '19' }]],
+            },
+        }),
         tailwindcss(),
     ],
     resolve: {
