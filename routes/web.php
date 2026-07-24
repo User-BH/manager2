@@ -3,6 +3,7 @@
 use App\Http\Controllers\AdvertisementImageController;
 use App\Http\Controllers\DownloadController;
 use App\Http\Controllers\GatewayController;
+use App\Http\Controllers\SeoController;
 use App\Http\Controllers\SubscriptionCheckoutController;
 use Illuminate\Foundation\Http\Middleware\PreventRequestForgery;
 use Illuminate\Support\Facades\Route;
@@ -18,6 +19,11 @@ use Illuminate\Support\Facades\Route;
 | هوش‌مصنوعی‌ها به‌جای یک پوسته‌ی خالی، HTMLِ واقعیِ هر صفحه را می‌بینند.
 |
 */
+
+// فایل‌های متنیِ سئو (دامنه از config خوانده می‌شود، پس بین محیط‌ها درست می‌ماند)
+Route::get('/robots.txt', [SeoController::class, 'robots']);
+Route::get('/sitemap.xml', [SeoController::class, 'sitemap']);
+Route::get('/llms.txt', [SeoController::class, 'llms']);
 
 Route::view('/', 'public.home', [
     'seo' => config('seo.home'),
