@@ -16,6 +16,8 @@ const smsSchema = z.object({
   sender: z.string().max(30).optional(),
   username: z.string().max(100).optional(),
   password: z.string().max(100).optional(),
+  pattern_code: z.string().max(50).optional(),
+  pattern_variable: z.string().max(50).optional(),
 })
 
 type SmsFormValues = z.infer<typeof smsSchema>
@@ -96,6 +98,7 @@ export function SmsPage() {
   // ملی‌پیامک با نام کاربری/رمز کار می‌کند، بقیه با API key
   const usesCredentials = driver === 'melipayamak'
   const usesApiKey = driver === 'kavenegar' || driver === 'ippanel'
+  const usesPattern = driver === 'ippanel'
 
   return (
     <div className="flex flex-col gap-5">
@@ -176,6 +179,38 @@ export function SmsPage() {
                 )}
 
                 <TextField label="شماره خط ارسال" dir="ltr" error={errors.sender?.message} {...register('sender')} />
+              </div>
+            )}
+
+            {/* پترنِ ایپ‌پنل برای ارسالِ کدِ ورود (OTP سریع‌تر می‌رسد). خالی
+                بگذارید تا پیامکِ متنیِ ساده فرستاده شود. */}
+            {usesPattern && (
+              <div
+                className="grid grid-cols-1 gap-4 rounded-2xl border p-4 sm:grid-cols-2"
+                style={{ borderColor: 'var(--border-subtle)', backgroundColor: 'var(--surface-sunken)' }}
+              >
+                <div className="sm:col-span-2 -mb-1 text-[12.5px] font-semibold" style={{ color: 'var(--text-secondary)' }}>
+                  ارسال کد ورود با پترن (اختیاری، فقط برای OTP)
+                </div>
+                <TextField
+                  label="کد پترن"
+                  dir="ltr"
+                  placeholder="مثلاً 123456"
+                  error={errors.pattern_code?.message}
+                  {...register('pattern_code')}
+                />
+                <TextField
+                  label="نام متغیر کد در پترن"
+                  dir="ltr"
+                  placeholder="code"
+                  error={errors.pattern_variable?.message}
+                  {...register('pattern_variable')}
+                />
+                <p className="sm:col-span-2 text-[11.5px] leading-6" style={{ color: 'var(--text-tertiary)' }}>
+                  در پنل ایپ‌پنل یک پترن با یک متغیر (مثلاً <span dir="ltr">%code%</span>) بسازید و کد آن را اینجا وارد کنید.
+                  برای پرشدنِ خودکارِ کد روی گوشی، بهتر است متن پترن با خطی مثل
+                  <span dir="ltr" className="mx-1">@{'{'}دامنه{'}'} #{'{'}code{'}'}</span> تمام شود.
+                </p>
               </div>
             )}
 

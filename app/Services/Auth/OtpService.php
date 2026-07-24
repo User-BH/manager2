@@ -44,8 +44,9 @@ class OtpService
             'expires_at' => now()->addSeconds(self::TTL_SECONDS),
         ]);
 
-        $message = 'کد ورود شما به سامانه مدیریت ساختمان: '.$code;
-        $sent = $this->sms->send($phone, $message);
+        // تنها پیامکِ سامانه همین است: کدِ ورود. با درایورِ دارای پترن (ایپ‌پنل)
+        // به‌صورت پترن می‌رود، وگرنه پیامکِ متنیِ سازگار با WebOTP.
+        $sent = $this->sms->sendOtp($phone, $code);
 
         return [
             'ok' => $sent,

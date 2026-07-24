@@ -36,6 +36,12 @@ class SmsManager
         return $this->driver()->send($phone, $message);
     }
 
+    /** ارسالِ کدِ یک‌بارمصرف (تنها پیامکِ سامانه) — با پترن اگر درایور پشتیبانی کند. */
+    public function sendOtp(string $phone, string $code): bool
+    {
+        return $this->driver()->sendOtp($phone, $code);
+    }
+
     public function isLogDriver(): bool
     {
         return SystemSettings::get('sms_driver', 'log') === 'log';

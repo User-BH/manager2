@@ -33,9 +33,44 @@ export function OtpBoxes({
 }: OtpBoxesProps) {
   const refs = useRef<(HTMLInputElement | null)[]>([])
 
+  // آخرین نسخه‌ی کال‌بک‌ها، تا افکتِ WebOTP که یک‌بار اجرا می‌شود بسته‌ی کهنه نگیرد
+  const onChangeRef = useRef(onChange)
+  onChangeRef.current = onChange
+  const onCompleteRef = useRef(onComplete)
+  onCompleteRef.current = onComplete
+
   useEffect(() => {
     if (autoFocus) refs.current[0]?.focus()
   }, [autoFocus])
+
+  /*
+   * پرشدنِ خودکارِ کد از پیامک (فقط وقتی کاربر با گوشی وارد شده).
+   *
+   * WebOTP کدِ داخلِ پیامکی را که با خطِ «@دامنه #کد» تمام می‌شود می‌خواند و
+   * بدون تایپِ دستی در خانه‌ها می‌گذارد. روی دسکتاپ یا مرورگرِ ناپشتیبان،
+   * `OTPCredential` وجود ندارد و این بخش بی‌اثر است، پس کاربرِ سیستم خودش کد
+   * را وارد می‌کند. (iOS جداگانه با autocomplete=one-time-code کار می‌کند.)
+   */
+  useEffect(() => {
+    if (typeof window === 'undefined' || !('OTPCredential' in window)) return
+
+    const controller = new AbortController()
+    ;(navigator.credentials as unknown as {
+      get: (o: unknown) => Promise<{ code?: string } | null>
+    })
+      .get({ otp: { transport: ['sms'] }, signal: controller.signal })
+      .then((cred) => {
+        const code = String(cred?.code ?? '').replace(/\D/g, '').slice(0, length)
+        if (!code) return
+        onChangeRef.current(code)
+        if (code.length === length) onCompleteRef.current?.(code)
+      })
+      .catch(() => {
+        // کاربر رد کرد یا پیامکی نرسید — بی‌صدا نادیده می‌گیریم
+      })
+
+    return () => controller.abort()
+  }, [length])
 
   const digits = value.padEnd(length, ' ').slice(0, length).split('')
 
@@ -82,6 +117,7 @@ export function OtpBoxes({
           onKeyDown={(e) => onKeyDown(i, e)}
           onFocus={(e) => e.target.select()}
           inputMode="numeric"
+          autoComplete={i === 0 ? 'one-time-code' : 'off'}
           maxLength={1}
           disabled={disabled}
           aria-label={`رقم ${i + 1} کد`}

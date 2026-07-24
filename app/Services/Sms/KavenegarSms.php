@@ -11,6 +11,8 @@ use Illuminate\Support\Facades\Log;
  */
 class KavenegarSms implements SmsGateway
 {
+    use SendsOtpAsMessage;
+
     public function __construct(protected array $config) {}
 
     public function send(string $phone, string $message): bool

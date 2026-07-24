@@ -21,6 +21,9 @@ class SmsController extends Controller
                 'apikey' => $config['apikey'] ?? '',
                 'sender' => $config['sender'] ?? '',
                 'username' => $config['username'] ?? '',
+                // کدِ پترن و نامِ متغیرِ آن، برای ارسالِ OTP با پترن (ایپ‌پنل).
+                'pattern_code' => $config['pattern_code'] ?? '',
+                'pattern_variable' => $config['pattern_variable'] ?? '',
                 // رمز وب‌سرویس برنمی‌گردد؛ فقط اینکه تنظیم شده یا نه.
                 'password_set' => filled($config['password'] ?? null),
             ],
@@ -38,6 +41,8 @@ class SmsController extends Controller
             'sender' => ['nullable', 'string', 'max:30'],
             'username' => ['nullable', 'string', 'max:100'],
             'password' => ['nullable', 'string', 'max:100'],
+            'pattern_code' => ['nullable', 'string', 'max:50'],
+            'pattern_variable' => ['nullable', 'string', 'max:50'],
         ], [], ['sms_driver' => 'سامانه پیامک']);
 
         $existing = SystemSettings::getJson('sms_config', []);
@@ -47,6 +52,8 @@ class SmsController extends Controller
             'apikey' => $data['apikey'] ?? '',
             'sender' => $data['sender'] ?? '',
             'username' => $data['username'] ?? '',
+            'pattern_code' => $data['pattern_code'] ?? '',
+            'pattern_variable' => $data['pattern_variable'] ?? '',
             // خالی گذاشتن رمز یعنی «تغییرش نده»، چون فرم هرگز مقدار فعلی را
             // نمایش نمی‌دهد.
             'password' => filled($data['password'] ?? null)

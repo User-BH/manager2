@@ -10,6 +10,8 @@ use Illuminate\Support\Facades\Log;
  */
 class LogSms implements SmsGateway
 {
+    use SendsOtpAsMessage;
+
     public function send(string $phone, string $message): bool
     {
         Log::info("[SMS:log] to={$phone} message={$message}");
