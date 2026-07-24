@@ -37,7 +37,11 @@ export function FeaturesSection() {
                 <div className="relative h-44 overflow-hidden">
                   <motion.img
                     src={feature.image}
-                    alt={feature.title}
+                    alt={`${feature.title} — ${feature.description}`}
+                    width={900}
+                    height={506}
+                    loading="lazy"
+                    decoding="async"
                     variants={{ rest: { scale: 1 }, hover: { scale: 1.08 } }}
                     transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
                     className="h-full w-full object-cover"
