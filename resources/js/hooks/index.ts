@@ -1,7 +1,6 @@
 export { useDebounce } from './useDebounce'
 export { useToggle } from './useToggle'
 export { useLocalStorage } from './useLocalStorage'
-export { useFetch } from './useFetch'
 export { useClickOutside } from './useClickOutside'
 export { useMediaQuery } from './useMediaQuery'
 export { useScrollProgress } from './useScrollProgress'

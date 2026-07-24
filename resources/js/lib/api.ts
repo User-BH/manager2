@@ -1,9 +1,12 @@
 /**
- * لایه‌ی ارتباط با API لاراول.
+ * لایه‌ی ارتباط با API لاراول (بر پایه‌ی axios).
  *
- * احراز هویت با نشست و کوکی انجام می‌شود، نه توکن. پس هر درخواستِ
- * تغییردهنده باید توکن CSRF را همراه ببرد.
+ * احراز هویت با نشست و کوکی انجام می‌شود، نه توکن. پس هر درخواستِ تغییردهنده
+ * باید توکن CSRF را همراه ببرد. کلِ برنامه از همین `api` استفاده می‌کند، پس
+ * همه‌ی درخواست‌ها از میانِ همین نمونه‌ی axios می‌گذرند.
  */
+
+import axios, { AxiosError, type AxiosInstance, type AxiosRequestConfig } from 'axios'
 
 export class ApiError extends Error {
   status: number
@@ -37,16 +40,31 @@ export function setCsrfToken(token: string | undefined | null): void {
   if (token) csrfToken = token
 }
 
+const http: AxiosInstance = axios.create({
+  baseURL: '/api',
+  // کوکی نشست باید همراه هر درخواست برود
+  withCredentials: true,
+  headers: {
+    Accept: 'application/json',
+    'X-Requested-With': 'XMLHttpRequest',
+  },
+  // ما خودمان بر اساس بدنه‌ی پاسخ تصمیم می‌گیریم، پس همه‌ی وضعیت‌ها را می‌گیریم
+  // و در catch نگاشتشان می‌کنیم به ApiError.
+})
+
+// توکن CSRF فقط روی درخواست‌های تغییردهنده لازم است
+http.interceptors.request.use((config) => {
+  const method = (config.method ?? 'get').toUpperCase()
+  if (method !== 'GET') {
+    config.headers.set('X-CSRF-TOKEN', csrfToken)
+  }
+  return config
+})
+
 async function refreshCsrfToken(): Promise<void> {
   try {
-    const response = await fetch('/api/csrf-token', {
-      credentials: 'same-origin',
-      headers: { Accept: 'application/json' },
-    })
-    if (!response.ok) return
-
-    const payload = await response.json()
-    setCsrfToken(payload.csrfToken)
+    const { data } = await http.get('/csrf-token')
+    setCsrfToken(data?.csrfToken)
   } catch {
     // اگر شبکه هم قطع باشد، خطای اصلی به تماس‌گیرنده برمی‌گردد
   }
@@ -58,79 +76,84 @@ interface RequestOptions {
   signal?: AbortSignal
 }
 
-async function send(path: string, options: RequestOptions): Promise<Response> {
+function toConfig(path: string, options: RequestOptions): AxiosRequestConfig {
   const { method = 'GET', body, signal } = options
 
-  // آپلود فایل باید به‌صورت FormData برود. در آن حالت Content-Type را خودمان
-  // ست نمی‌کنیم تا مرورگر boundary درست را اضافه کند.
+  // آپلود فایل به‌صورت FormData می‌رود؛ در آن حالت Content-Type را دست نمی‌زنیم
+  // تا axios خودش boundary درست را بگذارد.
   const isFormData = body instanceof FormData
 
-  return fetch(`/api${path}`, {
+  return {
+    url: path,
     method,
     signal,
-    // کوکی نشست باید همراه درخواست برود
-    credentials: 'same-origin',
-    headers: {
-      Accept: 'application/json',
-      'X-Requested-With': 'XMLHttpRequest',
-      ...(body && !isFormData ? { 'Content-Type': 'application/json' } : {}),
-      ...(method === 'GET' ? {} : { 'X-CSRF-TOKEN': csrfToken }),
-    },
-    body: isFormData ? (body as FormData) : body ? JSON.stringify(body) : undefined,
-  })
+    data: body,
+    headers: body && !isFormData ? { 'Content-Type': 'application/json' } : undefined,
+  }
 }
 
-export async function api<T>(path: string, options: RequestOptions = {}): Promise<T> {
-  let response = await send(path, options)
+async function request<T>(path: string, options: RequestOptions, retried: boolean): Promise<T> {
+  try {
+    const response = await http.request(toConfig(path, options))
 
-  // ۴۱۹ یعنی توکن کهنه شده (معمولاً بعد از ورود یا انقضای نشست). یک‌بار توکن
-  // را تازه می‌کنیم و دوباره می‌فرستیم تا کاربر مجبور به رفرش دستی نشود.
-  if (response.status === 419) {
-    await refreshCsrfToken()
-    response = await send(path, options)
-  }
+    // هر پاسخی که توکن تازه دارد، نسخه‌ی محلی را به‌روز می‌کند
+    setCsrfToken((response.data as { csrfToken?: string })?.csrfToken)
 
-  if (response.status === 204) {
-    return undefined as T
-  }
-
-  // پاسخ‌های غیر JSON (مثل صفحه‌ی خطای ۵۰۰) نباید با JSON.parse بترکند و
-  // پیام بی‌ربط بدهند.
-  const contentType = response.headers.get('content-type') ?? ''
-  if (!contentType.includes('application/json')) {
-    if (!response.ok) {
-      throw new ApiError(
-        response.status === 419
-          ? 'نشست شما منقضی شده است. صفحه را تازه کنید.'
-          : 'پاسخ نامعتبر از سرور دریافت شد.',
-        response.status,
-      )
+    // ۲۰۴ یا بدنه‌ی خالی
+    if (response.status === 204 || response.data === '' || response.data == null) {
+      return undefined as T
     }
-    return undefined as T
-  }
 
-  const payload = await response.json()
+    return response.data as T
+  } catch (error) {
+    // لغو درخواست (unmount یا AbortController) را دست‌نخورده رد می‌کنیم
+    if (axios.isCancel(error)) throw error
 
-  // هر پاسخی که توکن تازه دارد، نسخه‌ی محلی را به‌روز می‌کند
-  setCsrfToken(payload?.csrfToken)
+    const axiosError = error as AxiosError<{
+      message?: string
+      errors?: Record<string, string[]>
+      csrfToken?: string
+      accountDisabled?: boolean
+    }>
 
-  if (!response.ok) {
+    const status = axiosError.response?.status ?? 0
+
+    // ۴۱۹ یعنی توکن کهنه شده (معمولاً بعد از ورود یا انقضای نشست). یک‌بار توکن
+    // را تازه می‌کنیم و دوباره می‌فرستیم تا کاربر مجبور به رفرش دستی نشود.
+    if (status === 419 && !retried) {
+      await refreshCsrfToken()
+      return request<T>(path, options, true)
+    }
+
+    const payload = axiosError.response?.data
+    setCsrfToken(payload?.csrfToken)
+
     /*
-     * حساب کاربر وسط نشست غیرفعال شده. سرور نشست را همان‌جا بسته، پس هر
-     * درخواست بعدی هم رد می‌شود و ماندن روی صفحه‌ی داشبورد فقط خطا پشت خطا
-     * تولید می‌کند. یک ناوبری کامل (نه ناوبری SPA) هم کاربر را به صفحه‌ی
-     * ورود می‌برد و هم کل حالتِ درون‌حافظه‌ای را پاک می‌کند.
+     * حساب کاربر وسط نشست غیرفعال شده. سرور نشست را همان‌جا بسته، پس یک ناوبری
+     * کامل (نه SPA) کاربر را به صفحه‌ی ورود می‌برد و حالتِ درون‌حافظه‌ای را هم
+     * پاک می‌کند.
      */
     if (payload?.accountDisabled) {
       window.location.href = `/auth?reason=${encodeURIComponent(payload.message ?? '')}`
     }
 
+    // خطای اعتبارسنجی/تجاریِ JSON از لاراول
+    if (payload && typeof payload === 'object' && ('message' in payload || 'errors' in payload)) {
+      throw new ApiError(payload.message ?? 'خطایی رخ داد.', status, payload.errors ?? {})
+    }
+
+    // پاسخ غیرJSON (مثل صفحه‌ی خطای ۵۰۰) یا قطع شبکه
     throw new ApiError(
-      payload.message ?? 'خطایی رخ داد.',
-      response.status,
-      payload.errors ?? {},
+      status === 419
+        ? 'نشست شما منقضی شده است. صفحه را تازه کنید.'
+        : status
+          ? 'پاسخ نامعتبر از سرور دریافت شد.'
+          : 'ارتباط با سرور برقرار نشد.',
+      status,
     )
   }
+}
 
-  return payload as T
+export async function api<T>(path: string, options: RequestOptions = {}): Promise<T> {
+  return request<T>(path, options, false)
 }
