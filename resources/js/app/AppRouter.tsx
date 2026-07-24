@@ -1,5 +1,5 @@
-import { Suspense, lazy } from 'react'
-import { Navigate, Route, Routes } from 'react-router-dom'
+import { Suspense, lazy, useEffect } from 'react'
+import { Navigate, Route, Routes, useLocation } from 'react-router-dom'
 import { Loader2 } from 'lucide-react'
 import { HomePage } from '@/pages/home/HomePage'
 import { ProtectedRoute } from './ProtectedRoute'
@@ -58,9 +58,29 @@ const AccountPage = lazy(() => import('@/pages/account/AccountPage').then((m) =>
 const ADMINS: UserRole[] = ['super_admin', 'complex_admin']
 const SUPER: UserRole[] = ['super_admin']
 
+/**
+ * با هر تغییرِ مسیر، صفحه از بالا شروع می‌شود.
+ *
+ * react-router موقعیتِ اسکرول را نگه می‌دارد؛ برای همین رفتن از ته صفحه‌ی دمو
+ * به «/» کاربر را وسطِ صفحه‌ی اصلی (نزدیک گالری) می‌انداخت، نه هدر. تنها
+ * استثنا صفحه‌هایی است که با `?topic=` به بخشی دیپ‌لینک می‌شوند (پشتیبانی)،
+ * که خودشان به همان بخش اسکرول می‌کنند و نباید بازنویسی شوند.
+ */
+function ScrollToTop() {
+  const { pathname, search } = useLocation()
+
+  useEffect(() => {
+    if (search.includes('topic=')) return
+    window.scrollTo(0, 0)
+  }, [pathname, search])
+
+  return null
+}
+
 export function AppRouter() {
   return (
     <Suspense fallback={<RouteFallback />}>
+      <ScrollToTop />
       <Routes>
         {/* --- عمومی --- */}
         <Route path="/" element={<HomePage />} />

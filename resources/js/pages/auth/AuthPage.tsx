@@ -46,7 +46,7 @@ export function AuthPage() {
   const reason = searchParams.get('reason')
 
   const heading = (
-    <div className="mb-4 text-center">
+    <div className="mb-2 text-center">
       <h1 className="text-xl font-extrabold" style={{ color: 'var(--text-primary)' }}>
         {isLogin ? 'ورود به پنل مدیریت' : 'ساخت حساب مجتمع جدید'}
       </h1>
@@ -73,7 +73,7 @@ export function AuthPage() {
   )
 
   const switcher = (
-    <p className="mt-6 text-center text-xs" style={{ color: 'var(--text-tertiary)' }}>
+    <p className="mt-3 text-center text-xs" style={{ color: 'var(--text-tertiary)' }}>
       {isLogin ? 'هنوز حساب مجتمع نساخته‌اید؟ ' : 'حساب مجتمع دارید؟ '}
       <button
         onClick={() => setTab(isLogin ? 'register' : 'login')}
@@ -85,13 +85,18 @@ export function AuthPage() {
     </p>
   )
 
-  const formArea = (
+  /*
+   * فرم دو نسخه دارد (دسکتاپ و موبایل) که هم‌زمان در DOM‌اند. `pillId` را جدا
+   * می‌دهیم تا انیمیشنِ قرصِ تبِ هر نسخه مستقل باشد؛ وگرنه framer-motion سرِ یک
+   * layoutId مشترک گیج می‌شد و بعد از سوئیچ، پس‌زمینه‌ی سبزِ قرص گم می‌شد.
+   */
+  const renderForm = (pillId: string) => (
     <div className="w-full max-w-sm" dir="rtl">
       {heading}
 
       {/* دو دکمه‌ی بالای فرم — لینکِ تعویضِ پایین صفحه هم سرِ جایش می‌ماند */}
-      <div className="mb-5">
-        <AuthTabs active={tab} onChange={setTab} />
+      <div className="mb-3">
+        <AuthTabs active={tab} onChange={setTab} layoutId={pillId} />
       </div>
 
       {reasonBanner}
@@ -188,8 +193,8 @@ export function AuthPage() {
             بلندتر شد (مثلاً با ظاهرشدن خطاهای زیر ورودی‌ها) از بالا اسکرول
             می‌شود و سرتیترش بریده نمی‌شود.
           */}
-          <div className="flex min-h-full items-center justify-center px-10 py-6">
-            {formArea}
+          <div className="flex min-h-full items-center justify-center px-10 py-4">
+            {renderForm('auth-tab-pill-desktop')}
           </div>
         </motion.div>
 
@@ -206,7 +211,7 @@ export function AuthPage() {
 
       {/* --- موبایل: فقط فرم --- */}
       <div className="flex items-start justify-center px-5 pb-12 pt-4 lg:hidden">
-        {formArea}
+        {renderForm('auth-tab-pill-mobile')}
       </div>
     </div>
   )

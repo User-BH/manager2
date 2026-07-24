@@ -6,13 +6,28 @@ interface FormFieldProps extends InputHTMLAttributes<HTMLInputElement> {
   label: string
   icon: LucideIcon
   error?: string
+  /** بوردر/رینگِ قرمز بدون نمایشِ پیام (پیام جای دیگری، مثلاً توست، نشان داده می‌شود). */
+  invalid?: boolean
 }
 
 export const FormField = forwardRef<HTMLInputElement, FormFieldProps>(
-  ({ label, icon: Icon, error, type = 'text', className, ...props }, ref) => {
+  ({ label, icon: Icon, error, invalid, type = 'text', className, ...props }, ref) => {
     const [showPassword, setShowPassword] = useState(false)
     const isPassword = type === 'password'
     const inputType = isPassword && showPassword ? 'text' : type
+    // قرمزشدن با خطای متنی یا پرچمِ invalid؛ ولی پیام فقط وقتی error هست
+    const hasError = Boolean(error) || Boolean(invalid)
+
+    /*
+     * جلوگیری از کپیِ رمز از داخل اینپوت.
+     *
+     * کپی/برش/منوی راست‌کلیک/کشیدن روی فیلدِ رمز بسته می‌شود تا رمزِ تایپ‌شده
+     * از فیلد بیرون کشیده نشود. جای‌گذاری (paste) آزاد است، چون کاربر ممکن است
+     * بخواهد رمزش را از یک نگه‌دارنده‌ی رمز بچسباند.
+     */
+    const blockCopy = isPassword
+      ? { onCopy: preventEvent, onCut: preventEvent, onContextMenu: preventEvent, onDragStart: preventEvent }
+      : {}
 
     return (
       <div className="flex flex-col gap-1.5">
@@ -37,11 +52,12 @@ export const FormField = forwardRef<HTMLInputElement, FormFieldProps>(
             )}
             style={{
               backgroundColor: 'var(--surface-sunken)',
-              borderColor: error ? 'var(--color-danger)' : 'var(--border-subtle)',
+              borderColor: hasError ? 'var(--color-danger)' : 'var(--border-subtle)',
               color: 'var(--text-primary)',
-              ['--tw-ring-color' as string]: error ? 'var(--color-danger)' : 'var(--ring-focus)',
+              ['--tw-ring-color' as string]: hasError ? 'var(--color-danger)' : 'var(--ring-focus)',
             }}
             {...props}
+            {...blockCopy}
           />
 
           {isPassword && (
@@ -69,3 +85,7 @@ export const FormField = forwardRef<HTMLInputElement, FormFieldProps>(
 )
 
 FormField.displayName = 'FormField'
+
+function preventEvent(event: { preventDefault: () => void }) {
+  event.preventDefault()
+}

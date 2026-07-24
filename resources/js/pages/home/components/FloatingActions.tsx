@@ -3,6 +3,7 @@ import { AnimatePresence, motion } from 'framer-motion'
 import { ArrowUp } from 'lucide-react'
 import { scrollToTop } from '@/lib/scroll'
 import { SupportChat } from './SupportChat'
+import { HoverLabel } from './HoverLabel'
 
 /**
  * دو دکمه‌ی شناور گوشه‌ی پایین-راست صفحه‌ی فرود.
@@ -31,13 +32,14 @@ export function FloatingActions() {
           <motion.button
             onClick={scrollToTop}
             aria-label="بازگشت به بالای صفحه"
-            title="بازگشت به بالا"
             initial={{ opacity: 0, scale: 0.8, y: 10 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.8, y: 10 }}
             whileHover={{ scale: 1.08 }}
             whileTap={{ scale: 0.94 }}
-            className="fixed bottom-[6.25rem] right-5 z-40 flex h-11 w-11 items-center justify-center rounded-full border shadow-lg backdrop-blur"
+            /* بدون attribute ‏title تا تولتیپِ زشتِ مرورگر نیاید؛ به‌جایش
+               تولتیپِ سفارشیِ هم‌رنگِ سایت با hover ظاهر می‌شود. */
+            className="group fixed bottom-[6.25rem] right-5 z-40 flex h-11 w-11 items-center justify-center rounded-full border shadow-lg backdrop-blur"
             style={{
               backgroundColor: 'color-mix(in srgb, var(--surface-base) 88%, transparent)',
               borderColor: 'var(--border-subtle)',
@@ -45,6 +47,7 @@ export function FloatingActions() {
             }}
           >
             <ArrowUp size={20} />
+            <HoverLabel>بازگشت به بالا</HoverLabel>
           </motion.button>
         )}
       </AnimatePresence>

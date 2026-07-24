@@ -163,17 +163,14 @@ export function DemoPage() {
             چه چیزهایی در ویدیو می‌بینید
           </h2>
 
+          {/* این کارت‌ها عمداً بی‌انیمیشن‌اند: نه ورودِ پلکانی، نه بالاآمدن با
+              هاور — کاملاً ثابت می‌مانند. */}
           <div className="mt-8 grid gap-4 sm:grid-cols-2">
-            {features.map((feature, index) => {
+            {features.map((feature) => {
               const Icon = feature.icon
               return (
-                <motion.article
+                <article
                   key={feature.title}
-                  initial={{ opacity: 0, y: 22 }}
-                  whileInView={{ opacity: 1, y: 0 }}
-                  viewport={{ once: true, margin: '-60px' }}
-                  transition={{ duration: 0.45, delay: Math.min(index * 0.06, 0.35) }}
-                  whileHover={{ y: -4 }}
                   className="rounded-2xl border p-5"
                   style={{
                     borderColor: 'var(--border-subtle)',
@@ -196,7 +193,7 @@ export function DemoPage() {
                   <p className="mt-2 text-[13px] leading-7" style={{ color: 'var(--text-secondary)' }}>
                     {feature.description}
                   </p>
-                </motion.article>
+                </article>
               )
             })}
           </div>

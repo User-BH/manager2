@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 import { ExternalLink, Loader2, Send, Sparkles, X } from 'lucide-react'
 import { api } from '@/lib/api'
+import { HoverLabel } from './HoverLabel'
 
 interface ChatLink {
   label: string
@@ -333,11 +334,12 @@ function ChatToggle({ open, onToggle }: { open: boolean; onToggle: () => void })
     <motion.button
       onClick={onToggle}
       aria-label={open ? 'بستن پشتیبانی' : 'گفت‌وگو با پشتیبانی'}
-      title={open ? 'بستن' : 'گفت‌وگو با پشتیبانی'}
-      className="support-chat-frame fixed bottom-5 right-5 z-50 flex h-14 w-14 items-center justify-center rounded-full p-[1.5px] shadow-xl"
+      /* بدون attribute ‏title؛ تولتیپِ سفارشی فقط وقتی چت بسته است می‌آید. */
+      className="support-chat-frame group fixed bottom-5 right-5 z-50 flex h-14 w-14 items-center justify-center rounded-full p-[1.5px] shadow-xl"
       whileHover={{ scale: 1.08 }}
       whileTap={{ scale: 0.94 }}
     >
+      {!open && <HoverLabel>گفت‌وگو با پشتیبانی</HoverLabel>}
       <span
         className="flex h-full w-full items-center justify-center rounded-full"
         style={{ background: 'linear-gradient(135deg, var(--color-brand-600), var(--color-brand-400))' }}

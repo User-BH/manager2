@@ -74,7 +74,7 @@ class AuthController extends Controller
 
         // دستگاهِ مورداعتماد: رد کردن کاملِ مرحله‌ی دوم.
         if ($this->devices->isTrustedFor($user, $request)) {
-            return $this->completeLogin($request, $user, remember: false);
+            return $this->completeLogin($request, $user, remember: false, otp: $otp);
         }
 
         // شروع مرحله‌ی دوم: کد پیامکی.
@@ -132,7 +132,7 @@ class AuthController extends Controller
 
         $request->session()->forget('login.pending');
 
-        return $this->completeLogin($request, $user, remember: (bool) ($pending['remember'] ?? false));
+        return $this->completeLogin($request, $user, remember: (bool) ($pending['remember'] ?? false), otp: $otp);
     }
 
     /**
@@ -347,13 +347,18 @@ class AuthController extends Controller
     /**
      * تکمیل ورود: احراز، بازتولید نشست و در صورت لزوم ثبت دستگاهِ مورداعتماد.
      */
-    private function completeLogin(Request $request, User $user, bool $remember): JsonResponse
+    private function completeLogin(Request $request, User $user, bool $remember, ?OtpService $otp = null): JsonResponse
     {
         Auth::login($user);
 
         // جلوگیری از session fixation. توکن CSRF هم عوض می‌شود، پس تازه‌اش
         // باید در پاسخ برگردد وگرنه اولین درخواستِ نوشتنیِ بعدی ۴۱۹ می‌گیرد.
         $request->session()->regenerate();
+
+        // کدهای این شماره پاک می‌شوند تا اگر کاربر بلافاصله بیرون بیاید و دوباره
+        // وارد شود، «فاصله‌ی ارسال مجدد» جلوی کدِ تازه را نگیرد و پیامِ «کمی صبر
+        // کنید» زیر شماره‌ی موبایل ظاهر نشود.
+        $otp?->clear($user->phone);
 
         if ($remember) {
             $this->devices->remember($user, $request);

@@ -92,6 +92,28 @@ class TwoFactorLoginTest extends TestCase
         $this->assertAuthenticatedAs($this->user->fresh());
     }
 
+    public function test_a_full_login_clears_otp_codes_so_an_immediate_relogin_is_not_blocked(): void
+    {
+        // ورودِ کاملِ اول
+        $code = $this->postJson('/api/login', [
+            'phone' => '09120000010', 'password' => 'secret123',
+        ])->json('dev_code');
+        $this->postJson('/api/login/verify', ['code' => $code])->assertOk();
+
+        // پس از ورودِ کامل، کدهای این شماره پاک می‌شوند تا «فاصله‌ی ارسال
+        // مجدد» که از روی همین ردیف حساب می‌شد، جلوی ورودِ بعدی را نگیرد.
+        $this->assertDatabaseCount('otp_codes', 0);
+
+        // خروج و ورودِ بلافاصله دوباره: باید کدِ تازه بفرستد، نه خطای «کمی صبر کنید».
+        $this->postJson('/api/logout')->assertOk();
+
+        $this->postJson('/api/login', [
+            'phone' => '09120000010', 'password' => 'secret123',
+        ])->assertOk()
+            ->assertJsonPath('otpRequired', true)
+            ->assertJsonPath('dev_code', fn ($code) => strlen((string) $code) === 6);
+    }
+
     public function test_a_wrong_code_does_not_authenticate(): void
     {
         $this->postJson('/api/login', ['phone' => '09120000010', 'password' => 'secret123']);

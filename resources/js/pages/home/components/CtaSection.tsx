@@ -38,7 +38,9 @@ export function CtaSection() {
               <ArrowLeft size={16} className="transition-transform group-hover:-translate-x-1" />
             </button>
 
-            <div className="pointer-events-none -mt-4 -mb-16">
+            {/* حاشیه‌ی منفیِ بالا کمی بیشتر است تا نوکِ انگشتان روی لبه‌ی پایینِ
+                دکمه بنشیند (نه کمی پایین‌ترش) و «چنگ‌زدن» باورپذیر شود. */}
+            <div className="pointer-events-none -mb-16 -mt-8">
               <CtaMascot />
             </div>
           </div>

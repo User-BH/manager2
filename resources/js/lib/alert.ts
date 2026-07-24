@@ -109,31 +109,43 @@ export async function promptText({
   return result.isConfirmed ? String(result.value ?? '') : null
 }
 
-/** پیام موفقیت گوشه‌ی صفحه — جریان کار کاربر را قطع نمی‌کند. */
-export function toastSuccess(title: string): void {
+type ToastPosition = 'top-start' | 'top'
+
+function toast(icon: 'success' | 'error', title: string, position: ToastPosition, timer: number): void {
   void app.fire({
     toast: true,
-    position: 'top-start',
-    icon: 'success',
+    position,
+    icon,
     title,
     showConfirmButton: false,
-    timer: 2600,
+    timer,
     timerProgressBar: true,
     customClass: { ...(base.customClass as object), popup: 'swal-app swal-app-toast' },
   })
 }
 
+/** پیام موفقیت گوشه‌ی صفحه — جریان کار کاربر را قطع نمی‌کند. */
+export function toastSuccess(title: string): void {
+  toast('success', title, 'top-start', 2600)
+}
+
 export function toastError(title: string): void {
-  void app.fire({
-    toast: true,
-    position: 'top-start',
-    icon: 'error',
-    title,
-    showConfirmButton: false,
-    timer: 4000,
-    timerProgressBar: true,
-    customClass: { ...(base.customClass as object), popup: 'swal-app swal-app-toast' },
-  })
+  toast('error', title, 'top-start', 4000)
+}
+
+/**
+ * توست‌های بالا-وسطِ صفحه.
+ *
+ * برای پیام‌هایی که کاربر حتماً باید ببیند و «مرکز دید» او هستند: تاییدِ
+ * ثبت‌نام، اخطارِ نبودِ پازل، و خطای «شماره/رمز نادرست». موقعیتِ ثابتِ بالا-وسط
+ * یعنی هر جای فرم که باشد، پیام را می‌بیند.
+ */
+export function toastTopSuccess(title: string): void {
+  toast('success', title, 'top', 3200)
+}
+
+export function toastTopError(title: string): void {
+  toast('error', title, 'top', 4000)
 }
 
 export function alertSuccess(title: string, text?: string): Promise<unknown> {

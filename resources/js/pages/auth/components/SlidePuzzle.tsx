@@ -4,8 +4,8 @@ import { Check, RefreshCw } from 'lucide-react'
 import { galleryImages } from '@/data/images'
 
 const WIDTH = 300
-const HEIGHT = 110
-const PIECE = 42
+const HEIGHT = 92
+const PIECE = 40
 const TOLERANCE = 8
 
 interface Puzzle {
@@ -24,7 +24,15 @@ interface Puzzle {
  * این یک لایه‌ی «انسان‌سنجیِ» سمت کاربر است، نه اثباتِ سرور؛ همراه محدودیت
  * نرخ و کد پیامکی، جلوی ربات‌های ساده را می‌گیرد.
  */
-export function SlidePuzzle({ onSolved }: { onSolved: (solved: boolean) => void }) {
+export function SlidePuzzle({
+  onSolved,
+  resetSignal = 0,
+}: {
+  onSolved: (solved: boolean) => void
+  /** با هر بار تغییرِ این عدد، پازل با تصویری تازه از نو ساخته می‌شود
+      (مثلاً بعد از «شماره/رمز نادرست» تا کاربر دوباره حلش کند). */
+  resetSignal?: number
+}) {
   const [puzzle, setPuzzle] = useState<Puzzle>(() => makePuzzle())
   const [x, setX] = useState(0)
   const [solved, setSolved] = useState(false)
@@ -39,6 +47,14 @@ export function SlidePuzzle({ onSolved }: { onSolved: (solved: boolean) => void 
     setFailed(false)
     onSolved(false)
   }, [onSolved])
+
+  // درخواستِ بازنشانی از بیرون (ورودِ ناموفق): اولین مقدار را رد می‌کنیم
+  const firstSignal = useRef(resetSignal)
+  useEffect(() => {
+    if (resetSignal === firstSignal.current) return
+    firstSignal.current = resetSignal
+    reset()
+  }, [resetSignal, reset])
 
   const move = useCallback((clientX: number) => {
     const track = trackRef.current
@@ -80,7 +96,7 @@ export function SlidePuzzle({ onSolved }: { onSolved: (solved: boolean) => void 
   }, [move, end])
 
   return (
-    <div className="flex flex-col gap-2">
+    <div className="flex flex-col gap-1.5">
       <div className="flex items-center justify-between">
         <span className="text-[12px] font-medium" style={{ color: 'var(--text-secondary)' }}>
           {solved ? 'تایید شد، شما ربات نیستید ✓' : 'آخرین تکه پازل را کامل نمایید'}
@@ -165,7 +181,7 @@ export function SlidePuzzle({ onSolved }: { onSolved: (solved: boolean) => void 
       {/* دستگیره‌ی کشویی زیر تصویر، برای هدایتِ راحت‌تر */}
       <div
         ref={trackRef}
-        className="relative h-8 rounded-xl border"
+        className="relative h-7 rounded-xl border"
         style={{ width: WIDTH, maxWidth: '100%', backgroundColor: 'var(--surface-sunken)', borderColor: 'var(--border-subtle)' }}
       >
         <div

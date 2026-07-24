@@ -54,6 +54,19 @@ class OtpService
         ];
     }
 
+    /**
+     * پاک‌کردن کدهای یک شماره.
+     *
+     * پس از ورودِ کاملِ موفق صدا زده می‌شود تا «فاصله‌ی ارسال مجدد» که از روی
+     * ردیفِ همین ورود حساب می‌شد، مانعِ ورودِ بعدی نشود. بدون این، اگر کاربر
+     * وارد شود، بیرون بیاید و بلافاصله دوباره وارد شود، ارسال کد با پیام
+     * «کمی صبر کنید» رد می‌شد.
+     */
+    public function clear(string $phone): void
+    {
+        OtpCode::where('phone', Phone::normalize($phone))->delete();
+    }
+
     public function verify(string $phone, string $code): bool
     {
         $phone = Phone::normalize($phone);

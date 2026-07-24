@@ -3,17 +3,17 @@ import { Link } from 'react-router-dom'
 import { useForm, useWatch } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { motion } from 'framer-motion'
-import { AlertCircle, CheckCircle2, Loader2, Lock, Phone, User, UserPlus } from 'lucide-react'
+import { AlertCircle, Loader2, Lock, Phone, User, UserPlus } from 'lucide-react'
 import { RestrictedField } from './RestrictedField'
 import { PasswordStrength } from './PasswordStrength'
 import { registerSchema, type RegisterFormValues } from '../schemas/registerSchema'
 import { filterAsciiPassword, filterHints, filterMobile, filterPersianLetters } from '@/lib/inputFilters'
+import { toastTopSuccess } from '@/lib/alert'
 import { api, ApiError } from '@/lib/api'
 
 export function RegisterForm({ onRegistered }: { onRegistered?: () => void }) {
   const [submitting, setSubmitting] = useState(false)
   const [formError, setFormError] = useState<string | null>(null)
-  const [done, setDone] = useState<string | null>(null)
 
   const {
     control,
@@ -40,7 +40,7 @@ export function RegisterForm({ onRegistered }: { onRegistered?: () => void }) {
     setFormError(null)
 
     try {
-      const { message } = await api<{ message: string }>('/register', {
+      await api<{ message: string }>('/register', {
         method: 'POST',
         body: {
           name: values.fullName,
@@ -52,8 +52,12 @@ export function RegisterForm({ onRegistered }: { onRegistered?: () => void }) {
         },
       })
 
-      // حساب ساخته می‌شود اما غیرفعال است تا مدیر مجتمع تاییدش کند.
-      setDone(message)
+      /*
+       * حساب ساخته شد (غیرفعال، تا مدیر مجتمع تاییدش کند). کاربر را به فرمِ
+       * ورود می‌بریم و یک توستِ بالا-وسط نشان می‌دهیم تا دقیقاً بداند چه شد و
+       * قدمِ بعدی چیست؛ وگرنه تعویضِ ناگهانیِ فرم گیج‌کننده بود.
+       */
+      toastTopSuccess('ثبت‌نام شما کامل شد. برای استفاده از خدمات، وارد حساب خود شوید.')
       onRegistered?.()
     } catch (error) {
       if (error instanceof ApiError) {
@@ -80,25 +84,6 @@ export function RegisterForm({ onRegistered }: { onRegistered?: () => void }) {
     } finally {
       setSubmitting(false)
     }
-  }
-
-  if (done) {
-    return (
-      <motion.div
-        initial={{ opacity: 0, scale: 0.96 }}
-        animate={{ opacity: 1, scale: 1 }}
-        className="flex flex-col items-center gap-3 rounded-2xl border p-8 text-center"
-        style={{ borderColor: 'var(--border-subtle)', backgroundColor: 'var(--surface-sunken)' }}
-      >
-        <CheckCircle2 size={40} style={{ color: 'var(--color-brand-500)' }} />
-        <p className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>
-          ثبت‌نام انجام شد
-        </p>
-        <p className="text-[13px] leading-6" style={{ color: 'var(--text-secondary)' }}>
-          {done}
-        </p>
-      </motion.div>
-    )
   }
 
   return (

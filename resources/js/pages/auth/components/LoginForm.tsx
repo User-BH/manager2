@@ -3,12 +3,12 @@ import { Link, useNavigate } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { motion } from 'framer-motion'
-import { AlertCircle, Loader2, Lock, LogIn, Phone } from 'lucide-react'
+import { Loader2, Lock, LogIn, Phone } from 'lucide-react'
 import { RestrictedField } from './RestrictedField'
 import { SlidePuzzle } from './SlidePuzzle'
 import { loginSchema, type LoginFormValues } from '../schemas/loginSchema'
 import { filterAsciiPassword, filterHints, filterMobile } from '@/lib/inputFilters'
-import { toastError } from '@/lib/alert'
+import { toastTopError } from '@/lib/alert'
 import { forgetRememberedPhone, loadRememberedPhone, saveRememberedPhone } from '@/lib/rememberMe'
 import { useAuth } from '@/context/AuthContext'
 import { api, ApiError } from '@/lib/api'
@@ -21,18 +21,23 @@ interface LoginResponse {
   user?: CurrentUser
 }
 
+/** پیامِ سرور برای «شماره یا رمزِ نادرست»؛ این حالت بوردر قرمز + توست می‌گیرد. */
+const WRONG_CREDENTIALS = 'شماره تلفن یا رمز عبور نادرست است.'
+
 export function LoginForm() {
   const navigate = useNavigate()
   const { setUser } = useAuth()
   const [submitting, setSubmitting] = useState(false)
-  const [formError, setFormError] = useState<string | null>(null)
   const [human, setHuman] = useState(false)
+  // ورودِ ناموفق: هر دو اینپوت قرمز شوند (پیام در توست، نه زیر اینپوت)
+  const [credError, setCredError] = useState(false)
+  // با هر افزایش، پازل با تصویری تازه از نو ساخته می‌شود
+  const [puzzleReset, setPuzzleReset] = useState(0)
 
   const {
     control,
     register,
     handleSubmit,
-    setError,
     setValue,
     formState: { errors },
   } = useForm<LoginFormValues>({
@@ -55,14 +60,13 @@ export function LoginForm() {
 
   async function onSubmit(values: LoginFormValues) {
     if (!human) {
-      // توست، نه پیام داخلِ فرم: اگر کاربر پایین صفحه باشد پیامِ درون‌فرمی را
-      // نمی‌بیند، ولی توست موقعیتِ ثابت دارد و همیشه دیده می‌شود.
-      toastError('لطفاً پازل امنیتی را کامل کنید.')
+      // توستِ بالا-وسط: هرجای فرم که کاربر باشد، اخطارِ نبودِ پازل را می‌بیند.
+      toastTopError('لطفاً ابتدا پازل امنیتی را کامل کنید.')
       return
     }
 
     setSubmitting(true)
-    setFormError(null)
+    setCredError(false)
 
     try {
       const data = await api<LoginResponse>('/login', { method: 'POST', body: values })
@@ -86,14 +90,28 @@ export function LoginForm() {
         })
       }
     } catch (error) {
+      /*
+       * هر ورودِ ناموفق یعنی باید دوباره تلاش شود؛ پس پازل را از نو می‌سازیم و
+       * `human` را صفر می‌کنیم تا کاربر دوباره حلش کند. این جلوی «یک‌بار حل،
+       * چند بار تلاش» را هم می‌گیرد.
+       */
+      setHuman(false)
+      setPuzzleReset((n) => n + 1)
+
       if (error instanceof ApiError) {
         const phoneError = error.fieldError('phone')
         const passwordError = error.fieldError('password')
-        if (phoneError) setError('phone', { message: phoneError })
-        if (passwordError) setError('password', { message: passwordError })
-        if (!phoneError && !passwordError) setFormError(error.message)
+
+        if (phoneError === WRONG_CREDENTIALS) {
+          // شماره/رمز نادرست: هر دو اینپوت قرمز، پیام در توستِ بالا-وسط
+          setCredError(true)
+          toastTopError(WRONG_CREDENTIALS)
+        } else {
+          // سایر خطاهای سرور (حساب غیرفعال، ارسال کد ناموفق و…) هم در توست
+          toastTopError(phoneError ?? passwordError ?? error.message)
+        }
       } else {
-        setFormError('ارتباط با سرور برقرار نشد.')
+        toastTopError('ارتباط با سرور برقرار نشد.')
       }
     } finally {
       setSubmitting(false)
@@ -107,21 +125,8 @@ export function LoginForm() {
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
       transition={{ duration: 0.25 }}
-      className="flex flex-col gap-4"
+      className="flex flex-col gap-3"
     >
-      {formError && (
-        <div
-          className="flex items-center gap-2 rounded-xl px-3.5 py-2.5 text-xs"
-          style={{
-            backgroundColor: 'color-mix(in srgb, var(--color-danger) 12%, transparent)',
-            color: 'var(--color-danger)',
-          }}
-        >
-          <AlertCircle size={15} className="shrink-0" />
-          {formError}
-        </div>
-      )}
-
       <RestrictedField
         control={control}
         name="phone"
@@ -132,6 +137,8 @@ export function LoginForm() {
         dir="ltr"
         autoComplete="username"
         error={errors.phone?.message}
+        invalid={credError}
+        onUserInput={() => setCredError(false)}
         filter={filterMobile}
         hint={filterHints.mobile}
       />
@@ -146,16 +153,18 @@ export function LoginForm() {
         dir="ltr"
         autoComplete="current-password"
         error={errors.password?.message}
+        invalid={credError}
+        onUserInput={() => setCredError(false)}
         filter={filterAsciiPassword}
         hint={filterHints.asciiPassword}
       />
 
       {/* پازل امنیتی «ربات نیستم» */}
       <div
-        className="rounded-2xl border p-3"
+        className="rounded-2xl border p-2.5"
         style={{ borderColor: 'var(--border-subtle)', backgroundColor: 'var(--surface-base)' }}
       >
-        <SlidePuzzle onSolved={setHuman} />
+        <SlidePuzzle onSolved={setHuman} resetSignal={puzzleReset} />
       </div>
 
       <div className="flex items-center justify-between">

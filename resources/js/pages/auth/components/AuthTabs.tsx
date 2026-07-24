@@ -5,6 +5,15 @@ export type AuthTab = 'login' | 'register'
 interface AuthTabsProps {
   active: AuthTab
   onChange: (tab: AuthTab) => void
+  /**
+   * شناسه‌ی یکتا برای انیمیشنِ لغزشِ قرصِ فعال.
+   *
+   * فرمِ ورود هم‌زمان دو نسخه دارد (یکی دسکتاپ، یکی موبایل)؛ اگر هر دو یک
+   * `layoutId` داشته باشند، framer-motion سرِ یک المانِ مشترک بینشان گیج
+   * می‌شود و بعد از اولین سوئیچ، پس‌زمینه‌ی سبزِ قرص گم می‌شود. با شناسه‌ی
+   * جدا برای هر نسخه، هرکدام قرصِ خودش را دارد.
+   */
+  layoutId?: string
 }
 
 const tabs: { id: AuthTab; label: string }[] = [
@@ -13,7 +22,7 @@ const tabs: { id: AuthTab; label: string }[] = [
 ]
 
 /** دو دکمه‌ی بالای فرم، در کنارِ لینکِ تعویضِ پایین صفحه. */
-export function AuthTabs({ active, onChange }: AuthTabsProps) {
+export function AuthTabs({ active, onChange, layoutId = 'auth-tab-pill' }: AuthTabsProps) {
   return (
     <div
       className="relative grid grid-cols-2 rounded-2xl border p-1"
@@ -29,7 +38,7 @@ export function AuthTabs({ active, onChange }: AuthTabsProps) {
         >
           {active === tab.id && (
             <motion.span
-              layoutId="auth-tab-pill"
+              layoutId={layoutId}
               transition={{ type: 'spring', stiffness: 400, damping: 32 }}
               className="absolute inset-0 -z-10 rounded-xl"
               style={{ backgroundColor: 'var(--color-brand-500)' }}

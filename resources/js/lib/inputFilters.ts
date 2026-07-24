@@ -11,6 +11,11 @@
 export interface FilterResult {
   value: string
   changed: boolean
+  /**
+   * پیامِ ویژه‌ی همین تغییر (مثلاً «بیش از ۱۱ رقم مجاز نیست»)، که جای پیامِ
+   * پیش‌فرضِ فیلد را می‌گیرد. اگر تعیین نشود، همان پیامِ پیش‌فرض نشان داده می‌شود.
+   */
+  hint?: string
 }
 
 /** ارقام فارسی و عربی را به لاتین برمی‌گرداند. */
@@ -47,10 +52,31 @@ export function filterPersianAlphanumeric(value: string): FilterResult {
   return build(value, cleaned)
 }
 
-/** فقط رقم؛ ارقام فارسی به لاتین تبدیل و حداکثر ۱۱ رقم (برای شماره موبایل). */
+/**
+ * فقط رقم؛ ارقام فارسی به لاتین تبدیل و حداکثر ۱۱ رقم (برای شماره موبایل).
+ *
+ * تبدیلِ ارقام فارسی به لاتین «تغییرِ نامجاز» حساب نمی‌شود، پس بابتش هیچ
+ * هشداری نمی‌آید. تنها دو حالت هشدار دارد: نویسه‌ی غیرعددی («فقط عدد») و
+ * بیشتر از ۱۱ رقم («بیش از ۱۱ رقم»)، تا پیام دقیقاً با کارِ کاربر بخواند.
+ */
 export function filterMobile(value: string): FilterResult {
-  const cleaned = toAsciiDigits(value).replace(/\D/g, '').slice(0, 11)
-  return build(value, cleaned)
+  const ascii = toAsciiDigits(value)
+  const digits = ascii.replace(/\D/g, '')
+  const cleaned = digits.slice(0, 11)
+
+  const hadNonDigit = digits.length !== ascii.length
+  const tooLong = digits.length > 11
+
+  if (!hadNonDigit && !tooLong) {
+    // فقط نرمال‌سازیِ ارقام یا بدون تغییر — هشداری لازم نیست
+    return { value: cleaned, changed: false }
+  }
+
+  return {
+    value: cleaned,
+    changed: true,
+    hint: hadNonDigit ? filterHints.mobile : 'شماره موبایل بیش از ۱۱ رقم نیست.',
+  }
 }
 
 /**

@@ -16,10 +16,14 @@ interface RestrictedFieldProps<T extends FieldValues> {
   dir?: 'rtl' | 'ltr'
   /** خطای اعتبارسنجیِ فرم (از react-hook-form). */
   error?: string
+  /** بوردر قرمز بدون هیچ پیامی؛ برای حالتی مثل «شماره/رمز نادرست» که پیامش توست است. */
+  invalid?: boolean
   /** نویسه‌های نامجاز را حذف می‌کند. */
   filter: (value: string) => FilterResult
   /** پیامی که هنگام حذفِ نویسه‌ی نامجاز کوتاه نشان داده می‌شود. */
   hint: string
+  /** با هر تایپِ کاربر صدا زده می‌شود؛ برای پاک‌کردنِ حالتِ خطای بیرونی. */
+  onUserInput?: () => void
 }
 
 /**
@@ -36,13 +40,15 @@ export function RestrictedField<T extends FieldValues>({
   filter,
   hint,
   error,
+  invalid,
+  onUserInput,
   ...fieldProps
 }: RestrictedFieldProps<T>) {
   const [filterHint, setFilterHint] = useState<string | null>(null)
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
-  function flashHint() {
-    setFilterHint(hint)
+  function flashHint(message: string) {
+    setFilterHint(message)
     if (timer.current) clearTimeout(timer.current)
     timer.current = setTimeout(() => setFilterHint(null), 2200)
   }
@@ -57,13 +63,16 @@ export function RestrictedField<T extends FieldValues>({
           value={field.value ?? ''}
           onBlur={field.onBlur}
           onChange={(e) => {
-            const { value, changed } = filter(e.target.value)
-            if (changed) flashHint()
+            const result = filter(e.target.value)
+            // پیامِ ویژه‌ی همین تغییر مقدم است، وگرنه پیامِ پیش‌فرضِ فیلد
+            if (result.changed) flashHint(result.hint ?? hint)
             else setFilterHint(null)
-            field.onChange(value)
+            field.onChange(result.value)
+            onUserInput?.()
           }}
           // خطای فرم مقدم است؛ وگرنه پیام لحظه‌ایِ پالایه
           error={error ?? filterHint ?? undefined}
+          invalid={invalid}
         />
       )}
     />
