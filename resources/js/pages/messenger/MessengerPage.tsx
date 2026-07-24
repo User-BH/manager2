@@ -6,6 +6,7 @@ import { Send, Loader2, EyeOff, Eye, MessageSquare, Lock } from 'lucide-react'
 import { z } from 'zod'
 import { ErrorState, InlineSpinner } from '@/components/ui/PageState'
 import { useDocumentTitle } from '@/hooks'
+import { useAuth } from '@/context/AuthContext'
 import { api, ApiError } from '@/lib/api'
 import { alertError, toastSuccess } from '@/lib/alert'
 import { cn } from '@/lib/cn'
@@ -25,6 +26,8 @@ interface ChatMessage {
   isMine: boolean
   isHidden: boolean
   sentAt: string
+  /** پیامِ خوش‌بینانه که هنوز پاسخِ سرور برایش نیامده. */
+  pending?: boolean
 }
 
 interface MessengerResponse {
@@ -41,6 +44,7 @@ interface MessengerResponse {
 const POLL_INTERVAL = 8000
 
 export function MessengerPage() {
+  const { user } = useAuth()
   const [messages, setMessages] = useState<ChatMessage[]>([])
   const [meta, setMeta] = useState<{ canSend: boolean; reason: string | null; isAdmin: boolean }>({
     canSend: false,
@@ -174,6 +178,29 @@ export function MessengerPage() {
   }, [messages, scrollToBottom])
 
   async function onSubmit(values: MessageFormValues) {
+    /*
+     * ارسالِ خوش‌بینانه: پیام بی‌درنگ در گفت‌وگو ظاهر می‌شود (با نشانه‌ی «در حال
+     * ارسال»)، فرم خالی و اسکرول پایین می‌رود. با پاسخِ سرور، نسخه‌ی موقت با
+     * پیامِ واقعی جایگزین می‌شود؛ اگر ارسال شکست بخورد، پیام برداشته و متن به
+     * فرم برمی‌گردد تا کاربر دوباره تلاش کند. این حسِ آنیِ چت را می‌دهد.
+     */
+    const tempId = -Date.now()
+    const optimistic: ChatMessage = {
+      id: tempId,
+      body: values.body,
+      authorName: user?.name ?? 'شما',
+      unitLabel: '',
+      isMine: true,
+      isHidden: false,
+      sentAt: 'در حال ارسال…',
+      pending: true,
+    }
+
+    setError(null)
+    setMessages((current) => [...current, optimistic])
+    reset()
+    scrollToBottom(true)
+
     try {
       const { message } = await api<{ message: ChatMessage }>('/messenger', {
         method: 'POST',
@@ -181,15 +208,21 @@ export function MessengerPage() {
       })
 
       lastIdRef.current = Math.max(lastIdRef.current, message.id)
-      setMessages((current) => [...current, message])
-      reset()
-      scrollToBottom(true)
+      setMessages((current) => current.map((m) => (m.id === tempId ? message : m)))
     } catch (err) {
+      setMessages((current) => current.filter((m) => m.id !== tempId))
+      reset({ body: values.body })
       setError(err instanceof ApiError ? err.message : 'ارسال پیام ناموفق بود.')
     }
   }
 
   async function toggleHide(message: ChatMessage) {
+    // خوش‌بینانه: وضعیتِ نمایش/پنهان فوری برعکس می‌شود؛ با شکست، به حالت قبل برمی‌گردد.
+    const previous = message
+    setMessages((current) =>
+      current.map((m) => (m.id === message.id ? { ...m, isHidden: !m.isHidden } : m)),
+    )
+
     try {
       const { message: updated } = await api<{ message: ChatMessage }>(
         `/messenger/${message.id}/toggle-hide`,
@@ -199,6 +232,7 @@ export function MessengerPage() {
       setMessages((current) => current.map((m) => (m.id === updated.id ? updated : m)))
       toastSuccess(updated.isHidden ? 'پیام برای ساکنین پنهان شد.' : 'پیام دوباره نمایش داده می‌شود.')
     } catch (err) {
+      setMessages((current) => current.map((m) => (m.id === previous.id ? previous : m)))
       alertError(err, 'تغییر وضعیت پیام ممکن نشد.')
     }
   }
@@ -252,8 +286,9 @@ export function MessengerPage() {
                 >
                   <div
                     className={cn(
-                      'max-w-[80%] rounded-2xl px-4 py-2.5 text-[13.5px]',
+                      'max-w-[80%] rounded-2xl px-4 py-2.5 text-[13.5px] transition-opacity',
                       message.isHidden && 'opacity-50',
+                      message.pending && 'opacity-70',
                     )}
                     style={
                       message.isMine

@@ -54,7 +54,7 @@ export function AnnouncementsPage() {
 
   useDocumentTitle('اطلاعیه‌ها')
 
-  const { data, error, isLoading, reload } = useApi<AnnouncementsResponse>('/announcements')
+  const { data, error, isLoading, reload, mutate } = useApi<AnnouncementsResponse>('/announcements')
   const { markRead, markAllRead, refresh } = useNotifications()
 
   /*
@@ -76,8 +76,22 @@ export function AnnouncementsPage() {
   async function handleReadOne(announcement: Announcement) {
     if (announcement.isRead) return
 
-    await markRead(announcement.id)
-    reload()
+    // خوش‌بینانه: فوری «خوانده» علامت بخورد و از شمارنده کم شود
+    mutate((current) =>
+      current
+        ? {
+            ...current,
+            data: current.data.map((a) => (a.id === announcement.id ? { ...a, isRead: true } : a)),
+            unreadCount: Math.max(0, current.unreadCount - 1),
+          }
+        : current,
+    )
+
+    try {
+      await markRead(announcement.id)
+    } catch {
+      reload()
+    }
   }
 
   async function handleReadAll() {
@@ -116,13 +130,24 @@ export function AnnouncementsPage() {
     })
     if (!ok) return
 
+    // خوش‌بینانه: فوری از فهرست برداشته می‌شود؛ با شکست، از سرور بازمی‌گردد.
+    mutate((current) =>
+      current
+        ? {
+            ...current,
+            data: current.data.filter((a) => a.id !== announcement.id),
+            unreadCount: announcement.isRead ? current.unreadCount : Math.max(0, current.unreadCount - 1),
+          }
+        : current,
+    )
+
     try {
       await api(`/announcements/${announcement.id}`, { method: 'DELETE' })
       toastSuccess('اطلاعیه حذف شد.')
-      reload()
       // حذف اطلاعیه‌ی نخوانده باید شمارنده‌ی زنگوله را هم کم کند
       void refresh()
     } catch (err) {
+      reload()
       alertError(err, 'حذف اطلاعیه ممکن نشد.')
     }
   }

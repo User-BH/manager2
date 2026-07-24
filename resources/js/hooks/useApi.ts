@@ -6,6 +6,12 @@ interface UseApiState<T> {
   error: string | null
   isLoading: boolean
   reload: () => void
+  /**
+   * به‌روزرسانیِ محلیِ داده بدون درخواستِ تازه — برای به‌روزرسانیِ خوش‌بینانه.
+   * فوراً UI را عوض می‌کند؛ در صورت شکستِ درخواست، با `reload()` از سرور
+   * بازگردانده می‌شود.
+   */
+  mutate: (updater: (current: T | null) => T | null) => void
 }
 
 /**
@@ -21,6 +27,10 @@ export function useApi<T>(path: string, deps: unknown[] = []): UseApiState<T> {
   const [nonce, setNonce] = useState(0)
 
   const reload = useCallback(() => setNonce((n) => n + 1), [])
+
+  const mutate = useCallback((updater: (current: T | null) => T | null) => {
+    setData((current) => updater(current))
+  }, [])
 
   useEffect(() => {
     const controller = new AbortController()
@@ -43,5 +53,5 @@ export function useApi<T>(path: string, deps: unknown[] = []): UseApiState<T> {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [path, nonce, ...deps])
 
-  return { data, error, isLoading, reload }
+  return { data, error, isLoading, reload, mutate }
 }
