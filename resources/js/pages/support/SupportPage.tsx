@@ -5,7 +5,7 @@ import { ChevronDown, LifeBuoy } from 'lucide-react'
 import { useDocumentTitle } from '@/hooks'
 import { scrollToElement } from '@/lib/scroll'
 import { HomeNavbar } from '../home/components/HomeNavbar'
-import { HomeFooter } from '../home/components/HomeFooter'
+import { FloatingActions } from '../home/components/FloatingActions'
 import { SupportWheel } from './SupportWheel'
 import { supportTopics, type SupportTopicId } from './supportContent'
 
@@ -49,7 +49,7 @@ export function SupportPage() {
 
   return (
     <div style={{ backgroundColor: 'var(--surface-canvas)' }}>
-      <HomeNavbar />
+      <HomeNavbar minimal />
 
       {/* ---------------- هدر با چرخِ چهارقسمتی ---------------- */}
       <header className="relative overflow-hidden pb-16 pt-28" dir="rtl">
@@ -223,7 +223,7 @@ export function SupportPage() {
         })}
       </main>
 
-      <HomeFooter />
+      <FloatingActions />
     </div>
   )
 }

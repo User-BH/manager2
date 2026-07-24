@@ -15,7 +15,8 @@ import {
 import { useDocumentTitle } from '@/hooks'
 import { heroImages } from '@/data/images'
 import { HomeNavbar } from '../home/components/HomeNavbar'
-import { HomeFooter } from '../home/components/HomeFooter'
+import { FloatingActions } from '../home/components/FloatingActions'
+import { DemoSignboard } from './DemoSignboard'
 import { VideoPlayer, type VideoChapter } from './VideoPlayer'
 
 /** فصل‌های ویدیو — روی نوار پیشرفت هم نشانه می‌خورند. */
@@ -88,24 +89,20 @@ const features: DemoFeature[] = [
 /**
  * صفحه‌ی دمو — مقصد دکمه‌ی «مشاهده دمو» در صفحه‌ی اصلی.
  *
- * ساختار همان صفحه‌ی فرود است (نوار بالا + فوتر) تا کاربر حس نکند از سایت
- * بیرون رفته؛ فقط محتوای میانی عوض می‌شود.
+ * نوار بالا در حالت کمینه است — فقط لوگو و نامِ برند، که خودش لینکِ بازگشت به
+ * صفحه‌ی اصلی است. فوتر اینجا نیست تا صفحه یک‌نفس تا پایان دیده شود؛ راه‌های
+ * دسترسی هم در دو دکمه‌ی شناورِ گوشه‌ی صفحه هست.
  */
 export function DemoPage() {
   useDocumentTitle('دموی پنل مدیریت')
 
   return (
     <div style={{ backgroundColor: 'var(--surface-canvas)' }}>
-      <HomeNavbar />
+      <HomeNavbar minimal />
 
       <main className="mx-auto max-w-5xl px-4 pb-20 pt-28 sm:px-6" dir="rtl">
-        {/* ---------- سرتیتر ---------- */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
-          className="text-center"
-        >
+        {/* ---------- سرتیتر: تابلوی چراغانی روی دستِ شخصیت ساختمانی ---------- */}
+        <DemoSignboard>
           <span
             className="inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-[11.5px] font-bold"
             style={{
@@ -126,14 +123,14 @@ export function DemoPage() {
             در این ویدیوی کوتاه، از داشبورد تا صدور قبض و پرداخت و اطلاعیه‌ها را می‌بینید؛
             همان مسیری که یک مدیر ساختمان هر ماه طی می‌کند.
           </p>
-        </motion.div>
+        </DemoSignboard>
 
         {/* ---------- پخش‌کننده ---------- */}
         <motion.div
           initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.7, delay: 0.12, ease: [0.22, 1, 0.36, 1] }}
-          className="mt-10"
+          className="mt-4"
         >
           <VideoPlayer
             src="/videos/demo.mp4"
@@ -246,7 +243,7 @@ export function DemoPage() {
         </motion.div>
       </main>
 
-      <HomeFooter />
+      <FloatingActions />
     </div>
   )
 }

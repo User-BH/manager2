@@ -1,10 +1,10 @@
 import { motion } from 'framer-motion'
 import type { SupportTopic, SupportTopicId } from './supportContent'
 
-const SIZE = 260
+const SIZE = 320
 const CENTER = SIZE / 2
-const OUTER = 118
-const INNER = 62
+const OUTER = 148
+const INNER = 74
 
 /**
  * تبدیل زاویه‌ی قطبی به مختصات SVG. زاویه از بالا (۱۲) شروع و ساعتگرد است.
@@ -28,6 +28,18 @@ function quarterPath(startDeg: number, endDeg: number): string {
     `A ${INNER} ${INNER} 0 0 0 ${i1.x} ${i1.y}`,
     'Z',
   ].join(' ')
+}
+
+/**
+ * عنوان‌های دوکلمه‌ای در دو سطر می‌نشینند تا از پهنای ربع بیرون نزنند.
+ * («قوانین و مقررات» سه واژه است؛ واژه‌ی ربطی به سطر اول می‌چسبد.)
+ */
+function splitTitle(title: string): string[] {
+  const words = title.split(' ')
+  if (words.length < 2) return [title]
+  if (words.length === 2) return words
+
+  return [words.slice(0, 2).join(' '), words.slice(2).join(' ')]
 }
 
 /**
@@ -75,6 +87,9 @@ export function SupportWheel({
           // بردار بیرون‌رفتن از مرکز، برای جابه‌جایی هنگام هاور/فعال بودن
           const mid = index * 90 + 45
           const offset = point(mid, 7)
+          // برچسب روی میانه‌ی ضخامتِ حلقه می‌نشیند
+          const label = point(mid, (OUTER + INNER) / 2)
+          const lines = splitTitle(topic.title)
 
           return (
             <motion.g
@@ -103,6 +118,39 @@ export function SupportWheel({
                 stroke="var(--surface-canvas)"
                 strokeWidth={2}
               />
+
+              {/*
+                نامِ بخش روی خودِ ربع.
+                بدون این، کاربر نمی‌دانست هر ربع به کجا می‌برد و باید حدس
+                می‌زد. متن افقی است نه روی قوس، چون فارسیِ چرخیده روی قوس
+                خواندنش سخت می‌شود.
+
+                رنگ ربع‌ها از داده می‌آید و بعضی روشن‌اند؛ سفیدِ تنها روی آن‌ها
+                گم می‌شود. پس متن یک هاله‌ی تیره‌ی پررنگ دارد تا روی هر رنگی
+                خوانا بماند.
+              */}
+              <text
+                x={label.x}
+                y={label.y}
+                textAnchor="middle"
+                dominantBaseline="middle"
+                className="pointer-events-none select-none"
+                style={{
+                  fill: '#fff',
+                  fontSize: 12,
+                  fontWeight: 800,
+                  paintOrder: 'stroke',
+                  stroke: 'rgba(0,0,0,0.55)',
+                  strokeWidth: 3,
+                  strokeLinejoin: 'round',
+                }}
+              >
+                {lines.map((line, i) => (
+                  <tspan key={line} x={label.x} dy={i === 0 ? -(lines.length - 1) * 7 : 14}>
+                    {line}
+                  </tspan>
+                ))}
+              </text>
             </motion.g>
           )
         })}

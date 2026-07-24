@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { Menu, X } from 'lucide-react'
 import { useToggle } from '@/hooks'
@@ -15,7 +15,12 @@ const navLinks = [
   { label: 'نظرات', section: 'testimonials' },
 ]
 
-export function HomeNavbar() {
+/**
+ * @param minimal برای صفحه‌هایی مثل پشتیبانی و دمو که بخش‌های صفحه‌ی فرود را
+ *   ندارند: لینک‌های «ویژگی‌ها/گالری/نظرات» حذف می‌شوند (چون به بخشی اشاره
+ *   می‌کنند که در این صفحه وجود ندارد) و لوگو خودش دکمه‌ی بازگشت به خانه است.
+ */
+export function HomeNavbar({ minimal = false }: { minimal?: boolean } = {}) {
   const navigate = useNavigate()
   const [scrolled, setScrolled] = useState(false)
   const [mobileOpen, toggleMobileOpen, setMobileOpen] = useToggle(false)
@@ -44,10 +49,16 @@ export function HomeNavbar() {
       }}
     >
       <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-4 sm:px-6" dir="rtl">
-        <Logo size={34} />
+        {minimal ? (
+          <Link to="/" aria-label="بازگشت به صفحه اصلی" className="transition-opacity hover:opacity-80">
+            <Logo size={34} />
+          </Link>
+        ) : (
+          <Logo size={34} />
+        )}
 
         <nav className="hidden items-center gap-7 md:flex">
-          {navLinks.map((link) => (
+          {!minimal && navLinks.map((link) => (
             <button
               key={link.section}
               onClick={() => scrollToSection(link.section)}
@@ -102,7 +113,7 @@ export function HomeNavbar() {
           dir="rtl"
         >
           <div className="flex flex-col gap-3">
-            {navLinks.map((link) => (
+            {!minimal && navLinks.map((link) => (
               <button
                 key={link.section}
                 onClick={() => {
