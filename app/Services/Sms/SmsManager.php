@@ -18,12 +18,19 @@ class SmsManager
         'melipayamak' => 'ملی پیامک',
     ];
 
+    /** درایورِ ساخته‌شده را نگه می‌داریم تا خطای آخرین ارسال هم در دسترس بماند. */
+    protected ?SmsGateway $driver = null;
+
     public function driver(): SmsGateway
     {
+        if ($this->driver !== null) {
+            return $this->driver;
+        }
+
         $name = SystemSettings::get('sms_driver', 'log');
         $config = SystemSettings::getJson('sms_config', []);
 
-        return match ($name) {
+        return $this->driver = match ($name) {
             'kavenegar' => new KavenegarSms($config),
             'ippanel' => new IppanelSms($config),
             'melipayamak' => new MelipayamakSms($config),
@@ -34,6 +41,14 @@ class SmsManager
     public function send(string $phone, string $message): bool
     {
         return $this->driver()->send($phone, $message);
+    }
+
+    /** جزئیاتِ خطای آخرین ارسال (اگر درایور آن را نگه دارد)، برای «ارسال آزمایشی». */
+    public function lastError(): ?string
+    {
+        $driver = $this->driver();
+
+        return method_exists($driver, 'lastError') ? $driver->lastError() : null;
     }
 
     /** ارسالِ کدِ یک‌بارمصرف (تنها پیامکِ سامانه) — با پترن اگر درایور پشتیبانی کند. */

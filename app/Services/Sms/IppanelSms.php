@@ -28,7 +28,15 @@ class IppanelSms implements SmsGateway
 
     private const ENDPOINT = 'https://edge.ippanel.com/v1/api/send';
 
+    /** آخرین خطای ارسال، برای نمایش در «ارسال آزمایشی». */
+    protected ?string $lastError = null;
+
     public function __construct(protected array $config) {}
+
+    public function lastError(): ?string
+    {
+        return $this->lastError;
+    }
 
     public function sendOtp(string $phone, string $code): bool
     {
@@ -69,10 +77,15 @@ class IppanelSms implements SmsGateway
      */
     private function post(array $body, string $kind): bool
     {
+        $this->lastError = null;
+
         // دفترچه تلفن (اختیاری): با تنظیم‌بودنِ شناسه، شماره‌ی گیرنده ذخیره می‌شود.
         if ($bookId = (int) ($this->config['phonebook_id'] ?? 0)) {
             $body['phonebook'] = ['id' => $bookId];
         }
+
+        // آدرسِ apikey جز چند رقم آخر لاگ نمی‌شود.
+        $keyHint = $this->maskKey((string) ($this->config['apikey'] ?? ''));
 
         try {
             $response = Http::withHeaders([
@@ -87,15 +100,44 @@ class IppanelSms implements SmsGateway
                 return true;
             }
 
+            $metaMessage = $response->json('meta.message');
+            $this->lastError = trim(sprintf(
+                'HTTP %d%s | %s',
+                $response->status(),
+                $metaMessage ? ' — '.$metaMessage : '',
+                $response->body(),
+            ));
+
+            // لاگِ کامل تا بشود دقیقاً دلیلِ ناموفق‌بودن را دید.
             Log::warning('[SMS:ippanel:'.$kind.'] failed', [
+                'endpoint' => self::ENDPOINT,
                 'status' => $response->status(),
-                'body' => $response->body(),
+                'sending_type' => $body['sending_type'] ?? null,
+                'from_number' => $body['from_number'] ?? null,
+                'recipients' => $body['recipients'] ?? null,
+                'has_pattern' => isset($body['code']),
+                'apikey' => $keyHint,
+                'response' => $response->body(),
             ]);
         } catch (\Throwable $e) {
-            Log::error('[SMS:ippanel:'.$kind.'] exception: '.$e->getMessage());
+            $this->lastError = 'استثنا در ارتباط با ایپ‌پنل: '.$e->getMessage();
+
+            Log::error('[SMS:ippanel:'.$kind.'] exception', [
+                'endpoint' => self::ENDPOINT,
+                'message' => $e->getMessage(),
+                'apikey' => $keyHint,
+            ]);
         }
 
         return false;
+    }
+
+    /** فقط چهار رقم آخرِ کلید در لاگ می‌ماند، تا کلید کامل لو نرود. */
+    private function maskKey(string $key): string
+    {
+        $len = strlen($key);
+
+        return $len <= 4 ? str_repeat('*', $len) : str_repeat('*', $len - 4).substr($key, -4);
     }
 
     /** شماره‌ی ایرانی را به E.164 (+98…) تبدیل می‌کند؛ Edge API همین را می‌خواهد. */
