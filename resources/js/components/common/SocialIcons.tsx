@@ -59,6 +59,27 @@ export function WhatsappIcon({ size = 18, className }: SocialIconProps) {
   )
 }
 
+/**
+ * آیکونِ «بله» (پیام‌رسانِ ایرانی) — یک حبابِ گفت‌وگو با تیکِ داخلش.
+ * تقریبی و تک‌رنگ است تا با بقیه‌ی آیکون‌ها هم‌سبک بماند؛ لوگوی رسمی را
+ * می‌توان جایگزین کرد.
+ */
+export function BaleIcon({ size = 18, className }: SocialIconProps) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" className={className}>
+      <rect x="4" y="4" width="16" height="12" rx="4.5" stroke="currentColor" strokeWidth="1.7" />
+      <path d="M9 16L6.8 19.6V16" stroke="currentColor" strokeWidth="1.7" strokeLinejoin="round" strokeLinecap="round" />
+      <path
+        d="M8.4 10.1L10.9 12.6L15.6 8.2"
+        stroke="currentColor"
+        strokeWidth="1.7"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  )
+}
+
 export function RubikaIcon({ size = 18, className }: SocialIconProps) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" className={className}>

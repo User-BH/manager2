@@ -1,19 +1,77 @@
-import type { CSSProperties } from 'react'
+import { useEffect, useState, type CSSProperties } from 'react'
 import { Link } from '@/lib/mpaNav'
 import { Mail, Phone, MapPin } from 'lucide-react'
 import { scrollToSection } from '@/lib/scroll'
+import { api } from '@/lib/api'
+import { toAsciiDigits } from '@/lib/inputFilters'
 import { Logo } from '@/components/common/Logo'
-import { InstagramIcon, TelegramIcon, WhatsappIcon, RubikaIcon } from '@/components/common/SocialIcons'
-import { BRAND_NAME, contactInfo, socialLinks } from '@/config/brand'
+import {
+  InstagramIcon,
+  TelegramIcon,
+  WhatsappIcon,
+  RubikaIcon,
+  BaleIcon,
+} from '@/components/common/SocialIcons'
+import { BRAND_NAME, contactInfo, socialHover, socialLinks } from '@/config/brand'
 
 const socialIconMap = {
   instagram: InstagramIcon,
   telegram: TelegramIcon,
   whatsapp: WhatsappIcon,
   rubika: RubikaIcon,
+  bale: BaleIcon,
 } as const
 
+interface FooterSocial {
+  id: string
+  label: string
+  href: string
+}
+
+interface FooterContact {
+  title: string
+  address: string | null
+  phone: string | null
+  email: string | null
+  mapEmbedUrl: string | null
+}
+
+// پیش‌فرض‌ها از config می‌آیند تا فوتر پیش از رسیدنِ داده (یا هنگام خطای شبکه)
+// هرگز خالی نماند.
+const DEFAULT_CONTACT: FooterContact = {
+  title: 'ارتباط با ما',
+  address: contactInfo.address,
+  phone: contactInfo.phone,
+  email: contactInfo.email,
+  mapEmbedUrl: contactInfo.mapEmbedUrl,
+}
+const DEFAULT_SOCIAL: FooterSocial[] = socialLinks.map((s) => ({ id: s.id, label: s.label, href: s.href }))
+
+/** لینکِ تماسِ تلفنی از رقم‌های لاتین ساخته می‌شود (شماره‌ی فارسی در tel: کار نمی‌کند). */
+function telHref(phone: string): string {
+  return 'tel:' + toAsciiDigits(phone).replace(/[^\d+]/g, '')
+}
+
 export function HomeFooter() {
+  // تماس و شبکه‌ها از پنلِ مدیرِ کل می‌آیند؛ تا رسیدنشان، پیش‌فرض نشان داده می‌شود.
+  const [contact, setContact] = useState<FooterContact>(DEFAULT_CONTACT)
+  const [social, setSocial] = useState<FooterSocial[]>(DEFAULT_SOCIAL)
+
+  useEffect(() => {
+    const controller = new AbortController()
+
+    api<{ contact: FooterContact; social: FooterSocial[] }>('/site-settings', { signal: controller.signal })
+      .then((data) => {
+        setContact(data.contact)
+        setSocial(data.social)
+      })
+      .catch(() => {
+        // خطای شبکه: همان پیش‌فرض‌ها می‌مانند
+      })
+
+    return () => controller.abort()
+  }, [])
+
   return (
     <footer
       className="border-t"
@@ -29,31 +87,33 @@ export function HomeFooter() {
               است؛ همراه مدیران ساختمان در سراسر کشور.
             </p>
 
-            <div className="mt-5 flex items-center gap-2.5">
-              {socialLinks.map((social) => {
-                const Icon = socialIconMap[social.id]
-                if (!Icon) return null
-                return (
-                  <a
-                    key={social.id}
-                    href={social.href}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    aria-label={social.label}
-                    className="social-icon-link flex h-9 w-9 items-center justify-center rounded-full border transition-all duration-200 hover:-translate-y-0.5 hover:border-transparent hover:text-white"
-                    style={
-                      {
-                        borderColor: 'var(--border-subtle)',
-                        color: 'var(--text-secondary)',
-                        '--social-hover-bg': social.hoverBackground,
-                      } as CSSProperties
-                    }
-                  >
-                    <Icon size={16} />
-                  </a>
-                )
-              })}
-            </div>
+            {social.length > 0 && (
+              <div className="mt-5 flex items-center gap-2.5">
+                {social.map((item) => {
+                  const Icon = socialIconMap[item.id as keyof typeof socialIconMap]
+                  if (!Icon) return null
+                  return (
+                    <a
+                      key={item.id}
+                      href={item.href}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      aria-label={item.label}
+                      className="social-icon-link flex h-9 w-9 items-center justify-center rounded-full border transition-all duration-200 hover:-translate-y-0.5 hover:border-transparent hover:text-white"
+                      style={
+                        {
+                          borderColor: 'var(--border-subtle)',
+                          color: 'var(--text-secondary)',
+                          '--social-hover-bg': socialHover[item.id] ?? 'var(--color-brand-500)',
+                        } as CSSProperties
+                      }
+                    >
+                      <Icon size={16} />
+                    </a>
+                  )
+                })}
+              </div>
+            )}
           </div>
 
           {/* ستون لینک‌های سریع — بخش‌های همین صفحه با اسکرول نرم، بدون تغییر آدرس */}
@@ -79,42 +139,50 @@ export function HomeFooter() {
             ]}
           />
 
-          {/* ستون تماس و نقشه */}
+          {/* ستون تماس و نقشه — عنوان و هر ردیف از پنلِ مدیر می‌آید و می‌تواند خاموش باشد */}
           <div>
             <p className="text-sm font-bold" style={{ color: 'var(--text-primary)' }}>
-              ارتباط با دفتر مرکزی
+              {contact.title}
             </p>
 
             <ul className="mt-4 flex flex-col gap-2.5 text-[13px]" style={{ color: 'var(--text-secondary)' }}>
-              <li className="flex items-start gap-2">
-                <MapPin size={15} className="mt-0.5 shrink-0" style={{ color: 'var(--color-brand-500)' }} />
-                <span>{contactInfo.address}</span>
-              </li>
-              <li className="flex items-center gap-2">
-                <Phone size={15} className="shrink-0" style={{ color: 'var(--color-brand-500)' }} />
-                <a href="tel:+982188776655" dir="ltr">
-                  {contactInfo.phone}
-                </a>
-              </li>
-              <li className="flex items-center gap-2">
-                <Mail size={15} className="shrink-0" style={{ color: 'var(--color-brand-500)' }} />
-                <a href={`mailto:${contactInfo.email}`} dir="ltr">
-                  {contactInfo.email}
-                </a>
-              </li>
+              {contact.address && (
+                <li className="flex items-start gap-2">
+                  <MapPin size={15} className="mt-0.5 shrink-0" style={{ color: 'var(--color-brand-500)' }} />
+                  <span>{contact.address}</span>
+                </li>
+              )}
+              {contact.phone && (
+                <li className="flex items-center gap-2">
+                  <Phone size={15} className="shrink-0" style={{ color: 'var(--color-brand-500)' }} />
+                  <a href={telHref(contact.phone)} dir="ltr">
+                    {contact.phone}
+                  </a>
+                </li>
+              )}
+              {contact.email && (
+                <li className="flex items-center gap-2">
+                  <Mail size={15} className="shrink-0" style={{ color: 'var(--color-brand-500)' }} />
+                  <a href={`mailto:${contact.email}`} dir="ltr">
+                    {contact.email}
+                  </a>
+                </li>
+              )}
             </ul>
 
-            <div className="mt-4 overflow-hidden rounded-2xl border" style={{ borderColor: 'var(--border-subtle)' }}>
-              <iframe
-                title="موقعیت دفتر مرکزی روی نقشه"
-                src={contactInfo.mapEmbedUrl}
-                width="100%"
-                height="140"
-                style={{ border: 0, filter: 'saturate(0.85)' }}
-                loading="lazy"
-                referrerPolicy="no-referrer-when-downgrade"
-              />
-            </div>
+            {contact.mapEmbedUrl && (
+              <div className="mt-4 overflow-hidden rounded-2xl border" style={{ borderColor: 'var(--border-subtle)' }}>
+                <iframe
+                  title="موقعیت ما روی نقشه"
+                  src={contact.mapEmbedUrl}
+                  width="100%"
+                  height="140"
+                  style={{ border: 0, filter: 'saturate(0.85)' }}
+                  loading="lazy"
+                  referrerPolicy="no-referrer-when-downgrade"
+                />
+              </div>
+            )}
           </div>
         </div>
 

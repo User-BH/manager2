@@ -35,4 +35,18 @@ export const socialLinks = [
     href: 'https://rubika.ir/sakena_app',
     hoverBackground: '#F2461F',
   },
+  {
+    id: 'bale',
+    label: 'بله',
+    href: 'https://ble.ir/sakena_app',
+    hoverBackground: '#1BA3E8',
+  },
 ] as const
+
+/**
+ * رنگِ هاورِ هر شبکه بر پایه‌ی شناسه — برای وقتی که فهرستِ شبکه‌ها از پنلِ
+ * مدیر می‌آید و فقط شناسه/برچسب/لینک دارد (نه رنگ، که جزء ظاهر است).
+ */
+export const socialHover: Record<string, string> = Object.fromEntries(
+  socialLinks.map((s) => [s.id, s.hoverBackground]),
+)

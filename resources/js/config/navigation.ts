@@ -17,6 +17,7 @@ import {
   Smartphone,
   Server,
   Crown,
+  Share2,
   Megaphone as MegaphoneIcon,
   ScrollText as AuditIcon,
 } from 'lucide-react'
@@ -78,6 +79,7 @@ export const navSections: NavSection[] = [
       { label: 'مدیریت مجتمع‌ها', path: '/system/complexes', icon: Building, roles: SUPER },
       { label: 'اشتراک‌ها', path: '/system/subscriptions', icon: Crown, roles: SUPER },
       { label: 'تبلیغات صفحه اصلی', path: '/system/ads', icon: MegaphoneIcon, roles: SUPER },
+      { label: 'فوتر و شبکه‌ها', path: '/system/site', icon: Share2, roles: SUPER },
       { label: 'پنل پیامک', path: '/system/sms', icon: Smartphone, roles: SUPER },
       { label: 'لاگ فعالیت', path: '/system/audit', icon: AuditIcon, roles: SUPER },
       { label: 'بکاپ کل سیستم', path: '/system/backup', icon: Server, roles: SUPER },

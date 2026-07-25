@@ -3,6 +3,8 @@
 use App\Http\Controllers\Api\AdvertisementController;
 use App\Http\Controllers\Api\AnnouncementController;
 use App\Http\Controllers\Api\AuthController;
+use App\Http\Controllers\Api\SiteContentController;
+use App\Http\Controllers\Api\System\SiteSettingsController;
 use App\Http\Controllers\Api\BackupController;
 use App\Http\Controllers\Api\BillController;
 use App\Http\Controllers\Api\ChargeRuleController;
@@ -73,6 +75,9 @@ Route::get('csrf-token', [AuthController::class, 'csrfToken'])->name('csrf-token
 
 // بنرهای صفحه‌ی فرود؛ عمومی است چون صفحه پیش از ورود کاربر دیده می‌شود.
 Route::get('ads', [AdvertisementController::class, 'index'])->name('ads.index');
+
+// محتوای فوترِ صفحه‌ی فرود (تماس + شبکه‌های اجتماعی)، عمومی.
+Route::get('site-settings', [SiteContentController::class, 'footer'])->name('site-settings');
 
 /*
 | چت پشتیبانی صفحه‌ی فرود. مخاطبش بازدیدکننده‌ی هنوز ثبت‌نام‌نکرده است، پس
@@ -202,6 +207,10 @@ Route::middleware('auth')->group(function () {
         Route::get('sms', [SmsController::class, 'show'])->name('sms.show');
         Route::put('sms', [SmsController::class, 'update'])->name('sms.update');
         Route::post('sms/test', [SmsController::class, 'test'])->name('sms.test');
+
+        // تنظیماتِ فوترِ سایت: تماس و شبکه‌های اجتماعی
+        Route::get('site-settings', [SiteSettingsController::class, 'show'])->name('site-settings.show');
+        Route::put('site-settings', [SiteSettingsController::class, 'update'])->name('site-settings.update');
 
         // بررسی رسیدهای اشتراک: پول اشتراک به حساب سرویس‌دهنده می‌رود، پس
         // تاییدش کار ادمین کل است نه مدیر مجتمعی که خودش پرداخت کرده.
