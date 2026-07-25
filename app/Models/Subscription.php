@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Contracts\PlanCapabilities;
 use App\Enums\SubscriptionPlan;
 use App\Services\Payment\GatewayOrder;
 use Illuminate\Database\Eloquent\Model;
@@ -15,7 +16,7 @@ use Illuminate\Support\Facades\Storage;
 class Subscription extends Model implements GatewayOrder
 {
     protected $fillable = [
-        'complex_id', 'user_id', 'plan', 'status', 'method', 'amount', 'months',
+        'complex_id', 'user_id', 'plan', 'plan_id', 'status', 'method', 'amount', 'months',
         'starts_at', 'ends_at', 'gateway', 'ref_id', 'tracking_code', 'paid_at',
         'receipt_path', 'receipt_original_name', 'receipt_paid_on',
         'reviewed_by', 'reviewed_at', 'review_note',
@@ -38,6 +39,26 @@ class Subscription extends Model implements GatewayOrder
     public function reviewer(): BelongsTo
     {
         return $this->belongsTo(User::class, 'reviewed_by');
+    }
+
+    /** پکیجِ دیتابیسی (اگر این اشتراک به یکی وصل باشد). */
+    public function planRef(): BelongsTo
+    {
+        return $this->belongsTo(Plan::class, 'plan_id');
+    }
+
+    /**
+     * منبعِ قابلیت‌ها: پکیجِ دیتابیسی مقدم است، وگرنه enumِ قدیمی.
+     */
+    public function resolvedPlan(): PlanCapabilities
+    {
+        return $this->planRef ?? $this->plan;
+    }
+
+    /** برچسبِ پلن برای نمایش، مستقل از منبعش. */
+    public function planLabel(): string
+    {
+        return $this->resolvedPlan()->planLabel();
     }
 
     /** مسیر خرید: پرداخت آنلاین یا آپلود رسید. */
@@ -70,7 +91,7 @@ class Subscription extends Model implements GatewayOrder
 
     public function gatewayDescription(): string
     {
-        return 'اشتراک '.$this->plan->label();
+        return 'اشتراک '.$this->planLabel();
     }
 
     public function gatewayRefId(): ?string

@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Enums\SubscriptionPlan;
 use App\Http\Controllers\Controller;
+use App\Models\Plan;
 use App\Models\Subscription;
 use App\Services\Subscription\PlanGate;
 use App\Services\Subscription\SubscriptionGatewayManager;
@@ -11,6 +12,7 @@ use App\Support\Jalali;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Validation\ValidationException;
 
 /**
  * صفحه‌ی «تنظیمات حساب» — وضعیت اشتراک، پلن‌ها، خرید و سابقه.
@@ -37,8 +39,11 @@ class SubscriptionController extends Controller
 
         return response()->json([
             'complexName' => $complex?->name,
-            'currentPlan' => $plan->value,
-            'currentPlanLabel' => $plan->label(),
+            // شناسه‌ی پلنِ فعلی: slugِ پکیجِ دیتابیسی، یا مقدارِ enumِ قدیمی، یا free.
+            'currentPlan' => $active
+                ? ($active->plan_id ? $active->planRef?->slug : $active->plan->value)
+                : 'free',
+            'currentPlanLabel' => $plan->planLabel(),
 
             'current' => $active ? $this->present($active) : null,
 
@@ -49,17 +54,7 @@ class SubscriptionController extends Controller
             ] : null,
 
             'freeFeatures' => SubscriptionPlan::Free->features(),
-            'plans' => collect(SubscriptionPlan::purchasable())->map(fn (SubscriptionPlan $p) => [
-                'value' => $p->value,
-                'label' => $p->label(),
-                'price' => $p->price(),
-                'priceLabel' => Jalali::money($p->price()),
-                'months' => $p->months(),
-                'features' => $p->features(),
-                'savingPercent' => $p === SubscriptionPlan::ProYearly
-                    ? (int) round((1 - $p->price() / (SubscriptionPlan::Pro->price() * 12)) * 100)
-                    : 0,
-            ])->values(),
+            'plans' => $this->purchasablePlans(),
 
             'checkoutEnabled' => $this->gateways->isEnabled(),
             'checkoutAction' => route('subscription.checkout'),
@@ -91,7 +86,7 @@ class SubscriptionController extends Controller
         $complex = $this->requireComplex();
 
         $data = $request->validate([
-            'plan' => ['required', 'in:pro,pro_yearly'],
+            'plan' => ['required', 'string'],
             'paid_on' => ['nullable', 'date', 'before_or_equal:today'],
             'note' => ['nullable', 'string', 'max:300'],
             'receipt' => ['required', 'file', 'mimes:jpg,jpeg,png,pdf', 'max:4096'],
@@ -129,7 +124,7 @@ class SubscriptionController extends Controller
             .'برای تمدید، نزدیک پایان دوره اقدام کنید.',
         );
 
-        $plan = SubscriptionPlan::from($data['plan']);
+        $resolved = $this->resolvePurchasePlan($data['plan']);
 
         // دیسک local خصوصی است؛ فایل فقط از مسیر کنترل‌شده‌ی ادمین سرو می‌شود
         $path = $request->file('receipt')->store('subscription-receipts/'.$complex->id, 'local');
@@ -137,13 +132,15 @@ class SubscriptionController extends Controller
         $subscription = Subscription::create([
             'complex_id' => $complex->id,
             'user_id' => $user->id,
-            'plan' => $plan,
+            // ستونِ enumِ قدیمی سایه‌ای معتبر می‌گیرد؛ منبعِ واقعی plan_id است.
+            'plan' => $resolved['shadow'],
+            'plan_id' => $resolved['plan_id'],
             'status' => 'pending',
             'method' => 'receipt',
-            // مبلغ از enum خوانده می‌شود نه از درخواست، وگرنه کاربر می‌توانست
-            // پلن پرو را به مبلغ دلخواه ثبت کند.
-            'amount' => $plan->price(),
-            'months' => $plan->months(),
+            // مبلغ سمت سرور خوانده می‌شود نه از درخواست، وگرنه کاربر می‌توانست
+            // مبلغ دلخواه ثبت کند.
+            'amount' => $resolved['amount'],
+            'months' => $resolved['months'],
             'receipt_path' => $path,
             'receipt_original_name' => $request->file('receipt')->getClientOriginalName(),
             'receipt_paid_on' => $data['paid_on'] ?? now(),
@@ -170,12 +167,75 @@ class SubscriptionController extends Controller
         return response()->json(['message' => 'اشتراک لغو شد.']);
     }
 
+    /** فهرستِ پکیج‌های قابلِ خرید؛ پکیج‌های دیتابیسی مقدم‌اند، وگرنه enumِ قدیمی. */
+    private function purchasablePlans(): array
+    {
+        $dbPlans = Plan::purchasable()->get();
+
+        if ($dbPlans->isNotEmpty()) {
+            return $dbPlans->map(fn (Plan $p) => [
+                'value' => $p->slug,
+                'label' => $p->name,
+                'price' => $p->price,
+                'priceLabel' => Jalali::money($p->price),
+                'months' => $p->months,
+                'features' => $p->features ?? [],
+                'savingPercent' => 0,
+            ])->values()->all();
+        }
+
+        return collect(SubscriptionPlan::purchasable())->map(fn (SubscriptionPlan $p) => [
+            'value' => $p->value,
+            'label' => $p->label(),
+            'price' => $p->price(),
+            'priceLabel' => Jalali::money($p->price()),
+            'months' => $p->months(),
+            'features' => $p->features(),
+            'savingPercent' => $p === SubscriptionPlan::ProYearly
+                ? (int) round((1 - $p->price() / (SubscriptionPlan::Pro->price() * 12)) * 100)
+                : 0,
+        ])->values()->all();
+    }
+
+    /**
+     * پلنِ خرید را از slug پیدا می‌کند: پکیجِ دیتابیسیِ فعال مقدم است، وگرنه
+     * enumِ قابلِ‌خریدِ قدیمی. مبلغ و مدت سمت سرور تعیین می‌شود.
+     *
+     * @return array{shadow:string, plan_id:?int, amount:int, months:int}
+     */
+    private function resolvePurchasePlan(string $slug): array
+    {
+        $plan = Plan::where('slug', $slug)->where('is_active', true)->first();
+
+        if ($plan) {
+            return [
+                // ستونِ enum سایه می‌گیرد تا cast نشکند؛ منبعِ واقعی plan_id است.
+                'shadow' => SubscriptionPlan::Pro->value,
+                'plan_id' => $plan->id,
+                'amount' => $plan->price,
+                'months' => $plan->months,
+            ];
+        }
+
+        $legacy = SubscriptionPlan::tryFrom($slug);
+        if ($legacy && in_array($legacy, SubscriptionPlan::purchasable(), true)) {
+            return [
+                'shadow' => $legacy->value,
+                'plan_id' => null,
+                'amount' => $legacy->price(),
+                'months' => $legacy->months(),
+            ];
+        }
+
+        throw ValidationException::withMessages(['plan' => 'پکیجِ انتخاب‌شده معتبر نیست.']);
+    }
+
     private function present(Subscription $s): array
     {
         return [
             'id' => $s->id,
-            'plan' => $s->plan->value,
-            'planLabel' => $s->plan->label(),
+            'plan' => $s->plan_id ? $s->planRef?->slug : $s->plan->value,
+            'planLabel' => $s->planLabel(),
             'status' => $s->status,
             'statusLabel' => $s->statusLabel(),
             'method' => $s->method,

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Enums\SubscriptionPlan;
+use App\Models\Plan;
 use App\Models\Subscription;
 use App\Services\Subscription\SubscriptionGatewayManager;
 use Illuminate\Http\Request;
@@ -27,22 +28,43 @@ class SubscriptionCheckoutController extends Controller
         abort_unless($user->isAdmin(), 403, 'خرید اشتراک فقط برای مدیران مجتمع است.');
 
         $request->validate([
-            'plan' => ['required', 'string', 'in:pro,pro_yearly'],
+            'plan' => ['required', 'string'],
         ], [], ['plan' => 'پلن']);
 
-        $plan = SubscriptionPlan::from($request->string('plan')->value());
         $complex = $this->requireComplex();
 
-        // مبلغ از enum خوانده می‌شود، نه از درخواست؛ وگرنه کلاینت می‌توانست
-        // پلن پرو را به قیمت دلخواه بخرد.
+        // پکیجِ دیتابیسیِ فعال مقدم است، وگرنه enumِ قابلِ‌خریدِ قدیمی. مبلغ و
+        // مدت سمت سرور تعیین می‌شود، نه از درخواست.
+        $slug = $request->string('plan')->value();
+        $dbPlan = Plan::where('slug', $slug)->where('is_active', true)->first();
+
+        if ($dbPlan) {
+            $shadow = SubscriptionPlan::Pro->value;
+            $planId = $dbPlan->id;
+            $amount = $dbPlan->price;
+            $months = $dbPlan->months;
+        } else {
+            $legacy = SubscriptionPlan::tryFrom($slug);
+            abort_unless(
+                $legacy && in_array($legacy, SubscriptionPlan::purchasable(), true),
+                422,
+                'پکیجِ انتخاب‌شده معتبر نیست.',
+            );
+            $shadow = $legacy->value;
+            $planId = null;
+            $amount = $legacy->price();
+            $months = $legacy->months();
+        }
+
         $subscription = Subscription::create([
             'complex_id' => $complex->id,
             'user_id' => $user->id,
-            'plan' => $plan,
+            'plan' => $shadow,
+            'plan_id' => $planId,
             'status' => 'pending',
             'method' => 'online',
-            'amount' => $plan->price(),
-            'months' => $plan->months(),
+            'amount' => $amount,
+            'months' => $months,
         ]);
 
         try {

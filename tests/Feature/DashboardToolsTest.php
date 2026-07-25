@@ -384,8 +384,12 @@ class DashboardToolsTest extends TestCase
         $response = $this->actingAs($this->admin)->getJson('/api/subscription')->assertOk();
 
         $this->assertNull($response->json('current'));
-        $this->assertCount(2, $response->json('plans'));
-        $this->assertSame(SubscriptionPlan::Pro->price(), $response->json('plans.0.price'));
+        // پکیج‌ها حالا از دیتابیس می‌آیند (سه پکیجِ پیش‌فرض)، با قیمتِ سمت سرور.
+        $this->assertCount(3, $response->json('plans'));
+        $this->assertSame(
+            \App\Models\Plan::where('slug', 'basic')->value('price'),
+            $response->json('plans.0.price'),
+        );
     }
 
     public function test_checkout_ignores_a_client_supplied_amount(): void

@@ -2,6 +2,7 @@
 
 namespace App\Services\Subscription;
 
+use App\Contracts\PlanCapabilities;
 use App\Enums\SubscriptionPlan;
 use App\Models\Complex;
 use App\Models\Subscription;
@@ -34,15 +35,19 @@ class PlanGate
             ->first();
     }
 
-    /** پلن مؤثر مجتمع؛ نبودِ اشتراک فعال یعنی رایگان. */
-    public function planFor(?Complex $complex): SubscriptionPlan
+    /**
+     * قابلیت‌های مؤثرِ مجتمع؛ پکیجِ دیتابیسی مقدم است، نبودِ اشتراکِ فعال یعنی
+     * پلنِ پایه‌ی رایگان (fallback).
+     */
+    public function planFor(?Complex $complex): PlanCapabilities
     {
-        return $this->activeSubscription($complex)?->plan ?? SubscriptionPlan::Free;
+        return $this->activeSubscription($complex)?->resolvedPlan() ?? SubscriptionPlan::Free;
     }
 
     public function isPro(?Complex $complex): bool
     {
-        return $this->planFor($complex) !== SubscriptionPlan::Free;
+        // هر اشتراکِ فعالی (هر پکیجی) یعنی فراتر از پلنِ رایگان.
+        return $this->activeSubscription($complex) !== null;
     }
 
     /** تعداد واحدهای فعلی مجتمع. */

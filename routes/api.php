@@ -5,6 +5,7 @@ use App\Http\Controllers\Api\AnnouncementController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\SiteContentController;
 use App\Http\Controllers\Api\System\MemberController;
+use App\Http\Controllers\Api\System\PlanController;
 use App\Http\Controllers\Api\System\SiteSettingsController;
 use App\Http\Controllers\Api\BackupController;
 use App\Http\Controllers\Api\BillController;
@@ -216,6 +217,15 @@ Route::middleware('auth')->group(function () {
         // همه‌ی اعضای ثبت‌نام‌شده: جست‌وجو، مشاهده و تغییر نقش
         Route::get('members', [MemberController::class, 'index'])->name('members.index');
         Route::patch('members/{user}', [MemberController::class, 'update'])->name('members.update');
+
+        // پکیج‌های اشتراک: تعریف/ویرایش + فعال‌سازیِ دستی برای مجتمع
+        Route::get('plans', [PlanController::class, 'index'])->name('plans.index');
+        Route::post('plans', [PlanController::class, 'store'])->name('plans.store');
+        Route::post('plans/grant', [PlanController::class, 'grant'])->name('plans.grant');
+        Route::post('plans/revoke', [PlanController::class, 'revoke'])->name('plans.revoke');
+        Route::put('plans/{plan}', [PlanController::class, 'update'])->name('plans.update');
+        Route::patch('plans/{plan}/toggle', [PlanController::class, 'toggle'])->name('plans.toggle');
+        Route::delete('plans/{plan}', [PlanController::class, 'destroy'])->name('plans.destroy');
 
         // بررسی رسیدهای اشتراک: پول اشتراک به حساب سرویس‌دهنده می‌رود، پس
         // تاییدش کار ادمین کل است نه مدیر مجتمعی که خودش پرداخت کرده.

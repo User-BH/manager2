@@ -2,13 +2,16 @@
 
 namespace App\Enums;
 
+use App\Contracts\PlanCapabilities;
+
 /**
- * پلن‌های اشتراک سرویس.
+ * پلن‌های اشتراکِ قدیمی (fallback).
  *
- * قیمت‌ها اینجا و نه در دیتابیس نگه داشته می‌شوند تا کلاینت نتواند مبلغ را
- * تعیین کند؛ کلاینت فقط نام پلن را می‌فرستد و مبلغ سمت سرور خوانده می‌شود.
+ * پکیج‌های تازه از دیتابیس (`App\Models\Plan`) می‌آیند و ادمین آن‌ها را
+ * می‌سازد؛ این enum فقط برای اشتراک‌های قدیمی و باقی‌ماندنِ رفتارِ «بدون
+ * اشتراک = رایگان» نگه داشته شده است.
  */
-enum SubscriptionPlan: string
+enum SubscriptionPlan: string implements PlanCapabilities
 {
     case Free = 'free';
     case Pro = 'pro';
@@ -105,5 +108,11 @@ enum SubscriptionPlan: string
     public static function purchasable(): array
     {
         return [self::Pro, self::ProYearly];
+    }
+
+    /** هم‌نامِ label برای قراردادِ PlanCapabilities. */
+    public function planLabel(): string
+    {
+        return $this->label();
     }
 }

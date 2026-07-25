@@ -78,6 +78,7 @@ export const navSections: NavSection[] = [
     items: [
       { label: 'مدیریت مجتمع‌ها', path: '/system/complexes', icon: Building, roles: SUPER },
       { label: 'اعضای سامانه', path: '/system/members', icon: Users, roles: SUPER },
+      { label: 'پکیج‌های اشتراک', path: '/system/plans', icon: BadgePercent, roles: SUPER },
       { label: 'اشتراک‌ها', path: '/system/subscriptions', icon: Crown, roles: SUPER },
       { label: 'تبلیغات صفحه اصلی', path: '/system/ads', icon: MegaphoneIcon, roles: SUPER },
       { label: 'فوتر و شبکه‌ها', path: '/system/site', icon: Share2, roles: SUPER },
