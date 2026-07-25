@@ -96,7 +96,12 @@ export function NotificationBell() {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: -8, scale: 0.96 }}
             transition={{ duration: 0.18, ease: [0.22, 1, 0.36, 1] }}
-            className="absolute left-0 top-[calc(100%+10px)] z-40 w-[19rem] origin-top overflow-hidden rounded-2xl border shadow-xl"
+            /*
+              روی موبایل به‌جای absoluteِ ۱۹remی که از لبه‌ی صفحه بیرون می‌زد،
+              یک پنلِ fixed با حاشیه‌ی کوچک از دو طرف است تا همیشه کامل داخل
+              صفحه بماند. از sm به بعد همان دراپ‌داونِ چسبیده به زنگوله است.
+            */
+            className="fixed inset-x-3 top-16 z-40 origin-top overflow-hidden rounded-2xl border shadow-xl sm:absolute sm:inset-x-auto sm:left-0 sm:top-[calc(100%+10px)] sm:w-[19rem]"
             style={{
               backgroundColor: 'var(--surface-raised)',
               borderColor: 'var(--border-subtle)',

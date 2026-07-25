@@ -20,7 +20,7 @@ export function HeroSection() {
   const contentOpacity = useTransform(scrollYProgress, [0, 0.8], [1, 0])
 
   return (
-    <section ref={sectionRef} className="relative overflow-hidden pt-28 sm:pt-32">
+    <section ref={sectionRef} className="relative overflow-hidden pb-16 pt-28 sm:pb-24 sm:pt-32">
       {/* پس‌زمینه گرادینت دکوراتیو */}
       <div
         className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-[600px]"
