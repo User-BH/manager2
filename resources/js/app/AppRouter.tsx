@@ -41,6 +41,7 @@ const SystemBackupPage = lazy(() => import('@/pages/system/SystemBackupPage').th
 const SystemSubscriptionsPage = lazy(() => import('@/pages/system/SubscriptionsPage').then((m) => ({ default: m.SubscriptionsPage })))
 const AdvertisementsPage = lazy(() => import('@/pages/system/ads/AdvertisementsPage').then((m) => ({ default: m.AdvertisementsPage })))
 const SiteSettingsPage = lazy(() => import('@/pages/system/SiteSettingsPage').then((m) => ({ default: m.SiteSettingsPage })))
+const MembersPage = lazy(() => import('@/pages/system/MembersPage').then((m) => ({ default: m.MembersPage })))
 const AuditLogPage = lazy(() => import('@/pages/system/AuditLogPage').then((m) => ({ default: m.AuditLogPage })))
 const ManagersPage = lazy(() => import('@/pages/managers/ManagersPage').then((m) => ({ default: m.ManagersPage })))
 const ChargeRulesPage = lazy(() => import('@/pages/charge-rules/ChargeRulesPage').then((m) => ({ default: m.ChargeRulesPage })))
@@ -129,6 +130,7 @@ export function AppRouter() {
             <Route path="/system/subscriptions" element={<SystemSubscriptionsPage />} />
             <Route path="/system/ads" element={<AdvertisementsPage />} />
             <Route path="/system/site" element={<SiteSettingsPage />} />
+            <Route path="/system/members" element={<MembersPage />} />
             <Route path="/system/sms" element={<SmsPage />} />
             <Route path="/system/audit" element={<AuditLogPage />} />
             <Route path="/system/backup" element={<SystemBackupPage />} />

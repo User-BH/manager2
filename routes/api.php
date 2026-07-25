@@ -4,6 +4,7 @@ use App\Http\Controllers\Api\AdvertisementController;
 use App\Http\Controllers\Api\AnnouncementController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\SiteContentController;
+use App\Http\Controllers\Api\System\MemberController;
 use App\Http\Controllers\Api\System\SiteSettingsController;
 use App\Http\Controllers\Api\BackupController;
 use App\Http\Controllers\Api\BillController;
@@ -211,6 +212,10 @@ Route::middleware('auth')->group(function () {
         // تنظیماتِ فوترِ سایت: تماس و شبکه‌های اجتماعی
         Route::get('site-settings', [SiteSettingsController::class, 'show'])->name('site-settings.show');
         Route::put('site-settings', [SiteSettingsController::class, 'update'])->name('site-settings.update');
+
+        // همه‌ی اعضای ثبت‌نام‌شده: جست‌وجو، مشاهده و تغییر نقش
+        Route::get('members', [MemberController::class, 'index'])->name('members.index');
+        Route::patch('members/{user}', [MemberController::class, 'update'])->name('members.update');
 
         // بررسی رسیدهای اشتراک: پول اشتراک به حساب سرویس‌دهنده می‌رود، پس
         // تاییدش کار ادمین کل است نه مدیر مجتمعی که خودش پرداخت کرده.
