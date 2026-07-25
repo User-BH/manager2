@@ -48,7 +48,7 @@ export function DiscountsPage() {
   useDocumentTitle('تخفیف و بخشودگی')
 
   const query = period ? `/discounts?period=${encodeURIComponent(period)}` : '/discounts'
-  const { data, error, isLoading, reload } = useApi<DiscountsResponse>(query)
+  const { data, error, isLoading, reload, mutate } = useApi<DiscountsResponse>(query)
 
   async function remove(discount: Discount) {
     const ok = await confirmAction({
@@ -58,12 +58,17 @@ export function DiscountsPage() {
     })
     if (!ok) return
 
+    // خوش‌بینانه: تخفیف بلافاصله از لیست می‌رود
+    mutate((current) =>
+      current ? { ...current, data: current.data.filter((d) => d.id !== discount.id) } : current,
+    )
+
     try {
       await api(`/discounts/${discount.id}`, { method: 'DELETE' })
       toastSuccess('تخفیف حذف شد.')
-      reload()
     } catch (error) {
       alertError(error, 'حذف تخفیف ممکن نشد.')
+      reload() // اگر حذف نشد، تخفیف برمی‌گردد
     }
   }
 

@@ -46,7 +46,7 @@ export function PaymentReviewPage() {
 
   useDocumentTitle('بررسی پرداخت‌ها')
 
-  const { data, error, isLoading, reload } = useApi<PaymentsResponse>('/payments')
+  const { data, error, isLoading, reload, mutate } = useApi<PaymentsResponse>('/payments')
 
   async function approve(payment: PaymentRow) {
     const ok = await confirmAction({
@@ -58,12 +58,17 @@ export function PaymentReviewPage() {
 
     setBusyId(payment.id)
     setActionError(null)
+    // خوش‌بینانه: رسید بلافاصله از فهرست «در انتظار» می‌رود
+    mutate((current) =>
+      current ? { ...current, pending: current.pending.filter((p) => p.id !== payment.id) } : current,
+    )
     try {
       await api(`/payments/${payment.id}/approve`, { method: 'POST' })
       toastSuccess('پرداخت تایید شد.')
-      reload()
+      reload() // فهرست «اخیر» و شمارنده‌ها از سرور تازه می‌شوند
     } catch (err) {
       setActionError(err instanceof ApiError ? err.message : 'تایید ناموفق بود.')
+      reload() // اگر تایید نشد، رسید به فهرست برمی‌گردد
     } finally {
       setBusyId(null)
     }
@@ -81,12 +86,17 @@ export function PaymentReviewPage() {
 
     setBusyId(payment.id)
     setActionError(null)
+    // خوش‌بینانه: رسید بلافاصله از فهرست «در انتظار» می‌رود
+    mutate((current) =>
+      current ? { ...current, pending: current.pending.filter((p) => p.id !== payment.id) } : current,
+    )
     try {
       await api(`/payments/${payment.id}/reject`, { method: 'POST', body: { note } })
       toastSuccess('رسید رد شد.')
       reload()
     } catch (err) {
       setActionError(err instanceof ApiError ? err.message : 'رد کردن ناموفق بود.')
+      reload() // اگر رد نشد، رسید به فهرست برمی‌گردد
     } finally {
       setBusyId(null)
     }

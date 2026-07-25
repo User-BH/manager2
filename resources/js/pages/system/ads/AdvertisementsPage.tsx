@@ -19,7 +19,7 @@ import type { AdItem } from './schema'
 export function AdvertisementsPage() {
   useDocumentTitle('تبلیغات صفحه اصلی')
 
-  const { data, error, isLoading, reload } = useApi<{ ads: AdItem[] }>('/system/ads')
+  const { data, error, isLoading, reload, mutate } = useApi<{ ads: AdItem[] }>('/system/ads')
   const [formOpen, setFormOpen] = useState(false)
   const [editing, setEditing] = useState<AdItem | null>(null)
 
@@ -34,12 +34,20 @@ export function AdvertisementsPage() {
   }
 
   async function toggle(ad: AdItem) {
+    // خوش‌بینانه: وضعیتِ فعال همین حالا برعکس می‌شود (آیکون و برچسب فوراً عوض)
+    mutate((current) =>
+      current
+        ? { ads: current.ads.map((a) => (a.id === ad.id ? { ...a, isActive: !a.isActive } : a)) }
+        : current,
+    )
+
     try {
-      const result = await api<{ message: string }>(`/system/ads/${ad.id}/toggle`, { method: 'PATCH' })
-      toastSuccess(result.message)
+      await api<{ message: string }>(`/system/ads/${ad.id}/toggle`, { method: 'PATCH' })
+      // برای هم‌گام‌شدنِ «در حال نمایش» با بازه‌ی زمانی، از سرور تازه می‌گیریم
       reload()
     } catch (err) {
       alertError(err, 'تغییر وضعیت بنر ممکن نشد.')
+      reload() // برگرداندن به وضعیتِ درستِ سرور
     }
   }
 
@@ -52,12 +60,17 @@ export function AdvertisementsPage() {
     })
     if (!confirmed) return
 
+    // خوش‌بینانه: بنر بلافاصله از لیست می‌رود
+    mutate((current) =>
+      current ? { ads: current.ads.filter((a) => a.id !== ad.id) } : current,
+    )
+
     try {
       const result = await api<{ message: string }>(`/system/ads/${ad.id}`, { method: 'DELETE' })
       toastSuccess(result.message)
-      reload()
     } catch (err) {
       alertError(err, 'حذف بنر ممکن نشد.')
+      reload() // اگر حذف نشد، بنر برمی‌گردد
     }
   }
 

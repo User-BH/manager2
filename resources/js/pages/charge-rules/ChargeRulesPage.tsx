@@ -70,14 +70,21 @@ export function ChargeRulesPage() {
 
   useDocumentTitle('قوانین شارژ')
 
-  const { data, error, isLoading, reload } = useApi<RulesResponse>('/charge-rules')
+  const { data, error, isLoading, reload, mutate } = useApi<RulesResponse>('/charge-rules')
 
   async function toggle(rule: ChargeRule) {
+    // خوش‌بینانه: وضعیت فوراً برعکس می‌شود
+    mutate((current) =>
+      current
+        ? { ...current, data: current.data.map((r) => (r.id === rule.id ? { ...r, isActive: !r.isActive } : r)) }
+        : current,
+    )
+
     try {
       await api(`/charge-rules/${rule.id}/toggle`, { method: 'PATCH' })
-      reload()
     } catch (error) {
       alertError(error, 'تغییر وضعیت قانون ممکن نشد.')
+      reload() // برگرداندن به وضعیت سرور
     }
   }
 
@@ -90,12 +97,17 @@ export function ChargeRulesPage() {
     })
     if (!ok) return
 
+    // خوش‌بینانه: قانون بلافاصله از لیست می‌رود
+    mutate((current) =>
+      current ? { ...current, data: current.data.filter((r) => r.id !== rule.id) } : current,
+    )
+
     try {
       await api(`/charge-rules/${rule.id}`, { method: 'DELETE' })
       toastSuccess('قانون شارژ حذف شد.')
-      reload()
     } catch (error) {
       alertError(error, 'حذف قانون ممکن نشد.')
+      reload() // اگر حذف نشد، قانون برمی‌گردد
     }
   }
 

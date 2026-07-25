@@ -41,7 +41,7 @@ export function ManagersPage() {
 
   useDocumentTitle('مدیران مجتمع')
 
-  const { data, error, isLoading, reload } = useApi<{ data: Manager[]; complexName: string }>('/managers')
+  const { data, error, isLoading, reload, mutate } = useApi<{ data: Manager[]; complexName: string }>('/managers')
 
   async function handleDelete(manager: Manager) {
     const ok = await confirmAction({
@@ -53,13 +53,17 @@ export function ManagersPage() {
     if (!ok) return
 
     setActionError(null)
+    // خوش‌بینانه: مدیر بلافاصله از لیست می‌رود
+    mutate((current) =>
+      current ? { ...current, data: current.data.filter((m) => m.id !== manager.id) } : current,
+    )
     try {
       await api(`/managers/${manager.id}`, { method: 'DELETE' })
       toastSuccess('مدیر حذف شد.')
-      reload()
     } catch (err) {
       // «آخرین مدیر» و «حذف خود» با ۴۲۲ برمی‌گردند و باید دیده شوند
       setActionError(err instanceof ApiError ? err.message : 'حذف ناموفق بود.')
+      reload() // اگر حذف نشد، مدیر برمی‌گردد
     }
   }
 
