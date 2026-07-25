@@ -1,67 +1,56 @@
-import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from 'react'
+import { create } from 'zustand'
 import { api } from '@/lib/api'
 import type { CurrentUser } from '@/types'
 
-interface AuthContextValue {
+/**
+ * وضعیت احراز هویت با zustand.
+ *
+ * منبعِ درستیِ وضعیتِ ورود، نشستِ سمت سرور است نه localStorage؛ پس با بالا
+ * آمدنِ اپ یک‌بار `/me` خوانده می‌شود. این ماژول فقط در صفحه‌هایی import
+ * می‌شود که واقعاً به احراز نیاز دارند (ورود و داشبورد)، پس صفحه‌ی فرود
+ * بی‌دلیل به سرور درخواست نمی‌زند.
+ */
+
+interface AuthState {
   user: CurrentUser | null
-  isAuthenticated: boolean
-  /** تا وقتی وضعیت نشست از سرور نیامده true است */
+  /** تا وقتی وضعیت نشست از سرور نیامده true است. */
   isLoading: boolean
   setUser: (user: CurrentUser | null) => void
-  logout: () => Promise<void>
   refresh: () => Promise<void>
+  logout: () => Promise<void>
 }
 
-const AuthContext = createContext<AuthContextValue | undefined>(undefined)
-
-export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<CurrentUser | null>(null)
-  const [isLoading, setIsLoading] = useState(true)
-
-  // منبع درستیِ وضعیت ورود، نشستِ سمت سرور است نه localStorage. اگر کاربر را
-  // در مرورگر ذخیره کنیم، بعد از منقضی‌شدن نشست همچنان «وارد شده» به‌نظر
-  // می‌رسد و کاربر با صفحه‌های خالی و خطای ۴۰۱ روبه‌رو می‌شود.
-  const refresh = useCallback(async () => {
+export const useAuthStore = create<AuthState>((set) => ({
+  user: null,
+  isLoading: true,
+  setUser: (user) => set({ user }),
+  refresh: async () => {
     try {
-      const { user: current } = await api<{ user: CurrentUser | null }>('/me')
-      setUser(current)
+      const { user } = await api<{ user: CurrentUser | null }>('/me')
+      set({ user, isLoading: false })
     } catch {
-      setUser(null)
-    } finally {
-      setIsLoading(false)
+      set({ user: null, isLoading: false })
     }
-  }, [])
-
-  useEffect(() => {
-    void refresh()
-  }, [refresh])
-
-  const logout = useCallback(async () => {
+  },
+  logout: async () => {
     try {
       await api('/logout', { method: 'POST' })
     } finally {
-      setUser(null)
+      set({ user: null })
     }
-  }, [])
+  },
+}))
 
-  return (
-    <AuthContext.Provider
-      value={{
-        user,
-        isAuthenticated: Boolean(user),
-        isLoading,
-        setUser,
-        logout,
-        refresh,
-      }}
-    >
-      {children}
-    </AuthContext.Provider>
-  )
-}
+// راه‌اندازیِ اولیه: وضعیت نشست را همان اول از سرور می‌گیریم.
+void useAuthStore.getState().refresh()
 
+/** رابطِ سازگار با نسخه‌ی قبلی. */
 export function useAuth() {
-  const ctx = useContext(AuthContext)
-  if (!ctx) throw new Error('useAuth باید داخل AuthProvider استفاده شود')
-  return ctx
+  const user = useAuthStore((state) => state.user)
+  const isLoading = useAuthStore((state) => state.isLoading)
+  const setUser = useAuthStore((state) => state.setUser)
+  const refresh = useAuthStore((state) => state.refresh)
+  const logout = useAuthStore((state) => state.logout)
+
+  return { user, isAuthenticated: Boolean(user), isLoading, setUser, refresh, logout }
 }

@@ -1,135 +1,127 @@
-import {
-  createContext,
-  useCallback,
-  useContext,
-  useEffect,
-  useRef,
-  useState,
-  type ReactNode,
-} from 'react'
+import { create } from 'zustand'
 import { api, ApiError } from '@/lib/api'
-import { useDebounce, useLocalStorage } from '@/hooks'
-import type { SearchResponse, RecentSearch } from '@/types'
+import type { RecentSearch, SearchResponse } from '@/types'
 
-interface SearchContextValue {
+/**
+ * حالتِ جستجوی سراسری با zustand.
+ *
+ * نتیجه در دو جا لازم است — شمارنده‌ی کنار ذره‌بین در هدر و صفحه‌ی نتایج — پس
+ * یک store مشترک است تا کلیک روی ذره‌بین درخواستِ دومی نزند. debounce و
+ * «آخرین درخواست برنده است» داخلِ خودِ store مدیریت می‌شوند.
+ */
+
+const RECENT_KEY = 'app:recent-searches'
+const MAX_RECENT = 8
+const MIN_LENGTH = 2
+const DEBOUNCE_MS = 450
+
+function readRecent(): RecentSearch[] {
+  try {
+    const raw = window.localStorage.getItem(RECENT_KEY)
+    return raw ? (JSON.parse(raw) as RecentSearch[]) : []
+  } catch {
+    return []
+  }
+}
+
+function writeRecent(list: RecentSearch[]): void {
+  try {
+    window.localStorage.setItem(RECENT_KEY, JSON.stringify(list))
+  } catch {
+    // فضای ذخیره‌سازی در دسترس نیست؛ بی‌خطر
+  }
+}
+
+interface SearchState {
   /** آنچه کاربر همین حالا تایپ کرده است. */
   query: string
-  setQuery: (value: string) => void
   /** نسخه‌ی تاخیردار همان مقدار؛ درخواست روی این زده می‌شود. */
   debouncedQuery: string
   results: SearchResponse | null
   isSearching: boolean
   error: string | null
-  /** آیا نتیجه‌ای برای رفتن به صفحه‌ی نتایج آماده هست. */
-  hasResults: boolean
   recent: RecentSearch[]
+  setQuery: (value: string) => void
   rememberSearch: (query: string, total: number) => void
   removeRecent: (query: string) => void
   clearRecent: () => void
 }
 
-const SearchContext = createContext<SearchContextValue | undefined>(undefined)
+// خارج از state تا در رندرها ثابت بمانند
+let debounceTimer: ReturnType<typeof setTimeout> | null = null
+let requestId = 0
+let controller: AbortController | null = null
 
-const RECENT_KEY = 'app:recent-searches'
-const MAX_RECENT = 8
-const MIN_LENGTH = 2
-
-/**
- * حالت جستجوی سراسری.
- *
- * چرا context و نه state داخل SearchBox: نتیجه‌ی جستجو در دو جای متفاوت لازم
- * است — شمارنده‌ی کنار ذره‌بین در هدر، و صفحه‌ی نتایج در وسط صفحه. اگر هرکدام
- * خودش fetch می‌کرد، کلیک روی ذره‌بین یک درخواست دوم می‌زد و کاربر دوباره
- * منتظر می‌ماند، درحالی‌که همان داده لحظه‌ای قبل آمده بود.
- */
-export function SearchProvider({ children }: { children: ReactNode }) {
-  const [query, setQuery] = useState('')
-  const [results, setResults] = useState<SearchResponse | null>(null)
-  const [isSearching, setIsSearching] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-  const [recent, setRecent] = useLocalStorage<RecentSearch[]>(RECENT_KEY, [])
-
-  const debouncedQuery = useDebounce(query, 450)
-
-  // آخرین درخواست برنده است: اگر کاربر سریع تایپ کند، پاسخ دیرهنگامِ عبارت
-  // قبلی نباید نتیجه‌ی عبارت تازه را بازنویسی کند.
-  const requestId = useRef(0)
-
-  useEffect(() => {
-    const term = debouncedQuery.trim()
+export const useSearchStore = create<SearchState>((set, get) => {
+  function runSearch(value: string): void {
+    const term = value.trim()
 
     if (term.length < MIN_LENGTH) {
-      setResults(null)
-      setError(null)
-      setIsSearching(false)
+      controller?.abort()
+      set({ results: null, error: null, isSearching: false, debouncedQuery: term })
       return
     }
 
-    const id = ++requestId.current
-    const controller = new AbortController()
+    const id = ++requestId
+    controller?.abort()
+    controller = new AbortController()
 
-    setIsSearching(true)
-    setError(null)
+    set({ isSearching: true, error: null, debouncedQuery: term })
 
     api<SearchResponse>(`/search?q=${encodeURIComponent(term)}`, { signal: controller.signal })
       .then((response) => {
-        if (id !== requestId.current) return
-        setResults(response)
-        setIsSearching(false)
+        // فقط پاسخِ آخرین درخواست پذیرفته می‌شود
+        if (id !== requestId) return
+        set({ results: response, isSearching: false })
       })
       .catch((err: unknown) => {
-        if (controller.signal.aborted || id !== requestId.current) return
-        setError(err instanceof ApiError ? err.message : 'جستجو انجام نشد.')
-        setIsSearching(false)
+        if (id !== requestId) return
+        // درخواستِ لغوشده خطا نیست
+        if (err instanceof ApiError) set({ error: err.message, isSearching: false })
+        else set({ error: 'جستجو انجام نشد.', isSearching: false })
       })
+  }
 
-    return () => controller.abort()
-  }, [debouncedQuery])
+  return {
+    query: '',
+    debouncedQuery: '',
+    results: null,
+    isSearching: false,
+    error: null,
+    recent: readRecent(),
 
-  const rememberSearch = useCallback(
-    (value: string, total: number) => {
+    setQuery: (value) => {
+      set({ query: value })
+      if (debounceTimer) clearTimeout(debounceTimer)
+      debounceTimer = setTimeout(() => runSearch(value), DEBOUNCE_MS)
+    },
+
+    rememberSearch: (value, total) => {
       const term = value.trim()
       if (term.length < MIN_LENGTH) return
-
-      setRecent((prev) => [
+      const next = [
         { query: term, total, at: Date.now() },
-        // عبارت تکراری بالا می‌آید به‌جای اینکه دوباره ثبت شود
-        ...prev.filter((item) => item.query !== term),
-      ].slice(0, MAX_RECENT))
+        ...get().recent.filter((item) => item.query !== term),
+      ].slice(0, MAX_RECENT)
+      writeRecent(next)
+      set({ recent: next })
     },
-    [setRecent],
-  )
 
-  const removeRecent = useCallback(
-    (value: string) => setRecent((prev) => prev.filter((item) => item.query !== value)),
-    [setRecent],
-  )
+    removeRecent: (value) => {
+      const next = get().recent.filter((item) => item.query !== value)
+      writeRecent(next)
+      set({ recent: next })
+    },
 
-  const clearRecent = useCallback(() => setRecent([]), [setRecent])
+    clearRecent: () => {
+      writeRecent([])
+      set({ recent: [] })
+    },
+  }
+})
 
-  return (
-    <SearchContext.Provider
-      value={{
-        query,
-        setQuery,
-        debouncedQuery,
-        results,
-        isSearching,
-        error,
-        hasResults: (results?.total ?? 0) > 0,
-        recent,
-        rememberSearch,
-        removeRecent,
-        clearRecent,
-      }}
-    >
-      {children}
-    </SearchContext.Provider>
-  )
-}
-
+/** رابطِ سازگار با نسخه‌ی قبلی؛ `hasResults` هم مثل قبل محاسبه می‌شود. */
 export function useSearch() {
-  const ctx = useContext(SearchContext)
-  if (!ctx) throw new Error('useSearch باید داخل SearchProvider استفاده شود')
-  return ctx
+  const state = useSearchStore()
+  return { ...state, hasResults: (state.results?.total ?? 0) > 0 }
 }

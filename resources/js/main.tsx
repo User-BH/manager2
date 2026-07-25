@@ -2,17 +2,13 @@ import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import { BrowserRouter } from 'react-router-dom'
 import App from './App'
-import { ThemeProvider } from '@/context/ThemeContext'
-import { AuthProvider } from '@/context/AuthContext'
+// تم و احراز حالا store‌های zustand‌اند و به Provider نیاز ندارند؛
+// خودِ import‌شدنِ useAuth، وضعیتِ نشست را از سرور می‌گیرد.
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <ThemeProvider>
-      <AuthProvider>
-        <BrowserRouter>
-          <App />
-        </BrowserRouter>
-      </AuthProvider>
-    </ThemeProvider>
+    <BrowserRouter>
+      <App />
+    </BrowserRouter>
   </StrictMode>,
 )

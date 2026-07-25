@@ -1,8 +1,6 @@
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import { BrowserRouter, Route, Routes } from 'react-router-dom'
-import { ThemeProvider } from '@/context/ThemeContext'
-import { AuthProvider } from '@/context/AuthContext'
 import { AuthPage } from '@/pages/auth/AuthPage'
 import { VerifyOtpPage } from '@/pages/auth/VerifyOtpPage'
 import { ForgotPasswordPage } from '@/pages/auth/ForgotPasswordPage'
@@ -17,16 +15,12 @@ import { ForgotPasswordPage } from '@/pages/auth/ForgotPasswordPage'
  */
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <ThemeProvider>
-      <AuthProvider>
-        <BrowserRouter>
-          <Routes>
-            <Route path="/auth" element={<AuthPage />} />
-            <Route path="/auth/verify" element={<VerifyOtpPage />} />
-            <Route path="/auth/forgot" element={<ForgotPasswordPage />} />
-          </Routes>
-        </BrowserRouter>
-      </AuthProvider>
-    </ThemeProvider>
+    <BrowserRouter>
+      <Routes>
+        <Route path="/auth" element={<AuthPage />} />
+        <Route path="/auth/verify" element={<VerifyOtpPage />} />
+        <Route path="/auth/forgot" element={<ForgotPasswordPage />} />
+      </Routes>
+    </BrowserRouter>
   </StrictMode>,
 )

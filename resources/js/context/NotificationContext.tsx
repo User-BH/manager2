@@ -1,15 +1,22 @@
-import {
-  createContext,
-  useCallback,
-  useContext,
-  useEffect,
-  useState,
-  type ReactNode,
-} from 'react'
+import { useEffect } from 'react'
+import { create } from 'zustand'
 import { api } from '@/lib/api'
 import type { NotificationItem, NotificationsResponse } from '@/types'
 
-interface NotificationContextValue {
+/**
+ * وضعیت زنگوله‌ی هدر با zustand.
+ *
+ * دو مصرف‌کننده باید یک عدد ببینند: خود زنگوله و صفحه‌ی اطلاعیه‌ها. با store‌ی
+ * مشترک، خوانده‌شدنِ یک اطلاعیه بلافاصله شمارنده را همه‌جا کم می‌کند.
+ *
+ * markRead/markAllRead خوش‌بینانه‌اند: عدد بلافاصله کم می‌شود و اگر درخواست
+ * شکست بخورد، بازخوانیِ بی‌صدا مقدارِ درستِ سرور را برمی‌گرداند.
+ */
+
+/** هر چند وقت یک‌بار شمارنده دوباره خوانده شود. */
+const POLL_MS = 60_000
+
+interface NotificationState {
   unreadCount: number
   items: NotificationItem[]
   isLoading: boolean
@@ -18,104 +25,68 @@ interface NotificationContextValue {
   markAllRead: () => Promise<void>
 }
 
-const NotificationContext = createContext<NotificationContextValue | undefined>(undefined)
+export const useNotificationStore = create<NotificationState>((set, get) => ({
+  unreadCount: 0,
+  items: [],
+  isLoading: true,
 
-/** هر چند وقت یک‌بار شمارنده دوباره خوانده شود. */
-const POLL_MS = 60_000
-
-/**
- * وضعیت زنگوله‌ی هدر.
- *
- * دو مصرف‌کننده دارد که باید یک عدد ببینند: خود زنگوله و صفحه‌ی اطلاعیه‌ها
- * (که با خوانده‌شدن یک اطلاعیه باید شمارنده را کم کند). برای همین state
- * بالای هر دو نگه داشته شده.
- */
-export function NotificationProvider({ children }: { children: ReactNode }) {
-  const [unreadCount, setUnreadCount] = useState(0)
-  const [items, setItems] = useState<NotificationItem[]>([])
-  const [isLoading, setIsLoading] = useState(true)
-
-  const refresh = useCallback(async () => {
+  refresh: async () => {
     try {
       const response = await api<NotificationsResponse>('/notifications?limit=3')
-      setUnreadCount(response.unreadCount)
-      setItems(response.items)
+      set({ unreadCount: response.unreadCount, items: response.items, isLoading: false })
     } catch {
       // خطای شبکه نباید هدر را بشکند؛ شمارنده همان مقدار قبلی می‌ماند
-    } finally {
-      setIsLoading(false)
+      set({ isLoading: false })
     }
-  }, [])
+  },
 
-  useEffect(() => {
-    void refresh()
-
-    /*
-     * وقتی تب پنهان است نظرسنجی متوقف می‌شود. بدون این شرط، تبِ باز در
-     * پس‌زمینه ساعت‌ها بی‌دلیل به سرور درخواست می‌زد.
-     */
-    const timer = window.setInterval(() => {
-      if (document.visibilityState === 'visible') void refresh()
-    }, POLL_MS)
-
-    return () => window.clearInterval(timer)
-  }, [refresh])
-
-  const markRead = useCallback(async (id: number) => {
-    // خوش‌بینانه: عدد بلافاصله کم می‌شود و اگر درخواست شکست بخورد،
-    // refresh بعدی مقدار درست سرور را برمی‌گرداند.
-    setItems((prev) => prev.map((item) => (item.id === id ? { ...item, isRead: true } : item)))
-    setUnreadCount((prev) => Math.max(0, prev - 1))
+  markRead: async (id) => {
+    set((state) => ({
+      items: state.items.map((item) => (item.id === id ? { ...item, isRead: true } : item)),
+      unreadCount: Math.max(0, state.unreadCount - 1),
+    }))
 
     try {
-      const response = await api<{ unreadCount: number }>(`/notifications/${id}/read`, {
-        method: 'POST',
-      })
-      setUnreadCount(response.unreadCount)
+      const response = await api<{ unreadCount: number }>(`/notifications/${id}/read`, { method: 'POST' })
+      set({ unreadCount: response.unreadCount })
     } catch {
-      void refreshSilently(setUnreadCount, setItems)
+      void get().refresh()
     }
-  }, [])
+  },
 
-  const markAllRead = useCallback(async () => {
-    setItems((prev) => prev.map((item) => ({ ...item, isRead: true })))
-    setUnreadCount(0)
+  markAllRead: async () => {
+    set((state) => ({
+      items: state.items.map((item) => ({ ...item, isRead: true })),
+      unreadCount: 0,
+    }))
 
     try {
-      const response = await api<{ unreadCount: number }>('/notifications/read-all', {
-        method: 'POST',
-      })
-      setUnreadCount(response.unreadCount)
+      const response = await api<{ unreadCount: number }>('/notifications/read-all', { method: 'POST' })
+      set({ unreadCount: response.unreadCount })
     } catch {
-      void refreshSilently(setUnreadCount, setItems)
+      void get().refresh()
     }
-  }, [])
+  },
+}))
 
-  return (
-    <NotificationContext.Provider
-      value={{ unreadCount, items, isLoading, refresh, markRead, markAllRead }}
-    >
-      {children}
-    </NotificationContext.Provider>
-  )
+/*
+ * راه‌اندازی: اولین خواندن + نظرسنجیِ دوره‌ای. این ماژول فقط داخل داشبورد
+ * import می‌شود، پس polling هم فقط همان‌جا زنده است. وقتی تب پنهان است
+ * درخواست زده نمی‌شود تا تبِ پس‌زمینه بی‌دلیل به سرور فشار نیاورد.
+ */
+let bootstrapped = false
+function bootstrapNotifications(): void {
+  if (bootstrapped || typeof window === 'undefined') return
+  bootstrapped = true
+
+  void useNotificationStore.getState().refresh()
+  window.setInterval(() => {
+    if (document.visibilityState === 'visible') void useNotificationStore.getState().refresh()
+  }, POLL_MS)
 }
 
-/** بازخوانی بعد از شکست یک به‌روزرسانی خوش‌بینانه. */
-async function refreshSilently(
-  setUnreadCount: (value: number) => void,
-  setItems: (value: NotificationItem[]) => void,
-): Promise<void> {
-  try {
-    const response = await api<NotificationsResponse>('/notifications?limit=3')
-    setUnreadCount(response.unreadCount)
-    setItems(response.items)
-  } catch {
-    // بی‌صدا؛ نظرسنجی بعدی دوباره تلاش می‌کند
-  }
-}
-
+/** رابطِ سازگار با نسخه‌ی قبلی؛ راه‌اندازی را یک‌بار انجام می‌دهد. */
 export function useNotifications() {
-  const ctx = useContext(NotificationContext)
-  if (!ctx) throw new Error('useNotifications باید داخل NotificationProvider استفاده شود')
-  return ctx
+  useEffect(() => bootstrapNotifications(), [])
+  return useNotificationStore()
 }

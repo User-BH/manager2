@@ -1,7 +1,7 @@
-import { createContext, useContext, type ReactNode } from 'react'
-import { useToggle } from '@/hooks'
+import { create } from 'zustand'
 
-interface SidebarContextValue {
+/** حالتِ نوار کناریِ داشبورد (جمع‌شدن و بازشدنِ موبایل) با zustand. */
+interface SidebarState {
   collapsed: boolean
   toggleCollapsed: () => void
   mobileOpen: boolean
@@ -9,23 +9,15 @@ interface SidebarContextValue {
   setMobileOpen: (open: boolean) => void
 }
 
-const SidebarContext = createContext<SidebarContextValue | undefined>(undefined)
+export const useSidebarStore = create<SidebarState>((set) => ({
+  collapsed: false,
+  toggleCollapsed: () => set((state) => ({ collapsed: !state.collapsed })),
+  mobileOpen: false,
+  toggleMobileOpen: () => set((state) => ({ mobileOpen: !state.mobileOpen })),
+  setMobileOpen: (open) => set({ mobileOpen: open }),
+}))
 
-export function SidebarProvider({ children }: { children: ReactNode }) {
-  const [collapsed, toggleCollapsed] = useToggle(false)
-  const [mobileOpen, toggleMobileOpen, setMobileOpen] = useToggle(false)
-
-  return (
-    <SidebarContext.Provider
-      value={{ collapsed, toggleCollapsed, mobileOpen, toggleMobileOpen, setMobileOpen }}
-    >
-      {children}
-    </SidebarContext.Provider>
-  )
-}
-
+/** رابطِ سازگار با نسخه‌ی قبلی. */
 export function useSidebar() {
-  const ctx = useContext(SidebarContext)
-  if (!ctx) throw new Error('useSidebar باید داخل SidebarProvider استفاده شود')
-  return ctx
+  return useSidebarStore()
 }
