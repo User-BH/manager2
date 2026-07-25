@@ -18,6 +18,7 @@ const smsSchema = z.object({
   password: z.string().max(100).optional(),
   pattern_code: z.string().max(50).optional(),
   pattern_variable: z.string().max(50).optional(),
+  otp_disabled: z.boolean().optional(),
 })
 
 type SmsFormValues = z.infer<typeof smsSchema>
@@ -207,12 +208,37 @@ export function SmsPage() {
                   {...register('pattern_variable')}
                 />
                 <p className="sm:col-span-2 text-[11.5px] leading-6" style={{ color: 'var(--text-tertiary)' }}>
-                  در پنل ایپ‌پنل یک پترن با یک متغیر (مثلاً <span dir="ltr">%code%</span>) بسازید و کد آن را اینجا وارد کنید.
-                  برای پرشدنِ خودکارِ کد روی گوشی، بهتر است متن پترن با خطی مثل
-                  <span dir="ltr" className="mx-1">@{'{'}دامنه{'}'} #{'{'}code{'}'}</span> تمام شود.
+                  در پنل ایپ‌پنل یک پترن با متغیرِ <span dir="ltr">%code%</span> بسازید و «نام متغیر» را
+                  همان <span dir="ltr">code</span> بگذارید. برای پرشدنِ خودکارِ کد روی <b>اندروید</b>، آخرین خطِ پترن باید
+                  دقیقاً به شکلِ <span dir="ltr" className="mx-1">@دامنه‌ی‌سایت #%code%</span> باشد (مثلاً
+                  <span dir="ltr" className="mx-1">@sakena.app #%code%</span>)؛ روی <b>iOS</b> بدونِ این هم کد پیشنهاد می‌شود.
                 </p>
               </div>
             )}
+
+            {/*
+              ورودِ بدونِ کدِ پیامکی: مرحله‌ی دومِ ورود کلاً حذف می‌شود و کاربر
+              پس از رمز مستقیم وارد داشبورد می‌شود. برای وقتی پنلِ پیامک هنوز
+              آماده نیست؛ امنیتِ ورود را پایین می‌آورد.
+            */}
+            <label
+              className="flex cursor-pointer items-start gap-3 rounded-2xl border p-4"
+              style={{
+                borderColor: 'color-mix(in srgb, var(--color-warning) 45%, var(--border-subtle))',
+                backgroundColor: 'color-mix(in srgb, var(--color-warning) 8%, transparent)',
+              }}
+            >
+              <input type="checkbox" className="mt-0.5 h-4 w-4 rounded" {...register('otp_disabled')} />
+              <span>
+                <span className="text-[13px] font-bold" style={{ color: 'var(--text-primary)' }}>
+                  ورود بدون کد یک‌بارمصرف (OTP)
+                </span>
+                <span className="mt-1 block text-[11.5px] leading-6" style={{ color: 'var(--text-tertiary)' }}>
+                  با روشن‌کردنِ این گزینه، مرحله‌ی دومِ ورود حذف می‌شود و کاربر پس از واردکردنِ رمز
+                  مستقیم وارد داشبورد می‌شود. فقط زمانی که پنلِ پیامک هنوز آماده نیست از آن استفاده کنید.
+                </span>
+              </span>
+            </label>
 
             <div>
               <button

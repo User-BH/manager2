@@ -9,6 +9,7 @@ use App\Models\User;
 use App\Services\Auth\OtpService;
 use App\Services\Auth\TrustedDeviceService;
 use App\Support\Phone;
+use App\Support\SystemSettings;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -70,6 +71,12 @@ class AuthController extends Controller
             throw ValidationException::withMessages([
                 'phone' => 'حساب کاربری شما هنوز فعال نشده است. پس از تایید مدیر مجتمع می‌توانید وارد شوید.',
             ]);
+        }
+
+        // ورودِ بدونِ کدِ یک‌بارمصرف (تنظیمِ ادمینِ کل): مرحله‌ی دوم کلاً رد و
+        // کاربر مستقیم وارد می‌شود. برای وقتی پنلِ پیامک هنوز آماده نیست.
+        if (SystemSettings::get('otp_disabled', false)) {
+            return $this->completeLogin($request, $user, remember: $request->boolean('remember'), otp: $otp);
         }
 
         // دستگاهِ مورداعتماد: رد کردن کاملِ مرحله‌ی دوم.

@@ -92,6 +92,21 @@ class TwoFactorLoginTest extends TestCase
         $this->assertAuthenticatedAs($this->user->fresh());
     }
 
+    public function test_when_otp_is_disabled_login_goes_straight_to_the_dashboard(): void
+    {
+        \App\Support\SystemSettings::set('otp_disabled', true);
+
+        // با خاموش‌بودنِ OTP، رمزِ درست بلافاصله کاربر را وارد می‌کند (بدون کد).
+        $this->postJson('/api/login', ['phone' => '09120000010', 'password' => 'secret123'])
+            ->assertOk()
+            ->assertJsonMissingPath('otpRequired')
+            ->assertJsonPath('user.phone', '09120000010');
+
+        $this->assertAuthenticatedAs($this->user->fresh());
+        // هیچ کدی هم فرستاده نشده است
+        $this->assertDatabaseCount('otp_codes', 0);
+    }
+
     public function test_a_full_login_clears_otp_codes_so_an_immediate_relogin_is_not_blocked(): void
     {
         // ورودِ کاملِ اول

@@ -86,12 +86,16 @@ export function AdBannerSection() {
                 className="absolute inset-0 h-full w-full object-cover transition-transform duration-700 group-hover:scale-105"
                 draggable={false}
               />
-              {/* گرادینت قوی‌تر و پخش‌تر روی کل تصویر - زمینه‌ی عمومی متن */}
+              {/*
+                گرادینتِ خیلی سبک؛ فقط برای کمی عمق. پیش از این تیره و سنگین بود
+                و کلِ بخش را تاریک می‌کرد. خواناییِ متن به این گرادینت وابسته
+                نیست — بلوکِ متن پس‌زمینه‌ی مات و backdrop-blur خودش را دارد.
+              */}
               <div
                 className="absolute inset-0"
                 style={{
                   background:
-                    'linear-gradient(90deg, color-mix(in srgb, black 75%, transparent) 0%, color-mix(in srgb, black 45%, transparent) 45%, color-mix(in srgb, black 10%, transparent) 75%, transparent 100%)',
+                    'linear-gradient(90deg, color-mix(in srgb, black 16%, transparent) 0%, color-mix(in srgb, black 5%, transparent) 45%, transparent 75%)',
                 }}
               />
 

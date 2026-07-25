@@ -26,6 +26,8 @@ class SmsController extends Controller
                 'pattern_variable' => $config['pattern_variable'] ?? '',
                 // رمز وب‌سرویس برنمی‌گردد؛ فقط اینکه تنظیم شده یا نه.
                 'password_set' => filled($config['password'] ?? null),
+                // با روشن‌بودن، ورود بدونِ کدِ پیامکی مستقیم انجام می‌شود.
+                'otp_disabled' => (bool) SystemSettings::get('otp_disabled', false),
             ],
             'drivers' => collect(SmsManager::DRIVERS)
                 ->map(fn ($label, $value) => ['value' => $value, 'label' => $label])
@@ -43,9 +45,13 @@ class SmsController extends Controller
             'password' => ['nullable', 'string', 'max:100'],
             'pattern_code' => ['nullable', 'string', 'max:50'],
             'pattern_variable' => ['nullable', 'string', 'max:50'],
+            'otp_disabled' => ['boolean'],
         ], [], ['sms_driver' => 'سامانه پیامک']);
 
         $existing = SystemSettings::getJson('sms_config', []);
+
+        // ورودِ بدونِ کدِ پیامکی: مرحله‌ی دومِ ورود کلاً رد می‌شود.
+        SystemSettings::set('otp_disabled', $request->boolean('otp_disabled'));
 
         SystemSettings::set('sms_driver', $data['sms_driver']);
         SystemSettings::set('sms_config', [

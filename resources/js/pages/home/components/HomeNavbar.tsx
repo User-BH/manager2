@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link, useNavigate } from '@/lib/mpaNav'
 import { motion } from 'framer-motion'
-import { Menu, X } from 'lucide-react'
+import { X } from 'lucide-react'
 import { useToggle } from '@/hooks'
 import { ThemeToggle } from '@/components/layout/ThemeToggle'
 import { Logo } from '@/components/common/Logo'
@@ -57,6 +57,7 @@ export function HomeNavbar({ minimal = false }: { minimal?: boolean } = {}) {
           <Logo size={34} />
         )}
 
+        {/* لینک‌های بخش‌ها فقط از ۷۶۸ به بالا؛ پایین‌تر کاملاً حذف می‌شوند. */}
         <nav className="hidden items-center gap-7 md:flex">
           {!minimal && navLinks.map((link) => (
             <button
@@ -75,7 +76,12 @@ export function HomeNavbar({ minimal = false }: { minimal?: boolean } = {}) {
           ))}
         </nav>
 
-        <div className="hidden items-center gap-3 md:flex">
+        {/*
+          تم و دکمه‌های ورود/ثبت‌نام از ۶۰۰ به بالا به‌صورت خطی دیده می‌شوند؛
+          یعنی بینِ ۶۰۰ تا ۷۶۸ (که لینک‌ها رفته‌اند ولی برگر هنوز نیامده) هم
+          همین‌ها نمایش داده می‌شوند.
+        */}
+        <div className="hidden items-center gap-3 min-[600px]:flex">
           <ThemeToggle />
           <button
             onClick={() => navigate('/auth')}
@@ -93,53 +99,68 @@ export function HomeNavbar({ minimal = false }: { minimal?: boolean } = {}) {
           </button>
         </div>
 
-        <button
+        {/* برگر فقط زیر ۶۰۰، با انیمیشنِ هاور (خط‌ها با هاور جابه‌جا می‌شوند). */}
+        <motion.button
           onClick={toggleMobileOpen}
-          className="flex h-9 w-9 items-center justify-center rounded-xl md:hidden"
-          style={{ color: 'var(--text-primary)' }}
+          whileHover={{ scale: 1.06 }}
+          whileTap={{ scale: 0.92 }}
+          className="group flex h-10 w-10 flex-col items-center justify-center gap-[3.5px] rounded-xl border transition-colors hover:bg-(--surface-sunken) min-[600px]:hidden"
+          style={{ borderColor: 'var(--border-subtle)', color: 'var(--text-primary)' }}
           aria-label="منو"
+          aria-expanded={mobileOpen}
         >
-          {mobileOpen ? <X size={20} /> : <Menu size={20} />}
-        </button>
+          {mobileOpen ? (
+            <X size={20} />
+          ) : (
+            <>
+              <span className="h-0.5 w-4 rounded-full bg-current transition-all duration-300 group-hover:w-5" />
+              <span className="h-0.5 w-5 rounded-full bg-current transition-all duration-300 group-hover:w-3" />
+              <span className="h-0.5 w-4 rounded-full bg-current transition-all duration-300 group-hover:w-5" />
+            </>
+          )}
+        </motion.button>
       </div>
 
+      {/*
+        منوی برگر فقط زیر ۶۰۰ باز می‌شود و فقط ورودی/ثبت‌نام (و تمِ سایت) را
+        دارد؛ لینک‌های بخش‌ها اینجا نیستند چون زیر ۷۶۸ کلاً حذف شده‌اند.
+      */}
       {mobileOpen && (
         <motion.div
           initial={{ opacity: 0, height: 0 }}
           animate={{ opacity: 1, height: 'auto' }}
           exit={{ opacity: 0, height: 0 }}
-          className="border-t px-4 pb-5 pt-3 md:hidden"
+          className="border-t px-4 pb-5 pt-3 min-[600px]:hidden"
           style={{ backgroundColor: 'var(--surface-base)', borderColor: 'var(--border-subtle)' }}
           dir="rtl"
         >
           <div className="flex flex-col gap-3">
-            {!minimal && navLinks.map((link) => (
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-medium" style={{ color: 'var(--text-tertiary)' }}>
+                تغییر تم
+              </span>
+              <ThemeToggle />
+            </div>
+            <div className="flex gap-2">
               <button
-                key={link.section}
                 onClick={() => {
                   setMobileOpen(false)
-                  scrollToSection(link.section)
+                  navigate('/auth')
                 }}
-                className="text-right text-sm font-medium"
-                style={{ color: 'var(--text-secondary)' }}
-              >
-                {link.label}
-              </button>
-            ))}
-            <div className="mt-2 flex gap-2">
-              <button
-                onClick={() => navigate('/auth')}
                 className="flex-1 rounded-xl border py-2.5 text-sm font-semibold"
                 style={{ borderColor: 'var(--border-subtle)', color: 'var(--text-primary)' }}
               >
                 ورود
               </button>
               <button
-                onClick={() => navigate('/auth?tab=register')}
+                onClick={() => {
+                  setMobileOpen(false)
+                  navigate('/auth?tab=register')
+                }}
                 className="flex-1 rounded-xl py-2.5 text-sm font-semibold text-white"
                 style={{ backgroundColor: 'var(--color-brand-500)' }}
               >
-                ثبت‌نام
+                ثبت‌نام رایگان
               </button>
             </div>
           </div>
