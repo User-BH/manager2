@@ -8,8 +8,8 @@ Artisan::command('inspire', function () {
     $this->comment(Inspiring::quote());
 })->purpose('Display an inspiring quote');
 
-// یادآوری روزانه‌ی قبوض معوق (نیازمند اجرای scheduler سرور: php artisan schedule:work)
-Schedule::command('reminders:charges')->dailyAt('10:00');
+// یادآوریِ پیامکیِ قبوض عمداً حذف شده: طبق تصمیم، پیامک فقط برای کدِ
+// یک‌بارمصرف (OTP) است و هیچ پیامکِ دیگری به کاربر فرستاده نمی‌شود.
 
 // اشتراک‌های سررسیدشده را منقضی و تراکنش‌های آنلاینِ رهاشده را می‌بندد
 Schedule::command('subscriptions:maintain')->dailyAt('02:00');

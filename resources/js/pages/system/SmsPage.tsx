@@ -107,7 +107,7 @@ export function SmsPage() {
           پنل پیامک
         </h1>
         <p className="mt-1 text-[13px]" style={{ color: 'var(--text-tertiary)' }}>
-          سامانهٔ ارسال پیامک برای کد ورود و یادآوری سررسید
+          سامانهٔ ارسال پیامک — فقط برای کد یک‌بارمصرفِ ورود و بازیابی رمز (OTP)
         </p>
       </header>
 
