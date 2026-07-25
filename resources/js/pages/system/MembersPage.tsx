@@ -1,5 +1,5 @@
-import { useState } from 'react'
-import { Loader2, Search, ShieldCheck, UserCog } from 'lucide-react'
+import { useDeferredValue, useState } from 'react'
+import { Loader2, Search, ShieldCheck, Trash2, UserCog } from 'lucide-react'
 import { Card } from '@/components/ui/Card'
 import { ErrorState, LoadingState } from '@/components/ui/PageState'
 import { useApi } from '@/hooks/useApi'
@@ -32,9 +32,12 @@ export function MembersPage() {
   useDocumentTitle('اعضای سامانه')
 
   const [q, setQ] = useState('')
+  // debounce درخواست را کم می‌کند؛ useDeferredValue هم بازخوانی را کم‌اولویت
+  // می‌کند تا با حجمِ بالای ثبت‌نام‌ها، تایپ در کادرِ جست‌وجو روان بماند.
   const debounced = useDebounce(q, 400)
+  const deferredQuery = useDeferredValue(debounced)
   const { data, error, isLoading, reload } = useApi<MembersResponse>(
-    `/system/members?q=${encodeURIComponent(debounced)}`,
+    `/system/members?q=${encodeURIComponent(deferredQuery)}`,
   )
 
   const [savingId, setSavingId] = useState<number | null>(null)
@@ -61,6 +64,27 @@ export function MembersPage() {
       reload()
     } catch (err) {
       alertError(err, 'تغییر نقش ممکن نشد.')
+    } finally {
+      setSavingId(null)
+    }
+  }
+
+  async function removeMember(member: Member) {
+    const ok = await confirmAction({
+      title: 'حذف کاربر',
+      text: `کاربر «${member.name || member.phone}» برای همیشه حذف شود؟`,
+      confirmLabel: 'حذف',
+      danger: true,
+    })
+    if (!ok) return
+
+    setSavingId(member.id)
+    try {
+      await api(`/system/members/${member.id}`, { method: 'DELETE' })
+      toastSuccess('کاربر حذف شد.')
+      reload()
+    } catch (err) {
+      alertError(err, 'حذف کاربر ممکن نشد.')
     } finally {
       setSavingId(null)
     }
@@ -181,6 +205,17 @@ export function MembersPage() {
                       ))}
                     </select>
                   </div>
+
+                  <button
+                    type="button"
+                    onClick={() => void removeMember(member)}
+                    disabled={savingId === member.id}
+                    aria-label="حذف کاربر"
+                    className="flex h-8 w-8 items-center justify-center rounded-lg border transition-colors hover:bg-(--surface-sunken) disabled:opacity-50"
+                    style={{ borderColor: 'var(--border-subtle)', color: 'var(--color-danger)' }}
+                  >
+                    <Trash2 size={14} />
+                  </button>
 
                   {savingId === member.id && (
                     <Loader2 size={15} className="animate-spin" style={{ color: 'var(--color-brand-500)' }} />

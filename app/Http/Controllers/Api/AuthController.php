@@ -292,7 +292,14 @@ class AuthController extends Controller
      * پذیرش قوانین هم اجباری است و لحظه‌اش ثبت می‌شود؛ پیش از این فقط یک تیکِ
      * سمت مرورگر بود که هیچ ردی به جا نمی‌گذاشت.
      */
-    public function register(Request $request): JsonResponse
+    /**
+     * ثبت‌نام — گام ۱: اعتبارسنجی و ارسالِ کدِ پیامکی.
+     *
+     * عمداً کاربر همین‌جا ساخته نمی‌شود؛ فقط داده‌ها در نشست می‌ماند و یک کد
+     * فرستاده می‌شود. اگر کاربر کد را تکمیل نکند و منصرف شود، هیچ رکوردی در
+     * فهرست اعضا به‌جا نمی‌ماند. حساب تنها پس از تاییدِ کد (گام ۲) ساخته می‌شود.
+     */
+    public function register(Request $request, OtpService $otp): JsonResponse
     {
         $data = $request->validate([
             'name' => ['required', 'string', 'max:255'],
@@ -320,18 +327,70 @@ class AuthController extends Controller
             ]);
         }
 
-        User::create([
-            'complex_id' => null,
+        $result = $otp->request($phone);
+        if (! $result['ok']) {
+            throw ValidationException::withMessages(['phone' => $result['error'] ?? 'ارسال کد تایید ناموفق بود.']);
+        }
+
+        // داده‌ها موقتاً در نشست؛ حساب هنوز ساخته نشده.
+        $request->session()->put('register.pending', [
             'name' => $data['name'],
             'phone' => $phone,
             'password' => Hash::make($data['password']),
+            'at' => now()->timestamp,
+        ]);
+
+        return response()->json([
+            'otpRequired' => true,
+            'phone' => $phone,
+            'message' => 'کد تایید به شماره '.$phone.' ارسال شد.',
+            'dev_code' => $result['dev_code'] ?? null,
+        ]);
+    }
+
+    /**
+     * ثبت‌نام — گام ۲: تاییدِ کد و ساختِ حساب.
+     *
+     * تنها اینجا کاربر ساخته می‌شود، پس شماره‌ای که کدش تایید نشده هرگز عضو
+     * نمی‌شود. حساب غیرفعال ساخته می‌شود تا مدیرِ کل/مدیرِ مجتمع نقش و دسترسی‌اش
+     * را تعیین کند.
+     */
+    public function registerVerify(Request $request, OtpService $otp): JsonResponse
+    {
+        $request->validate(['code' => ['required', 'string']], [], ['code' => 'کد']);
+
+        $pending = $request->session()->get('register.pending');
+        if (! $pending) {
+            throw ValidationException::withMessages([
+                'code' => 'مهلت ثبت‌نام تمام شده است. دوباره از ابتدا ثبت‌نام کنید.',
+            ]);
+        }
+
+        if (! $otp->verify($pending['phone'], $request->input('code'))) {
+            throw ValidationException::withMessages(['code' => 'کد واردشده نادرست یا منقضی شده است.']);
+        }
+
+        // مبادا در این فاصله همان شماره از راهی دیگر ثبت شده باشد.
+        if (User::withoutGlobalScopes()->where('phone', $pending['phone'])->exists()) {
+            $request->session()->forget('register.pending');
+            throw ValidationException::withMessages(['code' => 'این شماره قبلاً ثبت شده است. وارد شوید.']);
+        }
+
+        User::create([
+            'complex_id' => null,
+            'name' => $pending['name'],
+            'phone' => $pending['phone'],
+            'password' => $pending['password'],
             'role' => UserRole::Owner,
             'is_active' => false,
             'terms_accepted_at' => now(),
         ]);
 
+        $request->session()->forget('register.pending');
+        $otp->clear($pending['phone']);
+
         return response()->json([
-            'message' => 'ثبت‌نام انجام شد. پس از تایید مدیر مجتمع می‌توانید وارد شوید.',
+            'message' => 'ثبت‌نام کامل شد. پس از تایید، می‌توانید وارد شوید.',
         ], 201);
     }
 

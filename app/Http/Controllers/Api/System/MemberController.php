@@ -90,6 +90,21 @@ class MemberController extends Controller
         ]);
     }
 
+    public function destroy(string $user): JsonResponse
+    {
+        $target = User::withoutGlobalScopes()->findOrFail($user);
+
+        if ($target->id === Auth::id()) {
+            throw ValidationException::withMessages([
+                'user' => 'نمی‌توانید حسابِ خودتان را حذف کنید.',
+            ]);
+        }
+
+        $target->delete();
+
+        return response()->json(['message' => 'کاربر حذف شد.']);
+    }
+
     private function present(User $user): array
     {
         return [

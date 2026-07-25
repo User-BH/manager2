@@ -60,35 +60,47 @@ export function WhatsappIcon({ size = 18, className }: SocialIconProps) {
 }
 
 /**
- * آیکونِ «بله» (پیام‌رسانِ ایرانی) — یک حبابِ گفت‌وگو با تیکِ داخلش.
- * تقریبی و تک‌رنگ است تا با بقیه‌ی آیکون‌ها هم‌سبک بماند؛ لوگوی رسمی را
- * می‌توان جایگزین کرد.
+ * آیکونِ «بله» (پیام‌رسانِ ایرانی) — قطره‌ی گفت‌وگو با تیکِ برجسته، مطابقِ
+ * لوگوی رسمی. تک‌رنگ (currentColor) تا با بقیه‌ی آیکون‌های فوتر هم‌سبک بماند.
  */
 export function BaleIcon({ size = 18, className }: SocialIconProps) {
   return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" className={className}>
-      <rect x="4" y="4" width="16" height="12" rx="4.5" stroke="currentColor" strokeWidth="1.7" />
-      <path d="M9 16L6.8 19.6V16" stroke="currentColor" strokeWidth="1.7" strokeLinejoin="round" strokeLinecap="round" />
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="currentColor" className={className}>
+      {/*
+        قطره + تیک به‌صورتِ یک مسیر با fill-rule «evenodd»: تیک سوراخ می‌شود و
+        پس‌زمینه از داخلش دیده می‌شود، درست مثلِ لوگوی بله (تیکِ سفید روی قطره).
+      */}
       <path
-        d="M8.4 10.1L10.9 12.6L15.6 8.2"
-        stroke="currentColor"
-        strokeWidth="1.7"
-        strokeLinecap="round"
-        strokeLinejoin="round"
+        fillRule="evenodd"
+        clipRule="evenodd"
+        d="M4.6 4.6C3 6.3 2.5 8.9 2.5 11.9C2.5 17.2 6.8 21.5 12 21.5C17.2 21.5 21.5 17.2 21.5 11.9C21.5 6.7 17.2 2.4 12 2.4C9.2 2.4 6.5 2.7 4.6 4.6ZM10.6 16.4L6.7 12.5C6.2 12 6.2 11.2 6.7 10.7C7.2 10.2 8 10.2 8.5 10.7L10.9 13.1L15.5 8.5C16 8 16.8 8 17.3 8.5C17.8 9 17.8 9.8 17.3 10.3L11.4 16.2C11.2 16.4 10.9 16.5 10.6 16.4Z"
       />
     </svg>
   )
 }
 
+/**
+ * آیکونِ «روبیکا» — شش‌ضلعی با مکعبِ سه‌بعدیِ وسط، مطابقِ لوگوی رسمی؛ تک‌رنگ.
+ */
 export function RubikaIcon({ size = 18, className }: SocialIconProps) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" className={className}>
-      <rect x="3" y="3" width="18" height="18" rx="6" stroke="currentColor" strokeWidth="1.8" />
+      {/* شش‌ضلعی */}
       <path
-        d="M9 8.5H13.2C14.5 8.5 15.5 9.4 15.5 10.6C15.5 11.7 14.7 12.5 13.6 12.7L15.6 15.5H13.7L11.9 12.9H10.8V15.5H9V8.5Z"
-        fill="currentColor"
+        d="M12 2.6L20 7.3V16.7L12 21.4L4 16.7V7.3L12 2.6Z"
+        stroke="currentColor"
+        strokeWidth="1.6"
+        strokeLinejoin="round"
       />
-      <path d="M10.8 10V11.4H13C13.5 11.4 13.8 11.1 13.8 10.7C13.8 10.3 13.5 10 13 10H10.8Z" fill="white" />
+      {/* مکعبِ ایزومتریک: وجهِ بالا و دو وجهِ کناری */}
+      <path
+        d="M12 8.2L15.4 10.1L12 12L8.6 10.1L12 8.2Z"
+        stroke="currentColor"
+        strokeWidth="1.4"
+        strokeLinejoin="round"
+      />
+      <path d="M8.6 10.1V13.9L12 15.8V12" stroke="currentColor" strokeWidth="1.4" strokeLinejoin="round" />
+      <path d="M15.4 10.1V13.9L12 15.8" stroke="currentColor" strokeWidth="1.4" strokeLinejoin="round" />
     </svg>
   )
 }

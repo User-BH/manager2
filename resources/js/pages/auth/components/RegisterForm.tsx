@@ -3,9 +3,10 @@ import { Link } from 'react-router-dom'
 import { useForm, useWatch } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { motion } from 'framer-motion'
-import { AlertCircle, Loader2, Lock, Phone, User, UserPlus } from 'lucide-react'
+import { AlertCircle, ArrowRight, Loader2, Lock, Phone, ShieldCheck, User, UserPlus } from 'lucide-react'
 import { RestrictedField } from './RestrictedField'
 import { PasswordStrength } from './PasswordStrength'
+import { OtpBoxes } from './OtpBoxes'
 import { registerSchema, type RegisterFormValues } from '../schemas/registerSchema'
 import { filterAsciiPassword, filterHints, filterMobile, filterPersianLetters } from '@/lib/inputFilters'
 import { toastTopSuccess } from '@/lib/alert'
@@ -14,6 +15,15 @@ import { api, ApiError } from '@/lib/api'
 export function RegisterForm({ onRegistered }: { onRegistered?: () => void }) {
   const [submitting, setSubmitting] = useState(false)
   const [formError, setFormError] = useState<string | null>(null)
+
+  // گامِ دوم: تاییدِ کدِ پیامکی. حساب تنها پس از این ساخته می‌شود، پس ثبت‌نامِ
+  // نیمه‌کاره هیچ رکوردی باقی نمی‌گذارد.
+  const [step, setStep] = useState<'form' | 'otp'>('form')
+  const [phone, setPhone] = useState('')
+  const [devCode, setDevCode] = useState<string | null>(null)
+  const [code, setCode] = useState('')
+  const [otpError, setOtpError] = useState<string | null>(null)
+  const [verifying, setVerifying] = useState(false)
 
   const {
     control,
@@ -40,7 +50,7 @@ export function RegisterForm({ onRegistered }: { onRegistered?: () => void }) {
     setFormError(null)
 
     try {
-      await api<{ message: string }>('/register', {
+      const data = await api<{ otpRequired?: boolean; phone?: string; dev_code?: string | null }>('/register', {
         method: 'POST',
         body: {
           name: values.fullName,
@@ -52,13 +62,13 @@ export function RegisterForm({ onRegistered }: { onRegistered?: () => void }) {
         },
       })
 
-      /*
-       * حساب ساخته شد (غیرفعال، تا مدیر مجتمع تاییدش کند). کاربر را به فرمِ
-       * ورود می‌بریم و یک توستِ بالا-وسط نشان می‌دهیم تا دقیقاً بداند چه شد و
-       * قدمِ بعدی چیست؛ وگرنه تعویضِ ناگهانیِ فرم گیج‌کننده بود.
-       */
-      toastTopSuccess('ثبت‌نام شما کامل شد. برای استفاده از خدمات، وارد حساب خود شوید.')
-      onRegistered?.()
+      // حساب هنوز ساخته نشده؛ فقط کد فرستاده شده. به گامِ تاییدِ کد می‌رویم.
+      if (data.otpRequired) {
+        setPhone(data.phone ?? values.phone)
+        setDevCode(data.dev_code ?? null)
+        setCode('')
+        setStep('otp')
+      }
     } catch (error) {
       if (error instanceof ApiError) {
         const map: Record<string, keyof RegisterFormValues> = {
@@ -84,6 +94,80 @@ export function RegisterForm({ onRegistered }: { onRegistered?: () => void }) {
     } finally {
       setSubmitting(false)
     }
+  }
+
+  /** با کاملِ‌شدنِ شش رقم خودکار صدا زده می‌شود؛ حساب همین‌جا ساخته می‌شود. */
+  async function verify(value: string) {
+    if (verifying) return
+    setVerifying(true)
+    setOtpError(null)
+
+    try {
+      await api('/register/verify', { method: 'POST', body: { code: value } })
+      toastTopSuccess('ثبت‌نام شما کامل شد. برای استفاده از خدمات، وارد حساب خود شوید.')
+      onRegistered?.()
+    } catch (err) {
+      setOtpError(err instanceof ApiError ? (err.fieldError('code') ?? err.message) : 'ارتباط با سرور برقرار نشد.')
+      setCode('')
+    } finally {
+      setVerifying(false)
+    }
+  }
+
+  // گامِ دوم: کدِ پیامکی
+  if (step === 'otp') {
+    return (
+      <motion.div
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="flex flex-col gap-5"
+        dir="rtl"
+      >
+        <div className="flex flex-col items-center gap-2 text-center">
+          <span
+            className="flex h-11 w-11 items-center justify-center rounded-2xl"
+            style={{ backgroundColor: 'color-mix(in srgb, var(--color-brand-500) 14%, transparent)' }}
+          >
+            <ShieldCheck size={22} style={{ color: 'var(--color-brand-600)' }} />
+          </span>
+          <p className="text-[13px]" style={{ color: 'var(--text-secondary)' }}>
+            کد شش‌رقمی به شماره <span dir="ltr" className="font-bold">{phone}</span> پیامک شد.
+          </p>
+        </div>
+
+        <OtpBoxes value={code} onChange={setCode} onComplete={verify} disabled={verifying} hasError={Boolean(otpError)} autoFocus />
+
+        {verifying && (
+          <div className="flex items-center justify-center gap-2 text-[13px]" style={{ color: 'var(--text-secondary)' }}>
+            <Loader2 size={15} className="animate-spin" />
+            در حال تایید…
+          </div>
+        )}
+        {otpError && (
+          <p className="text-center text-[12.5px]" style={{ color: 'var(--color-danger)' }}>
+            {otpError}
+          </p>
+        )}
+        {devCode && (
+          <p className="text-center text-[11.5px]" style={{ color: 'var(--text-tertiary)' }}>
+            کد تست: <span className="font-mono font-bold">{devCode}</span>
+          </p>
+        )}
+
+        <button
+          type="button"
+          onClick={() => {
+            setStep('form')
+            setOtpError(null)
+          }}
+          className="flex items-center justify-center gap-1.5 text-xs font-medium"
+          style={{ color: 'var(--text-tertiary)' }}
+        >
+          <ArrowRight size={14} />
+          اصلاح اطلاعات
+        </button>
+      </motion.div>
+    )
   }
 
   return (
@@ -193,12 +277,12 @@ export function RegisterForm({ onRegistered }: { onRegistered?: () => void }) {
         {submitting ? (
           <>
             <Loader2 size={17} className="animate-spin" />
-            در حال ثبت‌نام...
+            در حال ارسال کد...
           </>
         ) : (
           <>
             <UserPlus size={17} />
-            ساخت حساب مجتمع
+            ادامه و دریافت کد تایید
           </>
         )}
       </button>

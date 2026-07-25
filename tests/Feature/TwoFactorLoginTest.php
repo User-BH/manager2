@@ -305,13 +305,19 @@ class TwoFactorLoginTest extends TestCase
 
     public function test_registration_records_that_terms_were_accepted(): void
     {
-        $this->postJson('/api/register', [
+        // گام ۱: ارسال کد (هنوز حسابی ساخته نمی‌شود)
+        $code = $this->postJson('/api/register', [
             'name' => 'کاربر تازه',
             'phone' => '09120000077',
             'password' => 'newpass123',
             'password_confirmation' => 'newpass123',
             'accept_terms' => true,
-        ])->assertStatus(201);
+        ])->assertOk()->assertJsonPath('otpRequired', true)->json('dev_code');
+
+        $this->assertDatabaseMissing('users', ['phone' => '09120000077']);
+
+        // گام ۲: تایید کد → حساب ساخته می‌شود
+        $this->postJson('/api/register/verify', ['code' => $code])->assertStatus(201);
 
         $created = User::where('phone', '09120000077')->firstOrFail();
 
@@ -319,6 +325,21 @@ class TwoFactorLoginTest extends TestCase
         $this->assertNotNull($created->terms_accepted_at);
         // و حساب تا تایید مدیر غیرفعال است
         $this->assertFalse((bool) $created->is_active);
+    }
+
+    public function test_an_abandoned_registration_leaves_no_user(): void
+    {
+        // شماره را می‌زند و کد می‌گیرد، ولی کد را تایید نمی‌کند و منصرف می‌شود
+        $this->postJson('/api/register', [
+            'name' => 'منصرف',
+            'phone' => '09120000088',
+            'password' => 'newpass123',
+            'password_confirmation' => 'newpass123',
+            'accept_terms' => true,
+        ])->assertOk()->assertJsonPath('otpRequired', true);
+
+        // هیچ رکوردی در فهرست اعضا نباید بماند
+        $this->assertDatabaseMissing('users', ['phone' => '09120000088']);
     }
 
     public function test_registration_is_refused_without_accepting_terms(): void
@@ -337,13 +358,15 @@ class TwoFactorLoginTest extends TestCase
     public function test_registration_no_longer_asks_for_a_complex(): void
     {
         // نام مجتمع دیگر پرسیده نمی‌شود؛ مدیر هنگام تایید تعیینش می‌کند
-        $this->postJson('/api/register', [
+        $code = $this->postJson('/api/register', [
             'name' => 'بدون مجتمع',
             'phone' => '09120000079',
             'password' => 'newpass123',
             'password_confirmation' => 'newpass123',
             'accept_terms' => true,
-        ])->assertStatus(201);
+        ])->assertOk()->json('dev_code');
+
+        $this->postJson('/api/register/verify', ['code' => $code])->assertStatus(201);
 
         $this->assertNull(User::where('phone', '09120000079')->firstOrFail()->complex_id);
     }

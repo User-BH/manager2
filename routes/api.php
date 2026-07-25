@@ -69,6 +69,8 @@ Route::post('password/reset', [AuthController::class, 'resetPassword'])
 
 Route::post('register', [AuthController::class, 'register'])
     ->middleware('throttle:register')->name('register');
+Route::post('register/verify', [AuthController::class, 'registerVerify'])
+    ->middleware('throttle:otp-verify')->name('register.verify');
 
 // وضعیت کاربر برای مهمان هم قابل فراخوانی است و null برمی‌گرداند؛ کلاینت
 // هنگام بالا آمدن یک‌بار صدایش می‌زند تا بفهمد نشست فعالی هست یا نه.
@@ -217,6 +219,7 @@ Route::middleware('auth')->group(function () {
         // همه‌ی اعضای ثبت‌نام‌شده: جست‌وجو، مشاهده و تغییر نقش
         Route::get('members', [MemberController::class, 'index'])->name('members.index');
         Route::patch('members/{user}', [MemberController::class, 'update'])->name('members.update');
+        Route::delete('members/{user}', [MemberController::class, 'destroy'])->name('members.destroy');
 
         // پکیج‌های اشتراک: تعریف/ویرایش + فعال‌سازیِ دستی برای مجتمع
         Route::get('plans', [PlanController::class, 'index'])->name('plans.index');
