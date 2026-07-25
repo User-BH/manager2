@@ -18,6 +18,7 @@ const smsSchema = z.object({
   password: z.string().max(100).optional(),
   pattern_code: z.string().max(50).optional(),
   pattern_variable: z.string().max(50).optional(),
+  phonebook_id: z.string().max(20).optional(),
   otp_disabled: z.boolean().optional(),
 })
 
@@ -207,6 +208,18 @@ export function SmsPage() {
                   error={errors.pattern_variable?.message}
                   {...register('pattern_variable')}
                 />
+                <TextField
+                  label="شناسه دفترچه تلفن (اختیاری)"
+                  dir="ltr"
+                  placeholder="مثلاً 1234"
+                  inputMode="numeric"
+                  error={errors.phonebook_id?.message}
+                  {...register('phonebook_id')}
+                />
+                <p className="sm:col-span-2 -mt-1 text-[11.5px] leading-6" style={{ color: 'var(--text-tertiary)' }}>
+                  اگر شناسه‌ی یک دفترچه تلفن را وارد کنید، شماره‌ی هر گیرنده هنگام ارسالِ کد در همان
+                  دفترچه ذخیره می‌شود.
+                </p>
                 <p className="sm:col-span-2 text-[11.5px] leading-6" style={{ color: 'var(--text-tertiary)' }}>
                   در پنل ایپ‌پنل یک پترن با متغیرِ <span dir="ltr">%code%</span> بسازید و «نام متغیر» را
                   همان <span dir="ltr">code</span> بگذارید. برای پرشدنِ خودکارِ کد روی <b>اندروید</b>، آخرین خطِ پترن باید

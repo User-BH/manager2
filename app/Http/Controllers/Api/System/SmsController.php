@@ -24,6 +24,8 @@ class SmsController extends Controller
                 // کدِ پترن و نامِ متغیرِ آن، برای ارسالِ OTP با پترن (ایپ‌پنل).
                 'pattern_code' => $config['pattern_code'] ?? '',
                 'pattern_variable' => $config['pattern_variable'] ?? '',
+                // شناسه‌ی دفترچه تلفن؛ با تنظیم‌بودن، شماره‌ی گیرنده در آن ذخیره می‌شود.
+                'phonebook_id' => $config['phonebook_id'] ?? '',
                 // رمز وب‌سرویس برنمی‌گردد؛ فقط اینکه تنظیم شده یا نه.
                 'password_set' => filled($config['password'] ?? null),
                 // با روشن‌بودن، ورود بدونِ کدِ پیامکی مستقیم انجام می‌شود.
@@ -45,6 +47,7 @@ class SmsController extends Controller
             'password' => ['nullable', 'string', 'max:100'],
             'pattern_code' => ['nullable', 'string', 'max:50'],
             'pattern_variable' => ['nullable', 'string', 'max:50'],
+            'phonebook_id' => ['nullable', 'string', 'max:20'],
             'otp_disabled' => ['boolean'],
         ], [], ['sms_driver' => 'سامانه پیامک']);
 
@@ -60,6 +63,7 @@ class SmsController extends Controller
             'username' => $data['username'] ?? '',
             'pattern_code' => $data['pattern_code'] ?? '',
             'pattern_variable' => $data['pattern_variable'] ?? '',
+            'phonebook_id' => $data['phonebook_id'] ?? '',
             // خالی گذاشتن رمز یعنی «تغییرش نده»، چون فرم هرگز مقدار فعلی را
             // نمایش نمی‌دهد.
             'password' => filled($data['password'] ?? null)

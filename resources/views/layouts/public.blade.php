@@ -95,7 +95,7 @@
     <meta name="twitter:description" content="{{ $seo['description'] }}">
     <meta name="twitter:image" content="{{ $ogImage }}">
 
-    <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+    <link rel="icon" href="/favicon-48.png" type="image/png">
     <link rel="manifest" href="/manifest.webmanifest">
     <meta name="theme-color" content="#0f6e56">
     <link rel="apple-touch-icon" href="/icons/icon-192.png">

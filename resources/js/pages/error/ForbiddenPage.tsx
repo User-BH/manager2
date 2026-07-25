@@ -1,13 +1,25 @@
-import { useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { ShieldAlert, ArrowRight, Home } from 'lucide-react'
 import { Logo } from '@/components/common/Logo'
 import { useDocumentTitle } from '@/hooks'
 
 export function ForbiddenPage() {
-  const navigate = useNavigate()
-
   useDocumentTitle('دسترسی غیرمجاز')
+
+  /*
+   * صفحه‌ی اصلی یک سندِ MPAِ جداست، نه یک روتِ ری‌اکت‌روتر؛ پس navigate('/')ِ
+   * سمت‌کلاینت فقط آدرس را عوض می‌کرد و همان ۴۰۳ می‌ماند. با بارگذاریِ کاملِ
+   * صفحه واقعاً به خانه می‌رویم.
+   */
+  function goHome() {
+    window.location.assign('/')
+  }
+
+  /* اگر صفحه‌ی قبلی‌ای وجود دارد به آن برمی‌گردیم، وگرنه به خانه. */
+  function goBack() {
+    if (window.history.length > 1) window.history.back()
+    else goHome()
+  }
 
   return (
     <div
@@ -76,7 +88,7 @@ export function ForbiddenPage() {
         className="mt-9 flex flex-wrap items-center justify-center gap-3"
       >
         <button
-          onClick={() => navigate(-1)}
+          onClick={goBack}
           className="flex items-center gap-2 rounded-xl border px-5 py-3 text-sm font-semibold transition-colors hover:bg-(--surface-sunken)"
           style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)' }}
         >
@@ -84,7 +96,7 @@ export function ForbiddenPage() {
           بازگشت به صفحه قبل
         </button>
         <button
-          onClick={() => navigate('/')}
+          onClick={goHome}
           className="flex items-center gap-2 rounded-xl px-5 py-3 text-sm font-semibold text-white shadow-sm transition-transform duration-200 hover:scale-105"
           style={{ backgroundColor: 'var(--color-brand-500)' }}
         >
