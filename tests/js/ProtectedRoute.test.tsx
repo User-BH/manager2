@@ -2,8 +2,8 @@ import { render, screen } from '@testing-library/react'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { ProtectedRoute } from '@/app/ProtectedRoute'
-import { useAuthStore } from '@/context/AuthContext'
-import type { CurrentUser } from '@/types'
+import { useAuthStore } from '@/shared/stores/authStore'
+import type { CurrentUser } from '@/shared/types'
 
 /**
  * `ProtectedRoute` تنها نگهبانِ سمتِ کلاینتِ مسیرهای داشبورد است. سرور هم
@@ -12,7 +12,7 @@ import type { CurrentUser } from '@/types'
  */
 
 // جلوگیری از فراخوانیِ واقعیِ /me هنگام بارگذاری ماژول store
-vi.mock('@/lib/api', () => ({
+vi.mock('@/shared/lib/api', () => ({
   api: vi.fn().mockResolvedValue({ user: null }),
   ApiError: class extends Error {},
 }))

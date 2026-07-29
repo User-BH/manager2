@@ -5,7 +5,7 @@ import {
   filterOtp,
   filterPersianLetters,
   toAsciiDigits,
-} from '@/lib/inputFilters'
+} from '@/shared/lib/inputFilters'
 
 /**
  * پالایه‌های ورودی، اولین خطِ دفاع فرم‌ها هستند: نویسه‌ی نامجاز اصلاً وارد

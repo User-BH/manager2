@@ -17,11 +17,11 @@ export default defineConfig({
              */
             input: [
                 'resources/css/app.css',
-                'resources/js/main.tsx',
-                'resources/js/entries/home.tsx',
-                'resources/js/entries/demo.tsx',
-                'resources/js/entries/support.tsx',
-                'resources/js/entries/auth.tsx',
+                'resources/js/app/main.tsx',
+                'resources/js/app/entries/home.tsx',
+                'resources/js/app/entries/demo.tsx',
+                'resources/js/app/entries/support.tsx',
+                'resources/js/app/entries/auth.tsx',
             ],
             refresh: true,
         }),

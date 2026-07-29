@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { ApiError } from '@/lib/api'
+import { ApiError } from '@/shared/lib/api'
 
 /**
  * `ApiError` پلِ میانِ خطاهای اعتبارسنجیِ لاراول و پیامِ زیرِ هر ورودی است.

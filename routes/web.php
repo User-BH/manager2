@@ -27,23 +27,23 @@ Route::get('/llms.txt', [SeoController::class, 'llms']);
 
 Route::view('/', 'public.home', [
     'seo' => config('seo.home'),
-    'entry' => 'resources/js/entries/home.tsx',
+    'entry' => 'resources/js/app/entries/home.tsx',
 ])->name('home');
 
 Route::view('/demo', 'public.demo', [
     'seo' => config('seo.demo'),
-    'entry' => 'resources/js/entries/demo.tsx',
+    'entry' => 'resources/js/app/entries/demo.tsx',
 ])->name('demo');
 
 Route::view('/support', 'public.support', [
     'seo' => config('seo.support'),
-    'entry' => 'resources/js/entries/support.tsx',
+    'entry' => 'resources/js/app/entries/support.tsx',
 ])->name('support');
 
 // جریانِ سه‌گامیِ ورود؛ هر سه مسیر همان islandِ auth را سرو می‌کنند و روترِ
 // کوچکِ داخلش گامِ درست را نشان می‌دهد. نام «login» را لاراول برای ریدایرکتِ
 // کاربرِ واردنشده استفاده می‌کند.
-$authView = ['seo' => config('seo.auth'), 'entry' => 'resources/js/entries/auth.tsx'];
+$authView = ['seo' => config('seo.auth'), 'entry' => 'resources/js/app/entries/auth.tsx'];
 Route::view('/auth', 'public.auth', $authView)->name('login');
 Route::view('/auth/verify', 'public.auth', $authView);
 Route::view('/auth/forgot', 'public.auth', $authView);

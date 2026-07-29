@@ -2,7 +2,7 @@ import { Suspense, lazy, useEffect } from 'react'
 import { Route, Routes, useLocation } from 'react-router-dom'
 import { Loader2 } from 'lucide-react'
 import { ProtectedRoute } from './ProtectedRoute'
-import type { UserRole } from '@/types'
+import type { UserRole } from '@/shared/types'
 
 /*
  * هر صفحه‌ی داشبورد چانک جدا می‌شود تا بازدیدکننده‌ی صفحه‌ی اصلی
@@ -22,37 +22,37 @@ import type { UserRole } from '@/types'
  * MPAِ مستقل‌اند که لاراول مستقیم سرو می‌کند. این روتر فقط برای داشبوردِ SPA
  * است، پس باندلِ داشبورد دیگر کدِ صفحه‌های عمومی را حمل نمی‌کند.
  */
-const DashboardLayout = lazy(() => import('@/components/layout/DashboardLayout').then((m) => ({ default: m.DashboardLayout })))
-const ForbiddenPage = lazy(() => import('@/pages/error/ForbiddenPage').then((m) => ({ default: m.ForbiddenPage })))
-const DashboardPage = lazy(() => import('@/pages/dashboard/DashboardPage').then((m) => ({ default: m.DashboardPage })))
-const UnitsPage = lazy(() => import('@/pages/units/UnitsPage').then((m) => ({ default: m.UnitsPage })))
-const ResidentsPage = lazy(() => import('@/pages/residents/ResidentsPage').then((m) => ({ default: m.ResidentsPage })))
-const BillsPage = lazy(() => import('@/pages/bills/BillsPage').then((m) => ({ default: m.BillsPage })))
-const MessengerPage = lazy(() => import('@/pages/messenger/MessengerPage').then((m) => ({ default: m.MessengerPage })))
-const AnnouncementsPage = lazy(() => import('@/pages/announcements/AnnouncementsPage').then((m) => ({ default: m.AnnouncementsPage })))
-const PayBillPage = lazy(() => import('@/pages/pay/PayBillPage').then((m) => ({ default: m.PayBillPage })))
-const MyBillsPage = lazy(() => import('@/pages/my-bills/MyBillsPage').then((m) => ({ default: m.MyBillsPage })))
-const GoodPayersPage = lazy(() => import('@/pages/good-payers/GoodPayersPage').then((m) => ({ default: m.GoodPayersPage })))
-const ComplexSettingsPage = lazy(() => import('@/pages/settings/ComplexSettingsPage').then((m) => ({ default: m.ComplexSettingsPage })))
-const ComplexBackupPage = lazy(() => import('@/pages/settings/ComplexBackupPage').then((m) => ({ default: m.ComplexBackupPage })))
-const ComplexesPage = lazy(() => import('@/pages/system/ComplexesPage').then((m) => ({ default: m.ComplexesPage })))
-const SmsPage = lazy(() => import('@/pages/system/SmsPage').then((m) => ({ default: m.SmsPage })))
-const SystemBackupPage = lazy(() => import('@/pages/system/SystemBackupPage').then((m) => ({ default: m.SystemBackupPage })))
-const SystemSubscriptionsPage = lazy(() => import('@/pages/system/SubscriptionsPage').then((m) => ({ default: m.SubscriptionsPage })))
-const AdvertisementsPage = lazy(() => import('@/pages/system/ads/AdvertisementsPage').then((m) => ({ default: m.AdvertisementsPage })))
-const SiteSettingsPage = lazy(() => import('@/pages/system/SiteSettingsPage').then((m) => ({ default: m.SiteSettingsPage })))
-const MembersPage = lazy(() => import('@/pages/system/MembersPage').then((m) => ({ default: m.MembersPage })))
-const PlansPage = lazy(() => import('@/pages/system/PlansPage').then((m) => ({ default: m.PlansPage })))
-const AuditLogPage = lazy(() => import('@/pages/system/AuditLogPage').then((m) => ({ default: m.AuditLogPage })))
-const ManagersPage = lazy(() => import('@/pages/managers/ManagersPage').then((m) => ({ default: m.ManagersPage })))
-const ChargeRulesPage = lazy(() => import('@/pages/charge-rules/ChargeRulesPage').then((m) => ({ default: m.ChargeRulesPage })))
-const FinancePage = lazy(() => import('@/pages/finance/FinancePage').then((m) => ({ default: m.FinancePage })))
-const PaymentReviewPage = lazy(() => import('@/pages/payments/PaymentReviewPage').then((m) => ({ default: m.PaymentReviewPage })))
-const DiscountsPage = lazy(() => import('@/pages/discounts/DiscountsPage').then((m) => ({ default: m.DiscountsPage })))
-const SearchResultsPage = lazy(() => import('@/pages/search/SearchResultsPage').then((m) => ({ default: m.SearchResultsPage })))
-const CalculatorPage = lazy(() => import('@/pages/calculator/CalculatorPage').then((m) => ({ default: m.CalculatorPage })))
-const ProfilePage = lazy(() => import('@/pages/profile/ProfilePage').then((m) => ({ default: m.ProfilePage })))
-const AccountPage = lazy(() => import('@/pages/account/AccountPage').then((m) => ({ default: m.AccountPage })))
+const DashboardLayout = lazy(() => import('@/shared/layout/DashboardLayout').then((m) => ({ default: m.DashboardLayout })))
+const ForbiddenPage = lazy(() => import('@/features/error/ForbiddenPage').then((m) => ({ default: m.ForbiddenPage })))
+const DashboardPage = lazy(() => import('@/features/dashboard/DashboardPage').then((m) => ({ default: m.DashboardPage })))
+const UnitsPage = lazy(() => import('@/features/units/UnitsPage').then((m) => ({ default: m.UnitsPage })))
+const ResidentsPage = lazy(() => import('@/features/residents/ResidentsPage').then((m) => ({ default: m.ResidentsPage })))
+const BillsPage = lazy(() => import('@/features/billing/bills/BillsPage').then((m) => ({ default: m.BillsPage })))
+const MessengerPage = lazy(() => import('@/features/messaging/messenger/MessengerPage').then((m) => ({ default: m.MessengerPage })))
+const AnnouncementsPage = lazy(() => import('@/features/messaging/announcements/AnnouncementsPage').then((m) => ({ default: m.AnnouncementsPage })))
+const PayBillPage = lazy(() => import('@/features/payments/pay/PayBillPage').then((m) => ({ default: m.PayBillPage })))
+const MyBillsPage = lazy(() => import('@/features/billing/my-bills/MyBillsPage').then((m) => ({ default: m.MyBillsPage })))
+const GoodPayersPage = lazy(() => import('@/features/finance/good-payers/GoodPayersPage').then((m) => ({ default: m.GoodPayersPage })))
+const ComplexSettingsPage = lazy(() => import('@/features/settings/ComplexSettingsPage').then((m) => ({ default: m.ComplexSettingsPage })))
+const ComplexBackupPage = lazy(() => import('@/features/settings/ComplexBackupPage').then((m) => ({ default: m.ComplexBackupPage })))
+const ComplexesPage = lazy(() => import('@/features/system/ComplexesPage').then((m) => ({ default: m.ComplexesPage })))
+const SmsPage = lazy(() => import('@/features/system/SmsPage').then((m) => ({ default: m.SmsPage })))
+const SystemBackupPage = lazy(() => import('@/features/system/SystemBackupPage').then((m) => ({ default: m.SystemBackupPage })))
+const SystemSubscriptionsPage = lazy(() => import('@/features/system/SubscriptionsPage').then((m) => ({ default: m.SubscriptionsPage })))
+const AdvertisementsPage = lazy(() => import('@/features/system/ads/AdvertisementsPage').then((m) => ({ default: m.AdvertisementsPage })))
+const SiteSettingsPage = lazy(() => import('@/features/system/SiteSettingsPage').then((m) => ({ default: m.SiteSettingsPage })))
+const MembersPage = lazy(() => import('@/features/system/MembersPage').then((m) => ({ default: m.MembersPage })))
+const PlansPage = lazy(() => import('@/features/system/PlansPage').then((m) => ({ default: m.PlansPage })))
+const AuditLogPage = lazy(() => import('@/features/system/AuditLogPage').then((m) => ({ default: m.AuditLogPage })))
+const ManagersPage = lazy(() => import('@/features/managers/ManagersPage').then((m) => ({ default: m.ManagersPage })))
+const ChargeRulesPage = lazy(() => import('@/features/billing/charge-rules/ChargeRulesPage').then((m) => ({ default: m.ChargeRulesPage })))
+const FinancePage = lazy(() => import('@/features/finance/FinancePage').then((m) => ({ default: m.FinancePage })))
+const PaymentReviewPage = lazy(() => import('@/features/payments/review/PaymentReviewPage').then((m) => ({ default: m.PaymentReviewPage })))
+const DiscountsPage = lazy(() => import('@/features/billing/discounts/DiscountsPage').then((m) => ({ default: m.DiscountsPage })))
+const SearchResultsPage = lazy(() => import('@/features/tools/search/SearchResultsPage').then((m) => ({ default: m.SearchResultsPage })))
+const CalculatorPage = lazy(() => import('@/features/tools/calculator/CalculatorPage').then((m) => ({ default: m.CalculatorPage })))
+const ProfilePage = lazy(() => import('@/features/profile/ProfilePage').then((m) => ({ default: m.ProfilePage })))
+const AccountPage = lazy(() => import('@/features/account/AccountPage').then((m) => ({ default: m.AccountPage })))
 
 const ADMINS: UserRole[] = ['super_admin', 'complex_admin']
 const SUPER: UserRole[] = ['super_admin']

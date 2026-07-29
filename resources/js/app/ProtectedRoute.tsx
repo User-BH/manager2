@@ -1,7 +1,7 @@
 import { Navigate, Outlet } from 'react-router-dom'
 import { Loader2 } from 'lucide-react'
-import { useAuth } from '@/context/AuthContext'
-import type { UserRole } from '@/types'
+import { useAuth } from '@/shared/stores/authStore'
+import type { UserRole } from '@/shared/types'
 
 interface ProtectedRouteProps {
   /** اگر داده شود، فقط این نقش‌ها اجازه‌ی ورود دارند */

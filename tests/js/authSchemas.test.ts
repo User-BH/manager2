@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import { loginSchema } from '@/pages/auth/schemas/loginSchema'
-import { registerSchema } from '@/pages/auth/schemas/registerSchema'
+import { loginSchema } from '@/features/auth/schemas/loginSchema'
+import { registerSchema } from '@/features/auth/schemas/registerSchema'
 
 /**
  * این طرح‌ها آینه‌ی قواعدِ سمت سرورند. اگر اینجا سست شوند، کاربر فرمی می‌فرستد

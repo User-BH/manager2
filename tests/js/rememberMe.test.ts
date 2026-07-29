@@ -3,7 +3,7 @@ import {
   forgetRememberedPhone,
   loadRememberedPhone,
   saveRememberedPhone,
-} from '@/lib/rememberMe'
+} from '@/shared/lib/rememberMe'
 
 /**
  * «مرا به خاطر بسپار» باید دقیقاً ۱۰ روز اعتبار داشته باشد — همان مدتی که

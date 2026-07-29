@@ -26,7 +26,7 @@
         })();
     </script>
 
-    @vite(['resources/css/app.css', 'resources/js/main.tsx'])
+    @vite(['resources/css/app.css', 'resources/js/app/main.tsx'])
 </head>
 <body>
     <div id="root"></div>
