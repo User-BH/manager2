@@ -133,7 +133,8 @@ export function UnitsPage() {
                         <span
                           className="rounded-full px-2.5 py-0.5 text-[11px] font-medium"
                           style={{
-                            backgroundColor: 'color-mix(in srgb, var(--color-brand-500) 12%, transparent)',
+                            backgroundColor:
+                              'color-mix(in srgb, var(--color-brand-500) 12%, transparent)',
                             color: 'var(--color-brand-600)',
                           }}
                         >
@@ -142,7 +143,9 @@ export function UnitsPage() {
                       </td>
                       <td
                         className="py-3 tabular-nums font-semibold"
-                        style={{ color: unit.balance > 0 ? 'var(--color-danger)' : 'var(--state-success)' }}
+                        style={{
+                          color: unit.balance > 0 ? 'var(--color-danger)' : 'var(--state-success)',
+                        }}
                       >
                         {formatMoney(unit.balance)}
                       </td>

@@ -33,8 +33,7 @@ export class ApiError extends Error {
  * عوض می‌شود. چون این یک SPA است و صفحه رفرش نمی‌شود، متاتگ همان توکن قدیمی
  * را نگه می‌دارد و اولین درخواست نوشتنیِ بعد از ورود با ۴۱۹ رد می‌شد.
  */
-let csrfToken =
-  document.querySelector<HTMLMetaElement>('meta[name="csrf-token"]')?.content ?? ''
+let csrfToken = document.querySelector<HTMLMetaElement>('meta[name="csrf-token"]')?.content ?? ''
 
 export function setCsrfToken(token: string | undefined | null): void {
   if (token) csrfToken = token

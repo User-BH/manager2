@@ -73,7 +73,10 @@ export function UserMenu() {
             exit={{ opacity: 0, y: -6, scale: 0.97 }}
             transition={{ duration: 0.16 }}
             className="absolute left-0 top-[calc(100%+8px)] z-40 w-48 overflow-hidden rounded-xl border shadow-lg"
-            style={{ backgroundColor: 'var(--surface-raised)', borderColor: 'var(--border-subtle)' }}
+            style={{
+              backgroundColor: 'var(--surface-raised)',
+              borderColor: 'var(--border-subtle)',
+            }}
           >
             <UserMenuItem
               icon={UserRound}

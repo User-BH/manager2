@@ -133,9 +133,28 @@ export function BillsPage() {
       {data && !isLoading && (
         <>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-            <StatCard label="تعداد قبوض" value={formatNumber(data.data.length)} icon={Receipt} tone="info" />
-            <StatCard label="مبلغ کل صادرشده" value={formatMoney(data.total)} unit={data.currency} icon={Receipt} tone="warning" delay={0.05} />
-            <StatCard label="وصول‌شده" value={formatMoney(data.collected)} unit={data.currency} icon={Receipt} tone="success" delay={0.1} />
+            <StatCard
+              label="تعداد قبوض"
+              value={formatNumber(data.data.length)}
+              icon={Receipt}
+              tone="info"
+            />
+            <StatCard
+              label="مبلغ کل صادرشده"
+              value={formatMoney(data.total)}
+              unit={data.currency}
+              icon={Receipt}
+              tone="warning"
+              delay={0.05}
+            />
+            <StatCard
+              label="وصول‌شده"
+              value={formatMoney(data.collected)}
+              unit={data.currency}
+              icon={Receipt}
+              tone="success"
+              delay={0.1}
+            />
           </div>
 
           <Card delay={0.15}>
@@ -172,16 +191,25 @@ export function BillsPage() {
                         <td className="py-3 font-semibold" style={{ color: 'var(--text-primary)' }}>
                           {bill.unitLabel}
                         </td>
-                        <td className="py-3 tabular-nums" style={{ color: 'var(--text-secondary)' }}>
+                        <td
+                          className="py-3 tabular-nums"
+                          style={{ color: 'var(--text-secondary)' }}
+                        >
                           {formatMoney(bill.ownerAmount)}
                         </td>
-                        <td className="py-3 tabular-nums" style={{ color: 'var(--text-secondary)' }}>
+                        <td
+                          className="py-3 tabular-nums"
+                          style={{ color: 'var(--text-secondary)' }}
+                        >
                           {formatMoney(bill.tenantAmount)}
                         </td>
                         <td className="py-3 tabular-nums" style={{ color: 'var(--color-danger)' }}>
                           {bill.penaltyAmount > 0 ? formatMoney(bill.penaltyAmount) : '—'}
                         </td>
-                        <td className="py-3 tabular-nums font-semibold" style={{ color: 'var(--text-primary)' }}>
+                        <td
+                          className="py-3 tabular-nums font-semibold"
+                          style={{ color: 'var(--text-primary)' }}
+                        >
                           {formatMoney(bill.totalAmount)}
                         </td>
                         <td className="py-3 tabular-nums" style={{ color: 'var(--state-success)' }}>

@@ -132,7 +132,10 @@ export function SupportChat() {
               {/* سرصفحه */}
               <header
                 className="flex items-center gap-3 px-4 py-3"
-                style={{ background: 'linear-gradient(135deg, var(--color-brand-600), var(--color-brand-400))' }}
+                style={{
+                  background:
+                    'linear-gradient(135deg, var(--color-brand-600), var(--color-brand-400))',
+                }}
               >
                 <span className="flex h-9 w-9 items-center justify-center rounded-full bg-white/20">
                   <Sparkles size={18} className="text-white" />
@@ -154,7 +157,10 @@ export function SupportChat() {
               </header>
 
               {/* گفت‌وگو */}
-              <div ref={scrollRef} className="scrollbar-thin flex-1 space-y-3 overflow-y-auto px-3.5 py-4">
+              <div
+                ref={scrollRef}
+                className="scrollbar-thin flex-1 space-y-3 overflow-y-auto px-3.5 py-4"
+              >
                 {messages.map((message) => (
                   <ChatBubble key={message.id} message={message} onFollowUp={send} />
                 ))}
@@ -171,7 +177,10 @@ export function SupportChat() {
                         key={starter}
                         onClick={() => send(starter)}
                         className="rounded-xl border px-3 py-2 text-right text-[12.5px] transition-colors hover:bg-(--surface-sunken)"
-                        style={{ borderColor: 'var(--border-subtle)', color: 'var(--text-secondary)' }}
+                        style={{
+                          borderColor: 'var(--border-subtle)',
+                          color: 'var(--text-secondary)',
+                        }}
                       >
                         {starter}
                       </button>
@@ -342,15 +351,27 @@ function ChatToggle({ open, onToggle }: { open: boolean; onToggle: () => void })
       {!open && <HoverLabel>گفت‌وگو با پشتیبانی</HoverLabel>}
       <span
         className="flex h-full w-full items-center justify-center rounded-full"
-        style={{ background: 'linear-gradient(135deg, var(--color-brand-600), var(--color-brand-400))' }}
+        style={{
+          background: 'linear-gradient(135deg, var(--color-brand-600), var(--color-brand-400))',
+        }}
       >
         <AnimatePresence mode="wait">
           {open ? (
-            <motion.span key="x" initial={{ rotate: -90, opacity: 0 }} animate={{ rotate: 0, opacity: 1 }} exit={{ rotate: 90, opacity: 0 }}>
+            <motion.span
+              key="x"
+              initial={{ rotate: -90, opacity: 0 }}
+              animate={{ rotate: 0, opacity: 1 }}
+              exit={{ rotate: 90, opacity: 0 }}
+            >
               <X size={22} className="text-white" />
             </motion.span>
           ) : (
-            <motion.span key="chat" initial={{ rotate: 90, opacity: 0 }} animate={{ rotate: 0, opacity: 1 }} exit={{ rotate: -90, opacity: 0 }}>
+            <motion.span
+              key="chat"
+              initial={{ rotate: 90, opacity: 0 }}
+              animate={{ rotate: 0, opacity: 1 }}
+              exit={{ rotate: -90, opacity: 0 }}
+            >
               <Sparkles size={22} className="text-white" />
             </motion.span>
           )}

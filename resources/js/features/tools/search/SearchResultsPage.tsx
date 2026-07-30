@@ -85,7 +85,10 @@ export function SearchResultsPage() {
   return (
     <div className="flex flex-col gap-5">
       <header>
-        <h1 className="flex items-center gap-2 text-xl font-extrabold" style={{ color: 'var(--text-primary)' }}>
+        <h1
+          className="flex items-center gap-2 text-xl font-extrabold"
+          style={{ color: 'var(--text-primary)' }}
+        >
           <Search size={19} style={{ color: 'var(--color-brand-500)' }} />
           نتایج جستجو
         </h1>
@@ -110,9 +113,12 @@ export function SearchResultsPage() {
             <p className="text-sm font-semibold" style={{ color: 'var(--text-secondary)' }}>
               چیزی با «{urlQuery}» پیدا نشد.
             </p>
-            <p className="max-w-md text-[12.5px] leading-7" style={{ color: 'var(--text-tertiary)' }}>
-              می‌توانید شماره‌ی واحد، نام یا شماره‌ی تلفن ساکن، دوره‌ی قبض (مثل ۱۴۰۴-۰۳)،
-              عنوان اطلاعیه یا متن پیام را جستجو کنید.
+            <p
+              className="max-w-md text-[12.5px] leading-7"
+              style={{ color: 'var(--text-tertiary)' }}
+            >
+              می‌توانید شماره‌ی واحد، نام یا شماره‌ی تلفن ساکن، دوره‌ی قبض (مثل ۱۴۰۴-۰۳)، عنوان
+              اطلاعیه یا متن پیام را جستجو کنید.
             </p>
           </div>
         </Card>
@@ -181,9 +187,12 @@ function RecentSearchesView({
             <p className="text-sm font-semibold" style={{ color: 'var(--text-secondary)' }}>
               تاریخچه‌ی جستجو خالی است.
             </p>
-            <p className="max-w-md text-[12.5px] leading-7" style={{ color: 'var(--text-tertiary)' }}>
-              از باکس جستجوی بالای صفحه دنبال واحد، ساکن، قبض یا اطلاعیه بگردید؛
-              نتایج جستجوهای شما اینجا نگهداری می‌شود.
+            <p
+              className="max-w-md text-[12.5px] leading-7"
+              style={{ color: 'var(--text-tertiary)' }}
+            >
+              از باکس جستجوی بالای صفحه دنبال واحد، ساکن، قبض یا اطلاعیه بگردید؛ نتایج جستجوهای شما
+              اینجا نگهداری می‌شود.
             </p>
           </div>
         </Card>
@@ -203,7 +212,11 @@ function RecentSearchesView({
                   onClick={() => onOpen(item.query)}
                   className="flex flex-1 items-center gap-3 rounded-xl px-2 py-3 text-right transition-colors hover:bg-(--surface-sunken)"
                 >
-                  <Search size={15} className="shrink-0" style={{ color: 'var(--color-brand-500)' }} />
+                  <Search
+                    size={15}
+                    className="shrink-0"
+                    style={{ color: 'var(--color-brand-500)' }}
+                  />
                   <span className="min-w-0 flex-1">
                     <span
                       className="block truncate text-[13.5px] font-semibold"
@@ -223,7 +236,11 @@ function RecentSearchesView({
                       </span>
                     </span>
                   </span>
-                  <ChevronLeft size={15} className="shrink-0" style={{ color: 'var(--text-tertiary)' }} />
+                  <ChevronLeft
+                    size={15}
+                    className="shrink-0"
+                    style={{ color: 'var(--text-tertiary)' }}
+                  />
                 </button>
 
                 <button
@@ -257,7 +274,10 @@ function GroupCard({
   return (
     <Card delay={delay}>
       <div className="mb-3 flex items-center justify-between gap-2">
-        <h2 className="flex items-center gap-2 text-[14px] font-bold" style={{ color: 'var(--text-primary)' }}>
+        <h2
+          className="flex items-center gap-2 text-[14px] font-bold"
+          style={{ color: 'var(--text-primary)' }}
+        >
           <Icon size={16} style={{ color: 'var(--color-brand-500)' }} />
           {group.title}
           <span
@@ -283,7 +303,12 @@ function GroupCard({
 
       <ul className="flex flex-col gap-1">
         {group.items.map((item, index) => (
-          <ResultRow key={`${group.id}-${item.id}`} item={item} delay={index * 0.03} onOpen={onOpen} />
+          <ResultRow
+            key={`${group.id}-${item.id}`}
+            item={item}
+            delay={index * 0.03}
+            onOpen={onOpen}
+          />
         ))}
       </ul>
     </Card>
@@ -310,7 +335,10 @@ function ResultRow({
         className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-right transition-colors hover:bg-(--surface-sunken)"
       >
         <div className="min-w-0 flex-1">
-          <p className="truncate text-[13px] font-semibold" style={{ color: 'var(--text-primary)' }}>
+          <p
+            className="truncate text-[13px] font-semibold"
+            style={{ color: 'var(--text-primary)' }}
+          >
             {item.title}
           </p>
           <p className="truncate text-[11.5px]" style={{ color: 'var(--text-tertiary)' }}>

@@ -25,12 +25,14 @@ export function HeroSection() {
       <div
         className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-[600px]"
         style={{
-          background:
-            'radial-gradient(60% 50% at 50% 0%, var(--color-brand-100), transparent 70%)',
+          background: 'radial-gradient(60% 50% at 50% 0%, var(--color-brand-100), transparent 70%)',
         }}
       />
 
-      <div className="mx-auto grid max-w-6xl gap-12 px-4 sm:px-6 lg:grid-cols-2 lg:items-center" dir="rtl">
+      <div
+        className="mx-auto grid max-w-6xl gap-12 px-4 sm:px-6 lg:grid-cols-2 lg:items-center"
+        dir="rtl"
+      >
         <motion.div style={{ y: contentY, opacity: contentOpacity }} className="relative z-10">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -39,7 +41,10 @@ export function HeroSection() {
             className="mb-5 inline-flex items-center gap-2 rounded-full border px-3.5 py-1.5 text-xs font-medium"
             style={{ borderColor: 'var(--border-subtle)', color: 'var(--color-brand-600)' }}
           >
-            <span className="h-1.5 w-1.5 rounded-full" style={{ backgroundColor: 'var(--color-brand-500)' }} />
+            <span
+              className="h-1.5 w-1.5 rounded-full"
+              style={{ backgroundColor: 'var(--color-brand-500)' }}
+            />
             نسل جدید مدیریت مجتمع‌های مسکونی
           </motion.div>
 
@@ -121,7 +126,10 @@ export function HeroSection() {
             className="absolute -inset-4 -z-10 rounded-[2rem] opacity-60 blur-2xl"
             style={{ backgroundColor: 'var(--color-brand-200)' }}
           />
-          <div className="group overflow-hidden rounded-[1.75rem] border shadow-2xl" style={{ borderColor: 'var(--border-subtle)' }}>
+          <div
+            className="group overflow-hidden rounded-[1.75rem] border shadow-2xl"
+            style={{ borderColor: 'var(--border-subtle)' }}
+          >
             {/* تصویر بالای صفحه: زودتر از همه لازم است، پس نه lazy بلکه
                 با اولویت بالا بارگذاری می‌شود. width/height واقعی هم
                 گذاشته شده تا چیدمان هنگام لود نپرد. */}

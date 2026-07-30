@@ -46,7 +46,6 @@ export function SidebarRecentSearches({
         <History size={12} />
         جستجوهای اخیر
         <span className="tabular-nums">({formatNumber(recent.length)})</span>
-
         <motion.span
           animate={{ rotate: open ? 0 : -90 }}
           transition={{ duration: 0.18 }}
@@ -74,48 +73,55 @@ export function SidebarRecentSearches({
               </p>
             ) : (
               <>
-            <ul className="flex flex-col gap-0.5">
-              {recent.map((item) => (
-                <li key={item.query} className="group relative">
-                  <button
-                    onClick={() => openSearch(item.query)}
-                    className="flex w-full items-center gap-2 rounded-xl px-2.5 py-2 text-right transition-colors hover:bg-(--surface-sunken)"
-                  >
-                    <Search size={14} className="shrink-0" style={{ color: 'var(--text-tertiary)' }} />
-
-                    <span className="min-w-0 flex-1">
-                      <span
-                        className="block truncate text-[12.5px] font-medium"
-                        style={{ color: 'var(--text-secondary)' }}
+                <ul className="flex flex-col gap-0.5">
+                  {recent.map((item) => (
+                    <li key={item.query} className="group relative">
+                      <button
+                        onClick={() => openSearch(item.query)}
+                        className="flex w-full items-center gap-2 rounded-xl px-2.5 py-2 text-right transition-colors hover:bg-(--surface-sunken)"
                       >
-                        {item.query}
-                      </span>
-                      <span className="block text-[10.5px]" style={{ color: 'var(--text-tertiary)' }}>
-                        {formatNumber(item.total)} نتیجه · {formatRelative(item.at)}
-                      </span>
-                    </span>
-                  </button>
+                        <Search
+                          size={14}
+                          className="shrink-0"
+                          style={{ color: 'var(--text-tertiary)' }}
+                        />
 
-                  <button
-                    onClick={() => removeRecent(item.query)}
-                    aria-label={`حذف «${item.query}» از تاریخچه`}
-                    className="absolute left-1.5 top-1/2 flex h-6 w-6 -translate-y-1/2 items-center justify-center rounded-lg opacity-0 transition-opacity hover:bg-(--border-subtle) focus-visible:opacity-100 group-hover:opacity-100"
-                    style={{ color: 'var(--text-tertiary)' }}
-                  >
-                    <X size={12} />
-                  </button>
-                </li>
-              ))}
-            </ul>
+                        <span className="min-w-0 flex-1">
+                          <span
+                            className="block truncate text-[12.5px] font-medium"
+                            style={{ color: 'var(--text-secondary)' }}
+                          >
+                            {item.query}
+                          </span>
+                          <span
+                            className="block text-[10.5px]"
+                            style={{ color: 'var(--text-tertiary)' }}
+                          >
+                            {formatNumber(item.total)} نتیجه · {formatRelative(item.at)}
+                          </span>
+                        </span>
+                      </button>
 
-            <button
-              onClick={clearRecent}
-              className="mt-1 flex w-full items-center gap-1.5 rounded-xl px-2.5 py-1.5 text-[11px] transition-colors hover:bg-(--surface-sunken)"
-              style={{ color: 'var(--text-tertiary)' }}
-            >
-              <Trash2 size={12} />
-              پاک کردن تاریخچه
-            </button>
+                      <button
+                        onClick={() => removeRecent(item.query)}
+                        aria-label={`حذف «${item.query}» از تاریخچه`}
+                        className="absolute left-1.5 top-1/2 flex h-6 w-6 -translate-y-1/2 items-center justify-center rounded-lg opacity-0 transition-opacity hover:bg-(--border-subtle) focus-visible:opacity-100 group-hover:opacity-100"
+                        style={{ color: 'var(--text-tertiary)' }}
+                      >
+                        <X size={12} />
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+
+                <button
+                  onClick={clearRecent}
+                  className="mt-1 flex w-full items-center gap-1.5 rounded-xl px-2.5 py-1.5 text-[11px] transition-colors hover:bg-(--surface-sunken)"
+                  style={{ color: 'var(--text-tertiary)' }}
+                >
+                  <Trash2 size={12} />
+                  پاک کردن تاریخچه
+                </button>
               </>
             )}
           </motion.div>

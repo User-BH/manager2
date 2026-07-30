@@ -1,8 +1,14 @@
 import { useCallback, useState } from 'react'
 import { motion } from 'framer-motion'
 import {
-  Plus, Pencil, Trash2, UserRound, ToggleLeft, ToggleRight,
-  MessageSquare, MessageSquareOff,
+  Plus,
+  Pencil,
+  Trash2,
+  UserRound,
+  ToggleLeft,
+  ToggleRight,
+  MessageSquare,
+  MessageSquareOff,
 } from 'lucide-react'
 import { Card } from '@/shared/ui/Card'
 import { Modal } from '@/shared/ui/Modal'
@@ -144,7 +150,11 @@ export function ResidentsPage() {
                           {resident.name}
                         </span>
                       </td>
-                      <td className="py-3 tabular-nums" dir="ltr" style={{ color: 'var(--text-secondary)' }}>
+                      <td
+                        className="py-3 tabular-nums"
+                        dir="ltr"
+                        style={{ color: 'var(--text-secondary)' }}
+                      >
                         {resident.phone}
                       </td>
                       <td className="py-3" style={{ color: 'var(--text-secondary)' }}>
@@ -161,11 +171,13 @@ export function ResidentsPage() {
                           style={
                             resident.isActive
                               ? {
-                                  backgroundColor: 'color-mix(in srgb, var(--state-success) 15%, transparent)',
+                                  backgroundColor:
+                                    'color-mix(in srgb, var(--state-success) 15%, transparent)',
                                   color: 'var(--state-success)',
                                 }
                               : {
-                                  backgroundColor: 'color-mix(in srgb, var(--color-danger) 13%, transparent)',
+                                  backgroundColor:
+                                    'color-mix(in srgb, var(--color-danger) 13%, transparent)',
                                   color: 'var(--color-danger)',
                                 }
                           }
@@ -180,24 +192,42 @@ export function ResidentsPage() {
                             aria-label={resident.isActive ? 'غیرفعال کردن' : 'فعال کردن'}
                             title={resident.isActive ? 'غیرفعال کردن' : 'فعال کردن'}
                             className="flex h-8 w-8 items-center justify-center rounded-lg transition-colors hover:bg-(--surface-sunken)"
-                            style={{ color: resident.isActive ? 'var(--state-success)' : 'var(--text-tertiary)' }}
+                            style={{
+                              color: resident.isActive
+                                ? 'var(--state-success)'
+                                : 'var(--text-tertiary)',
+                            }}
                           >
-                            {resident.isActive ? <ToggleRight size={17} /> : <ToggleLeft size={17} />}
+                            {resident.isActive ? (
+                              <ToggleRight size={17} />
+                            ) : (
+                              <ToggleLeft size={17} />
+                            )}
                           </button>
 
                           {/* محدودیت پیام‌رسان — سرور همین پرچم را هنگام ارسال پیام بررسی می‌کند */}
                           <button
                             onClick={() => handleToggleMessaging(resident)}
-                            aria-label={resident.canMessage ? 'بستن پیام‌رسان' : 'باز کردن پیام‌رسان'}
+                            aria-label={
+                              resident.canMessage ? 'بستن پیام‌رسان' : 'باز کردن پیام‌رسان'
+                            }
                             title={
                               resident.canMessage
                                 ? 'بستن ارسال پیام برای این ساکن'
                                 : 'اجازه‌ی ارسال پیام به این ساکن'
                             }
                             className="flex h-8 w-8 items-center justify-center rounded-lg transition-colors hover:bg-(--surface-sunken)"
-                            style={{ color: resident.canMessage ? 'var(--text-secondary)' : 'var(--color-danger)' }}
+                            style={{
+                              color: resident.canMessage
+                                ? 'var(--text-secondary)'
+                                : 'var(--color-danger)',
+                            }}
                           >
-                            {resident.canMessage ? <MessageSquare size={15} /> : <MessageSquareOff size={15} />}
+                            {resident.canMessage ? (
+                              <MessageSquare size={15} />
+                            ) : (
+                              <MessageSquareOff size={15} />
+                            )}
                           </button>
                           <button
                             onClick={() => setEditing(resident)}

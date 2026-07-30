@@ -3,7 +3,18 @@ import { useSearchParams } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { motion } from 'framer-motion'
-import { Plus, Pin, PinOff, Pencil, Trash2, Megaphone, Loader2, Save, AlertCircle, CheckCheck } from 'lucide-react'
+import {
+  Plus,
+  Pin,
+  PinOff,
+  Pencil,
+  Trash2,
+  Megaphone,
+  Loader2,
+  Save,
+  AlertCircle,
+  CheckCheck,
+} from 'lucide-react'
 import { z } from 'zod'
 import { Card } from '@/shared/ui/Card'
 import { Modal } from '@/shared/ui/Modal'
@@ -136,7 +147,9 @@ export function AnnouncementsPage() {
         ? {
             ...current,
             data: current.data.filter((a) => a.id !== announcement.id),
-            unreadCount: announcement.isRead ? current.unreadCount : Math.max(0, current.unreadCount - 1),
+            unreadCount: announcement.isRead
+              ? current.unreadCount
+              : Math.max(0, current.unreadCount - 1),
           }
         : current,
     )
@@ -201,7 +214,9 @@ export function AnnouncementsPage() {
             <Card>
               <EmptyState
                 message="اطلاعیه‌ای منتشر نشده است."
-                hint={data.canManage ? 'با دکمه‌ی «اطلاعیه جدید» اولین اطلاعیه را بنویسید.' : undefined}
+                hint={
+                  data.canManage ? 'با دکمه‌ی «اطلاعیه جدید» اولین اطلاعیه را بنویسید.' : undefined
+                }
               />
             </Card>
           ) : (
@@ -231,7 +246,8 @@ export function AnnouncementsPage() {
                       <span
                         className="relative flex h-9 w-9 shrink-0 items-center justify-center rounded-xl"
                         style={{
-                          backgroundColor: 'color-mix(in srgb, var(--color-brand-500) 13%, transparent)',
+                          backgroundColor:
+                            'color-mix(in srgb, var(--color-brand-500) 13%, transparent)',
                           color: 'var(--color-brand-600)',
                         }}
                       >
@@ -260,7 +276,8 @@ export function AnnouncementsPage() {
                             <span
                               className="rounded-full px-2 py-0.5 text-[10px] font-bold"
                               style={{
-                                backgroundColor: 'color-mix(in srgb, var(--color-accent-500) 16%, transparent)',
+                                backgroundColor:
+                                  'color-mix(in srgb, var(--color-accent-500) 16%, transparent)',
                                 color: 'var(--color-accent-600)',
                               }}
                             >
@@ -271,7 +288,8 @@ export function AnnouncementsPage() {
                             <span
                               className="flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-medium"
                               style={{
-                                backgroundColor: 'color-mix(in srgb, var(--color-accent-500) 16%, transparent)',
+                                backgroundColor:
+                                  'color-mix(in srgb, var(--color-accent-500) 16%, transparent)',
                                 color: 'var(--color-accent-600)',
                               }}
                             >
@@ -299,7 +317,11 @@ export function AnnouncementsPage() {
                           aria-label={announcement.isPinned ? 'برداشتن سنجاق' : 'سنجاق کردن'}
                           title={announcement.isPinned ? 'برداشتن سنجاق' : 'سنجاق کردن'}
                           className="flex h-8 w-8 items-center justify-center rounded-lg transition-colors hover:bg-(--surface-sunken)"
-                          style={{ color: announcement.isPinned ? 'var(--color-accent-600)' : 'var(--text-tertiary)' }}
+                          style={{
+                            color: announcement.isPinned
+                              ? 'var(--color-accent-600)'
+                              : 'var(--text-tertiary)',
+                          }}
                         >
                           {announcement.isPinned ? <PinOff size={15} /> : <Pin size={15} />}
                         </button>
@@ -406,8 +428,11 @@ function AnnouncementForm({
           is_active: announcement.isActive,
         }
       : {
-          title: '', body: '', audience: audienceOptions[0]?.value ?? 'all',
-          is_pinned: false, is_active: true,
+          title: '',
+          body: '',
+          audience: audienceOptions[0]?.value ?? 'all',
+          is_pinned: false,
+          is_active: true,
         },
   })
 

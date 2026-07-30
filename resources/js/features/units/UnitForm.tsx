@@ -80,7 +80,11 @@ export function UnitForm({ unit, filters, onSaved, onCancel }: UnitFormProps) {
       )}
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-        <TextField label="شماره واحد" error={errors.unit_number?.message} {...register('unit_number')} />
+        <TextField
+          label="شماره واحد"
+          error={errors.unit_number?.message}
+          {...register('unit_number')}
+        />
         <SelectField
           label="ساختمان"
           placeholder="—"
@@ -88,17 +92,44 @@ export function UnitForm({ unit, filters, onSaved, onCancel }: UnitFormProps) {
           error={errors.building_id?.message}
           {...register('building_id')}
         />
-        <TextField label="طبقه" type="number" error={errors.floor?.message} {...register('floor')} />
-        <TextField label="متراژ (متر مربع)" type="number" step="0.01" error={errors.area?.message} {...register('area')} />
-        <TextField label="تعداد ساکنین" type="number" error={errors.residents_count?.message} {...register('residents_count')} />
-        <TextField label="تعداد پارکینگ" type="number" error={errors.parking_count?.message} {...register('parking_count')} />
+        <TextField
+          label="طبقه"
+          type="number"
+          error={errors.floor?.message}
+          {...register('floor')}
+        />
+        <TextField
+          label="متراژ (متر مربع)"
+          type="number"
+          step="0.01"
+          error={errors.area?.message}
+          {...register('area')}
+        />
+        <TextField
+          label="تعداد ساکنین"
+          type="number"
+          error={errors.residents_count?.message}
+          {...register('residents_count')}
+        />
+        <TextField
+          label="تعداد پارکینگ"
+          type="number"
+          error={errors.parking_count?.message}
+          {...register('parking_count')}
+        />
         <SelectField
           label="وضعیت سکونت"
           options={filters.occupancyOptions}
           error={errors.occupancy_status?.message}
           {...register('occupancy_status')}
         />
-        <TextField label="ضریب شارژ" type="number" step="0.01" error={errors.coefficient?.message} {...register('coefficient')} />
+        <TextField
+          label="ضریب شارژ"
+          type="number"
+          step="0.01"
+          error={errors.coefficient?.message}
+          {...register('coefficient')}
+        />
       </div>
 
       <TextField label="توضیحات" error={errors.notes?.message} {...register('notes')} />

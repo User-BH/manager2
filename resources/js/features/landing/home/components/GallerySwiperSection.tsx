@@ -32,10 +32,17 @@ export function GallerySwiperSection() {
   const [openIndex, setOpenIndex] = useState<number | null>(null)
 
   return (
-    <section id="gallery" className="overflow-hidden py-20" style={{ backgroundColor: 'var(--surface-sunken)' }}>
+    <section
+      id="gallery"
+      className="overflow-hidden py-20"
+      style={{ backgroundColor: 'var(--surface-sunken)' }}
+    >
       <div className="mx-auto max-w-6xl px-4 sm:px-6" dir="rtl">
         <RevealOnScroll className="mx-auto max-w-xl text-center">
-          <h2 className="text-2xl font-extrabold sm:text-3xl" style={{ color: 'var(--text-primary)' }}>
+          <h2
+            className="text-2xl font-extrabold sm:text-3xl"
+            style={{ color: 'var(--text-primary)' }}
+          >
             نگاهی به فضای مجتمع‌ها
           </h2>
           <p className="mt-3 text-[14.5px] leading-7" style={{ color: 'var(--text-secondary)' }}>

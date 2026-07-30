@@ -1,13 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import {
-  Calculator as CalculatorIcon,
-  Copy,
-  Delete,
-  History,
-  Search,
-  Trash2,
-} from 'lucide-react'
+import { Calculator as CalculatorIcon, Copy, Delete, History, Search, Trash2 } from 'lucide-react'
 import { Card } from '@/shared/ui/Card'
 import { useDocumentTitle, useDebounce, useLocalStorage } from '@/shared/hooks'
 import { confirmAction, toastSuccess } from '@/shared/lib/alert'
@@ -411,68 +404,71 @@ function Display({
         className="rounded-2xl border p-4 shadow-sm"
         style={{ backgroundColor: 'var(--surface-sunken)', borderColor: 'var(--border-subtle)' }}
       >
-      <div className="mb-2 flex items-center gap-2 text-[10.5px]" style={{ color: 'var(--text-tertiary)' }}>
-        <span
-          className="rounded px-1.5 py-0.5 font-bold"
-          style={{ backgroundColor: 'var(--surface-base)' }}
+        <div
+          className="mb-2 flex items-center gap-2 text-[10.5px]"
+          style={{ color: 'var(--text-tertiary)' }}
         >
-          {angleMode === 'deg' ? 'DEG' : 'RAD'}
-        </span>
-        {memory !== 0 && (
           <span
             className="rounded px-1.5 py-0.5 font-bold"
-            style={{ backgroundColor: 'var(--surface-base)', color: 'var(--color-brand-600)' }}
+            style={{ backgroundColor: 'var(--surface-base)' }}
           >
-            M
+            {angleMode === 'deg' ? 'DEG' : 'RAD'}
           </span>
-        )}
+          {memory !== 0 && (
+            <span
+              className="rounded px-1.5 py-0.5 font-bold"
+              style={{ backgroundColor: 'var(--surface-base)', color: 'var(--color-brand-600)' }}
+            >
+              M
+            </span>
+          )}
 
-        <button
-          onClick={onCopy}
-          disabled={!result && !preview}
-          className="mr-auto flex items-center gap-1 rounded px-1.5 py-0.5 transition-colors enabled:hover:bg-(--surface-base) disabled:opacity-40"
-          title="کپی نتیجه"
-        >
-          <Copy size={11} />
-          کپی
-        </button>
-      </div>
+          <button
+            onClick={onCopy}
+            disabled={!result && !preview}
+            className="mr-auto flex items-center gap-1 rounded px-1.5 py-0.5 transition-colors enabled:hover:bg-(--surface-base) disabled:opacity-40"
+            title="کپی نتیجه"
+          >
+            <Copy size={11} />
+            کپی
+          </button>
+        </div>
 
-      {/*
+        {/*
         عبارت در یک input واقعی است نه فقط متن: کاربر باید بتواند وسط عبارت
         کلیک کند، تکه‌ای را انتخاب کند و مستقیم تایپ کند. dir=ltr چون فرمول
         ریاضی چپ‌به‌راست خوانده می‌شود حتی در صفحه‌ی راست‌به‌چپ.
       */}
-      <input
-        ref={inputRef}
-        dir="ltr"
-        value={expression}
-        onChange={(event) => onExpressionChange(normalizeDigits(event.target.value))}
-        onBeforeInput={(event) => {
-          // جلوی تایپِ نویسه‌به‌نویسه‌ی حرف (مثل sin) را می‌گیرد؛ Enter و = را
-          // شنونده‌ی سراسری صفحه‌کلید مدیریت می‌کند، نه اینجا. (paste را
-          // onPaste جدا و با پاک‌سازی مدیریت می‌کند.)
-          const data = (event.nativeEvent as InputEvent).data
-          if (data && ALLOWED_INPUT.test(data)) {
+        <input
+          ref={inputRef}
+          dir="ltr"
+          value={expression}
+          onChange={(event) => onExpressionChange(normalizeDigits(event.target.value))}
+          onBeforeInput={(event) => {
+            // جلوی تایپِ نویسه‌به‌نویسه‌ی حرف (مثل sin) را می‌گیرد؛ Enter و = را
+            // شنونده‌ی سراسری صفحه‌کلید مدیریت می‌کند، نه اینجا. (paste را
+            // onPaste جدا و با پاک‌سازی مدیریت می‌کند.)
+            const data = (event.nativeEvent as InputEvent).data
+            if (data && ALLOWED_INPUT.test(data)) {
+              event.preventDefault()
+            }
+          }}
+          onPaste={(event) => {
+            // به‌جای رد کردنِ کلِ paste، فقط بخش معتبرش درج می‌شود
             event.preventDefault()
-          }
-        }}
-        onPaste={(event) => {
-          // به‌جای رد کردنِ کلِ paste، فقط بخش معتبرش درج می‌شود
-          event.preventDefault()
-          const pasted = event.clipboardData.getData('text')
-          const clean = sanitizePaste(pasted)
-          if (clean) onInsert(clean)
-        }}
-        placeholder="0"
-        inputMode="numeric"
-        aria-label="عبارت ریاضی"
-        spellCheck={false}
-        className="w-full bg-transparent text-left font-mono text-[26px] font-bold outline-none"
-        style={{ color: 'var(--text-primary)' }}
-      />
+            const pasted = event.clipboardData.getData('text')
+            const clean = sanitizePaste(pasted)
+            if (clean) onInsert(clean)
+          }}
+          placeholder="0"
+          inputMode="numeric"
+          aria-label="عبارت ریاضی"
+          spellCheck={false}
+          className="w-full bg-transparent text-left font-mono text-[26px] font-bold outline-none"
+          style={{ color: 'var(--text-primary)' }}
+        />
 
-      {/*
+        {/*
         یک عنصر واحد که با key عوض می‌شود، نه سه شاخهٔ جدا داخل
         AnimatePresence با mode="wait".
         دلیل: پیام خطا باید فوراً دیده شود. با mode="wait" نمایش خطا تا پایان
@@ -480,47 +476,47 @@ function Display({
         تمام نمی‌شد اصلاً نمایش داده نمی‌شد. این شکل، وابسته به تمام شدن
         انیمیشن نیست.
       */}
-      <div className="mt-1 flex min-h-[26px] flex-col items-end justify-center">
-        {status && (
-          <motion.p
-            key={`${status.kind}-${status.text}`}
-            initial={{ opacity: 0, y: -3 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.18 }}
-            dir={status.kind === 'error' ? undefined : 'ltr'}
-            className={
-              status.kind === 'error'
-                ? 'text-[12.5px] font-semibold'
-                : status.kind === 'result'
-                  ? 'font-mono text-[22px] font-extrabold'
-                  : 'font-mono text-[15px]'
-            }
-            style={{
-              color:
+        <div className="mt-1 flex min-h-[26px] flex-col items-end justify-center">
+          {status && (
+            <motion.p
+              key={`${status.kind}-${status.text}`}
+              initial={{ opacity: 0, y: -3 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.18 }}
+              dir={status.kind === 'error' ? undefined : 'ltr'}
+              className={
                 status.kind === 'error'
-                  ? 'var(--color-danger)'
+                  ? 'text-[12.5px] font-semibold'
                   : status.kind === 'result'
-                    ? 'var(--color-brand-600)'
-                    : 'var(--text-tertiary)',
-            }}
-          >
-            {status.kind === 'error' ? status.text : `= ${toPersianDigits(status.text)}`}
-          </motion.p>
-        )}
+                    ? 'font-mono text-[22px] font-extrabold'
+                    : 'font-mono text-[15px]'
+              }
+              style={{
+                color:
+                  status.kind === 'error'
+                    ? 'var(--color-danger)'
+                    : status.kind === 'result'
+                      ? 'var(--color-brand-600)'
+                      : 'var(--text-tertiary)',
+              }}
+            >
+              {status.kind === 'error' ? status.text : `= ${toPersianDigits(status.text)}`}
+            </motion.p>
+          )}
 
-        {/* محاسبه‌ای که به این نتیجه رسید، درست زیرِ خودِ نتیجه */}
-        {status?.kind === 'result' && resultExpr && (
-          <motion.p
-            key={`src-${resultExpr}`}
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            dir="ltr"
-            className="mt-0.5 font-mono text-[12.5px]"
-            style={{ color: 'var(--text-tertiary)' }}
-          >
-            {prettyExpr(resultExpr)}
-          </motion.p>
-        )}
+          {/* محاسبه‌ای که به این نتیجه رسید، درست زیرِ خودِ نتیجه */}
+          {status?.kind === 'result' && resultExpr && (
+            <motion.p
+              key={`src-${resultExpr}`}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              dir="ltr"
+              className="mt-0.5 font-mono text-[12.5px]"
+              style={{ color: 'var(--text-tertiary)' }}
+            >
+              {prettyExpr(resultExpr)}
+            </motion.p>
+          )}
         </div>
       </div>
     </div>
@@ -568,7 +564,10 @@ function MemoryRow({
 
       {/* فقط وقتی حافظه مقدار دارد نشان داده می‌شود؛ «حافظه: ۰» همیشگی نویز بود. */}
       {memory !== 0 && (
-        <span className="mr-auto font-mono text-[11px] tabular-nums" style={{ color: 'var(--color-brand-600)' }}>
+        <span
+          className="mr-auto font-mono text-[11px] tabular-nums"
+          style={{ color: 'var(--color-brand-600)' }}
+        >
           حافظه: {toPersianDigits(formatResult(memory))}
         </span>
       )}
@@ -772,15 +771,7 @@ function keyColors(variant: NonNullable<KeySpec['variant']>, active: boolean) {
   }
 }
 
-function Key({
-  spec,
-  active,
-  onPress,
-}: {
-  spec: KeySpec
-  active?: boolean
-  onPress: () => void
-}) {
+function Key({ spec, active, onPress }: { spec: KeySpec; active?: boolean; onPress: () => void }) {
   const variant = spec.variant ?? 'digit'
   const colors = keyColors(variant, Boolean(active))
 
@@ -831,15 +822,17 @@ function HistoryPanel({
     if (!term) return history
 
     return history.filter(
-      (entry) =>
-        entry.expression.toLowerCase().includes(term) || entry.result.includes(term),
+      (entry) => entry.expression.toLowerCase().includes(term) || entry.result.includes(term),
     )
   }, [history, debounced])
 
   return (
     <Card delay={0.08} className="flex max-h-[42rem] flex-col">
       <div className="mb-3 flex items-center justify-between gap-2">
-        <h2 className="flex items-center gap-1.5 text-[14px] font-bold" style={{ color: 'var(--text-primary)' }}>
+        <h2
+          className="flex items-center gap-1.5 text-[14px] font-bold"
+          style={{ color: 'var(--text-primary)' }}
+        >
           <History size={15} style={{ color: 'var(--color-brand-500)' }} />
           تاریخچه
           <span className="text-[11px] font-medium" style={{ color: 'var(--text-tertiary)' }}>

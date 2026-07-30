@@ -74,7 +74,11 @@ export function DemoSignboard({ children }: { children: ReactNode }) {
                     ? { opacity: 0.85 }
                     : {
                         opacity: [0.28, 1, 0.28],
-                        boxShadow: [`0 0 0 0 ${color}00`, `0 0 10px 3px ${color}d9`, `0 0 0 0 ${color}00`],
+                        boxShadow: [
+                          `0 0 0 0 ${color}00`,
+                          `0 0 10px 3px ${color}d9`,
+                          `0 0 0 0 ${color}00`,
+                        ],
                       }
                 }
                 transition={{
@@ -167,7 +171,13 @@ function BuildingMascot() {
           <circle cx="88" cy="78" r="4.5" fill="#2b2b40" />
           <circle cx="112" cy="78" r="4.5" fill="#2b2b40" />
         </motion.g>
-        <path d="M87 92 Q100 103 113 92" stroke="#2b2b40" strokeWidth="3.2" strokeLinecap="round" fill="none" />
+        <path
+          d="M87 92 Q100 103 113 92"
+          stroke="#2b2b40"
+          strokeWidth="3.2"
+          strokeLinecap="round"
+          fill="none"
+        />
         <circle cx="76" cy="90" r="4.5" fill="#ffb3b3" opacity="0.55" />
         <circle cx="124" cy="90" r="4.5" fill="#ffb3b3" opacity="0.55" />
 
@@ -176,8 +186,20 @@ function BuildingMascot() {
           animate={reduce ? {} : { y: [0, -1.5, 0] }}
           transition={{ duration: 1.9, repeat: Infinity, ease: 'easeInOut' }}
         >
-          <path d="M64 76 Q44 56 58 20" stroke="url(#demo-tower)" strokeWidth="12" strokeLinecap="round" fill="none" />
-          <path d="M136 76 Q156 56 142 20" stroke="url(#demo-tower)" strokeWidth="12" strokeLinecap="round" fill="none" />
+          <path
+            d="M64 76 Q44 56 58 20"
+            stroke="url(#demo-tower)"
+            strokeWidth="12"
+            strokeLinecap="round"
+            fill="none"
+          />
+          <path
+            d="M136 76 Q156 56 142 20"
+            stroke="url(#demo-tower)"
+            strokeWidth="12"
+            strokeLinecap="round"
+            fill="none"
+          />
           <circle cx="57" cy="16" r="9.5" fill="#ffd9b3" />
           <circle cx="143" cy="16" r="9.5" fill="#ffd9b3" />
         </motion.g>

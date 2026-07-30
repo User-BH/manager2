@@ -131,25 +131,85 @@ export function PlansPage() {
         <Card title={draft.id ? 'ویرایش پکیج' : 'پکیج جدید'}>
           <div className="flex flex-col gap-4">
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-              <TextField label="نام پکیج" value={draft.name} onChange={(e) => setDraft({ ...draft, name: e.target.value })} />
-              <TextField label="شناسه (انگلیسی)" dir="ltr" placeholder="basic" value={draft.slug} onChange={(e) => setDraft({ ...draft, slug: e.target.value })} />
-              <TextField label="قیمت (تومان)" dir="ltr" inputMode="numeric" value={String(draft.price)} onChange={(e) => setDraft({ ...draft, price: Number(e.target.value.replace(/\D/g, '')) || 0 })} />
-              <TextField label="مدت (ماه)" dir="ltr" inputMode="numeric" value={String(draft.months)} onChange={(e) => setDraft({ ...draft, months: Number(e.target.value.replace(/\D/g, '')) || 1 })} />
+              <TextField
+                label="نام پکیج"
+                value={draft.name}
+                onChange={(e) => setDraft({ ...draft, name: e.target.value })}
+              />
+              <TextField
+                label="شناسه (انگلیسی)"
+                dir="ltr"
+                placeholder="basic"
+                value={draft.slug}
+                onChange={(e) => setDraft({ ...draft, slug: e.target.value })}
+              />
+              <TextField
+                label="قیمت (تومان)"
+                dir="ltr"
+                inputMode="numeric"
+                value={String(draft.price)}
+                onChange={(e) =>
+                  setDraft({ ...draft, price: Number(e.target.value.replace(/\D/g, '')) || 0 })
+                }
+              />
+              <TextField
+                label="مدت (ماه)"
+                dir="ltr"
+                inputMode="numeric"
+                value={String(draft.months)}
+                onChange={(e) =>
+                  setDraft({ ...draft, months: Number(e.target.value.replace(/\D/g, '')) || 1 })
+                }
+              />
               <TextField
                 label="سقف واحد (خالی = نامحدود)"
                 dir="ltr"
                 inputMode="numeric"
                 value={draft.unit_limit === null ? '' : String(draft.unit_limit)}
-                onChange={(e) => setDraft({ ...draft, unit_limit: e.target.value.trim() === '' ? null : Number(e.target.value.replace(/\D/g, '')) || null })}
+                onChange={(e) =>
+                  setDraft({
+                    ...draft,
+                    unit_limit:
+                      e.target.value.trim() === ''
+                        ? null
+                        : Number(e.target.value.replace(/\D/g, '')) || null,
+                  })
+                }
               />
-              <TextField label="ترتیب نمایش" dir="ltr" inputMode="numeric" value={String(draft.sort_order)} onChange={(e) => setDraft({ ...draft, sort_order: Number(e.target.value.replace(/\D/g, '')) || 0 })} />
+              <TextField
+                label="ترتیب نمایش"
+                dir="ltr"
+                inputMode="numeric"
+                value={String(draft.sort_order)}
+                onChange={(e) =>
+                  setDraft({ ...draft, sort_order: Number(e.target.value.replace(/\D/g, '')) || 0 })
+                }
+              />
             </div>
 
             {/* امکاناتِ قابل‌اعمالِ کد */}
-            <div className="flex flex-wrap gap-4 rounded-2xl border p-3" style={{ borderColor: 'var(--border-subtle)', backgroundColor: 'var(--surface-sunken)' }}>
-              <Toggle label="اتصال درگاه بانکی واقعی" checked={draft.real_gateway} onChange={(v) => setDraft({ ...draft, real_gateway: v })} />
-              <Toggle label="خروجی Excel قبوض" checked={draft.excel_export} onChange={(v) => setDraft({ ...draft, excel_export: v })} />
-              <Toggle label="پکیج فعال (قابل خرید)" checked={draft.is_active} onChange={(v) => setDraft({ ...draft, is_active: v })} />
+            <div
+              className="flex flex-wrap gap-4 rounded-2xl border p-3"
+              style={{
+                borderColor: 'var(--border-subtle)',
+                backgroundColor: 'var(--surface-sunken)',
+              }}
+            >
+              <Toggle
+                label="اتصال درگاه بانکی واقعی"
+                checked={draft.real_gateway}
+                onChange={(v) => setDraft({ ...draft, real_gateway: v })}
+              />
+              <Toggle
+                label="خروجی Excel قبوض"
+                checked={draft.excel_export}
+                onChange={(v) => setDraft({ ...draft, excel_export: v })}
+              />
+              <Toggle
+                label="پکیج فعال (قابل خرید)"
+                checked={draft.is_active}
+                onChange={(v) => setDraft({ ...draft, is_active: v })}
+              />
             </div>
 
             <div className="flex flex-col gap-1.5">
@@ -158,19 +218,43 @@ export function PlansPage() {
               </label>
               <textarea
                 value={draft.features.join('\n')}
-                onChange={(e) => setDraft({ ...draft, features: e.target.value.split('\n').map((s) => s.trim()).filter(Boolean) })}
+                onChange={(e) =>
+                  setDraft({
+                    ...draft,
+                    features: e.target.value
+                      .split('\n')
+                      .map((s) => s.trim())
+                      .filter(Boolean),
+                  })
+                }
                 rows={4}
                 className="w-full rounded-xl border p-3 text-[13px] outline-none focus:ring-2"
-                style={{ backgroundColor: 'var(--surface-sunken)', borderColor: 'var(--border-subtle)', color: 'var(--text-primary)', ['--tw-ring-color' as string]: 'var(--ring-focus)' }}
+                style={{
+                  backgroundColor: 'var(--surface-sunken)',
+                  borderColor: 'var(--border-subtle)',
+                  color: 'var(--text-primary)',
+                  ['--tw-ring-color' as string]: 'var(--ring-focus)',
+                }}
               />
             </div>
 
             <div className="flex gap-2">
-              <button type="button" onClick={savePlan} disabled={saving} className="flex items-center gap-2 rounded-xl px-5 py-2.5 text-sm font-bold text-white disabled:opacity-70" style={{ backgroundColor: 'var(--color-brand-500)' }}>
+              <button
+                type="button"
+                onClick={savePlan}
+                disabled={saving}
+                className="flex items-center gap-2 rounded-xl px-5 py-2.5 text-sm font-bold text-white disabled:opacity-70"
+                style={{ backgroundColor: 'var(--color-brand-500)' }}
+              >
                 {saving ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
                 ذخیره
               </button>
-              <button type="button" onClick={() => setDraft(null)} className="flex items-center gap-2 rounded-xl border px-5 py-2.5 text-sm font-semibold" style={{ borderColor: 'var(--border-subtle)', color: 'var(--text-primary)' }}>
+              <button
+                type="button"
+                onClick={() => setDraft(null)}
+                className="flex items-center gap-2 rounded-xl border px-5 py-2.5 text-sm font-semibold"
+                style={{ borderColor: 'var(--border-subtle)', color: 'var(--text-primary)' }}
+              >
                 <X size={16} />
                 انصراف
               </button>
@@ -183,18 +267,52 @@ export function PlansPage() {
       <Card title={`پکیج‌ها (${data.plans.length})`}>
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {data.plans.map((plan) => (
-            <div key={plan.id} className="flex flex-col gap-2 rounded-2xl border p-4" style={{ borderColor: 'var(--border-subtle)', opacity: plan.is_active ? 1 : 0.6 }}>
+            <div
+              key={plan.id}
+              className="flex flex-col gap-2 rounded-2xl border p-4"
+              style={{ borderColor: 'var(--border-subtle)', opacity: plan.is_active ? 1 : 0.6 }}
+            >
               <div className="flex items-center justify-between">
-                <span className="text-[15px] font-extrabold" style={{ color: 'var(--text-primary)' }}>{plan.name}</span>
-                <span className="text-[13px] font-bold" style={{ color: 'var(--color-brand-600)' }}>{plan.priceLabel}</span>
+                <span
+                  className="text-[15px] font-extrabold"
+                  style={{ color: 'var(--text-primary)' }}
+                >
+                  {plan.name}
+                </span>
+                <span className="text-[13px] font-bold" style={{ color: 'var(--color-brand-600)' }}>
+                  {plan.priceLabel}
+                </span>
               </div>
               <div className="text-[11.5px]" style={{ color: 'var(--text-tertiary)' }}>
-                {plan.months} ماهه · سقف واحد: {plan.unit_limit ?? 'نامحدود'} · {plan.real_gateway ? 'درگاه ✓' : 'درگاه ✕'} · {plan.excel_export ? 'Excel ✓' : 'Excel ✕'}
+                {plan.months} ماهه · سقف واحد: {plan.unit_limit ?? 'نامحدود'} ·{' '}
+                {plan.real_gateway ? 'درگاه ✓' : 'درگاه ✕'} ·{' '}
+                {plan.excel_export ? 'Excel ✓' : 'Excel ✕'}
               </div>
               <div className="mt-1 flex gap-2">
-                <button type="button" onClick={() => setDraft({ ...plan })} className="rounded-lg border px-3 py-1.5 text-[12px] font-semibold" style={{ borderColor: 'var(--border-subtle)', color: 'var(--text-primary)' }}>ویرایش</button>
-                <button type="button" onClick={() => toggle(plan)} className="rounded-lg border px-3 py-1.5 text-[12px] font-semibold" style={{ borderColor: 'var(--border-subtle)', color: 'var(--text-secondary)' }}>{plan.is_active ? 'غیرفعال' : 'فعال'}</button>
-                <button type="button" onClick={() => remove(plan)} className="rounded-lg border px-2.5 py-1.5" style={{ borderColor: 'var(--border-subtle)', color: 'var(--color-danger)' }}><Trash2 size={13} /></button>
+                <button
+                  type="button"
+                  onClick={() => setDraft({ ...plan })}
+                  className="rounded-lg border px-3 py-1.5 text-[12px] font-semibold"
+                  style={{ borderColor: 'var(--border-subtle)', color: 'var(--text-primary)' }}
+                >
+                  ویرایش
+                </button>
+                <button
+                  type="button"
+                  onClick={() => toggle(plan)}
+                  className="rounded-lg border px-3 py-1.5 text-[12px] font-semibold"
+                  style={{ borderColor: 'var(--border-subtle)', color: 'var(--text-secondary)' }}
+                >
+                  {plan.is_active ? 'غیرفعال' : 'فعال'}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => remove(plan)}
+                  className="rounded-lg border px-2.5 py-1.5"
+                  style={{ borderColor: 'var(--border-subtle)', color: 'var(--color-danger)' }}
+                >
+                  <Trash2 size={13} />
+                </button>
               </div>
             </div>
           ))}
@@ -207,16 +325,40 @@ export function PlansPage() {
   )
 }
 
-function Toggle({ label, checked, onChange }: { label: string; checked: boolean; onChange: (v: boolean) => void }) {
+function Toggle({
+  label,
+  checked,
+  onChange,
+}: {
+  label: string
+  checked: boolean
+  onChange: (v: boolean) => void
+}) {
   return (
-    <label className="flex items-center gap-2 text-[12.5px] font-medium" style={{ color: 'var(--text-secondary)' }}>
-      <input type="checkbox" className="h-4 w-4 rounded" checked={checked} onChange={(e) => onChange(e.target.checked)} />
+    <label
+      className="flex items-center gap-2 text-[12.5px] font-medium"
+      style={{ color: 'var(--text-secondary)' }}
+    >
+      <input
+        type="checkbox"
+        className="h-4 w-4 rounded"
+        checked={checked}
+        onChange={(e) => onChange(e.target.checked)}
+      />
       {label}
     </label>
   )
 }
 
-function ManualGrant({ plans, complexes, onDone }: { plans: Plan[]; complexes: ComplexRow[]; onDone: () => void }) {
+function ManualGrant({
+  plans,
+  complexes,
+  onDone,
+}: {
+  plans: Plan[]
+  complexes: ComplexRow[]
+  onDone: () => void
+}) {
   const [complexId, setComplexId] = useState('')
   const [planId, setPlanId] = useState('')
   const [months, setMonths] = useState('')
@@ -228,7 +370,11 @@ function ManualGrant({ plans, complexes, onDone }: { plans: Plan[]; complexes: C
     try {
       const res = await api<{ message: string }>('/system/plans/grant', {
         method: 'POST',
-        body: { complex_id: Number(complexId), plan_id: Number(planId), months: months ? Number(months) : undefined },
+        body: {
+          complex_id: Number(complexId),
+          plan_id: Number(planId),
+          months: months ? Number(months) : undefined,
+        },
       })
       toastSuccess(res.message)
       onDone()
@@ -242,7 +388,10 @@ function ManualGrant({ plans, complexes, onDone }: { plans: Plan[]; complexes: C
   async function revoke(id: number) {
     setBusy(true)
     try {
-      const res = await api<{ message: string }>('/system/plans/revoke', { method: 'POST', body: { complex_id: id } })
+      const res = await api<{ message: string }>('/system/plans/revoke', {
+        method: 'POST',
+        body: { complex_id: id },
+      })
       toastSuccess(res.message)
       onDone()
     } catch (err) {
@@ -260,27 +409,72 @@ function ManualGrant({ plans, complexes, onDone }: { plans: Plan[]; complexes: C
   }
 
   return (
-    <Card title="فعال‌سازیِ دستیِ پلن برای مجتمع" subtitle="بدونِ پرداخت — برای آفر یا هدیه" delay={0.05}>
+    <Card
+      title="فعال‌سازیِ دستیِ پلن برای مجتمع"
+      subtitle="بدونِ پرداخت — برای آفر یا هدیه"
+      delay={0.05}
+    >
       <div className="flex flex-col gap-4">
         <div className="flex flex-wrap items-end gap-3">
           <div className="min-w-[180px] flex-1">
-            <label className="mb-1.5 block text-[13px] font-medium" style={{ color: 'var(--text-secondary)' }}>مجتمع</label>
-            <select value={complexId} onChange={(e) => setComplexId(e.target.value)} className="w-full rounded-xl border py-3 px-3 text-[13px] outline-none focus:ring-2" style={selectStyle}>
+            <label
+              className="mb-1.5 block text-[13px] font-medium"
+              style={{ color: 'var(--text-secondary)' }}
+            >
+              مجتمع
+            </label>
+            <select
+              value={complexId}
+              onChange={(e) => setComplexId(e.target.value)}
+              className="w-full rounded-xl border py-3 px-3 text-[13px] outline-none focus:ring-2"
+              style={selectStyle}
+            >
               <option value="">انتخاب کنید…</option>
-              {complexes.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+              {complexes.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.name}
+                </option>
+              ))}
             </select>
           </div>
           <div className="min-w-[150px] flex-1">
-            <label className="mb-1.5 block text-[13px] font-medium" style={{ color: 'var(--text-secondary)' }}>پکیج</label>
-            <select value={planId} onChange={(e) => setPlanId(e.target.value)} className="w-full rounded-xl border py-3 px-3 text-[13px] outline-none focus:ring-2" style={selectStyle}>
+            <label
+              className="mb-1.5 block text-[13px] font-medium"
+              style={{ color: 'var(--text-secondary)' }}
+            >
+              پکیج
+            </label>
+            <select
+              value={planId}
+              onChange={(e) => setPlanId(e.target.value)}
+              className="w-full rounded-xl border py-3 px-3 text-[13px] outline-none focus:ring-2"
+              style={selectStyle}
+            >
               <option value="">انتخاب کنید…</option>
-              {plans.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
+              {plans.map((p) => (
+                <option key={p.id} value={p.id}>
+                  {p.name}
+                </option>
+              ))}
             </select>
           </div>
           <div className="w-28">
-            <TextField label="مدت (ماه)" dir="ltr" inputMode="numeric" placeholder="پیش‌فرض" value={months} onChange={(e) => setMonths(e.target.value.replace(/\D/g, ''))} />
+            <TextField
+              label="مدت (ماه)"
+              dir="ltr"
+              inputMode="numeric"
+              placeholder="پیش‌فرض"
+              value={months}
+              onChange={(e) => setMonths(e.target.value.replace(/\D/g, ''))}
+            />
           </div>
-          <button type="button" onClick={grant} disabled={busy || !complexId || !planId} className="flex items-center gap-1.5 rounded-xl px-5 py-3 text-[13px] font-bold text-white disabled:opacity-60" style={{ backgroundColor: 'var(--color-accent-500)' }}>
+          <button
+            type="button"
+            onClick={grant}
+            disabled={busy || !complexId || !planId}
+            className="flex items-center gap-1.5 rounded-xl px-5 py-3 text-[13px] font-bold text-white disabled:opacity-60"
+            style={{ backgroundColor: 'var(--color-accent-500)' }}
+          >
             <Gift size={15} />
             فعال کن
           </button>
@@ -288,18 +482,28 @@ function ManualGrant({ plans, complexes, onDone }: { plans: Plan[]; complexes: C
 
         {/* مجتمع‌هایی که اشتراک فعال دارند */}
         <div className="flex flex-col divide-y" style={{ borderColor: 'var(--border-subtle)' }}>
-          {complexes.filter((c) => c.activePlan).map((c) => (
-            <div key={c.id} className="flex items-center justify-between py-2.5 text-[12.5px]">
-              <span style={{ color: 'var(--text-primary)' }}>
-                <b>{c.name}</b> — {c.activePlan} {c.activeUntil ? `(تا ${c.activeUntil})` : ''}
-              </span>
-              <button type="button" onClick={() => revoke(c.id)} disabled={busy} className="rounded-lg border px-3 py-1 text-[11.5px] font-semibold" style={{ borderColor: 'var(--border-subtle)', color: 'var(--color-danger)' }}>
-                غیرفعال‌سازی
-              </button>
-            </div>
-          ))}
+          {complexes
+            .filter((c) => c.activePlan)
+            .map((c) => (
+              <div key={c.id} className="flex items-center justify-between py-2.5 text-[12.5px]">
+                <span style={{ color: 'var(--text-primary)' }}>
+                  <b>{c.name}</b> — {c.activePlan} {c.activeUntil ? `(تا ${c.activeUntil})` : ''}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => revoke(c.id)}
+                  disabled={busy}
+                  className="rounded-lg border px-3 py-1 text-[11.5px] font-semibold"
+                  style={{ borderColor: 'var(--border-subtle)', color: 'var(--color-danger)' }}
+                >
+                  غیرفعال‌سازی
+                </button>
+              </div>
+            ))}
           {complexes.filter((c) => c.activePlan).length === 0 && (
-            <p className="py-3 text-center text-[12px]" style={{ color: 'var(--text-tertiary)' }}>هیچ مجتمعی اشتراکِ فعال ندارد.</p>
+            <p className="py-3 text-center text-[12px]" style={{ color: 'var(--text-tertiary)' }}>
+              هیچ مجتمعی اشتراکِ فعال ندارد.
+            </p>
           )}
         </div>
       </div>

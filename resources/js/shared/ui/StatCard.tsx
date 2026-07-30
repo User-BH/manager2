@@ -21,7 +21,14 @@ const TONE_COLOR: Record<StatTone, string> = {
   info: 'var(--state-info)',
 }
 
-export function StatCard({ label, value, unit, icon: Icon, tone = 'brand', delay = 0 }: StatCardProps) {
+export function StatCard({
+  label,
+  value,
+  unit,
+  icon: Icon,
+  tone = 'brand',
+  delay = 0,
+}: StatCardProps) {
   const color = TONE_COLOR[tone]
 
   return (

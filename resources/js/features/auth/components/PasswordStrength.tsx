@@ -53,11 +53,11 @@ export function PasswordStrength({ value }: { value: string }) {
         <span className="font-semibold" style={{ color: level.color }}>
           {level.label}
         </span>
-        {!longEnough && (
-          <span style={{ color: 'var(--text-tertiary)' }}>حداقل ۸ نویسه</span>
-        )}
+        {!longEnough && <span style={{ color: 'var(--text-tertiary)' }}>حداقل ۸ نویسه</span>}
         {longEnough && missing.length > 0 && (
-          <span style={{ color: 'var(--text-tertiary)' }}>برای قوی‌تر شدن: {missing.join('، ')}</span>
+          <span style={{ color: 'var(--text-tertiary)' }}>
+            برای قوی‌تر شدن: {missing.join('، ')}
+          </span>
         )}
       </div>
     </div>

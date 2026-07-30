@@ -11,7 +11,10 @@ export function TestimonialsSection() {
   return (
     <section id="testimonials" className="mx-auto max-w-4xl px-4 py-20 sm:px-6" dir="rtl">
       <RevealOnScroll className="mx-auto max-w-xl text-center">
-        <h2 className="text-2xl font-extrabold sm:text-3xl" style={{ color: 'var(--text-primary)' }}>
+        <h2
+          className="text-2xl font-extrabold sm:text-3xl"
+          style={{ color: 'var(--text-primary)' }}
+        >
           تجربه‌ی مدیران مجتمع‌ها
         </h2>
         <p className="mt-3 text-[14.5px] leading-7" style={{ color: 'var(--text-secondary)' }}>
@@ -33,7 +36,10 @@ export function TestimonialsSection() {
             <SwiperSlide key={item.name}>
               <div
                 className="mx-auto flex max-w-xl flex-col items-center rounded-3xl border p-8 text-center sm:p-10"
-                style={{ borderColor: 'var(--border-subtle)', backgroundColor: 'var(--surface-base)' }}
+                style={{
+                  borderColor: 'var(--border-subtle)',
+                  backgroundColor: 'var(--surface-base)',
+                }}
               >
                 <Quote size={28} style={{ color: 'var(--color-brand-300)' }} />
                 <p className="mt-5 text-[15px] leading-8" style={{ color: 'var(--text-primary)' }}>

@@ -90,7 +90,10 @@ export function AuditLogPage() {
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: Math.min(index * 0.02, 0.3) }}
                   className="rounded-xl border p-3"
-                  style={{ borderColor: 'var(--border-subtle)', backgroundColor: 'var(--surface-sunken)' }}
+                  style={{
+                    borderColor: 'var(--border-subtle)',
+                    backgroundColor: 'var(--surface-sunken)',
+                  }}
                 >
                   <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5">
                     <span
@@ -107,7 +110,10 @@ export function AuditLogPage() {
                       {entry.description}
                     </span>
 
-                    <span className="ms-auto text-[11px] tabular-nums" style={{ color: 'var(--text-tertiary)' }}>
+                    <span
+                      className="ms-auto text-[11px] tabular-nums"
+                      style={{ color: 'var(--text-tertiary)' }}
+                    >
                       {entry.at}
                     </span>
                   </div>
@@ -134,7 +140,10 @@ export function AuditLogPage() {
                   {open && hasDetails && (
                     <pre
                       className="mt-2 max-h-48 overflow-auto rounded-lg p-2.5 text-[11px] leading-5"
-                      style={{ backgroundColor: 'var(--surface-base)', color: 'var(--text-secondary)' }}
+                      style={{
+                        backgroundColor: 'var(--surface-base)',
+                        color: 'var(--text-secondary)',
+                      }}
                       dir="ltr"
                     >
                       {JSON.stringify(entry.properties, null, 2)}
@@ -173,7 +182,10 @@ export function AuditLogPage() {
         )}
       </Card>
 
-      <p className="flex items-center gap-1.5 text-[11.5px]" style={{ color: 'var(--text-tertiary)' }}>
+      <p
+        className="flex items-center gap-1.5 text-[11.5px]"
+        style={{ color: 'var(--text-tertiary)' }}
+      >
         <ScrollText size={13} />
         لاگ فعالیت با «بازیابی کل سیستم» پاک نمی‌شود، تا نشود ردِ کارها را شست.
       </p>

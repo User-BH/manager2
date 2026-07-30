@@ -102,8 +102,7 @@ export function RestorePanel() {
         <AlertTriangle size={17} className="mt-0.5 shrink-0" />
         <p className="text-[13px] leading-6">
           بازیابی تمام جدول‌ها را خالی می‌کند و از روی فایل دوباره می‌سازد. پیش از شروع، یک بکاپ
-          ایمنی خودکار گرفته می‌شود تا اگر اشتباه شد بتوانید برگردید. در پایان از حساب خارج
-          می‌شوید.
+          ایمنی خودکار گرفته می‌شود تا اگر اشتباه شد بتوانید برگردید. در پایان از حساب خارج می‌شوید.
         </p>
       </div>
 
@@ -127,14 +126,20 @@ export function RestorePanel() {
         />
 
         {checking && (
-          <span className="flex items-center gap-2 text-[13px]" style={{ color: 'var(--text-secondary)' }}>
+          <span
+            className="flex items-center gap-2 text-[13px]"
+            style={{ color: 'var(--text-secondary)' }}
+          >
             <Loader2 size={15} className="animate-spin" />
             در حال بررسی فایل…
           </span>
         )}
 
         {!checking && !dryRun && (
-          <span className="flex items-center gap-1.5 text-[11px]" style={{ color: 'var(--text-tertiary)' }}>
+          <span
+            className="flex items-center gap-1.5 text-[11px]"
+            style={{ color: 'var(--text-tertiary)' }}
+          >
             <Upload size={12} />
             فقط فایل JSON بکاپ کامل، حداکثر ۲۰ مگابایت
           </span>
@@ -152,16 +157,26 @@ export function RestorePanel() {
         <div className="mt-5 flex flex-col gap-4">
           <div
             className="flex items-start gap-2.5 rounded-xl border px-4 py-3 text-[13px] leading-6"
-            style={{ borderColor: 'var(--border-subtle)', backgroundColor: 'var(--surface-sunken)' }}
+            style={{
+              borderColor: 'var(--border-subtle)',
+              backgroundColor: 'var(--surface-sunken)',
+            }}
           >
-            <FileSearch size={16} className="mt-0.5 shrink-0" style={{ color: 'var(--color-success)' }} />
+            <FileSearch
+              size={16}
+              className="mt-0.5 shrink-0"
+              style={{ color: 'var(--color-success)' }}
+            />
             <span style={{ color: 'var(--text-primary)' }}>
-              فایل سالم است. جدول‌های زیر جایگزین می‌شوند — ستون راست تعداد فعلی و ستون چپ تعداد
-              پس از بازیابی است.
+              فایل سالم است. جدول‌های زیر جایگزین می‌شوند — ستون راست تعداد فعلی و ستون چپ تعداد پس
+              از بازیابی است.
             </span>
           </div>
 
-          <div className="max-h-64 overflow-y-auto rounded-xl border" style={{ borderColor: 'var(--border-subtle)' }}>
+          <div
+            className="max-h-64 overflow-y-auto rounded-xl border"
+            style={{ borderColor: 'var(--border-subtle)' }}
+          >
             <table className="w-full text-[12.5px]">
               <thead className="sticky top-0" style={{ backgroundColor: 'var(--surface-sunken)' }}>
                 <tr style={{ color: 'var(--text-secondary)' }}>
@@ -176,11 +191,22 @@ export function RestorePanel() {
                   const lost = now > 0 && incoming === 0
 
                   return (
-                    <tr key={table} className="border-t" style={{ borderColor: 'var(--border-subtle)' }}>
-                      <td className="px-3 py-1.5 font-mono text-[11.5px]" style={{ color: 'var(--text-primary)' }} dir="ltr">
+                    <tr
+                      key={table}
+                      className="border-t"
+                      style={{ borderColor: 'var(--border-subtle)' }}
+                    >
+                      <td
+                        className="px-3 py-1.5 font-mono text-[11.5px]"
+                        style={{ color: 'var(--text-primary)' }}
+                        dir="ltr"
+                      >
                         {table}
                       </td>
-                      <td className="px-3 py-1.5 text-center tabular-nums" style={{ color: 'var(--text-tertiary)' }}>
+                      <td
+                        className="px-3 py-1.5 text-center tabular-nums"
+                        style={{ color: 'var(--text-tertiary)' }}
+                      >
                         {now}
                       </td>
                       <td
@@ -227,7 +253,11 @@ export function RestorePanel() {
                 className="flex items-center gap-2 rounded-xl px-5 py-2.5 text-[13px] font-semibold text-white transition-opacity disabled:opacity-50"
                 style={{ backgroundColor: 'var(--color-danger)' }}
               >
-                {restoring ? <Loader2 size={15} className="animate-spin" /> : <ShieldCheck size={15} />}
+                {restoring ? (
+                  <Loader2 size={15} className="animate-spin" />
+                ) : (
+                  <ShieldCheck size={15} />
+                )}
                 {restoring ? 'در حال بازیابی…' : 'بازیابی کن'}
               </button>
             </div>

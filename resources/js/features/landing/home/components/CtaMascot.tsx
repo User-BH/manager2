@@ -69,14 +69,20 @@ export function CtaMascot() {
         />
         {/* پیراهنِ سفید و کراوات */}
         <path d="M92 104 L100 132 L108 104 Z" fill="#f4f6fb" />
-        <path d="M97 105 L100 110 L103 105 L102 128 L100 132 L98 128 Z" fill="var(--color-brand-500)" />
+        <path
+          d="M97 105 L100 110 L103 105 L102 128 L100 132 L98 128 Z"
+          fill="var(--color-brand-500)"
+        />
         {/* یقه‌ی کت */}
         <path d="M92 104 L100 113 L88 118 Z" fill="#31405e" />
         <path d="M108 104 L100 113 L112 118 Z" fill="#31405e" />
 
         {/* گردن */}
         <rect x="93.5" y="92" width="13" height="15" rx="5" fill="url(#cta-skin)" />
-        <path d="M93.5 96 Q100 101 106.5 96 L106.5 100 Q100 104 93.5 100 Z" fill="rgba(0,0,0,0.08)" />
+        <path
+          d="M93.5 96 Q100 101 106.5 96 L106.5 100 Q100 104 93.5 100 Z"
+          fill="rgba(0,0,0,0.08)"
+        />
 
         {/* سر */}
         <g>
@@ -91,8 +97,20 @@ export function CtaMascot() {
           />
 
           {/* ابروها */}
-          <path d="M85 66 Q90 63 95 66" stroke="#2c2018" strokeWidth="2.2" strokeLinecap="round" fill="none" />
-          <path d="M105 66 Q110 63 115 66" stroke="#2c2018" strokeWidth="2.2" strokeLinecap="round" fill="none" />
+          <path
+            d="M85 66 Q90 63 95 66"
+            stroke="#2c2018"
+            strokeWidth="2.2"
+            strokeLinecap="round"
+            fill="none"
+          />
+          <path
+            d="M105 66 Q110 63 115 66"
+            stroke="#2c2018"
+            strokeWidth="2.2"
+            strokeLinecap="round"
+            fill="none"
+          />
 
           {/* چشم‌ها با پلک‌زدن */}
           <motion.g
@@ -107,8 +125,20 @@ export function CtaMascot() {
           </motion.g>
 
           {/* بینی و لبخند */}
-          <path d="M99 78 Q97 82 100 83" stroke="rgba(0,0,0,0.18)" strokeWidth="1.6" strokeLinecap="round" fill="none" />
-          <path d="M90 86 Q100 94 110 86" stroke="#7a3b2e" strokeWidth="2.8" strokeLinecap="round" fill="none" />
+          <path
+            d="M99 78 Q97 82 100 83"
+            stroke="rgba(0,0,0,0.18)"
+            strokeWidth="1.6"
+            strokeLinecap="round"
+            fill="none"
+          />
+          <path
+            d="M90 86 Q100 94 110 86"
+            stroke="#7a3b2e"
+            strokeWidth="2.8"
+            strokeLinecap="round"
+            fill="none"
+          />
         </g>
 
         {/*
@@ -122,11 +152,39 @@ export function CtaMascot() {
           transition={{ duration: 1.9, repeat: Infinity, ease: 'easeInOut' }}
         >
           {/* آستین‌ها */}
-          <path d="M74 120 Q58 82 77 36" stroke="url(#cta-suit)" strokeWidth="15" strokeLinecap="round" fill="none" />
-          <path d="M126 120 Q142 82 123 36" stroke="url(#cta-suit)" strokeWidth="15" strokeLinecap="round" fill="none" />
+          <path
+            d="M74 120 Q58 82 77 36"
+            stroke="url(#cta-suit)"
+            strokeWidth="15"
+            strokeLinecap="round"
+            fill="none"
+          />
+          <path
+            d="M126 120 Q142 82 123 36"
+            stroke="url(#cta-suit)"
+            strokeWidth="15"
+            strokeLinecap="round"
+            fill="none"
+          />
           {/* مچِ سفیدِ پیراهن */}
-          <rect x="69.5" y="30" width="16" height="7" rx="3.5" fill="#f4f6fb" transform="rotate(-6 77 33)" />
-          <rect x="114.5" y="30" width="16" height="7" rx="3.5" fill="#f4f6fb" transform="rotate(6 123 33)" />
+          <rect
+            x="69.5"
+            y="30"
+            width="16"
+            height="7"
+            rx="3.5"
+            fill="#f4f6fb"
+            transform="rotate(-6 77 33)"
+          />
+          <rect
+            x="114.5"
+            y="30"
+            width="16"
+            height="7"
+            rx="3.5"
+            fill="#f4f6fb"
+            transform="rotate(6 123 33)"
+          />
 
           <Hand tx={78} />
           <Hand tx={122} flip />
@@ -149,14 +207,30 @@ function Hand({ tx, flip = false }: { tx: number; flip?: boolean }) {
       {/* انگشت‌ها؛ دو تای میانی بلندترند */}
       {[-7.5, -2.5, 2.5, 7.5].map((fx, i) => {
         const len = i === 1 || i === 2 ? 16 : 13
-        return <rect key={fx} x={fx - 2.1} y={-len} width="4.2" height={len + 7} rx="2.1" fill="url(#cta-skin)" />
+        return (
+          <rect
+            key={fx}
+            x={fx - 2.1}
+            y={-len}
+            width="4.2"
+            height={len + 7}
+            rx="2.1"
+            fill="url(#cta-skin)"
+          />
+        )
       })}
       {/* کفِ دست */}
       <rect x="-10.5" y="0" width="21" height="15" rx="6.5" fill="url(#cta-skin)" />
       {/* شست، سمتِ داخل */}
       <path d="M10 3 q9 -1 8.5 7 q-0.5 5.5 -8.5 3.5 z" fill="url(#cta-skin)" />
       {/* خطِ بندِ انگشتان، برای حسِ خم‌شدن روی لبه */}
-      <path d="M-9 -1 Q0 -4 9 -1" stroke="rgba(0,0,0,0.1)" strokeWidth="1.8" strokeLinecap="round" fill="none" />
+      <path
+        d="M-9 -1 Q0 -4 9 -1"
+        stroke="rgba(0,0,0,0.1)"
+        strokeWidth="1.8"
+        strokeLinecap="round"
+        fill="none"
+      />
     </g>
   )
 }

@@ -50,10 +50,27 @@ const CONSTANTS: Record<string, number> = {
 }
 
 const FUNCTION_NAMES = [
-  'sin', 'cos', 'tan', 'asin', 'acos', 'atan',
-  'sinh', 'cosh', 'tanh',
-  'ln', 'log', 'log2', 'sqrt', 'cbrt', 'abs', 'exp',
-  'round', 'floor', 'ceil', 'inv', 'sqr',
+  'sin',
+  'cos',
+  'tan',
+  'asin',
+  'acos',
+  'atan',
+  'sinh',
+  'cosh',
+  'tanh',
+  'ln',
+  'log',
+  'log2',
+  'sqrt',
+  'cbrt',
+  'abs',
+  'exp',
+  'round',
+  'floor',
+  'ceil',
+  'inv',
+  'sqr',
 ] as const
 
 type FunctionName = (typeof FUNCTION_NAMES)[number]
@@ -297,19 +314,26 @@ function applyFunction(name: FunctionName, value: number, mode: AngleMode): numb
   const fromRadians = (v: number) => (mode === 'deg' ? (v * 180) / Math.PI : v)
 
   switch (name) {
-    case 'sin': return Math.sin(toRadians(value))
-    case 'cos': return Math.cos(toRadians(value))
-    case 'tan': return Math.tan(toRadians(value))
+    case 'sin':
+      return Math.sin(toRadians(value))
+    case 'cos':
+      return Math.cos(toRadians(value))
+    case 'tan':
+      return Math.tan(toRadians(value))
     case 'asin':
       if (value < -1 || value > 1) throw new CalculationError('ورودی asin باید بین ۱- و ۱ باشد.')
       return fromRadians(Math.asin(value))
     case 'acos':
       if (value < -1 || value > 1) throw new CalculationError('ورودی acos باید بین ۱- و ۱ باشد.')
       return fromRadians(Math.acos(value))
-    case 'atan': return fromRadians(Math.atan(value))
-    case 'sinh': return Math.sinh(value)
-    case 'cosh': return Math.cosh(value)
-    case 'tanh': return Math.tanh(value)
+    case 'atan':
+      return fromRadians(Math.atan(value))
+    case 'sinh':
+      return Math.sinh(value)
+    case 'cosh':
+      return Math.cosh(value)
+    case 'tanh':
+      return Math.tanh(value)
     case 'ln':
       if (value <= 0) throw new CalculationError('لگاریتم فقط برای عدد مثبت تعریف شده است.')
       return Math.log(value)
@@ -322,16 +346,23 @@ function applyFunction(name: FunctionName, value: number, mode: AngleMode): numb
     case 'sqrt':
       if (value < 0) throw new CalculationError('جذر عدد منفی تعریف نشده است.')
       return Math.sqrt(value)
-    case 'cbrt': return Math.cbrt(value)
-    case 'abs': return Math.abs(value)
-    case 'exp': return Math.exp(value)
-    case 'round': return Math.round(value)
-    case 'floor': return Math.floor(value)
-    case 'ceil': return Math.ceil(value)
+    case 'cbrt':
+      return Math.cbrt(value)
+    case 'abs':
+      return Math.abs(value)
+    case 'exp':
+      return Math.exp(value)
+    case 'round':
+      return Math.round(value)
+    case 'floor':
+      return Math.floor(value)
+    case 'ceil':
+      return Math.ceil(value)
     case 'inv':
       if (value === 0) throw new CalculationError('تقسیم بر صفر ممکن نیست.')
       return 1 / value
-    case 'sqr': return value * value
+    case 'sqr':
+      return value * value
   }
 }
 
@@ -375,9 +406,15 @@ function evaluateRpn(rpn: Token[], mode: AngleMode): number {
     if (right === undefined || left === undefined) throw new CalculationError('عبارت ناقص است.')
 
     switch (token.value) {
-      case '+': stack.push(left + right); break
-      case '-': stack.push(left - right); break
-      case '*': stack.push(left * right); break
+      case '+':
+        stack.push(left + right)
+        break
+      case '-':
+        stack.push(left - right)
+        break
+      case '*':
+        stack.push(left * right)
+        break
       case '/':
         if (right === 0) throw new CalculationError('تقسیم بر صفر ممکن نیست.')
         stack.push(left / right)
@@ -386,7 +423,9 @@ function evaluateRpn(rpn: Token[], mode: AngleMode): number {
         if (right === 0) throw new CalculationError('باقیمانده بر صفر تعریف نشده است.')
         stack.push(left % right)
         break
-      case '^': stack.push(left ** right); break
+      case '^':
+        stack.push(left ** right)
+        break
     }
   }
 

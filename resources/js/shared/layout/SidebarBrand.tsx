@@ -9,7 +9,10 @@ export function SidebarBrand({ collapsed }: { collapsed: boolean }) {
 
   return (
     <div
-      className={cn('flex h-16 items-center gap-2.5 border-b px-4', collapsed && 'justify-center px-0')}
+      className={cn(
+        'flex h-16 items-center gap-2.5 border-b px-4',
+        collapsed && 'justify-center px-0',
+      )}
       style={{ borderColor: 'var(--border-subtle)' }}
     >
       <LogoMark size={34} className="shrink-0" />

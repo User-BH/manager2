@@ -115,7 +115,12 @@ export function SlidePuzzle({
       {/* صحنه */}
       <div
         className="relative overflow-hidden rounded-xl border"
-        style={{ width: WIDTH, height: HEIGHT, maxWidth: '100%', borderColor: 'var(--border-subtle)' }}
+        style={{
+          width: WIDTH,
+          height: HEIGHT,
+          maxWidth: '100%',
+          borderColor: 'var(--border-subtle)',
+        }}
       >
         {/*
           پس‌زمینه عمداً کم‌رنگ است و تکه با شفافیت کامل؛ این تفاوت باعث
@@ -170,7 +175,9 @@ export function SlidePuzzle({
           {solved && (
             <span
               className="flex h-full w-full items-center justify-center rounded-md"
-              style={{ backgroundColor: 'color-mix(in srgb, var(--color-success) 55%, transparent)' }}
+              style={{
+                backgroundColor: 'color-mix(in srgb, var(--color-success) 55%, transparent)',
+              }}
             >
               <Check size={18} className="text-white" />
             </span>
@@ -182,7 +189,12 @@ export function SlidePuzzle({
       <div
         ref={trackRef}
         className="relative h-7 rounded-xl border"
-        style={{ width: WIDTH, maxWidth: '100%', backgroundColor: 'var(--surface-sunken)', borderColor: 'var(--border-subtle)' }}
+        style={{
+          width: WIDTH,
+          maxWidth: '100%',
+          backgroundColor: 'var(--surface-sunken)',
+          borderColor: 'var(--border-subtle)',
+        }}
       >
         <div
           className="absolute inset-y-0 right-0 rounded-xl"

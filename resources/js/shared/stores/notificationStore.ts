@@ -47,7 +47,9 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
     }))
 
     try {
-      const response = await api<{ unreadCount: number }>(`/notifications/${id}/read`, { method: 'POST' })
+      const response = await api<{ unreadCount: number }>(`/notifications/${id}/read`, {
+        method: 'POST',
+      })
       set({ unreadCount: response.unreadCount })
     } catch {
       void get().refresh()
@@ -61,7 +63,9 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
     }))
 
     try {
-      const response = await api<{ unreadCount: number }>('/notifications/read-all', { method: 'POST' })
+      const response = await api<{ unreadCount: number }>('/notifications/read-all', {
+        method: 'POST',
+      })
       set({ unreadCount: response.unreadCount })
     } catch {
       void get().refresh()

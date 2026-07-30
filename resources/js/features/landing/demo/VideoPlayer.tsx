@@ -85,7 +85,8 @@ export function VideoPlayer({
         togglePlay()
       }
       if (event.key === 'ArrowLeft') video.currentTime = Math.max(0, video.currentTime - 5)
-      if (event.key === 'ArrowRight') video.currentTime = Math.min(video.duration, video.currentTime + 5)
+      if (event.key === 'ArrowRight')
+        video.currentTime = Math.min(video.duration, video.currentTime + 5)
       if (event.key === 'm') setMuted((prev) => !prev)
     }
 
@@ -185,9 +186,15 @@ export function VideoPlayer({
           >
             <span
               className="flex h-20 w-20 items-center justify-center rounded-full text-white shadow-2xl backdrop-blur-sm transition-transform duration-200 hover:scale-110"
-              style={{ backgroundColor: 'color-mix(in srgb, var(--color-brand-500) 88%, transparent)' }}
+              style={{
+                backgroundColor: 'color-mix(in srgb, var(--color-brand-500) 88%, transparent)',
+              }}
             >
-              {ended ? <RotateCcw size={30} /> : <Play size={32} className="ml-[-3px]" fill="currentColor" />}
+              {ended ? (
+                <RotateCcw size={30} />
+              ) : (
+                <Play size={32} className="ml-[-3px]" fill="currentColor" />
+              )}
             </span>
 
             {/* حلقه‌ی تپنده دور دکمه */}
@@ -205,7 +212,8 @@ export function VideoPlayer({
       <div
         className="absolute inset-x-0 bottom-0 z-20 translate-y-full p-3 transition-transform duration-300 group-hover:translate-y-0 sm:p-4"
         style={{
-          background: 'linear-gradient(to top, rgba(5,16,12,0.92), rgba(5,16,12,0.55) 60%, transparent)',
+          background:
+            'linear-gradient(to top, rgba(5,16,12,0.92), rgba(5,16,12,0.55) 60%, transparent)',
           transform: playing ? undefined : 'translateY(0)',
         }}
         dir="ltr"
@@ -239,11 +247,23 @@ export function VideoPlayer({
         </div>
 
         <div className="flex items-center gap-3">
-          <button onClick={togglePlay} aria-label={playing ? 'مکث' : 'پخش'} className="text-white transition-transform hover:scale-110">
-            {playing ? <Pause size={19} fill="currentColor" /> : <Play size={19} fill="currentColor" />}
+          <button
+            onClick={togglePlay}
+            aria-label={playing ? 'مکث' : 'پخش'}
+            className="text-white transition-transform hover:scale-110"
+          >
+            {playing ? (
+              <Pause size={19} fill="currentColor" />
+            ) : (
+              <Play size={19} fill="currentColor" />
+            )}
           </button>
 
-          <button onClick={() => setMuted((prev) => !prev)} aria-label={muted ? 'صدادار' : 'بی‌صدا'} className="text-white transition-transform hover:scale-110">
+          <button
+            onClick={() => setMuted((prev) => !prev)}
+            aria-label={muted ? 'صدادار' : 'بی‌صدا'}
+            className="text-white transition-transform hover:scale-110"
+          >
             {muted ? <VolumeX size={19} /> : <Volume2 size={19} />}
           </button>
 

@@ -99,7 +99,10 @@ export function AdBannerSection() {
                 }}
               />
 
-              <div className="absolute inset-0 flex flex-col items-start justify-center gap-2 px-6 text-right sm:px-10" dir="rtl">
+              <div
+                className="absolute inset-0 flex flex-col items-start justify-center gap-2 px-6 text-right sm:px-10"
+                dir="rtl"
+              >
                 {/* پس‌زمینه‌ی مجزا و مات پشت بلوک متن - مستقل از رنگ خود تصویر همیشه خوانا می‌ماند */}
                 <div
                   className="max-w-md rounded-2xl px-4 py-3.5 backdrop-blur-md sm:px-5 sm:py-4"
@@ -112,7 +115,9 @@ export function AdBannerSection() {
                     {ad.title}
                   </h3>
                   {ad.subtitle && (
-                    <p className="mt-1 text-xs leading-6 text-white/90 sm:text-[13px]">{ad.subtitle}</p>
+                    <p className="mt-1 text-xs leading-6 text-white/90 sm:text-[13px]">
+                      {ad.subtitle}
+                    </p>
                   )}
                   <span className="mt-2 inline-flex items-center gap-1.5 text-xs font-semibold text-white">
                     مشاهده پیشنهاد

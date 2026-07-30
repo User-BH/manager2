@@ -17,7 +17,15 @@ export function LinkedinIcon({ size = 18, className }: SocialIconProps) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" className={className}>
       <rect x="3" y="3" width="18" height="18" rx="3" stroke="currentColor" strokeWidth="1.8" />
-      <line x1="7.5" y1="10" x2="7.5" y2="16.5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+      <line
+        x1="7.5"
+        y1="10"
+        x2="7.5"
+        y2="16.5"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        strokeLinecap="round"
+      />
       <circle cx="7.5" cy="7" r="0.6" fill="currentColor" stroke="currentColor" strokeWidth="1.2" />
       <path
         d="M11.5 16.5V10M11.5 12.5C11.5 11 12.5 10 14 10C15.5 10 16.5 11 16.5 12.5V16.5"
@@ -99,8 +107,18 @@ export function RubikaIcon({ size = 18, className }: SocialIconProps) {
         strokeWidth="1.4"
         strokeLinejoin="round"
       />
-      <path d="M8.6 10.1V13.9L12 15.8V12" stroke="currentColor" strokeWidth="1.4" strokeLinejoin="round" />
-      <path d="M15.4 10.1V13.9L12 15.8" stroke="currentColor" strokeWidth="1.4" strokeLinejoin="round" />
+      <path
+        d="M8.6 10.1V13.9L12 15.8V12"
+        stroke="currentColor"
+        strokeWidth="1.4"
+        strokeLinejoin="round"
+      />
+      <path
+        d="M15.4 10.1V13.9L12 15.8"
+        stroke="currentColor"
+        strokeWidth="1.4"
+        strokeLinejoin="round"
+      />
     </svg>
   )
 }

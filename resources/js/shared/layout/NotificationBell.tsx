@@ -158,16 +158,18 @@ export function NotificationBell() {
                       <span
                         className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full"
                         style={{
-                          backgroundColor: item.isRead
-                            ? 'transparent'
-                            : 'var(--color-accent-500)',
+                          backgroundColor: item.isRead ? 'transparent' : 'var(--color-accent-500)',
                         }}
                       />
 
                       <span className="min-w-0 flex-1">
                         <span className="flex items-center gap-1">
                           {item.isPinned && (
-                            <Pin size={11} className="shrink-0" style={{ color: 'var(--color-accent-500)' }} />
+                            <Pin
+                              size={11}
+                              className="shrink-0"
+                              style={{ color: 'var(--color-accent-500)' }}
+                            />
                           )}
                           <span
                             className="truncate text-[12.5px]"
@@ -188,7 +190,10 @@ export function NotificationBell() {
                         </span>
 
                         {item.publishedAt && (
-                          <span className="mt-1 block text-[10px]" style={{ color: 'var(--text-tertiary)' }}>
+                          <span
+                            className="mt-1 block text-[10px]"
+                            style={{ color: 'var(--text-tertiary)' }}
+                          >
                             {item.publishedAt}
                           </span>
                         )}

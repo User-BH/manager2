@@ -82,8 +82,19 @@ export function ResidentForm({ resident, filters, onSaved, onCancel }: ResidentF
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <TextField label="نام و نام خانوادگی" error={errors.name?.message} {...register('name')} />
-        <TextField label="شماره موبایل" inputMode="numeric" dir="ltr" error={errors.phone?.message} {...register('phone')} />
-        <SelectField label="نقش" options={filters.roleOptions} error={errors.role?.message} {...register('role')} />
+        <TextField
+          label="شماره موبایل"
+          inputMode="numeric"
+          dir="ltr"
+          error={errors.phone?.message}
+          {...register('phone')}
+        />
+        <SelectField
+          label="نقش"
+          options={filters.roleOptions}
+          error={errors.role?.message}
+          {...register('role')}
+        />
         <SelectField
           label="واحد"
           placeholder="بدون واحد"
@@ -91,8 +102,19 @@ export function ResidentForm({ resident, filters, onSaved, onCancel }: ResidentF
           error={errors.unit_id?.message}
           {...register('unit_id')}
         />
-        <TextField label="ایمیل (اختیاری)" type="email" dir="ltr" error={errors.email?.message} {...register('email')} />
-        <TextField label="کد ملی (اختیاری)" dir="ltr" error={errors.national_id?.message} {...register('national_id')} />
+        <TextField
+          label="ایمیل (اختیاری)"
+          type="email"
+          dir="ltr"
+          error={errors.email?.message}
+          {...register('email')}
+        />
+        <TextField
+          label="کد ملی (اختیاری)"
+          dir="ltr"
+          error={errors.national_id?.message}
+          {...register('national_id')}
+        />
       </div>
 
       <TextField

@@ -84,54 +84,51 @@ export function MessengerPage() {
     }
   }, [])
 
-  const load = useCallback(
-    async (incremental: boolean) => {
-      try {
-        const query = incremental && lastIdRef.current ? `?since=${lastIdRef.current}` : ''
-        const data = await api<MessengerResponse>(`/messenger${query}`)
+  const load = useCallback(async (incremental: boolean) => {
+    try {
+      const query = incremental && lastIdRef.current ? `?since=${lastIdRef.current}` : ''
+      const data = await api<MessengerResponse>(`/messenger${query}`)
 
-        setMeta({ canSend: data.canSend, reason: data.reason, isAdmin: Boolean(data.isAdmin) })
-        if (!incremental) setHasOlder(Boolean(data.hasOlder))
+      setMeta({ canSend: data.canSend, reason: data.reason, isAdmin: Boolean(data.isAdmin) })
+      if (!incremental) setHasOlder(Boolean(data.hasOlder))
 
-        if (data.messages.length > 0) {
-          lastIdRef.current = Math.max(...data.messages.map((m) => m.id))
-        }
-
-        setMessages((current) => {
-          const hidden = new Set(data.hiddenIds ?? [])
-          const isAdmin = Boolean(data.isAdmin)
-
-          /*
-           * پیامی که پس از بارگذاری مخفی شده، در واکشی افزایشی برنمی‌گردد
-           * (چون شناسه‌اش قدیمی‌تر از `since` است). پس نسخه‌ی محلی را با
-           * فهرست hiddenIds هماهنگ می‌کنیم، وگرنه متنی که مدیر پنهان کرده
-           * تا وقتی کاربر صفحه را رفرش نکند روی صفحه‌اش می‌ماند.
-           */
-          const sync = (list: ChatMessage[]) =>
-            list.map((m) =>
-              hidden.has(m.id) && !m.isHidden
-                ? { ...m, isHidden: true, body: isAdmin ? m.body : null }
-                : m,
-            )
-
-          if (!incremental) return sync(data.messages)
-
-          // فقط پیام‌هایی که هنوز نداریم اضافه شوند
-          const known = new Set(current.map((m) => m.id))
-          const fresh = data.messages.filter((m) => !known.has(m.id))
-
-          return sync(fresh.length ? [...current, ...fresh] : current)
-        })
-
-        setError(null)
-      } catch (err) {
-        setError(err instanceof ApiError ? err.message : 'ارتباط با سرور برقرار نشد.')
-      } finally {
-        setIsLoading(false)
+      if (data.messages.length > 0) {
+        lastIdRef.current = Math.max(...data.messages.map((m) => m.id))
       }
-    },
-    [],
-  )
+
+      setMessages((current) => {
+        const hidden = new Set(data.hiddenIds ?? [])
+        const isAdmin = Boolean(data.isAdmin)
+
+        /*
+         * پیامی که پس از بارگذاری مخفی شده، در واکشی افزایشی برنمی‌گردد
+         * (چون شناسه‌اش قدیمی‌تر از `since` است). پس نسخه‌ی محلی را با
+         * فهرست hiddenIds هماهنگ می‌کنیم، وگرنه متنی که مدیر پنهان کرده
+         * تا وقتی کاربر صفحه را رفرش نکند روی صفحه‌اش می‌ماند.
+         */
+        const sync = (list: ChatMessage[]) =>
+          list.map((m) =>
+            hidden.has(m.id) && !m.isHidden
+              ? { ...m, isHidden: true, body: isAdmin ? m.body : null }
+              : m,
+          )
+
+        if (!incremental) return sync(data.messages)
+
+        // فقط پیام‌هایی که هنوز نداریم اضافه شوند
+        const known = new Set(current.map((m) => m.id))
+        const fresh = data.messages.filter((m) => !known.has(m.id))
+
+        return sync(fresh.length ? [...current, ...fresh] : current)
+      })
+
+      setError(null)
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : 'ارتباط با سرور برقرار نشد.')
+    } finally {
+      setIsLoading(false)
+    }
+  }, [])
 
   useEffect(() => {
     void load(false).then(() => scrollToBottom(true))
@@ -230,7 +227,9 @@ export function MessengerPage() {
       )
 
       setMessages((current) => current.map((m) => (m.id === updated.id ? updated : m)))
-      toastSuccess(updated.isHidden ? 'پیام برای ساکنین پنهان شد.' : 'پیام دوباره نمایش داده می‌شود.')
+      toastSuccess(
+        updated.isHidden ? 'پیام برای ساکنین پنهان شد.' : 'پیام دوباره نمایش داده می‌شود.',
+      )
     } catch (err) {
       setMessages((current) => current.map((m) => (m.id === previous.id ? previous : m)))
       alertError(err, 'تغییر وضعیت پیام ممکن نشد.')
@@ -238,7 +237,8 @@ export function MessengerPage() {
   }
 
   if (isLoading) return <InlineSpinner />
-  if (error && messages.length === 0) return <ErrorState message={error} onRetry={() => void load(false)} />
+  if (error && messages.length === 0)
+    return <ErrorState message={error} onRetry={() => void load(false)} />
 
   return (
     <div className="flex h-[calc(100vh-8rem)] flex-col gap-4">
@@ -298,7 +298,9 @@ export function MessengerPage() {
                   >
                     <div
                       className="mb-1 flex items-center gap-2 text-[11px]"
-                      style={{ color: message.isMine ? 'rgba(255,255,255,0.75)' : 'var(--text-tertiary)' }}
+                      style={{
+                        color: message.isMine ? 'rgba(255,255,255,0.75)' : 'var(--text-tertiary)',
+                      }}
                     >
                       <span className="font-semibold">{message.authorName}</span>
                       <span>·</span>
@@ -316,7 +318,9 @@ export function MessengerPage() {
 
                     <div
                       className="mt-1.5 flex items-center gap-2 text-[10px]"
-                      style={{ color: message.isMine ? 'rgba(255,255,255,0.7)' : 'var(--text-tertiary)' }}
+                      style={{
+                        color: message.isMine ? 'rgba(255,255,255,0.7)' : 'var(--text-tertiary)',
+                      }}
                     >
                       <span className="tabular-nums">{message.sentAt}</span>
 

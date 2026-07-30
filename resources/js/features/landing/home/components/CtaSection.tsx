@@ -11,7 +11,9 @@ export function CtaSection() {
       <RevealOnScroll>
         <div
           className="relative overflow-hidden rounded-[2rem] px-6 py-14 text-center sm:px-12"
-          style={{ background: 'linear-gradient(135deg, var(--color-brand-600), var(--color-brand-400))' }}
+          style={{
+            background: 'linear-gradient(135deg, var(--color-brand-600), var(--color-brand-400))',
+          }}
         >
           <div className="pointer-events-none absolute -left-10 -top-10 h-56 w-56 rounded-full bg-white/10" />
           <div className="pointer-events-none absolute -bottom-16 -right-16 h-64 w-64 rounded-full bg-white/10" />

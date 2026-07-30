@@ -148,7 +148,11 @@ export function AdFormModal({
   const shownPreview = preview ?? editing?.image ?? null
 
   return (
-    <Modal open={open} title={editing ? 'ویرایش بنر تبلیغاتی' : 'بنر تبلیغاتی تازه'} onClose={onClose}>
+    <Modal
+      open={open}
+      title={editing ? 'ویرایش بنر تبلیغاتی' : 'بنر تبلیغاتی تازه'}
+      onClose={onClose}
+    >
       <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4">
         <TextField
           label="عنوان"

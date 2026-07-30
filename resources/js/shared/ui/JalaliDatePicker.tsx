@@ -9,9 +9,8 @@ import persian_fa from 'react-date-object/locales/persian_fa'
  * `<DatePicker>` با «element type is invalid» می‌ترکد. این خط هر دو حالت را
  * می‌پذیرد: اگر namespace بود default را برمی‌دارد، وگرنه خودش کامپوننت است.
  */
-const DatePicker = (
-  (DatePickerModule as { default?: typeof DatePickerModule }).default ?? DatePickerModule
-) as typeof DatePickerModule
+const DatePicker = ((DatePickerModule as { default?: typeof DatePickerModule }).default ??
+  DatePickerModule) as typeof DatePickerModule
 
 /**
  * انتخابگر تاریخِ شمسی.

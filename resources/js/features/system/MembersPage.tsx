@@ -145,14 +145,20 @@ export function MembersPage() {
               >
                 <div className="min-w-0">
                   <div className="flex items-center gap-2">
-                    <span className="text-[14px] font-bold" style={{ color: 'var(--text-primary)' }}>
+                    <span
+                      className="text-[14px] font-bold"
+                      style={{ color: 'var(--text-primary)' }}
+                    >
                       {member.name || '—'}
                     </span>
                     {member.role === 'super_admin' && (
                       <ShieldCheck size={14} style={{ color: 'var(--color-brand-500)' }} />
                     )}
                   </div>
-                  <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-[12px]" style={{ color: 'var(--text-tertiary)' }}>
+                  <div
+                    className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-[12px]"
+                    style={{ color: 'var(--text-tertiary)' }}
+                  >
                     <span dir="ltr">{member.phone}</span>
                     <span>مجتمع: {member.complex?.name ?? '—'}</span>
                     <span>ثبت‌نام: {member.registeredAt}</span>
@@ -160,7 +166,10 @@ export function MembersPage() {
                 </div>
 
                 <div className="flex items-center gap-2.5">
-                  <label className="flex items-center gap-1.5 text-[12px]" style={{ color: 'var(--text-secondary)' }}>
+                  <label
+                    className="flex items-center gap-1.5 text-[12px]"
+                    style={{ color: 'var(--text-secondary)' }}
+                  >
                     <input
                       type="checkbox"
                       className="h-4 w-4 rounded"
@@ -209,7 +218,11 @@ export function MembersPage() {
                   </button>
 
                   {isPending(member.id) && (
-                    <Loader2 size={15} className="animate-spin" style={{ color: 'var(--color-brand-500)' }} />
+                    <Loader2
+                      size={15}
+                      className="animate-spin"
+                      style={{ color: 'var(--color-brand-500)' }}
+                    />
                   )}
                 </div>
               </div>

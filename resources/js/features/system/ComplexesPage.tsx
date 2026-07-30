@@ -45,9 +45,10 @@ export function ComplexesPage() {
 
   useDocumentTitle('مدیریت مجتمع‌ها')
 
-  const { data, error, isLoading, reload } = useApi<{ data: ComplexRow[]; activeId: number | null }>(
-    '/system/complexes',
-  )
+  const { data, error, isLoading, reload } = useApi<{
+    data: ComplexRow[]
+    activeId: number | null
+  }>('/system/complexes')
 
   async function select(complex: ComplexRow) {
     setSwitching(complex.id)
@@ -97,7 +98,11 @@ export function ComplexesPage() {
               className="flex items-center gap-1.5 rounded-xl border px-4 py-2.5 text-[13px] font-semibold disabled:opacity-60"
               style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)' }}
             >
-              {switching === -1 ? <Loader2 size={15} className="animate-spin" /> : <LogOut size={15} />}
+              {switching === -1 ? (
+                <Loader2 size={15} className="animate-spin" />
+              ) : (
+                <LogOut size={15} />
+              )}
               خروج از مجتمع
             </button>
           )}
@@ -133,7 +138,9 @@ export function ComplexesPage() {
                   transition={{ duration: 0.25, delay: Math.min(index * 0.04, 0.3) }}
                   className="flex flex-wrap items-center justify-between gap-3 rounded-xl border px-4 py-3.5"
                   style={{
-                    borderColor: complex.isActive ? 'var(--color-brand-300)' : 'var(--border-subtle)',
+                    borderColor: complex.isActive
+                      ? 'var(--color-brand-300)'
+                      : 'var(--border-subtle)',
                     backgroundColor: complex.isActive
                       ? 'color-mix(in srgb, var(--color-brand-500) 7%, transparent)'
                       : 'var(--surface-sunken)',
@@ -143,7 +150,8 @@ export function ComplexesPage() {
                     <span
                       className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl"
                       style={{
-                        backgroundColor: 'color-mix(in srgb, var(--color-brand-500) 13%, transparent)',
+                        backgroundColor:
+                          'color-mix(in srgb, var(--color-brand-500) 13%, transparent)',
                         color: 'var(--color-brand-600)',
                       }}
                     >
@@ -151,13 +159,17 @@ export function ComplexesPage() {
                     </span>
 
                     <div>
-                      <p className="flex items-center gap-2 text-sm font-bold" style={{ color: 'var(--text-primary)' }}>
+                      <p
+                        className="flex items-center gap-2 text-sm font-bold"
+                        style={{ color: 'var(--text-primary)' }}
+                      >
                         {complex.name}
                         {complex.isActive && (
                           <span
                             className="flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-medium"
                             style={{
-                              backgroundColor: 'color-mix(in srgb, var(--state-success) 16%, transparent)',
+                              backgroundColor:
+                                'color-mix(in srgb, var(--state-success) 16%, transparent)',
                               color: 'var(--state-success)',
                             }}
                           >
@@ -214,7 +226,14 @@ function ComplexForm({ onSaved, onCancel }: { onSaved: () => void; onCancel: () 
     formState: { errors, isSubmitting },
   } = useForm<ComplexFormValues>({
     resolver: zodResolver(complexSchema),
-    defaultValues: { name: '', address: '', admin_name: '', admin_phone: '', admin_email: '', admin_password: '' },
+    defaultValues: {
+      name: '',
+      address: '',
+      admin_name: '',
+      admin_phone: '',
+      admin_email: '',
+      admin_password: '',
+    },
   })
 
   async function onSubmit(values: ComplexFormValues) {
@@ -262,12 +281,16 @@ function ComplexForm({ onSaved, onCancel }: { onSaved: () => void; onCancel: () 
         className="mt-1 rounded-xl px-3.5 py-2.5 text-[11px] leading-6"
         style={{ backgroundColor: 'var(--surface-sunken)', color: 'var(--text-tertiary)' }}
       >
-        همراه مجتمع، یک حساب «مدیر مجتمع» ساخته می‌شود. ورود به سامانه با شماره موبایل انجام
-        می‌شود، پس شماره الزامی است.
+        همراه مجتمع، یک حساب «مدیر مجتمع» ساخته می‌شود. ورود به سامانه با شماره موبایل انجام می‌شود،
+        پس شماره الزامی است.
       </div>
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-        <TextField label="نام مدیر" error={errors.admin_name?.message} {...register('admin_name')} />
+        <TextField
+          label="نام مدیر"
+          error={errors.admin_name?.message}
+          {...register('admin_name')}
+        />
         <TextField
           label="شماره موبایل مدیر"
           dir="ltr"
@@ -275,8 +298,20 @@ function ComplexForm({ onSaved, onCancel }: { onSaved: () => void; onCancel: () 
           error={errors.admin_phone?.message}
           {...register('admin_phone')}
         />
-        <TextField label="ایمیل مدیر (اختیاری)" type="email" dir="ltr" error={errors.admin_email?.message} {...register('admin_email')} />
-        <TextField label="رمز عبور مدیر" type="password" dir="ltr" error={errors.admin_password?.message} {...register('admin_password')} />
+        <TextField
+          label="ایمیل مدیر (اختیاری)"
+          type="email"
+          dir="ltr"
+          error={errors.admin_email?.message}
+          {...register('admin_email')}
+        />
+        <TextField
+          label="رمز عبور مدیر"
+          type="password"
+          dir="ltr"
+          error={errors.admin_password?.message}
+          {...register('admin_password')}
+        />
       </div>
 
       <div className="mt-2 flex items-center gap-2">

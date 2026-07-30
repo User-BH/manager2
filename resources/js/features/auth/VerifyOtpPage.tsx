@@ -114,7 +114,10 @@ export function VerifyOtpPage() {
         />
 
         {submitting && (
-          <div className="flex items-center justify-center gap-2 text-[13px]" style={{ color: 'var(--text-secondary)' }}>
+          <div
+            className="flex items-center justify-center gap-2 text-[13px]"
+            style={{ color: 'var(--text-secondary)' }}
+          >
             <Loader2 size={15} className="animate-spin" />
             در حال تایید…
           </div>
@@ -137,7 +140,12 @@ export function VerifyOtpPage() {
           {cooldown > 0 ? (
             <span>ارسال مجدد کد تا {cooldown} ثانیه دیگر</span>
           ) : (
-            <button type="button" onClick={resend} className="font-semibold" style={{ color: 'var(--color-brand-600)' }}>
+            <button
+              type="button"
+              onClick={resend}
+              className="font-semibold"
+              style={{ color: 'var(--color-brand-600)' }}
+            >
               ارسال مجدد کد
             </button>
           )}

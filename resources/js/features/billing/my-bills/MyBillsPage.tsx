@@ -78,7 +78,10 @@ export function MyBillsPage() {
 
     if (result === 'success') {
       const tracking = params.get('tracking')
-      void alertSuccess('پرداخت با موفقیت انجام شد.', tracking ? `کد رهگیری: ${tracking}` : undefined)
+      void alertSuccess(
+        'پرداخت با موفقیت انجام شد.',
+        tracking ? `کد رهگیری: ${tracking}` : undefined,
+      )
       reload()
     } else {
       void alertInfo('پرداخت انجام نشد.', 'اگر مبلغی از حساب شما کسر شده، طی ۷۲ ساعت برمی‌گردد.')
@@ -153,11 +156,17 @@ export function MyBillsPage() {
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.3, delay: Math.min(index * 0.04, 0.3) }}
                   className="rounded-2xl border p-5"
-                  style={{ borderColor: 'var(--border-subtle)', backgroundColor: 'var(--surface-base)' }}
+                  style={{
+                    borderColor: 'var(--border-subtle)',
+                    backgroundColor: 'var(--surface-base)',
+                  }}
                 >
                   <div className="flex flex-wrap items-start justify-between gap-3">
                     <div>
-                      <h2 className="text-[15px] font-bold" style={{ color: 'var(--text-primary)' }}>
+                      <h2
+                        className="text-[15px] font-bold"
+                        style={{ color: 'var(--text-primary)' }}
+                      >
                         {bill.periodLabel}
                       </h2>
                       <p className="mt-0.5 text-[11px]" style={{ color: 'var(--text-tertiary)' }}>
@@ -179,9 +188,17 @@ export function MyBillsPage() {
 
                   <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
                     <Figure label="مبلغ کل" value={formatMoney(bill.totalAmount)} />
-                    <Figure label="پرداخت‌شده" value={formatMoney(bill.paidAmount)} tone="var(--state-success)" />
+                    <Figure
+                      label="پرداخت‌شده"
+                      value={formatMoney(bill.paidAmount)}
+                      tone="var(--state-success)"
+                    />
                     {bill.penaltyAmount > 0 && (
-                      <Figure label="جریمه دیرکرد" value={formatMoney(bill.penaltyAmount)} tone="var(--color-danger)" />
+                      <Figure
+                        label="جریمه دیرکرد"
+                        value={formatMoney(bill.penaltyAmount)}
+                        tone="var(--color-danger)"
+                      />
                     )}
                     <Figure
                       label="مانده"
@@ -190,7 +207,10 @@ export function MyBillsPage() {
                     />
                   </div>
 
-                  <div className="mt-4 flex flex-wrap items-center gap-2 border-t pt-3" style={{ borderColor: 'var(--border-subtle)' }}>
+                  <div
+                    className="mt-4 flex flex-wrap items-center gap-2 border-t pt-3"
+                    style={{ borderColor: 'var(--border-subtle)' }}
+                  >
                     <button
                       onClick={() => openDetail(bill)}
                       className="flex items-center gap-1 text-xs font-semibold"
@@ -205,7 +225,10 @@ export function MyBillsPage() {
                     <a
                       href={bill.pdfUrl}
                       className="flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-medium"
-                      style={{ borderColor: 'var(--border-default)', color: 'var(--text-secondary)' }}
+                      style={{
+                        borderColor: 'var(--border-default)',
+                        color: 'var(--text-secondary)',
+                      }}
                     >
                       <FileDown size={13} />
                       فاکتور PDF
@@ -236,7 +259,11 @@ export function MyBillsPage() {
       >
         {loadingDetail && !detail ? (
           <div className="flex justify-center py-10">
-            <Loader2 size={22} className="animate-spin" style={{ color: 'var(--color-brand-500)' }} />
+            <Loader2
+              size={22}
+              className="animate-spin"
+              style={{ color: 'var(--color-brand-500)' }}
+            />
           </div>
         ) : detail ? (
           <div className="flex flex-col gap-5">
@@ -259,12 +286,18 @@ export function MyBillsPage() {
                       <span style={{ color: 'var(--text-secondary)' }}>
                         {row.label}
                         {row.categoryLabel && (
-                          <span className="mr-1.5 text-[10px]" style={{ color: 'var(--text-tertiary)' }}>
+                          <span
+                            className="mr-1.5 text-[10px]"
+                            style={{ color: 'var(--text-tertiary)' }}
+                          >
                             ({row.categoryLabel})
                           </span>
                         )}
                       </span>
-                      <span className="tabular-nums font-semibold" style={{ color: 'var(--text-primary)' }}>
+                      <span
+                        className="tabular-nums font-semibold"
+                        style={{ color: 'var(--text-primary)' }}
+                      >
                         {formatMoney(row.amount)}
                       </span>
                     </li>
@@ -297,7 +330,10 @@ export function MyBillsPage() {
                         <span className="text-[10px]" style={{ color: 'var(--text-tertiary)' }}>
                           {payment.statusLabel}
                         </span>
-                        <span className="tabular-nums font-semibold" style={{ color: 'var(--state-success)' }}>
+                        <span
+                          className="tabular-nums font-semibold"
+                          style={{ color: 'var(--state-success)' }}
+                        >
                           {formatMoney(payment.amount)}
                         </span>
                       </span>
@@ -319,7 +355,10 @@ function Figure({ label, value, tone }: { label: string; value: string; tone?: s
       <p className="text-[11px]" style={{ color: 'var(--text-tertiary)' }}>
         {label}
       </p>
-      <p className="mt-0.5 tabular-nums text-sm font-bold" style={{ color: tone ?? 'var(--text-primary)' }}>
+      <p
+        className="mt-0.5 tabular-nums text-sm font-bold"
+        style={{ color: tone ?? 'var(--text-primary)' }}
+      >
         {value}
       </p>
     </div>

@@ -1,12 +1,4 @@
-import {
-  ShieldCheck,
-  Wallet,
-  Users2,
-  Wrench,
-  Bell,
-  BarChart3,
-  type LucideIcon,
-} from 'lucide-react'
+import { ShieldCheck, Wallet, Users2, Wrench, Bell, BarChart3, type LucideIcon } from 'lucide-react'
 import { featureImages, testimonialAvatars } from '@/shared/constants/images'
 
 export interface Feature {

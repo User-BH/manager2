@@ -7,7 +7,11 @@ import { z } from 'zod'
 export const unitSchema = z.object({
   unit_number: z.string().min(1, 'شماره واحد را وارد کنید').max(20, 'شماره واحد طولانی است'),
   building_id: z.string().optional(),
-  floor: z.coerce.number({ message: 'طبقه را وارد کنید' }).int('طبقه باید عدد صحیح باشد').min(-5).max(200),
+  floor: z.coerce
+    .number({ message: 'طبقه را وارد کنید' })
+    .int('طبقه باید عدد صحیح باشد')
+    .min(-5)
+    .max(200),
   area: z.coerce.number({ message: 'متراژ را وارد کنید' }).min(0, 'متراژ نمی‌تواند منفی باشد'),
   residents_count: z.coerce.number({ message: 'تعداد ساکنین را وارد کنید' }).int().min(0),
   parking_count: z.coerce.number().int().min(0).optional(),

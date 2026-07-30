@@ -139,7 +139,8 @@ export function GalleryLightbox({
               )}
 
               {!lens && (
-                <div className="pointer-events-none absolute bottom-3 right-3 flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-semibold text-white backdrop-blur-sm"
+                <div
+                  className="pointer-events-none absolute bottom-3 right-3 flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-semibold text-white backdrop-blur-sm"
                   style={{ backgroundColor: 'color-mix(in srgb, #05100c 55%, transparent)' }}
                 >
                   <Search size={12} />
@@ -231,7 +232,8 @@ export function GalleryLightbox({
                     key={tag}
                     className="rounded-full px-3 py-1 text-[11.5px] font-semibold"
                     style={{
-                      backgroundColor: 'color-mix(in srgb, var(--color-brand-500) 12%, transparent)',
+                      backgroundColor:
+                        'color-mix(in srgb, var(--color-brand-500) 12%, transparent)',
                       color: 'var(--color-brand-600)',
                     }}
                   >
@@ -249,8 +251,7 @@ export function GalleryLightbox({
                     aria-label={thumb.title}
                     className="h-11 w-9 overflow-hidden rounded-lg border-2 transition-all duration-200 hover:scale-110"
                     style={{
-                      borderColor:
-                        thumbIndex === index ? 'var(--color-brand-500)' : 'transparent',
+                      borderColor: thumbIndex === index ? 'var(--color-brand-500)' : 'transparent',
                       opacity: thumbIndex === index ? 1 : 0.55,
                     }}
                   >

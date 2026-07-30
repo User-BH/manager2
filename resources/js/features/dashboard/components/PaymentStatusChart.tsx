@@ -63,7 +63,10 @@ export function PaymentStatusChart({ counts }: { counts: Record<BillStatus, numb
 
       {/* مجموع در مرکز دونات */}
       <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center pb-8">
-        <span className="text-2xl font-extrabold tabular-nums" style={{ color: 'var(--text-primary)' }}>
+        <span
+          className="text-2xl font-extrabold tabular-nums"
+          style={{ color: 'var(--text-primary)' }}
+        >
           {formatNumber(total)}
         </span>
         <span className="text-[11px]" style={{ color: 'var(--text-tertiary)' }}>

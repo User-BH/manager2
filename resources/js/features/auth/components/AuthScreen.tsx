@@ -48,7 +48,8 @@ export function AuthScreen({
             height: 180 + i * 90,
             left: `${[8, 70, 40][i]}%`,
             top: `${[20, 55, 12][i]}%`,
-            background: 'radial-gradient(circle, color-mix(in srgb, var(--color-brand-500) 12%, transparent), transparent 70%)',
+            background:
+              'radial-gradient(circle, color-mix(in srgb, var(--color-brand-500) 12%, transparent), transparent 70%)',
           }}
           animate={{ y: [0, -18, 0], x: [0, 10, 0] }}
           transition={{ duration: 9 + i * 2, repeat: Infinity, ease: 'easeInOut' }}

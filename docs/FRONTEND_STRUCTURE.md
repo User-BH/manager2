@@ -54,38 +54,38 @@ resources/
 
 ## قاعده‌ی مدیا (پاسخ به «فنی-۳»)
 
-| مقصد | چه چیزی | چرا |
-|------|---------|-----|
-| `resources/images/` (از Vite) | `hero-building`, `feature-*` (۴), `auth-background` | جزء ظاهر برنامه‌اند و کاربر عوضشان نمی‌کند → Vite نامشان را هش می‌کند، پس کشِ همیشگی ممکن می‌شود |
-| `public/images/` (مسیر ثابت) | `gallery-*`, `avatar-*` | محتوایی که کارفرما با جایگزینیِ فایل عوض می‌کند؛ نباید تغییرِ کد لازم داشته باشد |
-| `public/images/` (مسیر ثابت) | `ad-*` | ادمین از پنل آپلود می‌کند و مسیرش در دیتابیس است (کش‌شکنی با `?v=filemtime`) |
-| `public/` (مسیر ثابت) | `logo.webp`, `favicon*`, `icons/*`, `og-cover.png`, `hero-building-night.webp`, `videos/*` | آدرسشان از بیرونِ ری‌اکت خوانده می‌شود (manifest، متاتگ‌های og، و `demo.blade.php`) پس نام ثابت می‌خواهند |
+| مقصد                          | چه چیزی                                                                                    | چرا                                                                                                       |
+| ----------------------------- | ------------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------- |
+| `resources/images/` (از Vite) | `hero-building`, `feature-*` (۴), `auth-background`                                        | جزء ظاهر برنامه‌اند و کاربر عوضشان نمی‌کند → Vite نامشان را هش می‌کند، پس کشِ همیشگی ممکن می‌شود          |
+| `public/images/` (مسیر ثابت)  | `gallery-*`, `avatar-*`                                                                    | محتوایی که کارفرما با جایگزینیِ فایل عوض می‌کند؛ نباید تغییرِ کد لازم داشته باشد                          |
+| `public/images/` (مسیر ثابت)  | `ad-*`                                                                                     | ادمین از پنل آپلود می‌کند و مسیرش در دیتابیس است (کش‌شکنی با `?v=filemtime`)                              |
+| `public/` (مسیر ثابت)         | `logo.webp`, `favicon*`, `icons/*`, `og-cover.png`, `hero-building-night.webp`, `videos/*` | آدرسشان از بیرونِ ری‌اکت خوانده می‌شود (manifest، متاتگ‌های og، و `demo.blade.php`) پس نام ثابت می‌خواهند |
 
 ## نگاشت قدیم → جدید
 
-| قدیم | جدید |
-|------|------|
-| `components/ui` | `shared/ui` |
-| `components/layout` | `shared/layout` |
-| `components/common` | `shared/common` |
-| `hooks` | `shared/hooks` |
-| `lib` | `shared/lib` |
-| `types` | `shared/types` |
-| `config` | `shared/config` |
-| `context/*Context.tsx` | `shared/stores/*Store.ts` |
-| `data/images.ts` | `shared/constants/images.ts` |
-| `data/landingContent.ts` | `features/landing/content/landingContent.ts` |
-| `entries/` | `app/entries/` |
-| `main.tsx` | `app/main.tsx` |
-| `App.tsx` | **حذف شد** (فقط `<AppRouter/>` را برمی‌گرداند — لایه‌ی بی‌اثر) |
-| `pages/auth` | `features/auth` |
-| `pages/home` \| `demo` \| `support` | `features/landing/{home,demo,support}` |
-| `pages/bills` \| `my-bills` \| `charge-rules` \| `discounts` | `features/billing/*` |
-| `pages/pay` \| `payments` | `features/payments/{pay,review}` |
-| `pages/finance` \| `good-payers` | `features/finance` \| `features/finance/good-payers` |
-| `pages/messenger` \| `announcements` | `features/messaging/*` |
-| `pages/calculator` \| `search` | `features/tools/*` |
-| بقیه‌ی `pages/x` | `features/x` |
+| قدیم                                                         | جدید                                                           |
+| ------------------------------------------------------------ | -------------------------------------------------------------- |
+| `components/ui`                                              | `shared/ui`                                                    |
+| `components/layout`                                          | `shared/layout`                                                |
+| `components/common`                                          | `shared/common`                                                |
+| `hooks`                                                      | `shared/hooks`                                                 |
+| `lib`                                                        | `shared/lib`                                                   |
+| `types`                                                      | `shared/types`                                                 |
+| `config`                                                     | `shared/config`                                                |
+| `context/*Context.tsx`                                       | `shared/stores/*Store.ts`                                      |
+| `data/images.ts`                                             | `shared/constants/images.ts`                                   |
+| `data/landingContent.ts`                                     | `features/landing/content/landingContent.ts`                   |
+| `entries/`                                                   | `app/entries/`                                                 |
+| `main.tsx`                                                   | `app/main.tsx`                                                 |
+| `App.tsx`                                                    | **حذف شد** (فقط `<AppRouter/>` را برمی‌گرداند — لایه‌ی بی‌اثر) |
+| `pages/auth`                                                 | `features/auth`                                                |
+| `pages/home` \| `demo` \| `support`                          | `features/landing/{home,demo,support}`                         |
+| `pages/bills` \| `my-bills` \| `charge-rules` \| `discounts` | `features/billing/*`                                           |
+| `pages/pay` \| `payments`                                    | `features/payments/{pay,review}`                               |
+| `pages/finance` \| `good-payers`                             | `features/finance` \| `features/finance/good-payers`           |
+| `pages/messenger` \| `announcements`                         | `features/messaging/*`                                         |
+| `pages/calculator` \| `search`                               | `features/tools/*`                                             |
+| بقیه‌ی `pages/x`                                             | `features/x`                                                   |
 
 ## نام‌گذاری store‌ها
 

@@ -15,7 +15,11 @@ const settingsSchema = z.object({
   address: z.string().max(255, 'آدرس طولانی است').optional(),
   phone: z.string().max(20, 'شماره طولانی است').optional(),
   currency: z.string().min(1),
-  charge_due_day: z.coerce.number({ message: 'روز سررسید را وارد کنید' }).int().min(1, 'بین ۱ تا ۳۱').max(31, 'بین ۱ تا ۳۱'),
+  charge_due_day: z.coerce
+    .number({ message: 'روز سررسید را وارد کنید' })
+    .int()
+    .min(1, 'بین ۱ تا ۳۱')
+    .max(31, 'بین ۱ تا ۳۱'),
   payment_gateway: z.string().min(1),
   gw_terminal_id: z.string().max(50).optional(),
   gw_username: z.string().max(100).optional(),
@@ -24,8 +28,14 @@ const settingsSchema = z.object({
   good_payer_enabled: z.boolean().optional(),
   penalty_enabled: z.boolean().optional(),
   penalty_type: z.string().min(1),
-  penalty_value: z.coerce.number({ message: 'مقدار جریمه را وارد کنید' }).min(0, 'نمی‌تواند منفی باشد'),
-  penalty_grace_days: z.coerce.number({ message: 'روزهای مهلت را وارد کنید' }).int().min(0).max(60, 'حداکثر ۶۰ روز'),
+  penalty_value: z.coerce
+    .number({ message: 'مقدار جریمه را وارد کنید' })
+    .min(0, 'نمی‌تواند منفی باشد'),
+  penalty_grace_days: z.coerce
+    .number({ message: 'روزهای مهلت را وارد کنید' })
+    .int()
+    .min(0)
+    .max(60, 'حداکثر ۶۰ روز'),
 })
 
 type SettingsInput = z.input<typeof settingsSchema>
@@ -155,7 +165,11 @@ export function ComplexSettingsPage() {
         </div>
       </Card>
 
-      <Card title="درگاه پرداخت" subtitle="اعتبارنامه فقط روی سرور نگهداری می‌شود و در پاسخ API برنمی‌گردد" delay={0.05}>
+      <Card
+        title="درگاه پرداخت"
+        subtitle="اعتبارنامه فقط روی سرور نگهداری می‌شود و در پاسخ API برنمی‌گردد"
+        delay={0.05}
+      >
         <GatewayNotice allowed={data.sandboxAllowed} active={data.sandboxActive} />
         <PlanNotice blocked={data.gatewayBlockedByPlan} />
 
@@ -166,8 +180,18 @@ export function ComplexSettingsPage() {
             error={errors.payment_gateway?.message}
             {...register('payment_gateway')}
           />
-          <TextField label="شناسه ترمینال" dir="ltr" error={errors.gw_terminal_id?.message} {...register('gw_terminal_id')} />
-          <TextField label="نام کاربری درگاه" dir="ltr" error={errors.gw_username?.message} {...register('gw_username')} />
+          <TextField
+            label="شناسه ترمینال"
+            dir="ltr"
+            error={errors.gw_terminal_id?.message}
+            {...register('gw_terminal_id')}
+          />
+          <TextField
+            label="نام کاربری درگاه"
+            dir="ltr"
+            error={errors.gw_username?.message}
+            {...register('gw_username')}
+          />
           <TextField
             label={data.settings.gw_password_set ? 'رمز درگاه (برای تغییر پر کنید)' : 'رمز درگاه'}
             type="password"
@@ -249,13 +273,17 @@ function GatewayNotice({ allowed, active }: { allowed: boolean; active: boolean 
         color: 'var(--text-primary)',
       }}
     >
-      <AlertTriangle size={16} className="mt-0.5 shrink-0" style={{ color: blocked ? 'var(--color-danger)' : 'var(--color-warning)' }} />
+      <AlertTriangle
+        size={16}
+        className="mt-0.5 shrink-0"
+        style={{ color: blocked ? 'var(--color-danger)' : 'var(--color-warning)' }}
+      />
       <span>
         {blocked ? (
           <>
-            این مجتمع روی <b>درگاه آزمایشی</b> تنظیم است و روی سرور واقعی غیرفعال شده؛ پرداخت
-            آنلاین برای ساکنین نمایش داده نمی‌شود و فقط «واریز و آپلود رسید» کار می‌کند. یک درگاه
-            بانکی واقعی انتخاب کنید.
+            این مجتمع روی <b>درگاه آزمایشی</b> تنظیم است و روی سرور واقعی غیرفعال شده؛ پرداخت آنلاین
+            برای ساکنین نمایش داده نمی‌شود و فقط «واریز و آپلود رسید» کار می‌کند. یک درگاه بانکی
+            واقعی انتخاب کنید.
           </>
         ) : (
           <>
@@ -286,7 +314,11 @@ function PlanNotice({ blocked }: { blocked: boolean }) {
         color: 'var(--text-primary)',
       }}
     >
-      <AlertTriangle size={16} className="mt-0.5 shrink-0" style={{ color: 'var(--color-warning)' }} />
+      <AlertTriangle
+        size={16}
+        className="mt-0.5 shrink-0"
+        style={{ color: 'var(--color-warning)' }}
+      />
       <span>
         اشتراک <b>پرو</b> این مجتمع منقضی شده است، بنابراین درگاه بانکی غیرفعال شده و ساکنین فقط
         «واریز و آپلود رسید» را می‌بینند. اعتبارنامهٔ درگاه دست‌نخورده باقی مانده و با تمدید اشتراک

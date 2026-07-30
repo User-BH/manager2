@@ -51,10 +51,7 @@ export const nameField = z
   .regex(NAME_PATTERN, 'نام فقط می‌تواند شامل حروف باشد.')
 
 /** ایمیل اختیاری. */
-export const optionalEmail = z.union([
-  z.literal(''),
-  z.string().trim().email('ایمیل معتبر نیست.'),
-])
+export const optionalEmail = z.union([z.literal(''), z.string().trim().email('ایمیل معتبر نیست.')])
 
 /** کد ملی اختیاری با بررسی رقم کنترلی. */
 export const optionalNationalId = z

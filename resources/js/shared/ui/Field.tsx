@@ -1,4 +1,9 @@
-import { forwardRef, type InputHTMLAttributes, type ReactNode, type SelectHTMLAttributes } from 'react'
+import {
+  forwardRef,
+  type InputHTMLAttributes,
+  type ReactNode,
+  type SelectHTMLAttributes,
+} from 'react'
 
 const baseInput =
   'w-full rounded-xl border py-2.5 px-3 text-[13.5px] outline-none transition-all duration-200 focus:ring-2'
@@ -12,7 +17,15 @@ function fieldStyle(hasError: boolean) {
   }
 }
 
-function Wrapper({ label, error, children }: { label: string; error?: string; children: ReactNode }) {
+function Wrapper({
+  label,
+  error,
+  children,
+}: {
+  label: string
+  error?: string
+  children: ReactNode
+}) {
   return (
     <div className="flex flex-col gap-1.5">
       <label className="text-[13px] font-medium" style={{ color: 'var(--text-secondary)' }}>
@@ -70,10 +83,15 @@ interface CheckFieldProps extends InputHTMLAttributes<HTMLInputElement> {
   label: string
 }
 
-export const CheckField = forwardRef<HTMLInputElement, CheckFieldProps>(({ label, ...props }, ref) => (
-  <label className="flex items-center gap-2 text-[13px]" style={{ color: 'var(--text-secondary)' }}>
-    <input ref={ref} type="checkbox" className="h-4 w-4 rounded" {...props} />
-    {label}
-  </label>
-))
+export const CheckField = forwardRef<HTMLInputElement, CheckFieldProps>(
+  ({ label, ...props }, ref) => (
+    <label
+      className="flex items-center gap-2 text-[13px]"
+      style={{ color: 'var(--text-secondary)' }}
+    >
+      <input ref={ref} type="checkbox" className="h-4 w-4 rounded" {...props} />
+      {label}
+    </label>
+  ),
+)
 CheckField.displayName = 'CheckField'

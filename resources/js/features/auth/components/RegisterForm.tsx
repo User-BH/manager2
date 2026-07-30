@@ -3,12 +3,26 @@ import { Link } from 'react-router-dom'
 import { useForm, useWatch } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { motion } from 'framer-motion'
-import { AlertCircle, ArrowRight, Loader2, Lock, Phone, ShieldCheck, User, UserPlus } from 'lucide-react'
+import {
+  AlertCircle,
+  ArrowRight,
+  Loader2,
+  Lock,
+  Phone,
+  ShieldCheck,
+  User,
+  UserPlus,
+} from 'lucide-react'
 import { RestrictedField } from './RestrictedField'
 import { PasswordStrength } from './PasswordStrength'
 import { OtpBoxes } from './OtpBoxes'
 import { registerSchema, type RegisterFormValues } from '../schemas/registerSchema'
-import { filterAsciiPassword, filterHints, filterMobile, filterPersianLetters } from '@/shared/lib/inputFilters'
+import {
+  filterAsciiPassword,
+  filterHints,
+  filterMobile,
+  filterPersianLetters,
+} from '@/shared/lib/inputFilters'
 import { toastTopSuccess } from '@/shared/lib/alert'
 import { api, ApiError } from '@/shared/lib/api'
 
@@ -50,17 +64,20 @@ export function RegisterForm({ onRegistered }: { onRegistered?: () => void }) {
     setFormError(null)
 
     try {
-      const data = await api<{ otpRequired?: boolean; phone?: string; dev_code?: string | null }>('/register', {
-        method: 'POST',
-        body: {
-          name: values.fullName,
-          phone: values.phone,
-          password: values.password,
-          password_confirmation: values.confirmPassword,
-          // پذیرش قوانین سمت سرور هم ثبت می‌شود، نه فقط تیکِ مرورگر
-          accept_terms: values.acceptTerms,
+      const data = await api<{ otpRequired?: boolean; phone?: string; dev_code?: string | null }>(
+        '/register',
+        {
+          method: 'POST',
+          body: {
+            name: values.fullName,
+            phone: values.phone,
+            password: values.password,
+            password_confirmation: values.confirmPassword,
+            // پذیرش قوانین سمت سرور هم ثبت می‌شود، نه فقط تیکِ مرورگر
+            accept_terms: values.acceptTerms,
+          },
         },
-      })
+      )
 
       // حساب هنوز ساخته نشده؛ فقط کد فرستاده شده. به گامِ تاییدِ کد می‌رویم.
       if (data.otpRequired) {
@@ -107,7 +124,11 @@ export function RegisterForm({ onRegistered }: { onRegistered?: () => void }) {
       toastTopSuccess('ثبت‌نام شما کامل شد. برای استفاده از خدمات، وارد حساب خود شوید.')
       onRegistered?.()
     } catch (err) {
-      setOtpError(err instanceof ApiError ? (err.fieldError('code') ?? err.message) : 'ارتباط با سرور برقرار نشد.')
+      setOtpError(
+        err instanceof ApiError
+          ? (err.fieldError('code') ?? err.message)
+          : 'ارتباط با سرور برقرار نشد.',
+      )
       setCode('')
     } finally {
       setVerifying(false)
@@ -126,19 +147,35 @@ export function RegisterForm({ onRegistered }: { onRegistered?: () => void }) {
         <div className="flex flex-col items-center gap-2 text-center">
           <span
             className="flex h-11 w-11 items-center justify-center rounded-2xl"
-            style={{ backgroundColor: 'color-mix(in srgb, var(--color-brand-500) 14%, transparent)' }}
+            style={{
+              backgroundColor: 'color-mix(in srgb, var(--color-brand-500) 14%, transparent)',
+            }}
           >
             <ShieldCheck size={22} style={{ color: 'var(--color-brand-600)' }} />
           </span>
           <p className="text-[13px]" style={{ color: 'var(--text-secondary)' }}>
-            کد شش‌رقمی به شماره <span dir="ltr" className="font-bold">{phone}</span> پیامک شد.
+            کد شش‌رقمی به شماره{' '}
+            <span dir="ltr" className="font-bold">
+              {phone}
+            </span>{' '}
+            پیامک شد.
           </p>
         </div>
 
-        <OtpBoxes value={code} onChange={setCode} onComplete={verify} disabled={verifying} hasError={Boolean(otpError)} autoFocus />
+        <OtpBoxes
+          value={code}
+          onChange={setCode}
+          onComplete={verify}
+          disabled={verifying}
+          hasError={Boolean(otpError)}
+          autoFocus
+        />
 
         {verifying && (
-          <div className="flex items-center justify-center gap-2 text-[13px]" style={{ color: 'var(--text-secondary)' }}>
+          <div
+            className="flex items-center justify-center gap-2 text-[13px]"
+            style={{ color: 'var(--text-secondary)' }}
+          >
             <Loader2 size={15} className="animate-spin" />
             در حال تایید…
           </div>
@@ -246,7 +283,10 @@ export function RegisterForm({ onRegistered }: { onRegistered?: () => void }) {
       />
 
       <div className="flex flex-col gap-1">
-        <label className="flex items-start gap-2 text-xs" style={{ color: 'var(--text-secondary)' }}>
+        <label
+          className="flex items-start gap-2 text-xs"
+          style={{ color: 'var(--text-secondary)' }}
+        >
           <input type="checkbox" className="mt-0.5 h-4 w-4 rounded" {...register('acceptTerms')} />
           <span>
             {/* لینک قوانین: کلیک به صفحه‌ی پشتیبانی، بخش قوانین */}

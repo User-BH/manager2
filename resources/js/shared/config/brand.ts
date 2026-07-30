@@ -5,8 +5,7 @@ export const contactInfo = {
   address: 'تهران، خیابان ولیعصر، بالاتر از میدان ونک، برج نگین، طبقه ۴',
   phone: '۰۲۱-۸۸۷۷۶۶۵۵',
   email: 'info@sakena.app',
-  mapEmbedUrl:
-    'https://maps.google.com/maps?q=35.7595,51.4111&z=15&output=embed',
+  mapEmbedUrl: 'https://maps.google.com/maps?q=35.7595,51.4111&z=15&output=embed',
 }
 
 export const socialLinks = [

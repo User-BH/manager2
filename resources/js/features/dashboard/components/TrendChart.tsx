@@ -66,7 +66,10 @@ export function TrendChart({ data, currency }: { data: TrendPoint[]; currency: s
               direction: 'rtl',
             }}
             labelStyle={{ color: 'var(--text-primary)', fontWeight: 700, marginBottom: 4 }}
-            formatter={(value, name) => [`${formatMoney(Number(value ?? 0))} ${currency}`, String(name)]}
+            formatter={(value, name) => [
+              `${formatMoney(Number(value ?? 0))} ${currency}`,
+              String(name),
+            ]}
           />
 
           <Legend

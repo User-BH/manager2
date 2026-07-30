@@ -60,7 +60,9 @@ export function PaymentReviewPage() {
     setActionError(null)
     // خوش‌بینانه: رسید بلافاصله از فهرست «در انتظار» می‌رود
     mutate((current) =>
-      current ? { ...current, pending: current.pending.filter((p) => p.id !== payment.id) } : current,
+      current
+        ? { ...current, pending: current.pending.filter((p) => p.id !== payment.id) }
+        : current,
     )
     try {
       await api(`/payments/${payment.id}/approve`, { method: 'POST' })
@@ -88,7 +90,9 @@ export function PaymentReviewPage() {
     setActionError(null)
     // خوش‌بینانه: رسید بلافاصله از فهرست «در انتظار» می‌رود
     mutate((current) =>
-      current ? { ...current, pending: current.pending.filter((p) => p.id !== payment.id) } : current,
+      current
+        ? { ...current, pending: current.pending.filter((p) => p.id !== payment.id) }
+        : current,
     )
     try {
       await api(`/payments/${payment.id}/reject`, { method: 'POST', body: { note } })
@@ -163,7 +167,10 @@ export function PaymentReviewPage() {
                     style={{ backgroundColor: 'var(--surface-sunken)' }}
                   >
                     <div className="min-w-0">
-                      <p className="text-[13px] font-semibold" style={{ color: 'var(--text-primary)' }}>
+                      <p
+                        className="text-[13px] font-semibold"
+                        style={{ color: 'var(--text-primary)' }}
+                      >
                         {payment.unitLabel} · {payment.payerName}
                       </p>
                       <p className="mt-0.5 text-[11px]" style={{ color: 'var(--text-tertiary)' }}>
@@ -175,7 +182,10 @@ export function PaymentReviewPage() {
                     </div>
 
                     <div className="flex items-center gap-2">
-                      <span className="tabular-nums text-sm font-bold" style={{ color: 'var(--text-primary)' }}>
+                      <span
+                        className="tabular-nums text-sm font-bold"
+                        style={{ color: 'var(--text-primary)' }}
+                      >
                         {formatMoney(payment.amount)}
                       </span>
 
@@ -185,7 +195,10 @@ export function PaymentReviewPage() {
                           target="_blank"
                           rel="noopener noreferrer"
                           className="flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-medium"
-                          style={{ borderColor: 'var(--border-default)', color: 'var(--text-secondary)' }}
+                          style={{
+                            borderColor: 'var(--border-default)',
+                            color: 'var(--text-secondary)',
+                          }}
                         >
                           <FileText size={13} />
                           رسید
@@ -198,7 +211,11 @@ export function PaymentReviewPage() {
                         className="flex items-center gap-1 rounded-lg px-3 py-1.5 text-xs font-bold text-white disabled:opacity-60"
                         style={{ backgroundColor: 'var(--state-success)' }}
                       >
-                        {busyId === payment.id ? <Loader2 size={13} className="animate-spin" /> : <Check size={13} />}
+                        {busyId === payment.id ? (
+                          <Loader2 size={13} className="animate-spin" />
+                        ) : (
+                          <Check size={13} />
+                        )}
                         تایید
                       </button>
 
@@ -235,17 +252,27 @@ export function PaymentReviewPage() {
                   </thead>
                   <tbody>
                     {data.recent.map((payment) => (
-                      <tr key={payment.id} className="border-t" style={{ borderColor: 'var(--border-subtle)' }}>
+                      <tr
+                        key={payment.id}
+                        className="border-t"
+                        style={{ borderColor: 'var(--border-subtle)' }}
+                      >
                         <td className="py-2.5 font-medium" style={{ color: 'var(--text-primary)' }}>
                           {payment.unitLabel}
                         </td>
                         <td className="py-2.5" style={{ color: 'var(--text-secondary)' }}>
                           {payment.payerName}
                         </td>
-                        <td className="py-2.5 tabular-nums" style={{ color: 'var(--text-secondary)' }}>
+                        <td
+                          className="py-2.5 tabular-nums"
+                          style={{ color: 'var(--text-secondary)' }}
+                        >
                           {formatMoney(payment.amount)}
                         </td>
-                        <td className="py-2.5 tabular-nums" style={{ color: 'var(--text-tertiary)' }}>
+                        <td
+                          className="py-2.5 tabular-nums"
+                          style={{ color: 'var(--text-tertiary)' }}
+                        >
                           {payment.paidAt ?? payment.createdAt}
                         </td>
                         <td className="py-2.5">

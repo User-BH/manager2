@@ -27,7 +27,6 @@ export function SupportPage() {
   const [openEntry, setOpenEntry] = useState<string | null>(null)
   const sectionRefs = useRef<Record<string, HTMLElement | null>>({})
 
-
   function goToTopic(id: SupportTopicId) {
     setActiveTopic(id)
 
@@ -77,12 +76,18 @@ export function SupportPage() {
               مرکز پشتیبانی
             </span>
 
-            <h1 className="mt-4 text-3xl font-extrabold sm:text-4xl" style={{ color: 'var(--text-primary)' }}>
+            <h1
+              className="mt-4 text-3xl font-extrabold sm:text-4xl"
+              style={{ color: 'var(--text-primary)' }}
+            >
               چطور می‌توانیم کمک کنیم؟
             </h1>
-            <p className="mt-4 max-w-md text-[15px] leading-8" style={{ color: 'var(--text-secondary)' }}>
-              پاسخ پرسش‌های پرتکرار، شرایط استفاده، سیاست حریم خصوصی و راه‌های تماس — همه در
-              یک صفحه. روی هر بخش از دایره بزنید تا مستقیم به همان قسمت بروید.
+            <p
+              className="mt-4 max-w-md text-[15px] leading-8"
+              style={{ color: 'var(--text-secondary)' }}
+            >
+              پاسخ پرسش‌های پرتکرار، شرایط استفاده، سیاست حریم خصوصی و راه‌های تماس — همه در یک
+              صفحه. روی هر بخش از دایره بزنید تا مستقیم به همان قسمت بروید.
             </p>
 
             <div className="mt-7 flex flex-wrap gap-2">
@@ -95,8 +100,7 @@ export function SupportPage() {
                   onClick={() => goToTopic(topic.id)}
                   className="rounded-xl border px-3.5 py-2 text-[12.5px] font-semibold transition-all duration-200 hover:-translate-y-0.5"
                   style={{
-                    borderColor:
-                      activeTopic === topic.id ? topic.color : 'var(--border-subtle)',
+                    borderColor: activeTopic === topic.id ? topic.color : 'var(--border-subtle)',
                     color: activeTopic === topic.id ? topic.color : 'var(--text-secondary)',
                     backgroundColor:
                       activeTopic === topic.id
@@ -134,7 +138,9 @@ export function SupportPage() {
               style={{
                 borderColor: isActive ? topic.color : 'var(--border-subtle)',
                 backgroundColor: 'var(--surface-base)',
-                boxShadow: isActive ? `0 0 0 3px color-mix(in srgb, ${topic.color} 14%, transparent)` : undefined,
+                boxShadow: isActive
+                  ? `0 0 0 3px color-mix(in srgb, ${topic.color} 14%, transparent)`
+                  : undefined,
               }}
             >
               <div
@@ -152,7 +158,10 @@ export function SupportPage() {
                 </span>
 
                 <div>
-                  <h2 className="text-[17px] font-extrabold" style={{ color: 'var(--text-primary)' }}>
+                  <h2
+                    className="text-[17px] font-extrabold"
+                    style={{ color: 'var(--text-primary)' }}
+                  >
                     {topic.title}
                   </h2>
                   <p className="mt-0.5 text-[12px]" style={{ color: 'var(--text-tertiary)' }}>

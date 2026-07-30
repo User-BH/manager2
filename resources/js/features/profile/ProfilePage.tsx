@@ -101,7 +101,10 @@ export function ProfilePage() {
               {profile.bio && (
                 <p
                   className="mt-4 rounded-xl p-3 text-[12.5px] leading-7"
-                  style={{ backgroundColor: 'var(--surface-sunken)', color: 'var(--text-secondary)' }}
+                  style={{
+                    backgroundColor: 'var(--surface-sunken)',
+                    color: 'var(--text-secondary)',
+                  }}
                 >
                   {profile.bio}
                 </p>
@@ -172,7 +175,10 @@ function ProfileHero({
         </div>
 
         <div className="min-w-0 flex-1 pt-2">
-          <h1 className="flex flex-wrap items-center gap-2 text-lg font-extrabold" style={{ color: 'var(--text-primary)' }}>
+          <h1
+            className="flex flex-wrap items-center gap-2 text-lg font-extrabold"
+            style={{ color: 'var(--text-primary)' }}
+          >
             {name}
             <span
               className="rounded-full px-2 py-0.5 text-[11px] font-semibold"
@@ -324,7 +330,9 @@ function UnitsCard({ units }: { units: ProfileResponse['units'] }) {
 
                 <span
                   className="mr-auto text-[12px] font-bold tabular-nums"
-                  style={{ color: unit.balance > 0 ? 'var(--color-danger)' : 'var(--state-success)' }}
+                  style={{
+                    color: unit.balance > 0 ? 'var(--color-danger)' : 'var(--state-success)',
+                  }}
                 >
                   {formatMoney(unit.balance)}
                 </span>
@@ -367,7 +375,10 @@ function PeopleCard({ people }: { people: ProfileResponse['people'] }) {
               </span>
 
               <span className="min-w-0 flex-1">
-                <span className="block truncate text-[12.5px] font-semibold" style={{ color: 'var(--text-primary)' }}>
+                <span
+                  className="block truncate text-[12.5px] font-semibold"
+                  style={{ color: 'var(--text-primary)' }}
+                >
                   {person.name}
                 </span>
                 <span className="block text-[11px]" style={{ color: 'var(--text-tertiary)' }}>
@@ -423,7 +434,10 @@ function ComplexesCard({ complexes }: { complexes: ProfileResponse['complexes'] 
                 )}
               </div>
 
-              <p className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px]" style={{ color: 'var(--text-tertiary)' }}>
+              <p
+                className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px]"
+                style={{ color: 'var(--text-tertiary)' }}
+              >
                 <span className="flex items-center gap-1">
                   <Building2 size={11} />
                   {formatNumber(complex.unitsCount)} واحد

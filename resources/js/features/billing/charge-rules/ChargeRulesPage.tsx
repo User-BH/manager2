@@ -2,7 +2,16 @@ import { useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { motion } from 'framer-motion'
-import { Plus, Trash2, ScrollText, ToggleLeft, ToggleRight, Loader2, Save, AlertCircle } from 'lucide-react'
+import {
+  Plus,
+  Trash2,
+  ScrollText,
+  ToggleLeft,
+  ToggleRight,
+  Loader2,
+  Save,
+  AlertCircle,
+} from 'lucide-react'
 import { z } from 'zod'
 import { Card } from '@/shared/ui/Card'
 import { Modal } from '@/shared/ui/Modal'
@@ -76,7 +85,10 @@ export function ChargeRulesPage() {
     // خوش‌بینانه: وضعیت فوراً برعکس می‌شود
     mutate((current) =>
       current
-        ? { ...current, data: current.data.map((r) => (r.id === rule.id ? { ...r, isActive: !r.isActive } : r)) }
+        ? {
+            ...current,
+            data: current.data.map((r) => (r.id === rule.id ? { ...r, isActive: !r.isActive } : r)),
+          }
         : current,
     )
 
@@ -152,13 +164,17 @@ export function ChargeRulesPage() {
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.25, delay: Math.min(index * 0.04, 0.3) }}
                   className="flex flex-wrap items-center justify-between gap-3 rounded-xl px-4 py-3.5"
-                  style={{ backgroundColor: 'var(--surface-sunken)', opacity: rule.isActive ? 1 : 0.55 }}
+                  style={{
+                    backgroundColor: 'var(--surface-sunken)',
+                    opacity: rule.isActive ? 1 : 0.55,
+                  }}
                 >
                   <div className="flex items-start gap-3">
                     <span
                       className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl"
                       style={{
-                        backgroundColor: 'color-mix(in srgb, var(--color-brand-500) 13%, transparent)',
+                        backgroundColor:
+                          'color-mix(in srgb, var(--color-brand-500) 13%, transparent)',
                         color: 'var(--color-brand-600)',
                       }}
                     >
@@ -186,7 +202,9 @@ export function ChargeRulesPage() {
                       aria-label={rule.isActive ? 'غیرفعال کردن' : 'فعال کردن'}
                       title={rule.isActive ? 'غیرفعال کردن' : 'فعال کردن'}
                       className="flex h-8 w-8 items-center justify-center rounded-lg"
-                      style={{ color: rule.isActive ? 'var(--state-success)' : 'var(--text-tertiary)' }}
+                      style={{
+                        color: rule.isActive ? 'var(--state-success)' : 'var(--text-tertiary)',
+                      }}
                     >
                       {rule.isActive ? <ToggleRight size={18} /> : <ToggleLeft size={18} />}
                     </button>
@@ -294,15 +312,37 @@ function RuleForm({
 
       <TextField label="نام قانون" error={errors.name?.message} {...register('name')} />
 
-      <SelectField label="نوع محاسبه" options={types} error={errors.type?.message} {...register('type')} />
-      <SelectField label="دسته" options={categories} error={errors.category?.message} {...register('category')} />
+      <SelectField
+        label="نوع محاسبه"
+        options={types}
+        error={errors.type?.message}
+        {...register('type')}
+      />
+      <SelectField
+        label="دسته"
+        options={categories}
+        error={errors.category?.message}
+        {...register('category')}
+      />
 
       {fields.includes('amount') && (
-        <TextField label="مبلغ" type="number" step="0.01" error={errors.amount?.message} {...register('amount')} />
+        <TextField
+          label="مبلغ"
+          type="number"
+          step="0.01"
+          error={errors.amount?.message}
+          {...register('amount')}
+        />
       )}
       {fields.includes('base') && (
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-          <TextField label="مبلغ پایه" type="number" step="0.01" error={errors.base?.message} {...register('base')} />
+          <TextField
+            label="مبلغ پایه"
+            type="number"
+            step="0.01"
+            error={errors.base?.message}
+            {...register('base')}
+          />
           <TextField
             label="نرخ هر متر مربع"
             type="number"
@@ -329,7 +369,10 @@ function RuleForm({
         />
       )}
       {fields.includes('exempt_ground_floor') && (
-        <CheckField label="طبقهٔ همکف از این هزینه معاف باشد" {...register('exempt_ground_floor')} />
+        <CheckField
+          label="طبقهٔ همکف از این هزینه معاف باشد"
+          {...register('exempt_ground_floor')}
+        />
       )}
 
       <div className="mt-2 flex items-center gap-2">

@@ -1,53 +1,70 @@
 {
-    "$schema": "https://www.schemastore.org/package.json",
-    "private": true,
-    "type": "module",
-    "scripts": {
-        "build": "vite build",
-        "dev": "vite",
-        "test": "vitest run --config vitest.config.ts",
-        "test:watch": "vitest --config vitest.config.ts",
-        "lint": "oxlint resources/js tests/js",
-        "typecheck": "tsc --noEmit",
-        "check": "npm run typecheck && npm run lint && npm run test"
-    },
-    "devDependencies": {
-        "@tailwindcss/vite": "^4.0.0",
-        "@testing-library/jest-dom": "^7.0.0",
-        "@testing-library/react": "^16.3.2",
-        "@testing-library/user-event": "^14.6.1",
-        "@types/lodash": "^4.17.24",
-        "@types/node": "^26.1.1",
-        "@types/react": "^19.2.17",
-        "@types/react-dom": "^19.2.3",
-        "@vitejs/plugin-react": "^6.0.3",
-        "babel-plugin-react-compiler": "^1.0.0",
-        "concurrently": "^9.0.1",
-        "jsdom": "^29.1.1",
-        "laravel-vite-plugin": "^3.1",
-        "oxlint": "^1.75.0",
-        "tailwindcss": "^4.0.0",
-        "typescript": "^7.0.2",
-        "vite": "^8.0.0",
-        "vitest": "^4.1.10"
-    },
-    "dependencies": {
-        "@hookform/resolvers": "^5.4.0",
-        "axios": "^1.18.1",
-        "clsx": "^2.1.1",
-        "framer-motion": "^12.42.2",
-        "lodash": "^4.18.1",
-        "lucide-react": "^1.25.0",
-        "react": "^19.2.7",
-        "react-dom": "^19.2.7",
-        "react-hook-form": "^7.82.0",
-        "react-multi-date-picker": "^4.5.2",
-        "react-router-dom": "^7.18.1",
-        "recharts": "^3.10.0",
-        "sweetalert2": "^11.26.25",
-        "swiper": "^14.0.6",
-        "vazirmatn": "^33.0.3",
-        "zod": "^4.4.3",
-        "zustand": "^5.0.14"
-    }
+  "$schema": "https://www.schemastore.org/package.json",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "vite build",
+    "dev": "vite",
+    "test": "vitest run --config vitest.config.ts",
+    "test:watch": "vitest --config vitest.config.ts",
+    "lint": "oxlint resources/js tests/js",
+    "typecheck": "tsc --noEmit",
+    "check": "npm run format:check && npm run typecheck && npm run lint && npm run test",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "prepare": "husky"
+  },
+  "devDependencies": {
+    "@tailwindcss/vite": "^4.0.0",
+    "@testing-library/jest-dom": "^7.0.0",
+    "@testing-library/react": "^16.3.2",
+    "@testing-library/user-event": "^14.6.1",
+    "@types/lodash": "^4.17.24",
+    "@types/node": "^26.1.1",
+    "@types/react": "^19.2.17",
+    "@types/react-dom": "^19.2.3",
+    "@vitejs/plugin-react": "^6.0.3",
+    "babel-plugin-react-compiler": "^1.0.0",
+    "concurrently": "^9.0.1",
+    "husky": "^9.1.7",
+    "jsdom": "^29.1.1",
+    "laravel-vite-plugin": "^3.1",
+    "lint-staged": "^17.2.0",
+    "oxlint": "^1.75.0",
+    "prettier": "^3.9.6",
+    "tailwindcss": "^4.0.0",
+    "typescript": "^7.0.2",
+    "vite": "^8.0.0",
+    "vitest": "^4.1.10"
+  },
+  "dependencies": {
+    "@hookform/resolvers": "^5.4.0",
+    "axios": "^1.18.1",
+    "clsx": "^2.1.1",
+    "framer-motion": "^12.42.2",
+    "lodash": "^4.18.1",
+    "lucide-react": "^1.25.0",
+    "react": "^19.2.7",
+    "react-dom": "^19.2.7",
+    "react-hook-form": "^7.82.0",
+    "react-multi-date-picker": "^4.5.2",
+    "react-router-dom": "^7.18.1",
+    "recharts": "^3.10.0",
+    "sweetalert2": "^11.26.25",
+    "swiper": "^14.0.6",
+    "vazirmatn": "^33.0.3",
+    "zod": "^4.4.3",
+    "zustand": "^5.0.14"
+  },
+  "lint-staged": {
+    "*.{ts,tsx,js,jsx,json,css,md}": [
+      "prettier --write"
+    ],
+    "*.{ts,tsx}": [
+      "oxlint"
+    ],
+    "*.php": [
+      "php vendor/bin/pint"
+    ]
+  }
 }

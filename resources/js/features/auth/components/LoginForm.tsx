@@ -9,7 +9,11 @@ import { SlidePuzzle } from './SlidePuzzle'
 import { loginSchema, type LoginFormValues } from '../schemas/loginSchema'
 import { filterAsciiPassword, filterHints, filterMobile } from '@/shared/lib/inputFilters'
 import { toastTopError } from '@/shared/lib/alert'
-import { forgetRememberedPhone, loadRememberedPhone, saveRememberedPhone } from '@/shared/lib/rememberMe'
+import {
+  forgetRememberedPhone,
+  loadRememberedPhone,
+  saveRememberedPhone,
+} from '@/shared/lib/rememberMe'
 import { api, ApiError } from '@/shared/lib/api'
 import type { CurrentUser } from '@/shared/types'
 
@@ -167,11 +171,18 @@ export function LoginForm() {
       </div>
 
       <div className="flex items-center justify-between">
-        <label className="flex items-center gap-2 text-xs" style={{ color: 'var(--text-secondary)' }}>
+        <label
+          className="flex items-center gap-2 text-xs"
+          style={{ color: 'var(--text-secondary)' }}
+        >
           <input type="checkbox" className="h-4 w-4 rounded" {...register('remember')} />
           مرا به‌خاطر بسپار
         </label>
-        <Link to="/auth/forgot" className="text-xs font-medium" style={{ color: 'var(--color-brand-600)' }}>
+        <Link
+          to="/auth/forgot"
+          className="text-xs font-medium"
+          style={{ color: 'var(--color-brand-600)' }}
+        >
           رمز عبور را فراموش کرده‌اید؟
         </Link>
       </div>

@@ -2,7 +2,17 @@ import { useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { motion } from 'framer-motion'
-import { Plus, Trash2, TrendingDown, TrendingUp, Wallet, Loader2, Save, AlertCircle, Split } from 'lucide-react'
+import {
+  Plus,
+  Trash2,
+  TrendingDown,
+  TrendingUp,
+  Wallet,
+  Loader2,
+  Save,
+  AlertCircle,
+  Split,
+} from 'lucide-react'
 import { z } from 'zod'
 import { Card } from '@/shared/ui/Card'
 import { StatCard } from '@/shared/ui/StatCard'
@@ -56,7 +66,13 @@ interface FinanceResponse {
     description: string | null
     spendDate: string | null
   }[]
-  incomes: { id: number; title: string; amount: number; source: string | null; receivedDate: string | null }[]
+  incomes: {
+    id: number
+    title: string
+    amount: number
+    source: string | null
+    receivedDate: string | null
+  }[]
   splitMethods: Option[]
   categories: Option[]
 }
@@ -143,8 +159,21 @@ export function FinancePage() {
       {data && !isLoading && (
         <>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-            <StatCard label="کل هزینه" value={formatMoney(data.expenseTotal)} unit={data.currency} icon={TrendingDown} tone="warning" />
-            <StatCard label="کل درآمد" value={formatMoney(data.incomeTotal)} unit={data.currency} icon={TrendingUp} tone="success" delay={0.05} />
+            <StatCard
+              label="کل هزینه"
+              value={formatMoney(data.expenseTotal)}
+              unit={data.currency}
+              icon={TrendingDown}
+              tone="warning"
+            />
+            <StatCard
+              label="کل درآمد"
+              value={formatMoney(data.incomeTotal)}
+              unit={data.currency}
+              icon={TrendingUp}
+              tone="success"
+              delay={0.05}
+            />
             <StatCard
               label="تراز دوره"
               value={formatMoney(data.incomeTotal - data.expenseTotal)}
@@ -184,17 +213,24 @@ export function FinancePage() {
                       style={{ backgroundColor: 'var(--surface-sunken)' }}
                     >
                       <div className="min-w-0">
-                        <p className="truncate text-[13px] font-semibold" style={{ color: 'var(--text-primary)' }}>
+                        <p
+                          className="truncate text-[13px] font-semibold"
+                          style={{ color: 'var(--text-primary)' }}
+                        >
                           {expense.title}
                         </p>
-                        <p className="mt-0.5 flex flex-wrap items-center gap-1.5 text-[11px]" style={{ color: 'var(--text-tertiary)' }}>
+                        <p
+                          className="mt-0.5 flex flex-wrap items-center gap-1.5 text-[11px]"
+                          style={{ color: 'var(--text-tertiary)' }}
+                        >
                           <span>{expense.categoryLabel}</span>
                           {expense.spendDate && <span>· {expense.spendDate}</span>}
                           {expense.isDistributed && expense.splitLabel && (
                             <span
                               className="flex items-center gap-1 rounded-full px-2 py-0.5"
                               style={{
-                                backgroundColor: 'color-mix(in srgb, var(--color-brand-500) 13%, transparent)',
+                                backgroundColor:
+                                  'color-mix(in srgb, var(--color-brand-500) 13%, transparent)',
                                 color: 'var(--color-brand-600)',
                               }}
                             >
@@ -206,7 +242,10 @@ export function FinancePage() {
                       </div>
 
                       <div className="flex shrink-0 items-center gap-2">
-                        <span className="tabular-nums text-[13px] font-bold" style={{ color: 'var(--color-accent-600)' }}>
+                        <span
+                          className="tabular-nums text-[13px] font-bold"
+                          style={{ color: 'var(--color-accent-600)' }}
+                        >
                           {formatMoney(expense.amount)}
                         </span>
                         <button
@@ -252,7 +291,10 @@ export function FinancePage() {
                       style={{ backgroundColor: 'var(--surface-sunken)' }}
                     >
                       <div className="min-w-0">
-                        <p className="truncate text-[13px] font-semibold" style={{ color: 'var(--text-primary)' }}>
+                        <p
+                          className="truncate text-[13px] font-semibold"
+                          style={{ color: 'var(--text-primary)' }}
+                        >
                           {income.title}
                         </p>
                         <p className="mt-0.5 text-[11px]" style={{ color: 'var(--text-tertiary)' }}>
@@ -262,7 +304,10 @@ export function FinancePage() {
                       </div>
 
                       <div className="flex shrink-0 items-center gap-2">
-                        <span className="tabular-nums text-[13px] font-bold" style={{ color: 'var(--state-success)' }}>
+                        <span
+                          className="tabular-nums text-[13px] font-bold"
+                          style={{ color: 'var(--state-success)' }}
+                        >
                           {formatMoney(income.amount)}
                         </span>
                         <button
@@ -330,7 +375,15 @@ function FormError({ message }: { message: string }) {
   )
 }
 
-function Actions({ submitting, label, onCancel }: { submitting: boolean; label: string; onCancel: () => void }) {
+function Actions({
+  submitting,
+  label,
+  onCancel,
+}: {
+  submitting: boolean
+  label: string
+  onCancel: () => void
+}) {
   return (
     <div className="mt-2 flex items-center gap-2">
       <button
@@ -407,8 +460,19 @@ function ExpenseForm({
       {formError && <FormError message={formError} />}
 
       <TextField label="عنوان هزینه" error={errors.title?.message} {...register('title')} />
-      <TextField label="مبلغ" type="number" step="0.01" error={errors.amount?.message} {...register('amount')} />
-      <SelectField label="دسته" options={categories} error={errors.category?.message} {...register('category')} />
+      <TextField
+        label="مبلغ"
+        type="number"
+        step="0.01"
+        error={errors.amount?.message}
+        {...register('amount')}
+      />
+      <SelectField
+        label="دسته"
+        options={categories}
+        error={errors.category?.message}
+        {...register('category')}
+      />
 
       <SelectField
         label="روش تقسیم بین واحدها"
@@ -421,7 +485,11 @@ function ExpenseForm({
         اگر روش تقسیم انتخاب شود، این هزینه هنگام صدور قبضِ همین دوره بین واحدها سرشکن می‌شود.
       </p>
 
-      <TextField label="توضیحات (اختیاری)" error={errors.description?.message} {...register('description')} />
+      <TextField
+        label="توضیحات (اختیاری)"
+        error={errors.description?.message}
+        {...register('description')}
+      />
 
       <Actions submitting={isSubmitting} label="ثبت هزینه" onCancel={onCancel} />
     </form>
@@ -474,7 +542,13 @@ function IncomeForm({
       {formError && <FormError message={formError} />}
 
       <TextField label="عنوان درآمد" error={errors.title?.message} {...register('title')} />
-      <TextField label="مبلغ" type="number" step="0.01" error={errors.amount?.message} {...register('amount')} />
+      <TextField
+        label="مبلغ"
+        type="number"
+        step="0.01"
+        error={errors.amount?.message}
+        {...register('amount')}
+      />
       <TextField label="منبع (اختیاری)" error={errors.source?.message} {...register('source')} />
 
       <Actions submitting={isSubmitting} label="ثبت درآمد" onCancel={onCancel} />

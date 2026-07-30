@@ -6,11 +6,15 @@ export function FeaturesSection() {
   return (
     <section id="features" className="mx-auto max-w-6xl px-4 py-20 sm:px-6" dir="rtl">
       <RevealOnScroll className="mx-auto max-w-xl text-center">
-        <h2 className="text-2xl font-extrabold sm:text-3xl" style={{ color: 'var(--text-primary)' }}>
+        <h2
+          className="text-2xl font-extrabold sm:text-3xl"
+          style={{ color: 'var(--text-primary)' }}
+        >
           همه‌چیز که برای مدیریت مجتمع لازم دارید
         </h2>
         <p className="mt-3 text-[14.5px] leading-7" style={{ color: 'var(--text-secondary)' }}>
-          از مالی و امنیت تا ارتباط با ساکنین، یک پنل یکپارچه برای تمام نیازهای روزمره‌ی مدیریت ساختمان
+          از مالی و امنیت تا ارتباط با ساکنین، یک پنل یکپارچه برای تمام نیازهای روزمره‌ی مدیریت
+          ساختمان
         </p>
       </RevealOnScroll>
 
@@ -18,21 +22,32 @@ export function FeaturesSection() {
         {features.map((feature, index) => {
           const Icon = feature.icon
           return (
-            <RevealOnScroll key={feature.title} delay={index * 0.08} direction={index % 2 === 0 ? 'right' : 'left'}>
+            <RevealOnScroll
+              key={feature.title}
+              delay={index * 0.08}
+              direction={index % 2 === 0 ? 'right' : 'left'}
+            >
               <motion.div
                 whileHover="hover"
                 initial="rest"
                 animate="rest"
                 transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
                 variants={{
-                  rest: { y: 0, boxShadow: '0 1px 2px color-mix(in srgb, var(--text-primary) 4%, transparent)' },
+                  rest: {
+                    y: 0,
+                    boxShadow: '0 1px 2px color-mix(in srgb, var(--text-primary) 4%, transparent)',
+                  },
                   hover: {
                     y: -8,
-                    boxShadow: '0 24px 40px -12px color-mix(in srgb, var(--color-brand-600) 25%, transparent)',
+                    boxShadow:
+                      '0 24px 40px -12px color-mix(in srgb, var(--color-brand-600) 25%, transparent)',
                   },
                 }}
                 className="group relative overflow-hidden rounded-3xl border"
-                style={{ borderColor: 'var(--border-subtle)', backgroundColor: 'var(--surface-base)' }}
+                style={{
+                  borderColor: 'var(--border-subtle)',
+                  backgroundColor: 'var(--surface-base)',
+                }}
               >
                 <div className="relative h-44 overflow-hidden">
                   <motion.img
@@ -49,7 +64,8 @@ export function FeaturesSection() {
                   <div
                     className="absolute inset-0"
                     style={{
-                      background: 'linear-gradient(180deg, transparent 40%, color-mix(in srgb, var(--surface-base) 85%, transparent) 100%)',
+                      background:
+                        'linear-gradient(180deg, transparent 40%, color-mix(in srgb, var(--surface-base) 85%, transparent) 100%)',
                     }}
                   />
                   <motion.div
@@ -66,7 +82,10 @@ export function FeaturesSection() {
                   <h3 className="text-[15px] font-bold" style={{ color: 'var(--text-primary)' }}>
                     {feature.title}
                   </h3>
-                  <p className="mt-2 text-[13.5px] leading-6" style={{ color: 'var(--text-secondary)' }}>
+                  <p
+                    className="mt-2 text-[13.5px] leading-6"
+                    style={{ color: 'var(--text-secondary)' }}
+                  >
                     {feature.description}
                   </p>
                 </div>

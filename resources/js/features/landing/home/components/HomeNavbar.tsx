@@ -48,9 +48,16 @@ export function HomeNavbar({ minimal = false }: { minimal?: boolean } = {}) {
         backdropFilter: scrolled ? 'blur(14px)' : 'none',
       }}
     >
-      <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-4 sm:px-6" dir="rtl">
+      <div
+        className="mx-auto flex h-16 max-w-6xl items-center justify-between px-4 sm:px-6"
+        dir="rtl"
+      >
         {minimal ? (
-          <Link to="/" aria-label="بازگشت به صفحه اصلی" className="transition-opacity hover:opacity-80">
+          <Link
+            to="/"
+            aria-label="بازگشت به صفحه اصلی"
+            className="transition-opacity hover:opacity-80"
+          >
             <Logo size={34} />
           </Link>
         ) : (
@@ -59,21 +66,22 @@ export function HomeNavbar({ minimal = false }: { minimal?: boolean } = {}) {
 
         {/* لینک‌های بخش‌ها فقط از ۷۶۸ به بالا؛ پایین‌تر کاملاً حذف می‌شوند. */}
         <nav className="hidden items-center gap-7 md:flex">
-          {!minimal && navLinks.map((link) => (
-            <button
-              key={link.section}
-              onClick={() => scrollToSection(link.section)}
-              className="group relative text-[13.5px] font-medium transition-colors hover:opacity-80"
-              style={{ color: 'var(--text-secondary)' }}
-            >
-              {link.label}
-              {/* خط زیرِ متن که با هاور از وسط باز می‌شود */}
-              <span
-                className="absolute -bottom-1 left-1/2 h-0.5 w-0 -translate-x-1/2 rounded-full transition-all duration-300 group-hover:w-full"
-                style={{ backgroundColor: 'var(--color-brand-500)' }}
-              />
-            </button>
-          ))}
+          {!minimal &&
+            navLinks.map((link) => (
+              <button
+                key={link.section}
+                onClick={() => scrollToSection(link.section)}
+                className="group relative text-[13.5px] font-medium transition-colors hover:opacity-80"
+                style={{ color: 'var(--text-secondary)' }}
+              >
+                {link.label}
+                {/* خط زیرِ متن که با هاور از وسط باز می‌شود */}
+                <span
+                  className="absolute -bottom-1 left-1/2 h-0.5 w-0 -translate-x-1/2 rounded-full transition-all duration-300 group-hover:w-full"
+                  style={{ backgroundColor: 'var(--color-brand-500)' }}
+                />
+              </button>
+            ))}
         </nav>
 
         {/*

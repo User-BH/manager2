@@ -99,14 +99,47 @@ function AdminView({ data }: { data: AdminDashboard }) {
   return (
     <>
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <StatCard label="درآمد این ماه" value={formatMoney(data.income)} unit={data.currency} icon={TrendingUp} tone="success" delay={0} />
-        <StatCard label="هزینه این ماه" value={formatMoney(data.expense)} unit={data.currency} icon={TrendingDown} tone="warning" delay={0.05} />
-        <StatCard label="مانده صندوق" value={formatMoney(data.balance)} unit={data.currency} icon={Wallet} tone="brand" delay={0.1} />
-        <StatCard label="بدهی کل ساکنین" value={formatMoney(data.totalDebt)} unit={data.currency} icon={AlertTriangle} tone="danger" delay={0.15} />
+        <StatCard
+          label="درآمد این ماه"
+          value={formatMoney(data.income)}
+          unit={data.currency}
+          icon={TrendingUp}
+          tone="success"
+          delay={0}
+        />
+        <StatCard
+          label="هزینه این ماه"
+          value={formatMoney(data.expense)}
+          unit={data.currency}
+          icon={TrendingDown}
+          tone="warning"
+          delay={0.05}
+        />
+        <StatCard
+          label="مانده صندوق"
+          value={formatMoney(data.balance)}
+          unit={data.currency}
+          icon={Wallet}
+          tone="brand"
+          delay={0.1}
+        />
+        <StatCard
+          label="بدهی کل ساکنین"
+          value={formatMoney(data.totalDebt)}
+          unit={data.currency}
+          icon={AlertTriangle}
+          tone="danger"
+          delay={0.15}
+        />
       </div>
 
       <div className="grid grid-cols-1 gap-4 xl:grid-cols-3">
-        <Card title="روند درآمد و هزینه" subtitle="شش ماه اخیر" className="xl:col-span-2" delay={0.2}>
+        <Card
+          title="روند درآمد و هزینه"
+          subtitle="شش ماه اخیر"
+          className="xl:col-span-2"
+          delay={0.2}
+        >
           <TrendChart data={data.trend} currency={data.currency} />
         </Card>
 
@@ -142,7 +175,10 @@ function AdminView({ data }: { data: AdminDashboard }) {
                   style={{ backgroundColor: 'var(--surface-sunken)' }}
                 >
                   <span style={{ color: 'var(--text-primary)' }}>{row.label}</span>
-                  <span className="tabular-nums font-semibold" style={{ color: 'var(--color-danger)' }}>
+                  <span
+                    className="tabular-nums font-semibold"
+                    style={{ color: 'var(--color-danger)' }}
+                  >
                     {formatMoney(row.balance)}
                   </span>
                 </li>
@@ -166,7 +202,8 @@ function AdminView({ data }: { data: AdminDashboard }) {
                     <span
                       className="flex h-6 w-6 items-center justify-center rounded-full text-[11px] font-bold"
                       style={{
-                        backgroundColor: 'color-mix(in srgb, var(--color-accent-500) 18%, transparent)',
+                        backgroundColor:
+                          'color-mix(in srgb, var(--color-accent-500) 18%, transparent)',
                         color: 'var(--color-accent-600)',
                       }}
                     >
@@ -174,7 +211,10 @@ function AdminView({ data }: { data: AdminDashboard }) {
                     </span>
                     <span style={{ color: 'var(--text-primary)' }}>{row.label}</span>
                   </span>
-                  <span className="flex items-center gap-1 text-xs" style={{ color: 'var(--state-success)' }}>
+                  <span
+                    className="flex items-center gap-1 text-xs"
+                    style={{ color: 'var(--state-success)' }}
+                  >
                     <Award size={13} />
                     {formatNumber(row.onTime)} پرداخت به‌موقع
                   </span>
@@ -192,14 +232,34 @@ function SystemView({ data }: { data: SystemDashboard }) {
   return (
     <>
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-        <StatCard label="مجتمع‌ها" value={formatNumber(data.totalComplexes)} icon={Building2} tone="brand" />
-        <StatCard label="کل واحدها" value={formatNumber(data.totalUnits)} icon={Receipt} tone="info" delay={0.05} />
-        <StatCard label="کل کاربران" value={formatNumber(data.totalUsers)} icon={Users} tone="success" delay={0.1} />
+        <StatCard
+          label="مجتمع‌ها"
+          value={formatNumber(data.totalComplexes)}
+          icon={Building2}
+          tone="brand"
+        />
+        <StatCard
+          label="کل واحدها"
+          value={formatNumber(data.totalUnits)}
+          icon={Receipt}
+          tone="info"
+          delay={0.05}
+        />
+        <StatCard
+          label="کل کاربران"
+          value={formatNumber(data.totalUsers)}
+          icon={Users}
+          tone="success"
+          delay={0.1}
+        />
       </div>
 
       <Card title="مجتمع‌ها" subtitle="برای ورود به هر مجتمع، آن را انتخاب کنید" delay={0.15}>
         {data.complexes.length === 0 ? (
-          <EmptyState message="هنوز مجتمعی ثبت نشده است." hint="از «مدیریت مجتمع‌ها» اولین مجتمع را بسازید." />
+          <EmptyState
+            message="هنوز مجتمعی ثبت نشده است."
+            hint="از «مدیریت مجتمع‌ها» اولین مجتمع را بسازید."
+          />
         ) : (
           <ul className="flex flex-col gap-1">
             {data.complexes.map((complex) => (
@@ -227,7 +287,12 @@ function ResidentView({ data }: { data: ResidentDashboard }) {
   return (
     <>
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-        <StatCard label="تعداد واحدهای شما" value={formatNumber(data.unitCount)} icon={Building2} tone="brand" />
+        <StatCard
+          label="تعداد واحدهای شما"
+          value={formatNumber(data.unitCount)}
+          icon={Building2}
+          tone="brand"
+        />
         <StatCard
           label="بدهی فعلی"
           value={formatMoney(data.totalDebt)}
@@ -255,7 +320,9 @@ function ResidentView({ data }: { data: ResidentDashboard }) {
                   </span>
                   <span
                     className="tabular-nums text-sm font-semibold"
-                    style={{ color: unit.balance > 0 ? 'var(--color-danger)' : 'var(--state-success)' }}
+                    style={{
+                      color: unit.balance > 0 ? 'var(--color-danger)' : 'var(--state-success)',
+                    }}
                   >
                     {formatMoney(unit.balance)} {data.currency}
                   </span>
@@ -263,7 +330,8 @@ function ResidentView({ data }: { data: ResidentDashboard }) {
 
                 {unit.latestBill && (
                   <p className="mt-1.5 text-xs" style={{ color: 'var(--text-tertiary)' }}>
-                    آخرین قبض: {unit.latestBill.periodLabel} — {formatMoney(unit.latestBill.total)} {data.currency}
+                    آخرین قبض: {unit.latestBill.periodLabel} — {formatMoney(unit.latestBill.total)}{' '}
+                    {data.currency}
                   </p>
                 )}
               </li>

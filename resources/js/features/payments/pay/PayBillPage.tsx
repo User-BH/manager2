@@ -127,7 +127,10 @@ export function PayBillPage() {
           <span className="text-[13px]" style={{ color: 'var(--text-secondary)' }}>
             مبلغ قابل پرداخت
           </span>
-          <span className="tabular-nums text-2xl font-extrabold" style={{ color: 'var(--state-success)' }}>
+          <span
+            className="tabular-nums text-2xl font-extrabold"
+            style={{ color: 'var(--state-success)' }}
+          >
             {formatMoney(data.bill.remaining)}{' '}
             <span className="text-sm font-normal" style={{ color: 'var(--text-tertiary)' }}>
               {data.currency}
@@ -174,7 +177,11 @@ export function PayBillPage() {
             <p className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>
               {done}
             </p>
-            <Link to="/my-bills" className="mt-2 text-[13px] font-semibold" style={{ color: 'var(--color-brand-600)' }}>
+            <Link
+              to="/my-bills"
+              className="mt-2 text-[13px] font-semibold"
+              style={{ color: 'var(--color-brand-600)' }}
+            >
               بازگشت به صورت‌حساب‌ها
             </Link>
           </div>
@@ -201,10 +208,19 @@ export function PayBillPage() {
                 error={errors.amount?.message}
                 {...register('amount')}
               />
-              <TextField label="تاریخ واریز" type="date" error={errors.paid_on?.message} {...register('paid_on')} />
+              <TextField
+                label="تاریخ واریز"
+                type="date"
+                error={errors.paid_on?.message}
+                {...register('paid_on')}
+              />
             </div>
 
-            <TextField label="توضیحات (اختیاری)" error={errors.description?.message} {...register('description')} />
+            <TextField
+              label="توضیحات (اختیاری)"
+              error={errors.description?.message}
+              {...register('description')}
+            />
 
             <div className="flex flex-col gap-1.5">
               <label className="text-[13px] font-medium" style={{ color: 'var(--text-secondary)' }}>

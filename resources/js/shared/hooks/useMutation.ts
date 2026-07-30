@@ -43,7 +43,7 @@ export function useMutation() {
   const [pendingKey, setPendingKey] = useState<Key | null>(null)
 
   const run = useCallback(
-    async <T,>(action: () => Promise<T>, options: RunOptions = {}): Promise<T | undefined> => {
+    async <T>(action: () => Promise<T>, options: RunOptions = {}): Promise<T | undefined> => {
       const { key = '__single__', confirm, success, errorFallback, onDone } = options
 
       if (confirm && !(await confirmAction(confirm))) return undefined

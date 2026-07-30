@@ -16,7 +16,9 @@ import { formatMoney } from '@/shared/lib/format'
 
 const discountSchema = z.object({
   unit_id: z.string().min(1, 'واحد را انتخاب کنید'),
-  amount: z.coerce.number({ message: 'مبلغ تخفیف را وارد کنید' }).min(0, 'مبلغ نمی‌تواند منفی باشد'),
+  amount: z.coerce
+    .number({ message: 'مبلغ تخفیف را وارد کنید' })
+    .min(0, 'مبلغ نمی‌تواند منفی باشد'),
   reason: z.string().max(150).optional(),
 })
 
@@ -121,8 +123,9 @@ export function DiscountsPage() {
             <Info size={17} />
           </span>
           <p className="text-[13px] leading-7" style={{ color: 'var(--text-secondary)' }}>
-            تخفیف هنگام <strong>صدور قبض</strong> از مبلغ کل واحد کسر می‌شود. اگر قبوض این دوره از قبل
-            صادر شده‌اند، پس از ثبت تخفیف باید از صفحهٔ «قبوض و شارژ» دوباره صدور بزنید تا اعمال شود.
+            تخفیف هنگام <strong>صدور قبض</strong> از مبلغ کل واحد کسر می‌شود. اگر قبوض این دوره از
+            قبل صادر شده‌اند، پس از ثبت تخفیف باید از صفحهٔ «قبوض و شارژ» دوباره صدور بزنید تا اعمال
+            شود.
           </p>
         </div>
       </Card>
@@ -153,7 +156,8 @@ export function DiscountsPage() {
                     <span
                       className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl"
                       style={{
-                        backgroundColor: 'color-mix(in srgb, var(--color-accent-500) 15%, transparent)',
+                        backgroundColor:
+                          'color-mix(in srgb, var(--color-accent-500) 15%, transparent)',
                         color: 'var(--color-accent-600)',
                       }}
                     >
@@ -161,7 +165,10 @@ export function DiscountsPage() {
                     </span>
 
                     <div>
-                      <p className="text-[13px] font-semibold" style={{ color: 'var(--text-primary)' }}>
+                      <p
+                        className="text-[13px] font-semibold"
+                        style={{ color: 'var(--text-primary)' }}
+                      >
                         {discount.unitLabel}
                       </p>
                       <p className="mt-0.5 text-[11px]" style={{ color: 'var(--text-tertiary)' }}>
@@ -171,7 +178,10 @@ export function DiscountsPage() {
                   </div>
 
                   <div className="flex items-center gap-2">
-                    <span className="tabular-nums text-sm font-bold" style={{ color: 'var(--color-accent-600)' }}>
+                    <span
+                      className="tabular-nums text-sm font-bold"
+                      style={{ color: 'var(--color-accent-600)' }}
+                    >
                       {formatMoney(discount.amount)}
                     </span>
                     <button
@@ -272,11 +282,18 @@ function DiscountForm({
         error={errors.unit_id?.message}
         {...register('unit_id')}
       />
-      <TextField label="مبلغ تخفیف" type="number" step="0.01" error={errors.amount?.message} {...register('amount')} />
+      <TextField
+        label="مبلغ تخفیف"
+        type="number"
+        step="0.01"
+        error={errors.amount?.message}
+        {...register('amount')}
+      />
       <TextField label="دلیل (اختیاری)" error={errors.reason?.message} {...register('reason')} />
 
       <p className="-mt-1 text-[11px] leading-5" style={{ color: 'var(--text-tertiary)' }}>
-        هر واحد در هر دوره فقط یک تخفیف دارد؛ ثبت دوباره برای همان واحد، مقدار قبلی را جایگزین می‌کند.
+        هر واحد در هر دوره فقط یک تخفیف دارد؛ ثبت دوباره برای همان واحد، مقدار قبلی را جایگزین
+        می‌کند.
       </p>
 
       <div className="mt-2 flex items-center gap-2">

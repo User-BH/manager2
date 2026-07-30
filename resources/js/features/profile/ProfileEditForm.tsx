@@ -27,10 +27,7 @@ const schema = z.object({
   birth_date: z
     .string()
     .optional()
-    .refine(
-      (value) => !value || !Number.isNaN(Date.parse(value)),
-      'تاریخ تولد معتبر نیست.',
-    )
+    .refine((value) => !value || !Number.isNaN(Date.parse(value)), 'تاریخ تولد معتبر نیست.')
     .refine(
       // تاریخ تولدِ آینده بی‌معنی است
       (value) => !value || new Date(value) <= new Date(),
@@ -113,7 +110,13 @@ export function ProfileEditForm({
           readOnly
           title="تغییر شماره تلفن از این صفحه ممکن نیست."
         />
-        <TextField label="ایمیل" type="email" dir="ltr" error={errors.email?.message} {...register('email')} />
+        <TextField
+          label="ایمیل"
+          type="email"
+          dir="ltr"
+          error={errors.email?.message}
+          {...register('email')}
+        />
         <TextField
           label="کد ملی"
           inputMode="numeric"

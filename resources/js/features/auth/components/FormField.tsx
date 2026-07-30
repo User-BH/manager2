@@ -26,7 +26,12 @@ export const FormField = forwardRef<HTMLInputElement, FormFieldProps>(
      * بخواهد رمزش را از یک نگه‌دارنده‌ی رمز بچسباند.
      */
     const blockCopy = isPassword
-      ? { onCopy: preventEvent, onCut: preventEvent, onContextMenu: preventEvent, onDragStart: preventEvent }
+      ? {
+          onCopy: preventEvent,
+          onCut: preventEvent,
+          onContextMenu: preventEvent,
+          onDragStart: preventEvent,
+        }
       : {}
 
     return (

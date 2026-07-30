@@ -16,9 +16,7 @@ export function residentSchema(isEditing: boolean) {
     // هنگام ویرایش، رمز خالی یعنی «تغییرش نده»
     // قاعده همان قاعده‌ی تغییر رمز در پروفایل است؛ حسابی که مدیر می‌سازد
     // نباید رمز ضعیف‌تری از حساب خودِ کاربر داشته باشد.
-    password: isEditing
-      ? z.union([z.literal(''), strongPassword]).optional()
-      : strongPassword,
+    password: isEditing ? z.union([z.literal(''), strongPassword]).optional() : strongPassword,
   })
 }
 

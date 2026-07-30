@@ -21,7 +21,13 @@ import { ErrorState, LoadingState } from '@/shared/ui/PageState'
 import { useApi } from '@/shared/hooks/useApi'
 import { useDocumentTitle } from '@/shared/hooks'
 import { api } from '@/shared/lib/api'
-import { alertError, alertInfo, alertSuccess, confirmAction, toastSuccess } from '@/shared/lib/alert'
+import {
+  alertError,
+  alertInfo,
+  alertSuccess,
+  confirmAction,
+  toastSuccess,
+} from '@/shared/lib/alert'
 import { formatMoney, formatNumber } from '@/shared/lib/format'
 import { ReceiptUploadForm } from './ReceiptUploadForm'
 import type { SubscriptionPlanOption, SubscriptionResponse, SubscriptionRow } from './types'
@@ -63,7 +69,10 @@ export function AccountPage() {
       void alertSuccess('اشتراک شما فعال شد.', tracking ? `کد رهگیری: ${tracking}` : undefined)
       reload()
     } else if (checkout === 'failed') {
-      void alertInfo('پرداخت انجام نشد.', 'مبلغی از حساب شما کسر نشده است. می‌توانید دوباره تلاش کنید.')
+      void alertInfo(
+        'پرداخت انجام نشد.',
+        'مبلغی از حساب شما کسر نشده است. می‌توانید دوباره تلاش کنید.',
+      )
     } else if (checkout === 'error') {
       void alertInfo('اتصال به درگاه ممکن نشد.', params.get('message') ?? undefined)
     }
@@ -133,7 +142,10 @@ export function AccountPage() {
 
       <header className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="flex items-center gap-2 text-xl font-extrabold" style={{ color: 'var(--text-primary)' }}>
+          <h1
+            className="flex items-center gap-2 text-xl font-extrabold"
+            style={{ color: 'var(--text-primary)' }}
+          >
             <CreditCard size={19} style={{ color: 'var(--color-brand-500)' }} />
             تنظیمات حساب
           </h1>
@@ -291,13 +303,18 @@ function UsageCard({
       </div>
 
       {!unlimited && (
-        <div className="mt-3 h-2 overflow-hidden rounded-full" style={{ backgroundColor: 'var(--surface-sunken)' }}>
+        <div
+          className="mt-3 h-2 overflow-hidden rounded-full"
+          style={{ backgroundColor: 'var(--surface-sunken)' }}
+        >
           <motion.div
             initial={{ width: 0 }}
             animate={{ width: `${percent}%` }}
             transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
             className="h-full rounded-full"
-            style={{ backgroundColor: nearLimit ? 'var(--color-danger)' : 'var(--color-brand-500)' }}
+            style={{
+              backgroundColor: nearLimit ? 'var(--color-danger)' : 'var(--color-brand-500)',
+            }}
           />
         </div>
       )}
@@ -333,7 +350,8 @@ function CurrentPlanBanner({
             این مجتمع روی پلن رایگان است.
           </p>
           <p className="mt-0.5 text-[12px]" style={{ color: 'var(--text-tertiary)' }}>
-            با ارتقا به پرو، سقف تعداد واحد برداشته می‌شود و اتصال درگاه بانکی و خروجی Excel باز می‌شود.
+            با ارتقا به پرو، سقف تعداد واحد برداشته می‌شود و اتصال درگاه بانکی و خروجی Excel باز
+            می‌شود.
           </p>
         </div>
       </motion.div>
@@ -363,11 +381,17 @@ function CurrentPlanBanner({
         </span>
 
         <div className="min-w-0 flex-1">
-          <p className="flex items-center gap-2 text-[15px] font-extrabold" style={{ color: 'var(--text-primary)' }}>
+          <p
+            className="flex items-center gap-2 text-[15px] font-extrabold"
+            style={{ color: 'var(--text-primary)' }}
+          >
             {current.planLabel}
             <BadgeCheck size={16} style={{ color: 'var(--state-success)' }} />
           </p>
-          <p className="mt-0.5 flex flex-wrap items-center gap-x-3 text-[12px]" style={{ color: 'var(--text-tertiary)' }}>
+          <p
+            className="mt-0.5 flex flex-wrap items-center gap-x-3 text-[12px]"
+            style={{ color: 'var(--text-tertiary)' }}
+          >
             <span className="flex items-center gap-1">
               <CalendarClock size={12} />
               تا {current.endsAt}
@@ -459,7 +483,10 @@ function PlanCard({
         </h2>
       </div>
 
-      <p className="mt-2 text-[24px] font-extrabold tabular-nums" style={{ color: 'var(--text-primary)' }}>
+      <p
+        className="mt-2 text-[24px] font-extrabold tabular-nums"
+        style={{ color: 'var(--text-primary)' }}
+      >
         {plan.priceLabel}
         <span className="mr-1 text-[12px] font-medium" style={{ color: 'var(--text-tertiary)' }}>
           تومان / {formatNumber(plan.months)} ماه
@@ -507,7 +534,11 @@ function FeatureList({ features, muted }: { features: string[]; muted?: boolean 
   return (
     <ul className="mt-4 flex flex-1 flex-col gap-2">
       {features.map((feature) => (
-        <li key={feature} className="flex items-start gap-2 text-[12.5px]" style={{ color: 'var(--text-secondary)' }}>
+        <li
+          key={feature}
+          className="flex items-start gap-2 text-[12.5px]"
+          style={{ color: 'var(--text-secondary)' }}
+        >
           <Check
             size={14}
             className="mt-0.5 shrink-0"
@@ -543,7 +574,11 @@ function HistoryCard({ history }: { history: SubscriptionRow[] }) {
             </thead>
             <tbody>
               {history.map((row) => (
-                <tr key={row.id} className="border-t" style={{ borderColor: 'var(--border-subtle)' }}>
+                <tr
+                  key={row.id}
+                  className="border-t"
+                  style={{ borderColor: 'var(--border-subtle)' }}
+                >
                   <td className="py-3 font-semibold" style={{ color: 'var(--text-primary)' }}>
                     {row.planLabel}
                   </td>
@@ -573,7 +608,10 @@ function HistoryCard({ history }: { history: SubscriptionRow[] }) {
                       {row.statusLabel}
                     </span>
                     {row.status === 'failed' && row.reviewNote && (
-                      <span className="mt-1 block text-[10.5px]" style={{ color: 'var(--text-tertiary)' }}>
+                      <span
+                        className="mt-1 block text-[10.5px]"
+                        style={{ color: 'var(--text-tertiary)' }}
+                      >
                         {row.reviewNote}
                       </span>
                     )}

@@ -93,7 +93,6 @@ const features: DemoFeature[] = [
  * دسترسی هم در دو دکمه‌ی شناورِ گوشه‌ی صفحه هست.
  */
 export function DemoPage() {
-
   return (
     <div style={{ backgroundColor: 'var(--surface-canvas)' }}>
       <HomeNavbar minimal />
@@ -111,15 +110,18 @@ export function DemoPage() {
             دمو
           </span>
 
-          <h1 className="mt-4 text-3xl font-extrabold sm:text-4xl" style={{ color: 'var(--text-primary)' }}>
+          <h1
+            className="mt-4 text-3xl font-extrabold sm:text-4xl"
+            style={{ color: 'var(--text-primary)' }}
+          >
             یک دور کامل داخل پنل
           </h1>
           <p
             className="mx-auto mt-4 max-w-xl text-[15px] leading-8"
             style={{ color: 'var(--text-secondary)' }}
           >
-            در این ویدیوی کوتاه، از داشبورد تا صدور قبض و پرداخت و اطلاعیه‌ها را می‌بینید؛
-            همان مسیری که یک مدیر ساختمان هر ماه طی می‌کند.
+            در این ویدیوی کوتاه، از داشبورد تا صدور قبض و پرداخت و اطلاعیه‌ها را می‌بینید؛ همان
+            مسیری که یک مدیر ساختمان هر ماه طی می‌کند.
           </p>
         </DemoSignboard>
 
@@ -157,7 +159,10 @@ export function DemoPage() {
 
         {/* ---------- توضیح امکانات ---------- */}
         <div className="mt-16">
-          <h2 className="text-center text-2xl font-extrabold" style={{ color: 'var(--text-primary)' }}>
+          <h2
+            className="text-center text-2xl font-extrabold"
+            style={{ color: 'var(--text-primary)' }}
+          >
             چه چیزهایی در ویدیو می‌بینید
           </h2>
 
@@ -178,17 +183,24 @@ export function DemoPage() {
                   <span
                     className="flex h-10 w-10 items-center justify-center rounded-xl"
                     style={{
-                      backgroundColor: 'color-mix(in srgb, var(--color-brand-500) 13%, transparent)',
+                      backgroundColor:
+                        'color-mix(in srgb, var(--color-brand-500) 13%, transparent)',
                       color: 'var(--color-brand-600)',
                     }}
                   >
                     <Icon size={19} />
                   </span>
 
-                  <h3 className="mt-3.5 text-[15px] font-bold" style={{ color: 'var(--text-primary)' }}>
+                  <h3
+                    className="mt-3.5 text-[15px] font-bold"
+                    style={{ color: 'var(--text-primary)' }}
+                  >
                     {feature.title}
                   </h3>
-                  <p className="mt-2 text-[13px] leading-7" style={{ color: 'var(--text-secondary)' }}>
+                  <p
+                    className="mt-2 text-[13px] leading-7"
+                    style={{ color: 'var(--text-secondary)' }}
+                  >
                     {feature.description}
                   </p>
                 </article>
@@ -211,10 +223,16 @@ export function DemoPage() {
             backgroundColor: 'var(--surface-base)',
           }}
         >
-          <h2 className="text-xl font-extrabold sm:text-2xl" style={{ color: 'var(--text-primary)' }}>
+          <h2
+            className="text-xl font-extrabold sm:text-2xl"
+            style={{ color: 'var(--text-primary)' }}
+          >
             آماده‌اید خودتان امتحان کنید؟
           </h2>
-          <p className="mx-auto mt-3 max-w-md text-[13.5px] leading-7" style={{ color: 'var(--text-secondary)' }}>
+          <p
+            className="mx-auto mt-3 max-w-md text-[13.5px] leading-7"
+            style={{ color: 'var(--text-secondary)' }}
+          >
             ساخت حساب رایگان است و برای شروع فقط یک شماره موبایل لازم دارید.
           </p>
 
@@ -225,7 +243,10 @@ export function DemoPage() {
               style={{ backgroundColor: 'var(--color-brand-500)' }}
             >
               شروع رایگان
-              <ArrowRight size={16} className="rotate-180 transition-transform group-hover:-translate-x-1" />
+              <ArrowRight
+                size={16}
+                className="rotate-180 transition-transform group-hover:-translate-x-1"
+              />
             </Link>
             <Link
               to="/"

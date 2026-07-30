@@ -41,7 +41,10 @@ export function ManagersPage() {
 
   useDocumentTitle('مدیران مجتمع')
 
-  const { data, error, isLoading, reload, mutate } = useApi<{ data: Manager[]; complexName: string }>('/managers')
+  const { data, error, isLoading, reload, mutate } = useApi<{
+    data: Manager[]
+    complexName: string
+  }>('/managers')
 
   async function handleDelete(manager: Manager) {
     const ok = await confirmAction({
@@ -129,13 +132,17 @@ export function ManagersPage() {
                     </span>
 
                     <div>
-                      <p className="flex items-center gap-2 text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>
+                      <p
+                        className="flex items-center gap-2 text-sm font-semibold"
+                        style={{ color: 'var(--text-primary)' }}
+                      >
                         {manager.name}
                         {manager.isSelf && (
                           <span
                             className="flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-medium"
                             style={{
-                              backgroundColor: 'color-mix(in srgb, var(--color-brand-500) 15%, transparent)',
+                              backgroundColor:
+                                'color-mix(in srgb, var(--color-brand-500) 15%, transparent)',
                               color: 'var(--color-brand-600)',
                             }}
                           >
@@ -144,7 +151,11 @@ export function ManagersPage() {
                           </span>
                         )}
                       </p>
-                      <p className="mt-0.5 text-[11px] tabular-nums" dir="ltr" style={{ color: 'var(--text-tertiary)' }}>
+                      <p
+                        className="mt-0.5 text-[11px] tabular-nums"
+                        dir="ltr"
+                        style={{ color: 'var(--text-tertiary)' }}
+                      >
                         {manager.phone}
                       </p>
                     </div>
@@ -236,7 +247,13 @@ function ManagerForm({ onSaved, onCancel }: { onSaved: () => void; onCancel: () 
         error={errors.phone?.message}
         {...register('phone')}
       />
-      <TextField label="رمز عبور" type="password" dir="ltr" error={errors.password?.message} {...register('password')} />
+      <TextField
+        label="رمز عبور"
+        type="password"
+        dir="ltr"
+        error={errors.password?.message}
+        {...register('password')}
+      />
 
       <div className="mt-2 flex items-center gap-2">
         <button

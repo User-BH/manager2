@@ -45,7 +45,11 @@ const DEFAULT_CONTACT: FooterContact = {
   email: contactInfo.email,
   mapEmbedUrl: contactInfo.mapEmbedUrl,
 }
-const DEFAULT_SOCIAL: FooterSocial[] = socialLinks.map((s) => ({ id: s.id, label: s.label, href: s.href }))
+const DEFAULT_SOCIAL: FooterSocial[] = socialLinks.map((s) => ({
+  id: s.id,
+  label: s.label,
+  href: s.href,
+}))
 
 /** لینکِ تماسِ تلفنی از رقم‌های لاتین ساخته می‌شود (شماره‌ی فارسی در tel: کار نمی‌کند). */
 function telHref(phone: string): string {
@@ -60,7 +64,9 @@ export function HomeFooter() {
   useEffect(() => {
     const controller = new AbortController()
 
-    api<{ contact: FooterContact; social: FooterSocial[] }>('/site-settings', { signal: controller.signal })
+    api<{ contact: FooterContact; social: FooterSocial[] }>('/site-settings', {
+      signal: controller.signal,
+    })
       .then((data) => {
         setContact(data.contact)
         setSocial(data.social)
@@ -82,7 +88,10 @@ export function HomeFooter() {
           {/* ستون برند و توضیح */}
           <div>
             <Logo size={32} />
-            <p className="mt-4 max-w-xs text-[13px] leading-7" style={{ color: 'var(--text-secondary)' }}>
+            <p
+              className="mt-4 max-w-xs text-[13px] leading-7"
+              style={{ color: 'var(--text-secondary)' }}
+            >
               {BRAND_NAME} یک پلتفرم یکپارچه برای مدیریت مالی، امنیتی و ارتباطی مجتمع‌های مسکونی
               است؛ همراه مدیران ساختمان در سراسر کشور.
             </p>
@@ -145,16 +154,27 @@ export function HomeFooter() {
               {contact.title}
             </p>
 
-            <ul className="mt-4 flex flex-col gap-2.5 text-[13px]" style={{ color: 'var(--text-secondary)' }}>
+            <ul
+              className="mt-4 flex flex-col gap-2.5 text-[13px]"
+              style={{ color: 'var(--text-secondary)' }}
+            >
               {contact.address && (
                 <li className="flex items-start gap-2">
-                  <MapPin size={15} className="mt-0.5 shrink-0" style={{ color: 'var(--color-brand-500)' }} />
+                  <MapPin
+                    size={15}
+                    className="mt-0.5 shrink-0"
+                    style={{ color: 'var(--color-brand-500)' }}
+                  />
                   <span>{contact.address}</span>
                 </li>
               )}
               {contact.phone && (
                 <li className="flex items-center gap-2">
-                  <Phone size={15} className="shrink-0" style={{ color: 'var(--color-brand-500)' }} />
+                  <Phone
+                    size={15}
+                    className="shrink-0"
+                    style={{ color: 'var(--color-brand-500)' }}
+                  />
                   <a href={telHref(contact.phone)} dir="ltr">
                     {contact.phone}
                   </a>
@@ -162,7 +182,11 @@ export function HomeFooter() {
               )}
               {contact.email && (
                 <li className="flex items-center gap-2">
-                  <Mail size={15} className="shrink-0" style={{ color: 'var(--color-brand-500)' }} />
+                  <Mail
+                    size={15}
+                    className="shrink-0"
+                    style={{ color: 'var(--color-brand-500)' }}
+                  />
                   <a href={`mailto:${contact.email}`} dir="ltr">
                     {contact.email}
                   </a>
@@ -171,7 +195,10 @@ export function HomeFooter() {
             </ul>
 
             {contact.mapEmbedUrl && (
-              <div className="mt-4 overflow-hidden rounded-2xl border" style={{ borderColor: 'var(--border-subtle)' }}>
+              <div
+                className="mt-4 overflow-hidden rounded-2xl border"
+                style={{ borderColor: 'var(--border-subtle)' }}
+              >
                 <iframe
                   title="موقعیت ما روی نقشه"
                   src={contact.mapEmbedUrl}

@@ -61,9 +61,7 @@ export function AdvertisementsPage() {
     if (!confirmed) return
 
     // خوش‌بینانه: بنر بلافاصله از لیست می‌رود
-    mutate((current) =>
-      current ? { ads: current.ads.filter((a) => a.id !== ad.id) } : current,
-    )
+    mutate((current) => (current ? { ads: current.ads.filter((a) => a.id !== ad.id) } : current))
 
     try {
       const result = await api<{ message: string }>(`/system/ads/${ad.id}`, { method: 'DELETE' })
@@ -110,7 +108,10 @@ export function AdvertisementsPage() {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: index * 0.04 }}
                 className="flex flex-col gap-3 rounded-2xl border p-3 sm:flex-row sm:items-center"
-                style={{ borderColor: 'var(--border-subtle)', backgroundColor: 'var(--surface-sunken)' }}
+                style={{
+                  borderColor: 'var(--border-subtle)',
+                  backgroundColor: 'var(--surface-sunken)',
+                }}
               >
                 {/* پیش‌نمایش تصویر با همان نسبتِ بنر واقعی */}
                 <div
@@ -118,7 +119,12 @@ export function AdvertisementsPage() {
                   style={{ backgroundColor: 'var(--surface-2)' }}
                 >
                   {ad.image && (
-                    <img src={ad.image} alt="" className="h-full w-full object-cover" loading="lazy" />
+                    <img
+                      src={ad.image}
+                      alt=""
+                      className="h-full w-full object-cover"
+                      loading="lazy"
+                    />
                   )}
                 </div>
 
@@ -131,7 +137,10 @@ export function AdvertisementsPage() {
                   </div>
 
                   {ad.subtitle && (
-                    <p className="mt-1 line-clamp-1 text-xs" style={{ color: 'var(--text-secondary)' }}>
+                    <p
+                      className="mt-1 line-clamp-1 text-xs"
+                      style={{ color: 'var(--text-secondary)' }}
+                    >
                       {ad.subtitle}
                     </p>
                   )}

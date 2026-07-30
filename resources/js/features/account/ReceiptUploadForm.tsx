@@ -111,7 +111,12 @@ export function ReceiptUploadForm({
         <dl className="mt-3 flex flex-col gap-2 text-[12.5px]">
           <BankRow label="به نام" value={bank.holder} />
           <BankRow label="بانک" value={bank.bank_name} />
-          <BankRow label="شماره کارت" value={bank.card} ltr onCopy={() => copy(bank.card, 'شماره کارت')} />
+          <BankRow
+            label="شماره کارت"
+            value={bank.card}
+            ltr
+            onCopy={() => copy(bank.card, 'شماره کارت')}
+          />
           <BankRow label="شبا" value={bank.iban} ltr onCopy={() => copy(bank.iban, 'شماره شبا')} />
         </dl>
 
@@ -135,17 +140,24 @@ export function ReceiptUploadForm({
               onClick={() => setPlanValue(option.value)}
               className="rounded-xl border px-3.5 py-3 text-right transition-all duration-200"
               style={{
-                borderColor: planValue === option.value ? 'var(--color-brand-500)' : 'var(--border-subtle)',
+                borderColor:
+                  planValue === option.value ? 'var(--color-brand-500)' : 'var(--border-subtle)',
                 backgroundColor:
                   planValue === option.value
                     ? 'color-mix(in srgb, var(--color-brand-500) 8%, transparent)'
                     : 'transparent',
               }}
             >
-              <span className="block text-[13px] font-bold" style={{ color: 'var(--text-primary)' }}>
+              <span
+                className="block text-[13px] font-bold"
+                style={{ color: 'var(--text-primary)' }}
+              >
                 {option.label}
               </span>
-              <span className="mt-0.5 block text-[11.5px]" style={{ color: 'var(--text-tertiary)' }}>
+              <span
+                className="mt-0.5 block text-[11.5px]"
+                style={{ color: 'var(--text-tertiary)' }}
+              >
                 {option.priceLabel} تومان
               </span>
             </button>
@@ -202,8 +214,8 @@ export function ReceiptUploadForm({
       </button>
 
       <p className="text-[11.5px] leading-6" style={{ color: 'var(--text-tertiary)' }}>
-        پس از ثبت، درخواست شما در صف بررسی پشتیبانی قرار می‌گیرد و با تایید آن، اشتراک
-        بلافاصله فعال می‌شود.
+        پس از ثبت، درخواست شما در صف بررسی پشتیبانی قرار می‌گیرد و با تایید آن، اشتراک بلافاصله فعال
+        می‌شود.
       </p>
     </form>
   )

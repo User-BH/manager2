@@ -24,9 +24,9 @@ interface GoodPayersResponse {
 
 /** رنگ هر رتبه، از پالت برند و طلایی accent. */
 const TIER_COLOR: Record<string, string> = {
-  'طلایی': 'var(--color-accent-500)',
-  'نقره‌ای': 'var(--text-tertiary)',
-  'برنزی': '#a4652f',
+  طلایی: 'var(--color-accent-500)',
+  نقره‌ای: 'var(--text-tertiary)',
+  برنزی: '#a4652f',
 }
 
 export function GoodPayersPage() {
@@ -92,8 +92,8 @@ export function GoodPayersPage() {
                         {payer.label}
                       </p>
                       <p className="text-[11px]" style={{ color: 'var(--text-tertiary)' }}>
-                        طبقه {formatNumber(payer.floor)} · مجموع پرداخت {formatMoney(payer.totalPaid)}{' '}
-                        {data.currency}
+                        طبقه {formatNumber(payer.floor)} · مجموع پرداخت{' '}
+                        {formatMoney(payer.totalPaid)} {data.currency}
                       </p>
                     </div>
                   </div>

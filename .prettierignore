@@ -1,0 +1,17 @@
+# خروجی‌های ساخت و وابستگی‌ها
+node_modules/
+vendor/
+public/build/
+storage/
+bootstrap/cache/
+
+# فایل‌های قفل و تولیدشده
+package-lock.json
+composer.lock
+phpstan-baseline.neon
+
+# PHP را Pint قالب‌بندی می‌کند، نه Prettier
+*.php
+
+# CSS پروژه دستی مرتب شده و ترتیب توکن‌ها معنادار است
+resources/css/app.css

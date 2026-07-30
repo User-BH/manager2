@@ -49,9 +49,9 @@ const socialIconMap = {
 export function SiteSettingsPage() {
   useDocumentTitle('فوتر و شبکه‌های اجتماعی')
 
-  const { data, error, isLoading, reload } = useApi<{ footer: { contact: Contact; social: Social[] } }>(
-    '/system/site-settings',
-  )
+  const { data, error, isLoading, reload } = useApi<{
+    footer: { contact: Contact; social: Social[] }
+  }>('/system/site-settings')
 
   const [contact, setContact] = useState<Contact | null>(null)
   const [social, setSocial] = useState<Social[] | null>(null)
@@ -129,7 +129,11 @@ export function SiteSettingsPage() {
             />
           </ContactRow>
 
-          <ContactRow label="ایمیل" shown={contact.showEmail} onToggle={(v) => setC('showEmail', v)}>
+          <ContactRow
+            label="ایمیل"
+            shown={contact.showEmail}
+            onToggle={(v) => setC('showEmail', v)}
+          >
             <TextField
               label="آدرس ایمیل"
               dir="ltr"
@@ -162,12 +166,18 @@ export function SiteSettingsPage() {
               <div
                 key={item.id}
                 className="flex flex-col gap-3 rounded-2xl border p-3 sm:flex-row sm:items-end"
-                style={{ borderColor: 'var(--border-subtle)', backgroundColor: 'var(--surface-sunken)' }}
+                style={{
+                  borderColor: 'var(--border-subtle)',
+                  backgroundColor: 'var(--surface-sunken)',
+                }}
               >
                 <div className="flex items-center gap-2 sm:w-32 sm:shrink-0 sm:pb-3">
                   <span
                     className="flex h-8 w-8 items-center justify-center rounded-lg"
-                    style={{ backgroundColor: 'var(--surface-base)', color: 'var(--text-secondary)' }}
+                    style={{
+                      backgroundColor: 'var(--surface-base)',
+                      color: 'var(--text-secondary)',
+                    }}
                   >
                     {Icon && <Icon size={16} />}
                   </span>
@@ -233,8 +243,14 @@ function ContactRow({
   children: React.ReactNode
 }) {
   return (
-    <div className="flex flex-col gap-2 rounded-2xl border p-3" style={{ borderColor: 'var(--border-subtle)' }}>
-      <label className="flex items-center gap-2 text-[13px] font-bold" style={{ color: 'var(--text-primary)' }}>
+    <div
+      className="flex flex-col gap-2 rounded-2xl border p-3"
+      style={{ borderColor: 'var(--border-subtle)' }}
+    >
+      <label
+        className="flex items-center gap-2 text-[13px] font-bold"
+        style={{ color: 'var(--text-primary)' }}
+      >
         <input
           type="checkbox"
           className="h-4 w-4 rounded"

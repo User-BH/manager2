@@ -155,7 +155,9 @@ export function SmsPage() {
                 style={{ backgroundColor: 'var(--surface-sunken)', color: 'var(--text-tertiary)' }}
               >
                 در حالت تست، پیامک واقعی ارسال نمی‌شود و متن آن در
-                <span dir="ltr" className="mx-1">storage/logs/laravel.log</span>
+                <span dir="ltr" className="mx-1">
+                  storage/logs/laravel.log
+                </span>
                 ثبت می‌گردد. برای سرویس واقعی یکی از سامانه‌های بالا را انتخاب کنید.
               </p>
             )}
@@ -163,14 +165,28 @@ export function SmsPage() {
             {(usesApiKey || usesCredentials) && (
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 {usesApiKey && (
-                  <TextField label="API Key" dir="ltr" error={errors.apikey?.message} {...register('apikey')} />
+                  <TextField
+                    label="API Key"
+                    dir="ltr"
+                    error={errors.apikey?.message}
+                    {...register('apikey')}
+                  />
                 )}
 
                 {usesCredentials && (
                   <>
-                    <TextField label="نام کاربری" dir="ltr" error={errors.username?.message} {...register('username')} />
                     <TextField
-                      label={data.settings.password_set ? 'رمز وب‌سرویس (برای تغییر پر کنید)' : 'رمز وب‌سرویس'}
+                      label="نام کاربری"
+                      dir="ltr"
+                      error={errors.username?.message}
+                      {...register('username')}
+                    />
+                    <TextField
+                      label={
+                        data.settings.password_set
+                          ? 'رمز وب‌سرویس (برای تغییر پر کنید)'
+                          : 'رمز وب‌سرویس'
+                      }
                       type="password"
                       dir="ltr"
                       placeholder={data.settings.password_set ? '••••••••' : ''}
@@ -180,7 +196,12 @@ export function SmsPage() {
                   </>
                 )}
 
-                <TextField label="شماره خط ارسال" dir="ltr" error={errors.sender?.message} {...register('sender')} />
+                <TextField
+                  label="شماره خط ارسال"
+                  dir="ltr"
+                  error={errors.sender?.message}
+                  {...register('sender')}
+                />
               </div>
             )}
 
@@ -189,9 +210,15 @@ export function SmsPage() {
             {usesPattern && (
               <div
                 className="grid grid-cols-1 gap-4 rounded-2xl border p-4 sm:grid-cols-2"
-                style={{ borderColor: 'var(--border-subtle)', backgroundColor: 'var(--surface-sunken)' }}
+                style={{
+                  borderColor: 'var(--border-subtle)',
+                  backgroundColor: 'var(--surface-sunken)',
+                }}
               >
-                <div className="sm:col-span-2 -mb-1 text-[12.5px] font-semibold" style={{ color: 'var(--text-secondary)' }}>
+                <div
+                  className="sm:col-span-2 -mb-1 text-[12.5px] font-semibold"
+                  style={{ color: 'var(--text-secondary)' }}
+                >
                   ارسال کد ورود با پترن (اختیاری، فقط برای OTP)
                 </div>
                 <TextField
@@ -216,15 +243,28 @@ export function SmsPage() {
                   error={errors.phonebook_id?.message}
                   {...register('phonebook_id')}
                 />
-                <p className="sm:col-span-2 -mt-1 text-[11.5px] leading-6" style={{ color: 'var(--text-tertiary)' }}>
+                <p
+                  className="sm:col-span-2 -mt-1 text-[11.5px] leading-6"
+                  style={{ color: 'var(--text-tertiary)' }}
+                >
                   اگر شناسه‌ی یک دفترچه تلفن را وارد کنید، شماره‌ی هر گیرنده هنگام ارسالِ کد در همان
                   دفترچه ذخیره می‌شود.
                 </p>
-                <p className="sm:col-span-2 text-[11.5px] leading-6" style={{ color: 'var(--text-tertiary)' }}>
-                  در پنل ایپ‌پنل یک پترن با متغیرِ <span dir="ltr">%code%</span> بسازید و «نام متغیر» را
-                  همان <span dir="ltr">code</span> بگذارید. برای پرشدنِ خودکارِ کد روی <b>اندروید</b>، آخرین خطِ پترن باید
-                  دقیقاً به شکلِ <span dir="ltr" className="mx-1">@دامنه‌ی‌سایت #%code%</span> باشد (مثلاً
-                  <span dir="ltr" className="mx-1">@sakena.app #%code%</span>)؛ روی <b>iOS</b> بدونِ این هم کد پیشنهاد می‌شود.
+                <p
+                  className="sm:col-span-2 text-[11.5px] leading-6"
+                  style={{ color: 'var(--text-tertiary)' }}
+                >
+                  در پنل ایپ‌پنل یک پترن با متغیرِ <span dir="ltr">%code%</span> بسازید و «نام
+                  متغیر» را همان <span dir="ltr">code</span> بگذارید. برای پرشدنِ خودکارِ کد روی{' '}
+                  <b>اندروید</b>، آخرین خطِ پترن باید دقیقاً به شکلِ{' '}
+                  <span dir="ltr" className="mx-1">
+                    @دامنه‌ی‌سایت #%code%
+                  </span>{' '}
+                  باشد (مثلاً
+                  <span dir="ltr" className="mx-1">
+                    @sakena.app #%code%
+                  </span>
+                  )؛ روی <b>iOS</b> بدونِ این هم کد پیشنهاد می‌شود.
                 </p>
               </div>
             )}
@@ -241,14 +281,22 @@ export function SmsPage() {
                 backgroundColor: 'color-mix(in srgb, var(--color-warning) 8%, transparent)',
               }}
             >
-              <input type="checkbox" className="mt-0.5 h-4 w-4 rounded" {...register('otp_disabled')} />
+              <input
+                type="checkbox"
+                className="mt-0.5 h-4 w-4 rounded"
+                {...register('otp_disabled')}
+              />
               <span>
                 <span className="text-[13px] font-bold" style={{ color: 'var(--text-primary)' }}>
                   ورود بدون کد یک‌بارمصرف (OTP)
                 </span>
-                <span className="mt-1 block text-[11.5px] leading-6" style={{ color: 'var(--text-tertiary)' }}>
+                <span
+                  className="mt-1 block text-[11.5px] leading-6"
+                  style={{ color: 'var(--text-tertiary)' }}
+                >
                   با روشن‌کردنِ این گزینه، مرحله‌ی دومِ ورود حذف می‌شود و کاربر پس از واردکردنِ رمز
-                  مستقیم وارد داشبورد می‌شود. فقط زمانی که پنلِ پیامک هنوز آماده نیست از آن استفاده کنید.
+                  مستقیم وارد داشبورد می‌شود. فقط زمانی که پنلِ پیامک هنوز آماده نیست از آن استفاده
+                  کنید.
                 </span>
               </span>
             </label>
@@ -268,7 +316,11 @@ export function SmsPage() {
         </Card>
       </form>
 
-      <Card title="ارسال آزمایشی" subtitle="پیش از استفادهٔ واقعی، اتصال را بررسی کنید" delay={0.05}>
+      <Card
+        title="ارسال آزمایشی"
+        subtitle="پیش از استفادهٔ واقعی، اتصال را بررسی کنید"
+        delay={0.05}
+      >
         <div className="flex flex-wrap items-end gap-3">
           <div className="min-w-[220px] flex-1">
             <TextField

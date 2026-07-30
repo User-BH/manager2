@@ -65,7 +65,10 @@ export function BackupList({
                 <p className="text-[13px] font-semibold" style={{ color: 'var(--text-primary)' }}>
                   {backup.note ?? 'بکاپ'}
                 </p>
-                <p className="mt-0.5 text-[11px] tabular-nums" style={{ color: 'var(--text-tertiary)' }}>
+                <p
+                  className="mt-0.5 text-[11px] tabular-nums"
+                  style={{ color: 'var(--text-tertiary)' }}
+                >
                   {backup.createdAt} · {formatNumber(backup.sizeKb)} کیلوبایت
                 </p>
               </div>

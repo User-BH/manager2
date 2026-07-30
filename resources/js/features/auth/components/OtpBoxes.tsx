@@ -55,12 +55,16 @@ export function OtpBoxes({
     if (typeof window === 'undefined' || !('OTPCredential' in window)) return
 
     const controller = new AbortController()
-    ;(navigator.credentials as unknown as {
-      get: (o: unknown) => Promise<{ code?: string } | null>
-    })
+    ;(
+      navigator.credentials as unknown as {
+        get: (o: unknown) => Promise<{ code?: string } | null>
+      }
+    )
       .get({ otp: { transport: ['sms'] }, signal: controller.signal })
       .then((cred) => {
-        const code = String(cred?.code ?? '').replace(/\D/g, '').slice(0, length)
+        const code = String(cred?.code ?? '')
+          .replace(/\D/g, '')
+          .slice(0, length)
         if (!code) return
         onChangeRef.current(code)
         if (code.length === length) onCompleteRef.current?.(code)

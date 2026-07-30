@@ -111,7 +111,12 @@ export async function promptText({
 
 type ToastPosition = 'top-start' | 'top'
 
-function toast(icon: 'success' | 'error', title: string, position: ToastPosition, timer: number): void {
+function toast(
+  icon: 'success' | 'error',
+  title: string,
+  position: ToastPosition,
+  timer: number,
+): void {
   void app.fire({
     toast: true,
     position,
@@ -188,7 +193,8 @@ export function alertError(error: unknown, fallback = 'انجام این کار 
 
     void app.fire({
       title: error.message || fallback,
-      html: fields.length > 1 ? `<ul class="swal-app-list">${fields.map(li).join('')}</ul>` : undefined,
+      html:
+        fields.length > 1 ? `<ul class="swal-app-list">${fields.map(li).join('')}</ul>` : undefined,
       text: fields.length === 1 ? fields[0] : undefined,
       icon: 'error',
       confirmButtonText: 'باشه',
@@ -206,10 +212,7 @@ export function alertError(error: unknown, fallback = 'انجام این کار 
 
 /** جلوگیری از تزریق HTML وقتی پیام خطا از سرور می‌آید. */
 function li(message: string): string {
-  const escaped = message
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
+  const escaped = message.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
 
   return `<li>${escaped}</li>`
 }

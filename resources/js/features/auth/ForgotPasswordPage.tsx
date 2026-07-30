@@ -59,7 +59,11 @@ export function ForgotPasswordPage() {
       setCode('')
       setStep('code')
     } catch (err) {
-      setError(err instanceof ApiError ? (err.fieldError('phone') ?? err.message) : 'ارتباط با سرور برقرار نشد.')
+      setError(
+        err instanceof ApiError
+          ? (err.fieldError('phone') ?? err.message)
+          : 'ارتباط با سرور برقرار نشد.',
+      )
     } finally {
       setBusy(false)
     }
@@ -112,7 +116,11 @@ export function ForgotPasswordPage() {
       // ورود خودکار انجام شده؛ به داشبورد (سندِ جدا) می‌رویم
       window.location.assign('/dashboard')
     } catch (err) {
-      setError(err instanceof ApiError ? (err.fieldError('password') ?? err.message) : 'ارتباط با سرور برقرار نشد.')
+      setError(
+        err instanceof ApiError
+          ? (err.fieldError('password') ?? err.message)
+          : 'ارتباط با سرور برقرار نشد.',
+      )
     } finally {
       setBusy(false)
     }
@@ -164,7 +172,10 @@ export function ForgotPasswordPage() {
           />
 
           {busy && (
-            <div className="flex items-center justify-center gap-2 text-[13px]" style={{ color: 'var(--text-secondary)' }}>
+            <div
+              className="flex items-center justify-center gap-2 text-[13px]"
+              style={{ color: 'var(--text-secondary)' }}
+            >
               <Loader2 size={15} className="animate-spin" />
               در حال تایید…
             </div>
