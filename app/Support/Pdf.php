@@ -5,6 +5,7 @@ namespace App\Support;
 use Mpdf\Config\ConfigVariables;
 use Mpdf\Config\FontVariables;
 use Mpdf\Mpdf;
+use Mpdf\Output\Destination;
 
 /**
  * Builds an mPDF instance pre-configured for Persian/RTL output using the
@@ -52,6 +53,6 @@ class Pdf
         $pdf = self::make();
         $pdf->WriteHTML(view($view, $data)->render());
 
-        return $pdf->Output('', \Mpdf\Output\Destination::STRING_RETURN);
+        return $pdf->Output('', Destination::STRING_RETURN);
     }
 }

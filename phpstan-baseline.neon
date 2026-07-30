@@ -1,0 +1,967 @@
+parameters:
+	ignoreErrors:
+		-
+			message: '#^Cannot call method label\(\) on string\.$#'
+			identifier: method.nonObject
+			count: 1
+			path: app/Console/Commands/CreateAdmin.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$floor\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Exports/BillsExport.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$unit_number\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Exports/BillsExport.php
+
+		-
+			message: '#^Cannot call method label\(\) on string\.$#'
+			identifier: method.nonObject
+			count: 1
+			path: app/Exports/BillsExport.php
+
+		-
+			message: '#^Cannot access property \$value on string\.$#'
+			identifier: property.nonObject
+			count: 1
+			path: app/Http/Controllers/Api/AnnouncementController.php
+
+		-
+			message: '#^Cannot call method label\(\) on string\.$#'
+			identifier: method.nonObject
+			count: 1
+			path: app/Http/Controllers/Api/AnnouncementController.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Collection\<int, App\\Models\\Complex\>\|Illuminate\\Database\\Eloquent\\Model\:\:\$id\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Controllers/Api/AuthController.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Collection\<int, App\\Models\\Complex\>\|Illuminate\\Database\\Eloquent\\Model\:\:\$name\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Controllers/Api/AuthController.php
+
+		-
+			message: '#^Cannot access property \$value on string\.$#'
+			identifier: property.nonObject
+			count: 1
+			path: app/Http/Controllers/Api/AuthController.php
+
+		-
+			message: '#^Cannot call method isAdmin\(\) on string\.$#'
+			identifier: method.nonObject
+			count: 1
+			path: app/Http/Controllers/Api/AuthController.php
+
+		-
+			message: '#^Cannot call method label\(\) on string\.$#'
+			identifier: method.nonObject
+			count: 1
+			path: app/Http/Controllers/Api/AuthController.php
+
+		-
+			message: '#^Parameter \#1 \$boolean of function abort_unless expects bool, App\\Models\\User\|Illuminate\\Database\\Eloquent\\Collection\<int, App\\Models\\User\>\|null given\.$#'
+			identifier: argument.type
+			count: 3
+			path: app/Http/Controllers/Api/AuthController.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$unit_number\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Controllers/Api/BillController.php
+
+		-
+			message: '#^Cannot access property \$value on string\.$#'
+			identifier: property.nonObject
+			count: 1
+			path: app/Http/Controllers/Api/BillController.php
+
+		-
+			message: '#^Cannot call method label\(\) on string\.$#'
+			identifier: method.nonObject
+			count: 1
+			path: app/Http/Controllers/Api/BillController.php
+
+		-
+			message: '#^Parameter \#1 \$callback of method Illuminate\\Database\\Eloquent\\Collection\<int,App\\Models\\Bill\>\:\:map\(\) contains unresolvable type\.$#'
+			identifier: argument.unresolvableType
+			count: 1
+			path: app/Http/Controllers/Api/BillController.php
+
+		-
+			message: '#^Cannot access property \$value on string\.$#'
+			identifier: property.nonObject
+			count: 2
+			path: app/Http/Controllers/Api/ChargeRuleController.php
+
+		-
+			message: '#^Cannot call method isPoolBased\(\) on string\.$#'
+			identifier: method.nonObject
+			count: 1
+			path: app/Http/Controllers/Api/ChargeRuleController.php
+
+		-
+			message: '#^Cannot call method label\(\) on string\.$#'
+			identifier: method.nonObject
+			count: 1
+			path: app/Http/Controllers/Api/ChargeRuleController.php
+
+		-
+			message: '#^Strict comparison using \=\=\= between string and App\\Enums\\ExpenseCategory\:\:Owner will always evaluate to false\.$#'
+			identifier: identical.alwaysFalse
+			count: 1
+			path: app/Http/Controllers/Api/ChargeRuleController.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$balance\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Controllers/Api/DashboardController.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$bills\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Controllers/Api/DashboardController.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$id\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Controllers/Api/DashboardController.php
+
+		-
+			message: '#^Call to an undefined method Illuminate\\Database\\Eloquent\\Model\:\:currencyLabel\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: app/Http/Controllers/Api/DashboardController.php
+
+		-
+			message: '#^Call to an undefined method Illuminate\\Database\\Eloquent\\Model\:\:label\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: app/Http/Controllers/Api/DashboardController.php
+
+		-
+			message: '#^Offset ''on_time'' on array\{unit\: App\\Models\\Unit, on_time\: int, total_paid\: float, tier\: string\} on left side of \?\? always exists and is not nullable\.$#'
+			identifier: nullCoalesce.offset
+			count: 1
+			path: app/Http/Controllers/Api/DashboardController.php
+
+		-
+			message: '#^Parameter \#1 \$callback of method Illuminate\\Database\\Eloquent\\Collection\<int,Illuminate\\Database\\Eloquent\\Model\>\:\:map\(\) contains unresolvable type\.$#'
+			identifier: argument.unresolvableType
+			count: 1
+			path: app/Http/Controllers/Api/DashboardController.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$unit_number\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Controllers/Api/DiscountController.php
+
+		-
+			message: '#^Cannot access property \$value on string\.$#'
+			identifier: property.nonObject
+			count: 2
+			path: app/Http/Controllers/Api/FinanceController.php
+
+		-
+			message: '#^Cannot call method label\(\) on string\.$#'
+			identifier: method.nonObject
+			count: 1
+			path: app/Http/Controllers/Api/FinanceController.php
+
+		-
+			message: '#^Parameter \#1 \$callback of method Illuminate\\Database\\Eloquent\\Collection\<int,App\\Models\\Expense\>\:\:map\(\) contains unresolvable type\.$#'
+			identifier: argument.unresolvableType
+			count: 1
+			path: app/Http/Controllers/Api/FinanceController.php
+
+		-
+			message: '#^Strict comparison using \=\=\= between string and App\\Enums\\ExpenseCategory\:\:Owner will always evaluate to false\.$#'
+			identifier: identical.alwaysFalse
+			count: 1
+			path: app/Http/Controllers/Api/FinanceController.php
+
+		-
+			message: '#^Call to function abort_unless\(\) with false and 403 will always evaluate to false\.$#'
+			identifier: function.impossibleType
+			count: 1
+			path: app/Http/Controllers/Api/ManagerController.php
+
+		-
+			message: '#^Strict comparison using \=\=\= between string and App\\Enums\\UserRole\:\:ComplexAdmin will always evaluate to false\.$#'
+			identifier: identical.alwaysFalse
+			count: 1
+			path: app/Http/Controllers/Api/ManagerController.php
+
+		-
+			message: '#^Call to an undefined method Illuminate\\Database\\Eloquent\\Model&object\{pivot\: Illuminate\\Database\\Eloquent\\Relations\\Pivot\}\:\:label\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: app/Http/Controllers/Api/MessengerController.php
+
+		-
+			message: '#^Cannot access property \$value on string\.$#'
+			identifier: property.nonObject
+			count: 1
+			path: app/Http/Controllers/Api/MessengerController.php
+
+		-
+			message: '#^Method App\\Http\\Controllers\\Api\\MessengerController\:\:messengerComplex\(\) should return App\\Models\\Complex\|null but returns Illuminate\\Database\\Eloquent\\Collection\<int, App\\Models\\Complex\>\|Illuminate\\Database\\Eloquent\\Model\|null\.$#'
+			identifier: return.type
+			count: 1
+			path: app/Http/Controllers/Api/MessengerController.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$amount\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Controllers/Api/MyBillController.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$id\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Controllers/Api/MyBillController.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$method\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Controllers/Api/MyBillController.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$paid_at\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Controllers/Api/MyBillController.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$status\.$#'
+			identifier: property.notFound
+			count: 2
+			path: app/Http/Controllers/Api/MyBillController.php
+
+		-
+			message: '#^Call to an undefined method Illuminate\\Database\\Eloquent\\Model\:\:currencyLabel\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: app/Http/Controllers/Api/MyBillController.php
+
+		-
+			message: '#^Call to an undefined method Illuminate\\Database\\Eloquent\\Model\:\:label\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: app/Http/Controllers/Api/MyBillController.php
+
+		-
+			message: '#^Cannot access property \$value on string\.$#'
+			identifier: property.nonObject
+			count: 1
+			path: app/Http/Controllers/Api/MyBillController.php
+
+		-
+			message: '#^Cannot call method label\(\) on string\.$#'
+			identifier: method.nonObject
+			count: 1
+			path: app/Http/Controllers/Api/MyBillController.php
+
+		-
+			message: '#^Match arm comparison between null and ''owner'' is always false\.$#'
+			identifier: match.alwaysFalse
+			count: 1
+			path: app/Http/Controllers/Api/MyBillController.php
+
+		-
+			message: '#^Match arm comparison between null and ''tenant'' is always false\.$#'
+			identifier: match.alwaysFalse
+			count: 1
+			path: app/Http/Controllers/Api/MyBillController.php
+
+		-
+			message: '#^Offset ''amount'' on string on left side of \?\? does not exist\.$#'
+			identifier: nullCoalesce.offset
+			count: 1
+			path: app/Http/Controllers/Api/MyBillController.php
+
+		-
+			message: '#^Offset ''category'' on string on left side of \?\? does not exist\.$#'
+			identifier: nullCoalesce.offset
+			count: 1
+			path: app/Http/Controllers/Api/MyBillController.php
+
+		-
+			message: '#^Offset ''label'' on string on left side of \?\? does not exist\.$#'
+			identifier: nullCoalesce.offset
+			count: 1
+			path: app/Http/Controllers/Api/MyBillController.php
+
+		-
+			message: '#^Parameter \#1 \$callback of method Illuminate\\Database\\Eloquent\\Collection\<int,Illuminate\\Database\\Eloquent\\Model\>\:\:map\(\) contains unresolvable type\.$#'
+			identifier: argument.unresolvableType
+			count: 1
+			path: app/Http/Controllers/Api/MyBillController.php
+
+		-
+			message: '#^Call to an undefined method Illuminate\\Database\\Eloquent\\Model\:\:currencyLabel\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: app/Http/Controllers/Api/PaymentController.php
+
+		-
+			message: '#^Call to an undefined method Illuminate\\Database\\Eloquent\\Model\:\:label\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: app/Http/Controllers/Api/PaymentController.php
+
+		-
+			message: '#^Cannot call method label\(\) on string\.$#'
+			identifier: method.nonObject
+			count: 1
+			path: app/Http/Controllers/Api/PaymentController.php
+
+		-
+			message: '#^Parameter \#1 \$complex of method App\\Services\\Payment\\GatewayManager\:\:isOnlineEnabled\(\) expects App\\Models\\Complex, Illuminate\\Database\\Eloquent\\Model\|null given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Http/Controllers/Api/PaymentController.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$name\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Controllers/Api/PaymentReviewController.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$period\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Controllers/Api/PaymentReviewController.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$unit_number\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Controllers/Api/PaymentReviewController.php
+
+		-
+			message: '#^Call to function abort_unless\(\) with false and 422 will always evaluate to false\.$#'
+			identifier: function.impossibleType
+			count: 2
+			path: app/Http/Controllers/Api/PaymentReviewController.php
+
+		-
+			message: '#^Cannot access property \$value on string\.$#'
+			identifier: property.nonObject
+			count: 2
+			path: app/Http/Controllers/Api/PaymentReviewController.php
+
+		-
+			message: '#^Cannot call method label\(\) on string\.$#'
+			identifier: method.nonObject
+			count: 2
+			path: app/Http/Controllers/Api/PaymentReviewController.php
+
+		-
+			message: '#^Strict comparison using \=\=\= between string and App\\Enums\\PaymentStatus\:\:Pending will always evaluate to false\.$#'
+			identifier: identical.alwaysFalse
+			count: 2
+			path: app/Http/Controllers/Api/PaymentReviewController.php
+
+		-
+			message: '#^Using nullsafe method call on non\-nullable type string\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Http/Controllers/Api/PaymentReviewController.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>name" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Http/Controllers/Api/PaymentReviewController.php
+
+		-
+			message: '#^Using nullsafe property access on non\-nullable type string\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Http/Controllers/Api/PaymentReviewController.php
+
+		-
+			message: '#^Access to an undefined property App\\Models\\Unit\:\:\$pivot\.$#'
+			identifier: property.notFound
+			count: 8
+			path: app/Http/Controllers/Api/ProfileController.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$id\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Controllers/Api/ProfileController.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$name\.$#'
+			identifier: property.notFound
+			count: 2
+			path: app/Http/Controllers/Api/ProfileController.php
+
+		-
+			message: '#^Cannot access property \$value on string\.$#'
+			identifier: property.nonObject
+			count: 1
+			path: app/Http/Controllers/Api/ProfileController.php
+
+		-
+			message: '#^Cannot call method label\(\) on string\.$#'
+			identifier: method.nonObject
+			count: 3
+			path: app/Http/Controllers/Api/ProfileController.php
+
+		-
+			message: '#^Cannot call method toDateString\(\) on string\.$#'
+			identifier: method.nonObject
+			count: 1
+			path: app/Http/Controllers/Api/ProfileController.php
+
+		-
+			message: '#^Parameter \#1 \$callback of method Illuminate\\Database\\Eloquent\\Collection\<int,App\\Models\\User\>\:\:map\(\) contains unresolvable type\.$#'
+			identifier: argument.unresolvableType
+			count: 2
+			path: app/Http/Controllers/Api/ProfileController.php
+
+		-
+			message: '#^Parameter \#1 \$callback of method Illuminate\\Database\\Eloquent\\Collection\<int,Illuminate\\Database\\Eloquent\\Model\>\:\:map\(\) contains unresolvable type\.$#'
+			identifier: argument.unresolvableType
+			count: 1
+			path: app/Http/Controllers/Api/ProfileController.php
+
+		-
+			message: '#^Parameter \#1 \$callback of method Illuminate\\Database\\Eloquent\\Collection\<int,Illuminate\\Database\\Eloquent\\Model\>\:\:map\(\) expects callable\(Illuminate\\Database\\Eloquent\\Model, int\)\: array\{id\: int, label\: non\-falsy\-string, buildingName\: mixed, floor\: int, area\: float, relation\: mixed, relationLabel\: ''مالک''\|''مستاجر'', sharePercent\: float, isCurrent\: bool, balance\: float, startDate\: string\|null, endDate\: string\|null\}, Closure\(App\\Models\\Unit\)\: array\{id\: int, label\: non\-falsy\-string, buildingName\: mixed, floor\: int, area\: float, relation\: mixed, relationLabel\: ''مالک''\|''مستاجر'', sharePercent\: float, isCurrent\: bool, balance\: float, startDate\: string\|null, endDate\: string\|null\} given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Http/Controllers/Api/ProfileController.php
+
+		-
+			message: '#^Cannot access property \$value on string\.$#'
+			identifier: property.nonObject
+			count: 1
+			path: app/Http/Controllers/Api/ResidentController.php
+
+		-
+			message: '#^Cannot call method label\(\) on string\.$#'
+			identifier: method.nonObject
+			count: 1
+			path: app/Http/Controllers/Api/ResidentController.php
+
+		-
+			message: '#^Parameter \#1 \$callback of method Illuminate\\Database\\Eloquent\\Collection\<int,Illuminate\\Database\\Eloquent\\Model\>\:\:map\(\) expects callable\(Illuminate\\Database\\Eloquent\\Model, int\)\: array\{id\: int, label\: non\-falsy\-string\}, Closure\(App\\Models\\Unit\)\: array\{id\: int, label\: non\-falsy\-string\} given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Http/Controllers/Api/ResidentController.php
+
+		-
+			message: '#^Strict comparison using \=\=\= between string and App\\Enums\\UserRole\:\:Owner will always evaluate to false\.$#'
+			identifier: identical.alwaysFalse
+			count: 1
+			path: app/Http/Controllers/Api/ResidentController.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$name\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Controllers/Api/SearchController.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$unit_number\.$#'
+			identifier: property.notFound
+			count: 2
+			path: app/Http/Controllers/Api/SearchController.php
+
+		-
+			message: '#^Cannot call method label\(\) on string\.$#'
+			identifier: method.nonObject
+			count: 3
+			path: app/Http/Controllers/Api/SearchController.php
+
+		-
+			message: '#^Offset ''password'' on array\{\}\|string on left side of \?\? does not exist\.$#'
+			identifier: nullCoalesce.offset
+			count: 2
+			path: app/Http/Controllers/Api/SettingController.php
+
+		-
+			message: '#^Offset ''terminal_id'' on array\{\}\|string on left side of \?\? does not exist\.$#'
+			identifier: nullCoalesce.offset
+			count: 1
+			path: app/Http/Controllers/Api/SettingController.php
+
+		-
+			message: '#^Offset ''username'' on array\{\}\|string on left side of \?\? does not exist\.$#'
+			identifier: nullCoalesce.offset
+			count: 1
+			path: app/Http/Controllers/Api/SettingController.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$name\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Controllers/Api/SubscriptionController.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$slug\.$#'
+			identifier: property.notFound
+			count: 2
+			path: app/Http/Controllers/Api/SubscriptionController.php
+
+		-
+			message: '#^Cannot access property \$value on string\.$#'
+			identifier: property.nonObject
+			count: 2
+			path: app/Http/Controllers/Api/SubscriptionController.php
+
+		-
+			message: '#^Cannot call method toDateString\(\) on string\.$#'
+			identifier: method.nonObject
+			count: 2
+			path: app/Http/Controllers/Api/System/AdvertisementController.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$name\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Controllers/Api/System/AuditLogController.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$phone\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Controllers/Api/System/AuditLogController.php
+
+		-
+			message: '#^Parameter \#1 \$callback of method Illuminate\\Support\\Collection\<int,App\\Models\\AuditLog\>\:\:map\(\) contains unresolvable type\.$#'
+			identifier: argument.unresolvableType
+			count: 1
+			path: app/Http/Controllers/Api/System/AuditLogController.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>name" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Http/Controllers/Api/System/AuditLogController.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$id\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Controllers/Api/System/MemberController.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$name\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Controllers/Api/System/MemberController.php
+
+		-
+			message: '#^Cannot access property \$value on string\.$#'
+			identifier: property.nonObject
+			count: 1
+			path: app/Http/Controllers/Api/System/MemberController.php
+
+		-
+			message: '#^Cannot call method label\(\) on string\.$#'
+			identifier: method.nonObject
+			count: 1
+			path: app/Http/Controllers/Api/System/MemberController.php
+
+		-
+			message: '#^Property App\\Models\\User\:\:\$role \(string\) does not accept App\\Enums\\UserRole\.$#'
+			identifier: assign.propertyType
+			count: 1
+			path: app/Http/Controllers/Api/System/MemberController.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$name\.$#'
+			identifier: property.notFound
+			count: 3
+			path: app/Http/Controllers/Api/System/SubscriptionReviewController.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$phone\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Controllers/Api/System/SubscriptionReviewController.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$slug\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Controllers/Api/System/SubscriptionReviewController.php
+
+		-
+			message: '#^Cannot access property \$value on string\.$#'
+			identifier: property.nonObject
+			count: 3
+			path: app/Http/Controllers/Api/System/SubscriptionReviewController.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>name" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 2
+			path: app/Http/Controllers/Api/System/SubscriptionReviewController.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$name\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Controllers/Api/UnitController.php
+
+		-
+			message: '#^Cannot access property \$value on string\.$#'
+			identifier: property.nonObject
+			count: 1
+			path: app/Http/Controllers/Api/UnitController.php
+
+		-
+			message: '#^Cannot call method label\(\) on string\.$#'
+			identifier: method.nonObject
+			count: 1
+			path: app/Http/Controllers/Api/UnitController.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$unit_number\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Controllers/DownloadController.php
+
+		-
+			message: '#^Called ''contains'' on Laravel collection, but could have been retrieved as a query\.$#'
+			identifier: larastan.noUnnecessaryCollectionCall
+			count: 1
+			path: app/Http/Controllers/DownloadController.php
+
+		-
+			message: '#^Parameter \#1 \$callback of method Illuminate\\Support\\Collection\<int,Illuminate\\Database\\Eloquent\\Model\>\:\:sum\(\) expects \(callable\(Illuminate\\Database\\Eloquent\\Model, int\)\: float\)\|string\|null, Closure\(App\\Models\\Bill\)\: float given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Http/Controllers/DownloadController.php
+
+		-
+			message: '#^Offset ''fields'' on \*NEVER\* on left side of \?\? always exists and is not nullable\.$#'
+			identifier: nullCoalesce.offset
+			count: 1
+			path: app/Http/Controllers/GatewayController.php
+
+		-
+			message: '#^Offset ''method'' on array\{redirect_url\: string, ref_id\: string\} on left side of \?\? does not exist\.$#'
+			identifier: nullCoalesce.offset
+			count: 1
+			path: app/Http/Controllers/GatewayController.php
+
+		-
+			message: '#^Parameter \#1 \$complex of method App\\Services\\Payment\\GatewayManager\:\:for\(\) expects App\\Models\\Complex, Illuminate\\Database\\Eloquent\\Model\|null given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Http/Controllers/GatewayController.php
+
+		-
+			message: '#^Strict comparison using \!\=\= between string and App\\Enums\\PaymentStatus\:\:Pending will always evaluate to true\.$#'
+			identifier: notIdentical.alwaysTrue
+			count: 1
+			path: app/Http/Controllers/GatewayController.php
+
+		-
+			message: '#^Strict comparison using \=\=\= between ''GET'' and ''POST'' will always evaluate to false\.$#'
+			identifier: identical.alwaysFalse
+			count: 1
+			path: app/Http/Controllers/GatewayController.php
+
+		-
+			message: '#^Strict comparison using \=\=\= between string and App\\Enums\\PaymentStatus\:\:Success will always evaluate to false\.$#'
+			identifier: identical.alwaysFalse
+			count: 1
+			path: app/Http/Controllers/GatewayController.php
+
+		-
+			message: '#^Unreachable statement \- code above always terminates\.$#'
+			identifier: deadCode.unreachable
+			count: 1
+			path: app/Http/Controllers/GatewayController.php
+
+		-
+			message: '#^Offset ''fields'' on \*NEVER\* on left side of \?\? always exists and is not nullable\.$#'
+			identifier: nullCoalesce.offset
+			count: 1
+			path: app/Http/Controllers/SubscriptionCheckoutController.php
+
+		-
+			message: '#^Offset ''method'' on array\{redirect_url\: string, ref_id\: string\} on left side of \?\? does not exist\.$#'
+			identifier: nullCoalesce.offset
+			count: 1
+			path: app/Http/Controllers/SubscriptionCheckoutController.php
+
+		-
+			message: '#^Strict comparison using \=\=\= between ''GET'' and ''POST'' will always evaluate to false\.$#'
+			identifier: identical.alwaysFalse
+			count: 1
+			path: app/Http/Controllers/SubscriptionCheckoutController.php
+
+		-
+			message: '#^Cannot access property \$value on string\.$#'
+			identifier: property.nonObject
+			count: 1
+			path: app/Http/Middleware/EnsureRole.php
+
+		-
+			message: '#^Cannot call method gt\(\) on string\.$#'
+			identifier: method.nonObject
+			count: 1
+			path: app/Models/Advertisement.php
+
+		-
+			message: '#^Cannot call method lte\(\) on string\.$#'
+			identifier: method.nonObject
+			count: 1
+			path: app/Models/Advertisement.php
+
+		-
+			message: '#^Strict comparison using \=\=\= between string and App\\Enums\\UserRole\:\:Owner will always evaluate to false\.$#'
+			identifier: identical.alwaysFalse
+			count: 1
+			path: app/Models/Announcement.php
+
+		-
+			message: '#^Call to an undefined method Illuminate\\Database\\Eloquent\\Model\:\:recalculateBalance\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: app/Models/Bill.php
+
+		-
+			message: '#^Property App\\Models\\Bill\:\:\$status \(string\) does not accept App\\Enums\\BillStatus\:\:Paid\.$#'
+			identifier: assign.propertyType
+			count: 1
+			path: app/Models/Bill.php
+
+		-
+			message: '#^Property App\\Models\\Bill\:\:\$status \(string\) does not accept App\\Enums\\BillStatus\:\:Partial\.$#'
+			identifier: assign.propertyType
+			count: 1
+			path: app/Models/Bill.php
+
+		-
+			message: '#^Property App\\Models\\Bill\:\:\$status \(string\) does not accept App\\Enums\\BillStatus\:\:Unpaid\.$#'
+			identifier: assign.propertyType
+			count: 1
+			path: app/Models/Bill.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$phone\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Models/Payment.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$phone\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Models/Subscription.php
+
+		-
+			message: '#^Cannot call method isFuture\(\) on string\.$#'
+			identifier: method.nonObject
+			count: 1
+			path: app/Models/Subscription.php
+
+		-
+			message: '#^Method App\\Models\\Subscription\:\:resolvedPlan\(\) should return App\\Contracts\\PlanCapabilities but returns Illuminate\\Database\\Eloquent\\Model\|string\.$#'
+			identifier: return.type
+			count: 1
+			path: app/Models/Subscription.php
+
+		-
+			message: '#^Cannot call method isAdmin\(\) on string\.$#'
+			identifier: method.nonObject
+			count: 1
+			path: app/Models/User.php
+
+		-
+			message: '#^Strict comparison using \=\=\= between string and App\\Enums\\UserRole\:\:ComplexAdmin will always evaluate to false\.$#'
+			identifier: identical.alwaysFalse
+			count: 1
+			path: app/Models/User.php
+
+		-
+			message: '#^Strict comparison using \=\=\= between string and App\\Enums\\UserRole\:\:SuperAdmin will always evaluate to false\.$#'
+			identifier: identical.alwaysFalse
+			count: 1
+			path: app/Models/User.php
+
+		-
+			message: '#^Using nullsafe method call on non\-nullable type string\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Models/User.php
+
+		-
+			message: '#^Parameter \#1 \$date of static method App\\Support\\Jalali\:\:date\(\) expects Carbon\\Carbon\|string\|null, \$this\(App\\Providers\\AppServiceProvider\) given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Providers/AppServiceProvider.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$is_active\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Services/Auth/TrustedDeviceService.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$id\.$#'
+			identifier: property.notFound
+			count: 4
+			path: app/Services/Charge/BillGenerator.php
+
+		-
+			message: '#^Cannot call method diffInDays\(\) on string\.$#'
+			identifier: method.nonObject
+			count: 1
+			path: app/Services/Charge/BillGenerator.php
+
+		-
+			message: '#^Parameter \#1 \$expense of static method App\\Services\\Charge\\ChargeComponent\:\:fromExpense\(\) expects App\\Models\\Expense, Illuminate\\Database\\Eloquent\\Model given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Services/Charge/BillGenerator.php
+
+		-
+			message: '#^Parameter \#1 \$rule of static method App\\Services\\Charge\\ChargeComponent\:\:fromRule\(\) expects App\\Models\\ChargeRule, Illuminate\\Database\\Eloquent\\Model given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Services/Charge/BillGenerator.php
+
+		-
+			message: '#^Parameter \#1 \$units of method App\\Services\\Charge\\ChargeCalculator\:\:calculate\(\) expects Illuminate\\Support\\Collection\<int, App\\Models\\Unit\>, Illuminate\\Database\\Eloquent\\Collection\<int, Illuminate\\Database\\Eloquent\\Model\> given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Services/Charge/BillGenerator.php
+
+		-
+			message: '#^Property App\\Models\\Bill\:\:\$breakdown \(string\|null\) does not accept array\.$#'
+			identifier: assign.propertyType
+			count: 1
+			path: app/Services/Charge/BillGenerator.php
+
+		-
+			message: '#^Result of && is always false\.$#'
+			identifier: booleanAnd.alwaysFalse
+			count: 1
+			path: app/Services/Charge/BillGenerator.php
+
+		-
+			message: '#^Strict comparison using \=\=\= between string and App\\Enums\\BillStatus\:\:Paid will always evaluate to false\.$#'
+			identifier: identical.alwaysFalse
+			count: 1
+			path: app/Services/Charge/BillGenerator.php
+
+		-
+			message: '#^Parameter \$category of class App\\Services\\Charge\\ChargeComponent constructor expects App\\Enums\\ExpenseCategory, string given\.$#'
+			identifier: argument.type
+			count: 2
+			path: app/Services/Charge/ChargeComponent.php
+
+		-
+			message: '#^Parameter \$targetUnitIds of class App\\Services\\Charge\\ChargeComponent constructor expects array\|null, string\|null given\.$#'
+			identifier: argument.type
+			count: 2
+			path: app/Services/Charge/ChargeComponent.php
+
+		-
+			message: '#^Parameter \$type of class App\\Services\\Charge\\ChargeComponent constructor expects App\\Enums\\ChargeRuleType, string given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Services/Charge/ChargeComponent.php
+
+		-
+			message: '#^Parameter \$type of class App\\Services\\Charge\\ChargeComponent constructor expects App\\Enums\\ChargeRuleType, string\|null given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Services/Charge/ChargeComponent.php
+
+		-
+			message: '#^Cannot access property \$value on string\.$#'
+			identifier: property.nonObject
+			count: 1
+			path: app/Services/Payment/PaymentService.php
+
+		-
+			message: '#^Property App\\Models\\Payment\:\:\$status \(string\) does not accept App\\Enums\\PaymentStatus\:\:Rejected\.$#'
+			identifier: assign.propertyType
+			count: 1
+			path: app/Services/Payment/PaymentService.php
+
+		-
+			message: '#^Property App\\Models\\Payment\:\:\$status \(string\) does not accept App\\Enums\\PaymentStatus\:\:Success\.$#'
+			identifier: assign.propertyType
+			count: 1
+			path: app/Services/Payment/PaymentService.php
+
+		-
+			message: '#^Cannot call method lte\(\) on string\.$#'
+			identifier: method.nonObject
+			count: 1
+			path: app/Services/ReportService.php
+
+		-
+			message: '#^Method App\\Services\\ReportService\:\:goodPayers\(\) should return Illuminate\\Support\\Collection\<int, array\{unit\: App\\Models\\Unit, on_time\: int, total_paid\: float, tier\: string\}\> but returns Illuminate\\Support\\Collection\<int, array\{unit\: App\\Models\\Unit, on_time\: int\<0, max\>, total_paid\: float, tier\: string\}\>\.$#'
+			identifier: return.type
+			count: 1
+			path: app/Services/ReportService.php
+
+		-
+			message: '#^Parameter \#1 \$callback of method Illuminate\\Support\\Collection\<int,Illuminate\\Database\\Eloquent\\Model\>\:\:filter\(\) expects \(callable\(Illuminate\\Database\\Eloquent\\Model, int\)\: bool\)\|null, Closure\(App\\Models\\Bill\)\: bool given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Services/ReportService.php
+
+		-
+			message: '#^Parameter \#2 \$replace of function str_replace expects array\<string\>\|string, array\<int, int\> given\.$#'
+			identifier: argument.type
+			count: 2
+			path: app/Support/Phone.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$id\.$#'
+			identifier: property.notFound
+			count: 2
+			path: database/seeders/DemoSeeder.php
+
+		-
+			message: '#^Call to an undefined method Illuminate\\Database\\Eloquent\\Model\:\:bills\(\)\.$#'
+			identifier: method.notFound
+			count: 2
+			path: database/seeders/DemoSeeder.php
+
+		-
+			message: '#^Call to an undefined method Illuminate\\Database\\Eloquent\\Model\:\:owners\(\)\.$#'
+			identifier: method.notFound
+			count: 2
+			path: database/seeders/DemoSeeder.php
+
+		-
+			message: '#^Call to an undefined method Illuminate\\Database\\Eloquent\\Model\:\:tenants\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: database/seeders/DemoSeeder.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>id" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: database/seeders/DemoSeeder.php

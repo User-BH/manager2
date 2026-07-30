@@ -7,6 +7,7 @@ use App\Enums\SubscriptionPlan;
 use App\Models\Complex;
 use App\Models\Subscription;
 use App\Models\Unit;
+use App\Support\Jalali;
 use Illuminate\Http\Exceptions\HttpResponseException;
 
 /**
@@ -72,7 +73,7 @@ class PlanGate
 
         if ($this->unitCount($complex) >= $limit) {
             $this->deny(
-                'در پلن رایگان تا '.\App\Support\Jalali::digits($limit).' واحد می‌توانید ثبت کنید. '
+                'در پلن رایگان تا '.Jalali::digits($limit).' واحد می‌توانید ثبت کنید. '
                 .'برای افزودن واحد بیشتر، اشتراک پرو را فعال کنید.'
             );
         }

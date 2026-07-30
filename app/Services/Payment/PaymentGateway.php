@@ -2,7 +2,6 @@
 
 namespace App\Services\Payment;
 
-
 /**
  * Contract every payment gateway driver implements. Real drivers
  * (Mellat/be-pardakht, Saman/SEP) follow the same two-step flow:

@@ -10,6 +10,7 @@ use App\Models\Complex;
 use App\Models\Payment;
 use App\Models\Unit;
 use App\Models\User;
+use App\Services\Payment\FakeGateway;
 use App\Services\Payment\GatewayManager;
 use App\Services\Subscription\SubscriptionGatewayManager;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -96,7 +97,7 @@ class SandboxGatewayTest extends TestCase
         config(['payment.sandbox_enabled' => true]);
 
         $this->assertInstanceOf(
-            \App\Services\Payment\FakeGateway::class,
+            FakeGateway::class,
             app(GatewayManager::class)->for($this->complex),
         );
     }

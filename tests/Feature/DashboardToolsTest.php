@@ -9,6 +9,7 @@ use App\Enums\UserRole;
 use App\Models\Announcement;
 use App\Models\AnnouncementRead;
 use App\Models\Complex;
+use App\Models\Plan;
 use App\Models\Subscription;
 use App\Models\Unit;
 use App\Models\User;
@@ -387,7 +388,7 @@ class DashboardToolsTest extends TestCase
         // پکیج‌ها حالا از دیتابیس می‌آیند (سه پکیجِ پیش‌فرض)، با قیمتِ سمت سرور.
         $this->assertCount(3, $response->json('plans'));
         $this->assertSame(
-            \App\Models\Plan::where('slug', 'basic')->value('price'),
+            Plan::where('slug', 'basic')->value('price'),
             $response->json('plans.0.price'),
         );
     }

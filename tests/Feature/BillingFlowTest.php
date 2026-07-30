@@ -11,6 +11,7 @@ use App\Enums\PaymentStatus;
 use App\Models\Bill;
 use App\Models\ChargeRule;
 use App\Models\Complex;
+use App\Models\Discount;
 use App\Models\Expense;
 use App\Models\Payment;
 use App\Models\Unit;
@@ -110,7 +111,7 @@ class BillingFlowTest extends TestCase
             'category' => ExpenseCategory::Tenant, 'config' => ['amount' => 500000], 'is_active' => true,
         ]);
 
-        \App\Models\Discount::withoutGlobalScopes()->create([
+        Discount::withoutGlobalScopes()->create([
             'complex_id' => $c->id, 'unit_id' => $unit->id, 'period' => '1404-03',
             'amount' => 120000, 'reason' => 'تخفیف تست',
         ]);

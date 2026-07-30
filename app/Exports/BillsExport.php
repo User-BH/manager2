@@ -12,7 +12,7 @@ use Maatwebsite\Excel\Concerns\WithMapping;
 use Maatwebsite\Excel\Concerns\WithTitle;
 use Maatwebsite\Excel\Events\AfterSheet;
 
-class BillsExport implements FromCollection, WithHeadings, WithMapping, WithTitle, WithEvents
+class BillsExport implements FromCollection, WithEvents, WithHeadings, WithMapping, WithTitle
 {
     public function __construct(protected Collection $bills, protected string $period) {}
 

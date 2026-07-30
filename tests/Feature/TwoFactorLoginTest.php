@@ -7,6 +7,7 @@ use App\Models\Complex;
 use App\Models\TrustedDevice;
 use App\Models\User;
 use App\Services\Auth\TrustedDeviceService;
+use App\Support\SystemSettings;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
@@ -94,7 +95,7 @@ class TwoFactorLoginTest extends TestCase
 
     public function test_when_otp_is_disabled_login_goes_straight_to_the_dashboard(): void
     {
-        \App\Support\SystemSettings::set('otp_disabled', true);
+        SystemSettings::set('otp_disabled', true);
 
         // با خاموش‌بودنِ OTP، رمزِ درست بلافاصله کاربر را وارد می‌کند (بدون کد).
         $this->postJson('/api/login', ['phone' => '09120000010', 'password' => 'secret123'])

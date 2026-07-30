@@ -5,8 +5,8 @@ namespace Tests\Unit;
 use App\Enums\ChargeRuleType;
 use App\Enums\ExpenseCategory;
 use App\Models\Unit;
-use App\Services\Charge\ChargeComponent;
 use App\Services\Charge\ChargeCalculator;
+use App\Services\Charge\ChargeComponent;
 use Illuminate\Support\Collection;
 use PHPUnit\Framework\TestCase;
 

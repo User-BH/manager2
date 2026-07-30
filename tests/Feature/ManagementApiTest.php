@@ -7,6 +7,7 @@ use App\Enums\ExpenseCategory;
 use App\Enums\UserRole;
 use App\Models\Complex;
 use App\Models\Expense;
+use App\Models\Unit;
 use App\Models\User;
 use App\Support\Jalali;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -71,7 +72,7 @@ class ManagementApiTest extends TestCase
         $admin = $this->admin();
         $period = Jalali::currentPeriod();
 
-        $unit = \App\Models\Unit::create([
+        $unit = Unit::create([
             'complex_id' => $admin->complex_id,
             'unit_number' => '5', 'floor' => 1, 'area' => 80,
             'residents_count' => 2, 'coefficient' => 1,

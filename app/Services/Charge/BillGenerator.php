@@ -5,6 +5,7 @@ namespace App\Services\Charge;
 use App\Enums\BillStatus;
 use App\Models\Bill;
 use App\Models\Complex;
+use App\Models\Discount;
 use App\Support\Jalali;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
@@ -31,7 +32,7 @@ class BillGenerator
 
         // Merge any per-unit discounts/exemptions defined for this period.
         if (empty($discounts)) {
-            $discounts = \App\Models\Discount::withoutGlobalScopes()
+            $discounts = Discount::withoutGlobalScopes()
                 ->where('complex_id', $complex->id)
                 ->where('period', $period)
                 ->pluck('amount', 'unit_id')
