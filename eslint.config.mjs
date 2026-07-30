@@ -8,22 +8,19 @@ import tseslint from 'typescript-eslint'
 /**
  * ESLint با آگاهی از تایپ (type-aware).
  *
- * ─── چرا TypeScript دو نسخه‌ای نصب است ─────────────────────────────────────
- * `typescript-eslint` روی TypeScript 7 **اجرا نمی‌شود** و صریحاً خطا می‌دهد
- * (typescript-eslint#10940). راه‌حلِ رسمیِ خودِ تیم TypeScript نصبِ کنار-هم است
- * (اعلامیه‌ی TS 7.0، بخش «Running side-by-side with TypeScript 6.0») و در
- * `package.json` همان را داریم — با نام‌های عوض‌شده که عمدی است:
+ * پروژه روی **TypeScript 6** است و این یک انتخابِ آگاهانه است، نه عقب‌ماندگی:
+ * `typescript-eslint` روی TS 7 اجرا نمی‌شود و صریحاً خطا می‌دهد
+ * ([#10940](https://github.com/typescript-eslint/typescript-eslint/issues/10940)).
+ * می‌شد TS 6 و TS 7 را کنارِ هم نصب کرد (راه‌حلِ رسمیِ تیمِ TypeScript)، ولی
+ * آن‌وقت ESLint و ادیتور با یک کامپایلر فکر می‌کردند و `npm run typecheck` با
+ * کامپایلری دیگر — یعنی دو منبعِ حقیقت برای تایپ‌ها.
  *
- *   "typescript":          "npm:@typescript/typescript6"  →  فقط API برای لینتر
- *   "@typescript/native":  "npm:typescript@7"             →  کامپایلرِ واقعی
+ * با تک‌کامپایلر، هرچه اینجا می‌بینید دقیقاً همان چیزی است که `tsc` هم می‌بیند.
+ * هزینه‌اش اندازه‌گیری شده: typecheck از ۱٫۹ به ۶٫۳ ثانیه می‌رود. بیلد اصلاً از
+ * `tsc` استفاده نمی‌کند (Vite با oxc ترجمه می‌کند)، پس این فقط روی دروازه‌ی
+ * pre-commit اثر دارد.
  *
- * چون ابزارهایی مثل typescript-eslint پکیجِ `typescript` را مستقیم import
- * می‌کنند، همان نام باید TS 6 باشد. کامپایلری که `npm run typecheck` و ادیتور
- * جدی می‌گیرند TS 7 است و باینری‌ها قاطی نمی‌شوند: TS 7 → `tsc`، TS 6 → `tsc6`.
- *
- * پس **مرجعِ درستیِ تایپ‌ها `npm run typecheck` است، نه ESLint.** اگر روزی این
- * دو اختلاف پیدا کردند، حرفِ `tsc` مقدم است. با پشتیبانی typescript-eslint از
- * TS ≥7.1، نصبِ TS 6 حذف می‌شود و این توضیح هم با آن می‌رود.
+ * با پشتیبانی typescript-eslint از TS ≥ 7.1، ارتقا یک خط در `package.json` است.
  */
 
 export default tseslint.config(

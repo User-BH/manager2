@@ -130,11 +130,12 @@
 
 ### R5 — لایه‌ی API: Instance + Interceptor + Retry/Backoff + Abort + Deduplication
 
-**اندازه:** M · **وابستگی:** R1 · **وضعیت:** 🟡
+**اندازه:** M · **وابستگی:** R1 · **وضعیت:** ✅ (کامیت `b90682d`)
 **منبع:** فنی-5, 6, 8, 35 · DoD-18, 19, 20, 21, 23, 24, 25, 28
 
 **وضعیت فعلی:** `lib/api.ts` با axios instance، مدیریت CSRF و بازتلاش ۴۱۹ هست؛ **retry/backoff عمومی، dedup و abort سیستماتیک نیست**.
 **کار:** retry با backoff نمایی (فقط روی خطاهای گذرا و متدهای idempotent)، Request Deduplication، `AbortController` استاندارد در همه‌ی fetchها، و کاستوم‌هوکِ مشترک برای منطق تکراری (فنی-5).
+**نتیجه:** `api.ts` به چهار ماژول با مرزِ صریح شکسته شد (`http` / `apiError` / `retry` / `dedupe`) با چیدمانِ dedupe → retry → csrf → http. امضای `api()` عوض نشد، پس ۴۲ فایلِ مصرف‌کننده دست‌نخورده ماندند. تلاشِ دوباره فقط روی متدِ idempotent و خطای گذرا؛ ۴۲۲/۴۰۳/۴۱۹ هرگز. `Retry-After` سرور بر backoff خودمان مقدم است. timeout اضافه شد (۲۰ ثانیه، ۱۲۰ برای آپلود). dedupe مرجع‌شماری دارد تا unmountِ یک مصرف‌کننده درخواستِ مشترک را نکشد. `isRetryable` صادر شد تا R6 سیاستِ retryِ TanStack را از همین منبع بگیرد. ۵۸ تستِ تازه (۵۴ → ۱۱۲).
 
 ### R6 — TanStack Query + سیاست کش
 

@@ -492,22 +492,27 @@ npm run check
 
 **تست فرانت** (`tests/js`): پالایه‌های ورودی فرم، طرح‌های اعتبارسنجی ورود/ثبت‌نام (آینه‌ی قواعد سرور)، ماندگاری «مرا به خاطر بسپار» با انقضای ۱۰ روزه، نگاشت خطای API به فیلدها، و محافظت مسیرها (`ProtectedRoute`).
 
-### چرا در `package.json` دو تا TypeScript می‌بینید؟
+### چرا TypeScript ۶ و نه ۷؟
+
+انتخابِ آگاهانه است، نه عقب‌ماندگی. `typescript-eslint` روی TS 7 **اجرا
+نمی‌شود** و صریحاً خطا می‌دهد ([#10940](https://github.com/typescript-eslint/typescript-eslint/issues/10940)).
+می‌شد TS 6 و ۷ را کنارِ هم نصب کرد (راه‌حلِ رسمیِ تیمِ TypeScript با alias)، ولی
+آن‌وقت ESLint و ادیتور با یک کامپایلر فکر می‌کردند و `npm run typecheck` با
+کامپایلری دیگر — **دو منبعِ حقیقت برای تایپ‌ها.**
+
+با تک‌کامپایلر، `package.json` هم یک خط بیشتر نیست:
 
 ```json
-"@typescript/native": "npm:typescript@^7.0.2",          // کامپایلر  → tsc
-"typescript":         "npm:@typescript/typescript6@^6"  // فقط API  → tsc6
+"typescript": "^6.0.3"
 ```
 
-جای نام‌ها عوض شده و **عمدی است**. `typescript-eslint` روی TypeScript 7 اجرا
-نمی‌شود و صریحاً خطا می‌دهد ([#10940](https://github.com/typescript-eslint/typescript-eslint/issues/10940))،
-و چون پکیجِ `typescript` را مستقیم import می‌کند، همان نام باید TS 6 باشد. این
-دقیقاً راه‌حلِ رسمیِ تیمِ TypeScript است (اعلامیه‌ی TS 7.0، بخش
-«Running side-by-side with TypeScript 6.0»). باینری‌ها قاطی نمی‌شوند:
-TS 7 → `tsc`، TS 6 → `tsc6`.
+**نکته:** TS 6 و TS 7 دو زبان نیستند؛ TS 7 بازنویسیِ همان کامپایلر به Go است.
+پس هیچ فایلِ سورسی به‌خاطر این انتخاب فرق نمی‌کند. هزینه‌ی اندازه‌گیری‌شده فقط
+سرعتِ typecheck است: **۶٫۳ ثانیه به‌جای ۱٫۹ ثانیه**. بیلد اصلاً از `tsc`
+استفاده نمی‌کند (Vite با oxc ترجمه می‌کند)، پس این عدد فقط روی دروازه‌ی
+pre-commit اثر دارد.
 
-**نتیجه‌ی عملی:** مرجعِ درستیِ تایپ‌ها `npm run typecheck` است (TS 7)، نه ESLint.
-با پشتیبانی `typescript-eslint` از TS ≥ 7.1، نصبِ TS 6 حذف می‌شود.
+با پشتیبانی `typescript-eslint` از TS ≥ 7.1، ارتقا یک خط است.
 
 ### سقفِ هشدارها
 
