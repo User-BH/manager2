@@ -7,7 +7,7 @@
 > کاربر با گفتن «انجام R<شماره>» مرحله را سفارش می‌دهد. پاسخِ هر مرحله باید قالبِ ۴ پرسشیِ انتهای همان سند را داشته باشد
 > (مشکل چه بود؟ / چرا مشکل است؟ / چه تغییری شد؟ / چه تأثیری دارد؟).
 
-- **آخرین کامیت بررسی‌شده:** `3780e7c` — «OTP-required registration, member delete/deferred search, real Bale+Rubika icons»
+- **آخرین کامیت بررسی‌شده:** `2230971` — پایانِ فاز ۰ برنامه‌ی کار (R1–R4: بازسازی ساختار فرانت/بک، ابزار کیفیت، تست‌ها)
 - **شاخه:** `main` · **تعداد کامیت:** ۶۴ · **وضعیت working tree:** تمیز
 - **تاریخ ممیزی:** ۱۴۰۵/۰۵/۰۴ (2026-07-26)
 - **مخزن:** https://github.com/User-BH/manager2
@@ -96,36 +96,56 @@
 
 ---
 
-## ۵) دستورهای اجرا و تست (نتیجه‌ی واقعی — 2026-07-26)
+## ۵) دستورهای اجرا و تست (نتیجه‌ی واقعی — 2026-07-30، پس از R1–R4)
 
 ```bash
 php artisan test        # ✅ 277 passed / 997 assertions
-npm test                # ✅ 43 passed (۵ فایل) — Vitest
-npm run typecheck       # ✅ exit 0، بدون خطا
+npm test                # ✅ 54 passed (۷ فایل) — Vitest
+npm run test:coverage   # ✅ گزارش پوشش (v8)
+npm run test:e2e        # ✅ 11 passed — Playwright/Chromium روی سرور واقعی
+npm run typecheck       # ✅ exit 0
 npm run lint            # ✅ exit 0 — oxlint، ۰ خطا
-npm run check           # هر سه با هم (typecheck + lint + test)
+npm run format:check    # ✅ Prettier
+npm run check           # format:check + typecheck + lint + test
 npm run build           # ✅ موفق (~1s)
+composer analyse        # ✅ exit 0 — PHPStan سطح ۵ (با baseline ۱۶۱ ورودی)
+composer lint           # ✅ Pint --test
+composer check          # lint + analyse + test
+composer audit          # ✅ بدون آسیب‌پذیری (۱۹ مورد در R4 رفع شد)
+npm audit --omit=dev    # ⚠️ ۱ advisory (react-router، غیرقابل‌اعمال — پایین ببین)
 php artisan migrate:status   # ✅ همه‌ی ۳۰ مهاجرت Ran
 php artisan route:list       # ✅ ۱۳۲ سطر
-npm audit --omit=dev    # ⚠️ ۱ advisory (react-router، غیرقابل‌اعمال — پایین ببین)
 ```
+
+**دروازه‌ی pre-commit** (Husky + lint-staged): روی فایل‌های استیج‌شده Prettier + oxlint + Pint،
+سپس `typecheck` و `test`. تست بک‌اند و PHPStan **عمداً** بیرون‌اند (کند ⇒ توسعه‌دهنده `--no-verify`
+می‌زند)؛ جایشان `composer check` و CI است.
+
+**⚠️ نکته‌ی محیطی:** PHPStan از طریق پایپ‌های Bash روی این مسیر **هیچ خروجی نمی‌دهد** (حتی موقع
+خطا) هرچند exit code درست است — احتمالاً به‌خاطر نویسه‌های غیرASCII در مسیر پروژه. برای دیدن خطاها
+باید با ابزار PowerShell اجرا شود.
 
 **قابل اجرا نیست (دلیل دقیق):**
 
-- **`composer audit`:** فرمان `composer` روی PATH این محیط نیست (تست‌ها مستقیم با `php artisan` اجرا شدند) ⇒ آسیب‌پذیری وابستگی‌های PHP بررسی‌نشده باقی مانده.
+- `composer` روی PATH نیست؛ `composer.phar` (2.10.2) در پوشه‌ی scratchpad دانلود شد. دستورهای
+  بالا با `php composer.phar ...` اجرا شدند.
 
-**اسکریپت‌ها:** `package.json` شامل `dev`, `build`, `test`, `test:watch`, `lint`, `typecheck`, `check`. `composer.json` دارای `setup`, `dev`, `test`.
+**اسکریپت‌ها:** `package.json`: `dev`, `build`, `test`, `test:watch`, `test:coverage`, `test:e2e`,
+`test:e2e:ui`, `lint`, `typecheck`, `format`, `format:check`, `check`, `prepare`.
+`composer.json`: `setup`, `dev`, `test`, `lint`, `fix`, `analyse`, `check`.
 
 ---
 
 ## ۶) محدودیت‌های شناخته‌شده
 
-- **پوشش تست فرانت: پایه‌ای.** ۴۳ تست روی منطقِ بحرانی (پالایه‌ها، طرح‌های اعتبارسنجی، ماندگاری ورود، خطای API، محافظت مسیر). **کامپوننت‌های تعاملی هنوز تست تعاملی ندارند** (R28).
+- **پوشش تست فرانت: در حال رشد.** ۵۴ تست Vitest (شاملِ LoginForm و RegisterForm با RTL) + ۱۱ تست Playwright. **جریان‌های «کیف پول» و «پرداخت» از فهرست DoD-60 هنوز تست E2E ندارند چون خودِ قابلیت ساخته نشده** (R22). پازلِ اسلایدی در تستِ کامپوننت stub می‌شود (حل‌شدنش به درگِ اشاره‌گر نیاز دارد و jsdom بازتولیدش نمی‌کند)؛ پوششِ واقعیِ آن به Playwright واگذار شده.
 - **لینتر oxlint است نه ESLint** — چون `typescript-eslint` هنوز TypeScript 7 را پشتیبانی نمی‌کند و هنگام اجرا صریحاً خطا می‌دهد ([#10940](https://github.com/typescript-eslint/typescript-eslint/issues/10940)). با انتشار نسخه‌ی سازگار می‌توان مهاجرت کرد (R27).
 - **آسیب‌پذیری react-router:** یک advisory باز ([GHSA-qwww-vcr4-c8h2](https://github.com/advisories/GHSA-qwww-vcr4-c8h2)) که **در این پروژه قابل بهره‌برداری نیست** (مختص حالت RSC؛ ما فقط `BrowserRouter` داریم). نسخه‌ی ۸ هنوز منتشر نشده و **برگشت به ۷٫۱۱٫۰ وضعیت را بدتر می‌کند** (۱۴ advisory به‌جای ۱). تصمیم: ماندن روی ۷٫۱۸٫۱ تا انتشار ۸٫۳٫۰. جزئیات کامل: `REMAINING_WORK.md#R1`.
 - `useTransition`/`useDeferredValue` فقط در **یک فایل** (`MembersPage.tsx`) استفاده شده.
 - `config/landing.php` دیگر **هیچ‌جا استفاده نمی‌شود** (تبلیغات به دیتابیس منتقل شد) و یک TODO کهنه دارد.
 - صف (queue) پیکربندی شده (`QUEUE_CONNECTION=database`) اما **هیچ Job‌ای وجود ندارد**.
+- `app/` پوشه‌های استاندارد (Actions, DTO, Policies, Events, Jobs, Rules, …) را در R4 گرفت ولی **همه با `.gitkeep` خالی‌اند** — اسکلت است، نه پیاده‌سازی.
+- **framer-motion متغیرِ CSS را درون‌یابی نمی‌کند**؛ میله‌های سنجه‌ی قدرت رمز رنگ را «می‌پرانند» به‌جای گذارِ نرم. نقصِ ظاهریِ کوچک، در R37. (هشدارش در `tests/js/setup.ts` فیلتر شده تا خروجی تست خوانا بماند.)
 - هیچ Policy/Gate‌ای وجود ندارد؛ کل مجوزدهی با میدل‌ور `role:` + `abort_unless/abort_if` پراکنده در ۱۵ کنترلر است.
 - ویدیوی دمو (`public/videos/demo.mp4`) و تصاویر گالریِ ایرانی هنوز از سمت کارفرما تحویل نشده.
 - شخصیت «بازدیدکننده» و دموی فقط‌خواندنی هنوز ساخته نشده (نیازمندی محصولی باز).
