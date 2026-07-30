@@ -5,7 +5,8 @@ import { Loader2, Save, AlertCircle, AlertTriangle, CheckCircle2 } from 'lucide-
 import { z } from 'zod'
 import { Card } from '@/shared/ui/Card'
 import { CheckField, SelectField, TextField } from '@/shared/ui/Field'
-import { ErrorState, LoadingState } from '@/shared/ui/PageState'
+import { ErrorState } from '@/shared/ui/PageState'
+import { FormSkeleton } from '@/shared/ui/Skeleton'
 import { useQuery } from '@tanstack/react-query'
 import { errorMessage } from '@/shared/lib/queryClient'
 import { queryKeys } from '@/shared/lib/queryKeys'
@@ -107,7 +108,7 @@ export function ComplexSettingsPage() {
     }
   }
 
-  if (isLoading) return <LoadingState rows={5} />
+  if (isLoading) return <FormSkeleton fields={6} />
   if (error) return <ErrorState message={errorMessage(error)} onRetry={() => void refetch()} />
   if (!data) return null
 

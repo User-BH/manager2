@@ -7,7 +7,8 @@ import { z } from 'zod'
 import { Card } from '@/shared/ui/Card'
 import { Modal } from '@/shared/ui/Modal'
 import { TextField } from '@/shared/ui/Field'
-import { EmptyState, ErrorState, LoadingState } from '@/shared/ui/PageState'
+import { EmptyState, ErrorState } from '@/shared/ui/PageState'
+import { TableSkeleton } from '@/shared/ui/Skeleton'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { errorMessage } from '@/shared/lib/queryClient'
 import { queryKeys } from '@/shared/lib/queryKeys'
@@ -115,7 +116,7 @@ export function ManagersPage() {
         </div>
       )}
 
-      {isLoading && <LoadingState rows={3} />}
+      {isLoading && <TableSkeleton rows={4} columns={3} />}
       {error && <ErrorState message={errorMessage(error)} onRetry={() => void refetch()} />}
 
       {data && !isLoading && (

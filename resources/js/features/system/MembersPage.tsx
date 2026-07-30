@@ -1,7 +1,8 @@
 import { useDeferredValue, useState } from 'react'
 import { Loader2, Search, ShieldCheck, Trash2, UserCog } from 'lucide-react'
 import { Card } from '@/shared/ui/Card'
-import { ErrorState, LoadingState } from '@/shared/ui/PageState'
+import { ErrorState } from '@/shared/ui/PageState'
+import { TableSkeleton } from '@/shared/ui/Skeleton'
 import { useQuery } from '@tanstack/react-query'
 import { useDebounce, useDocumentTitle } from '@/shared/hooks'
 import { useApiAction } from '@/shared/hooks/useAction'
@@ -138,7 +139,7 @@ export function MembersPage() {
         />
       </div>
 
-      {isLoading && <LoadingState rows={5} />}
+      {isLoading && <TableSkeleton rows={6} columns={4} />}
       {error && <ErrorState message={errorMessage(error)} onRetry={() => void refetch()} />}
 
       {data && (

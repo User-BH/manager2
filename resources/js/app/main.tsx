@@ -4,6 +4,7 @@ import { BrowserRouter } from 'react-router-dom'
 import { QueryClientProvider } from '@tanstack/react-query'
 
 import { createQueryClient } from '@/shared/lib/queryClient'
+import { ErrorBoundary, RootErrorFallback } from '@/shared/ui/ErrorBoundary'
 import { AppRouter } from './AppRouter'
 
 /*
@@ -40,15 +41,24 @@ const DevTools = import.meta.env.DEV
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <QueryClientProvider client={queryClient}>
-      <BrowserRouter>
-        <AppRouter />
-      </BrowserRouter>
-      {DevTools && (
-        <Suspense fallback={null}>
-          <DevTools initialIsOpen={false} buttonPosition="bottom-left" />
-        </Suspense>
-      )}
-    </QueryClientProvider>
+    {/*
+      دیوارِ آتشِ ریشه — تورِ ایمنیِ آخر.
+      اگر خطا حتی پیش از بالا آمدنِ پوسته رخ دهد (مثلاً در خودِ روتر)، کاربر
+      به‌جای صفحه‌ی سفید یک پیامِ قابل‌فهم و دکمه‌ی بارگذاری دوباره می‌بیند.
+      دیوارِ درونِ داشبورد (در AppRouter) پیش از این یکی عمل می‌کند و پوسته را
+      زنده نگه می‌دارد؛ این یکی فقط وقتی به کار می‌آید که آن هم از دست رفته باشد.
+    */}
+    <ErrorBoundary fallback={(error) => <RootErrorFallback error={error} />}>
+      <QueryClientProvider client={queryClient}>
+        <BrowserRouter>
+          <AppRouter />
+        </BrowserRouter>
+        {DevTools && (
+          <Suspense fallback={null}>
+            <DevTools initialIsOpen={false} buttonPosition="bottom-left" />
+          </Suspense>
+        )}
+      </QueryClientProvider>
+    </ErrorBoundary>
   </StrictMode>,
 )

@@ -5,7 +5,8 @@ import { Receipt, Wallet, FileDown, CreditCard, ChevronLeft, Loader2 } from 'luc
 import { Card } from '@/shared/ui/Card'
 import { StatCard } from '@/shared/ui/StatCard'
 import { Modal } from '@/shared/ui/Modal'
-import { EmptyState, ErrorState, LoadingState } from '@/shared/ui/PageState'
+import { EmptyState, ErrorState } from '@/shared/ui/PageState'
+import { TableSkeleton } from '@/shared/ui/Skeleton'
 import { useQuery } from '@tanstack/react-query'
 import { errorMessage } from '@/shared/lib/queryClient'
 import { queryKeys } from '@/shared/lib/queryKeys'
@@ -123,7 +124,7 @@ export function MyBillsPage() {
         </p>
       </header>
 
-      {isLoading && <LoadingState rows={4} />}
+      {isLoading && <TableSkeleton rows={4} columns={4} />}
       {error && <ErrorState message={errorMessage(error)} onRetry={() => void refetch()} />}
 
       {data && !isLoading && (

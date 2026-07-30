@@ -3,7 +3,8 @@ import { motion } from 'framer-motion'
 import { BadgeCheck, Check, Crown, FileText, Hourglass, Loader2, X } from 'lucide-react'
 import { Card } from '@/shared/ui/Card'
 import { StatCard } from '@/shared/ui/StatCard'
-import { EmptyState, ErrorState, LoadingState } from '@/shared/ui/PageState'
+import { EmptyState, ErrorState } from '@/shared/ui/PageState'
+import { TableSkeleton } from '@/shared/ui/Skeleton'
 import { useQuery } from '@tanstack/react-query'
 import { errorMessage } from '@/shared/lib/queryClient'
 import { queryKeys } from '@/shared/lib/queryKeys'
@@ -121,7 +122,7 @@ export function SubscriptionsPage() {
         </p>
       </header>
 
-      {isLoading && <LoadingState rows={4} />}
+      {isLoading && <TableSkeleton rows={5} columns={5} />}
       {error && <ErrorState message={errorMessage(error)} onRetry={() => void refetch()} />}
 
       {data && !isLoading && (

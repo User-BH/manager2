@@ -17,7 +17,8 @@ import {
 } from 'lucide-react'
 import { Card } from '@/shared/ui/Card'
 import { Modal } from '@/shared/ui/Modal'
-import { ErrorState, LoadingState } from '@/shared/ui/PageState'
+import { ErrorState } from '@/shared/ui/PageState'
+import { CardListSkeleton } from '@/shared/ui/Skeleton'
 import { useQuery } from '@tanstack/react-query'
 import { errorMessage } from '@/shared/lib/queryClient'
 import { queryKeys } from '@/shared/lib/queryKeys'
@@ -90,7 +91,7 @@ export function AccountPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [params])
 
-  if (isLoading) return <LoadingState rows={5} />
+  if (isLoading) return <CardListSkeleton items={3} />
   if (error) return <ErrorState message={errorMessage(error)} onRetry={() => void refetch()} />
   if (!data) return null
 

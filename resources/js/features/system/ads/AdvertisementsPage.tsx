@@ -2,7 +2,8 @@ import { useState } from 'react'
 import { motion } from 'framer-motion'
 import { Eye, EyeOff, ExternalLink, Pencil, Plus, Trash2 } from 'lucide-react'
 import { Card } from '@/shared/ui/Card'
-import { EmptyState, ErrorState, LoadingState } from '@/shared/ui/PageState'
+import { EmptyState, ErrorState } from '@/shared/ui/PageState'
+import { CardListSkeleton } from '@/shared/ui/Skeleton'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { errorMessage } from '@/shared/lib/queryClient'
 import { queryKeys } from '@/shared/lib/queryKeys'
@@ -80,7 +81,7 @@ export function AdvertisementsPage() {
     }
   }
 
-  if (isLoading) return <LoadingState rows={3} />
+  if (isLoading) return <CardListSkeleton items={3} />
   if (error) return <ErrorState message={errorMessage(error)} onRetry={() => void refetch()} />
 
   const ads = data?.ads ?? []

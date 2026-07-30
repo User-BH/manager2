@@ -13,7 +13,8 @@ import {
 } from 'lucide-react'
 import { Card } from '@/shared/ui/Card'
 import { StatCard } from '@/shared/ui/StatCard'
-import { EmptyState, ErrorState, LoadingState } from '@/shared/ui/PageState'
+import { EmptyState, ErrorState } from '@/shared/ui/PageState'
+import { DashboardSkeleton } from '@/shared/ui/Skeleton'
 import { TrendChart } from './components/TrendChart'
 import { PaymentStatusChart } from './components/PaymentStatusChart'
 import { useQuery } from '@tanstack/react-query'
@@ -71,7 +72,7 @@ export function DashboardPage() {
 
   useDocumentTitle('داشبورد')
 
-  if (isLoading) return <LoadingState rows={4} />
+  if (isLoading) return <DashboardSkeleton />
   if (error) return <ErrorState message={errorMessage(error)} onRetry={() => void refetch()} />
   if (!data) return null
 

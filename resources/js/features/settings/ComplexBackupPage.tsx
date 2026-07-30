@@ -2,7 +2,8 @@ import { useState } from 'react'
 import { ShieldCheck } from 'lucide-react'
 import { Card } from '@/shared/ui/Card'
 import { BackupList, type BackupRow } from '@/shared/ui/BackupList'
-import { ErrorState, LoadingState } from '@/shared/ui/PageState'
+import { ErrorState } from '@/shared/ui/PageState'
+import { TableSkeleton } from '@/shared/ui/Skeleton'
 import { useQuery } from '@tanstack/react-query'
 import { errorMessage } from '@/shared/lib/queryClient'
 import { queryKeys } from '@/shared/lib/queryKeys'
@@ -57,7 +58,7 @@ export function ComplexBackupPage() {
         </div>
       </Card>
 
-      {isLoading && <LoadingState rows={3} />}
+      {isLoading && <TableSkeleton rows={4} columns={3} />}
       {error && <ErrorState message={errorMessage(error)} onRetry={() => void refetch()} />}
 
       {data && !isLoading && (

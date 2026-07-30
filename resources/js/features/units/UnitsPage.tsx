@@ -4,7 +4,8 @@ import { Plus, Pencil, Trash2, Building2, FileText } from 'lucide-react'
 import { Card } from '@/shared/ui/Card'
 import { Modal } from '@/shared/ui/Modal'
 import { SearchInput } from '@/shared/ui/SearchInput'
-import { EmptyState, ErrorState, LoadingState } from '@/shared/ui/PageState'
+import { EmptyState, ErrorState } from '@/shared/ui/PageState'
+import { TableSkeleton } from '@/shared/ui/Skeleton'
 import { UnitForm } from './UnitForm'
 import { useQuery } from '@tanstack/react-query'
 import { errorMessage } from '@/shared/lib/queryClient'
@@ -80,7 +81,7 @@ export function UnitsPage() {
         </div>
       </header>
 
-      {isLoading && <LoadingState rows={5} />}
+      {isLoading && <TableSkeleton rows={6} columns={5} />}
       {error && <ErrorState message={errorMessage(error)} onRetry={() => void refetch()} />}
 
       {data && !isLoading && (

@@ -3,7 +3,8 @@ import { motion } from 'framer-motion'
 import { ChevronDown, ChevronUp, ScrollText } from 'lucide-react'
 import { Card } from '@/shared/ui/Card'
 import { SelectField } from '@/shared/ui/Field'
-import { EmptyState, ErrorState, LoadingState } from '@/shared/ui/PageState'
+import { EmptyState, ErrorState } from '@/shared/ui/PageState'
+import { TableSkeleton } from '@/shared/ui/Skeleton'
 import { useQuery } from '@tanstack/react-query'
 import { api } from '@/shared/lib/api'
 import { errorMessage } from '@/shared/lib/queryClient'
@@ -55,7 +56,7 @@ export function AuditLogPage() {
       api<AuditResponse>(`/system/audit-logs${query.toString() ? `?${query}` : ''}`, { signal }),
   })
 
-  if (isLoading) return <LoadingState rows={5} />
+  if (isLoading) return <TableSkeleton rows={8} columns={4} />
   if (error) return <ErrorState message={errorMessage(error)} onRetry={() => void refetch()} />
 
   const entries = data?.data ?? []

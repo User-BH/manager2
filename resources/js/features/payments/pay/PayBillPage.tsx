@@ -6,7 +6,8 @@ import { ArrowRight, CreditCard, Upload, Loader2, AlertCircle, CheckCircle2 } fr
 import { z } from 'zod'
 import { Card } from '@/shared/ui/Card'
 import { TextField } from '@/shared/ui/Field'
-import { ErrorState, LoadingState } from '@/shared/ui/PageState'
+import { ErrorState } from '@/shared/ui/PageState'
+import { FormSkeleton } from '@/shared/ui/Skeleton'
 import { useQuery } from '@tanstack/react-query'
 import { errorMessage } from '@/shared/lib/queryClient'
 import { queryKeys } from '@/shared/lib/queryKeys'
@@ -100,7 +101,7 @@ export function PayBillPage() {
     }
   }
 
-  if (isLoading) return <LoadingState rows={3} />
+  if (isLoading) return <FormSkeleton fields={3} />
   if (error) return <ErrorState message={errorMessage(error)} onRetry={() => void refetch()} />
   if (!data) return null
 

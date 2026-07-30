@@ -7,7 +7,8 @@ import { z } from 'zod'
 import { Card } from '@/shared/ui/Card'
 import { Modal } from '@/shared/ui/Modal'
 import { SelectField, TextField } from '@/shared/ui/Field'
-import { EmptyState, ErrorState, LoadingState } from '@/shared/ui/PageState'
+import { EmptyState, ErrorState } from '@/shared/ui/PageState'
+import { CardListSkeleton } from '@/shared/ui/Skeleton'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { errorMessage } from '@/shared/lib/queryClient'
 import { queryKeys } from '@/shared/lib/queryKeys'
@@ -136,7 +137,7 @@ export function DiscountsPage() {
         </div>
       </Card>
 
-      {isLoading && <LoadingState rows={3} />}
+      {isLoading && <CardListSkeleton items={3} />}
       {error && <ErrorState message={errorMessage(error)} onRetry={() => void refetch()} />}
 
       {data && !isLoading && (

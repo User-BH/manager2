@@ -20,7 +20,8 @@ import {
   type LucideIcon,
 } from 'lucide-react'
 import { Card } from '@/shared/ui/Card'
-import { ErrorState, LoadingState } from '@/shared/ui/PageState'
+import { ErrorState } from '@/shared/ui/PageState'
+import { FormSkeleton } from '@/shared/ui/Skeleton'
 import { ProfileEditForm } from './ProfileEditForm'
 import { PasswordCard } from './PasswordCard'
 import { useQuery } from '@tanstack/react-query'
@@ -49,7 +50,7 @@ export function ProfilePage() {
     queryFn: ({ signal }) => api<ProfileResponse>('/profile', { signal }),
   })
 
-  if (isLoading) return <LoadingState rows={5} />
+  if (isLoading) return <FormSkeleton fields={5} />
   if (error) return <ErrorState message={errorMessage(error)} onRetry={() => void refetch()} />
   if (!data) return null
 

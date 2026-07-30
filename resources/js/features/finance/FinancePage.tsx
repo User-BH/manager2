@@ -18,7 +18,8 @@ import { Card } from '@/shared/ui/Card'
 import { StatCard } from '@/shared/ui/StatCard'
 import { Modal } from '@/shared/ui/Modal'
 import { SelectField, TextField } from '@/shared/ui/Field'
-import { EmptyState, ErrorState, LoadingState } from '@/shared/ui/PageState'
+import { EmptyState, ErrorState } from '@/shared/ui/PageState'
+import { DashboardSkeleton } from '@/shared/ui/Skeleton'
 import { useQuery } from '@tanstack/react-query'
 import { errorMessage } from '@/shared/lib/queryClient'
 import { queryKeys } from '@/shared/lib/queryKeys'
@@ -158,7 +159,7 @@ export function FinancePage() {
         )}
       </header>
 
-      {isLoading && <LoadingState rows={4} />}
+      {isLoading && <DashboardSkeleton />}
       {error && <ErrorState message={errorMessage(error)} onRetry={() => void refetch()} />}
 
       {data && !isLoading && (

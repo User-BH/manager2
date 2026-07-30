@@ -5,7 +5,8 @@ import { Loader2, Save, Send, AlertCircle, CheckCircle2 } from 'lucide-react'
 import { z } from 'zod'
 import { Card } from '@/shared/ui/Card'
 import { SelectField, TextField } from '@/shared/ui/Field'
-import { ErrorState, LoadingState } from '@/shared/ui/PageState'
+import { ErrorState } from '@/shared/ui/PageState'
+import { FormSkeleton } from '@/shared/ui/Skeleton'
 import { useQuery } from '@tanstack/react-query'
 import { errorMessage } from '@/shared/lib/queryClient'
 import { queryKeys } from '@/shared/lib/queryKeys'
@@ -98,7 +99,7 @@ export function SmsPage() {
     }
   }
 
-  if (isLoading) return <LoadingState rows={4} />
+  if (isLoading) return <FormSkeleton fields={5} />
   if (error) return <ErrorState message={errorMessage(error)} onRetry={() => void refetch()} />
   if (!data) return null
 

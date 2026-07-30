@@ -2,7 +2,8 @@ import { useEffect, useState } from 'react'
 import { Loader2, Save } from 'lucide-react'
 import { Card } from '@/shared/ui/Card'
 import { TextField } from '@/shared/ui/Field'
-import { ErrorState, LoadingState } from '@/shared/ui/PageState'
+import { ErrorState } from '@/shared/ui/PageState'
+import { FormSkeleton } from '@/shared/ui/Skeleton'
 import {
   InstagramIcon,
   TelegramIcon,
@@ -84,7 +85,7 @@ export function SiteSettingsPage() {
     }
   }
 
-  if (isLoading) return <LoadingState rows={5} />
+  if (isLoading) return <FormSkeleton fields={6} />
   if (error) return <ErrorState message={errorMessage(error)} onRetry={() => void refetch()} />
   if (!contact || !social) return null
 

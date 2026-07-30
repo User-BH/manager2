@@ -1,7 +1,8 @@
 import { motion } from 'framer-motion'
 import { Award, Info } from 'lucide-react'
 import { Card } from '@/shared/ui/Card'
-import { EmptyState, ErrorState, LoadingState } from '@/shared/ui/PageState'
+import { EmptyState, ErrorState } from '@/shared/ui/PageState'
+import { TableSkeleton } from '@/shared/ui/Skeleton'
 import { useQuery } from '@tanstack/react-query'
 import { api } from '@/shared/lib/api'
 import { errorMessage } from '@/shared/lib/queryClient'
@@ -51,7 +52,7 @@ export function GoodPayersPage() {
         </p>
       </header>
 
-      {isLoading && <LoadingState rows={4} />}
+      {isLoading && <TableSkeleton rows={5} columns={4} />}
       {error && <ErrorState message={errorMessage(error)} onRetry={() => void refetch()} />}
 
       {data && !isLoading && (
