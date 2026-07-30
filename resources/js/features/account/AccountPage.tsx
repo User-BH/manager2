@@ -18,7 +18,9 @@ import {
 import { Card } from '@/shared/ui/Card'
 import { Modal } from '@/shared/ui/Modal'
 import { ErrorState, LoadingState } from '@/shared/ui/PageState'
-import { useApi } from '@/shared/hooks/useApi'
+import { useQuery } from '@tanstack/react-query'
+import { errorMessage } from '@/shared/lib/queryClient'
+import { queryKeys } from '@/shared/lib/queryKeys'
 import { useDocumentTitle } from '@/shared/hooks'
 import { api } from '@/shared/lib/api'
 import {
@@ -54,7 +56,10 @@ export function AccountPage() {
 
   useDocumentTitle('تنظیمات حساب')
 
-  const { data, error, isLoading, reload } = useApi<SubscriptionResponse>('/subscription')
+  const { data, error, isLoading, refetch } = useQuery({
+    queryKey: queryKeys.subscription.all(),
+    queryFn: ({ signal }) => api<SubscriptionResponse>('/subscription', { signal }),
+  })
 
   /*
    * بازگشت از درگاه با پارامتر در آدرس اعلام می‌شود (نه با state)، چون
@@ -67,7 +72,7 @@ export function AccountPage() {
     if (checkout === 'success') {
       const tracking = params.get('tracking')
       void alertSuccess('اشتراک شما فعال شد.', tracking ? `کد رهگیری: ${tracking}` : undefined)
-      reload()
+      void refetch()
     } else if (checkout === 'failed') {
       void alertInfo(
         'پرداخت انجام نشد.',
@@ -86,7 +91,7 @@ export function AccountPage() {
   }, [params])
 
   if (isLoading) return <LoadingState rows={5} />
-  if (error) return <ErrorState message={error} onRetry={reload} />
+  if (error) return <ErrorState message={errorMessage(error)} onRetry={() => void refetch()} />
   if (!data) return null
 
   const pendingRequest = data.history.find((row) => row.status === 'pending') ?? null
@@ -126,7 +131,7 @@ export function AccountPage() {
     try {
       await api(`/subscription/${id}/cancel`, { method: 'POST' })
       toastSuccess('اشتراک لغو شد.')
-      reload()
+      void refetch()
     } catch (err) {
       alertError(err, 'لغو اشتراک ممکن نشد.')
     }
@@ -219,7 +224,7 @@ export function AccountPage() {
           bank={data.bankInfo}
           onDone={() => {
             setReceiptOpen(false)
-            reload()
+            void refetch()
           }}
         />
       </Modal>

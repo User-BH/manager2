@@ -23,7 +23,10 @@ import { Card } from '@/shared/ui/Card'
 import { ErrorState, LoadingState } from '@/shared/ui/PageState'
 import { ProfileEditForm } from './ProfileEditForm'
 import { PasswordCard } from './PasswordCard'
-import { useApi } from '@/shared/hooks/useApi'
+import { useQuery } from '@tanstack/react-query'
+import { api } from '@/shared/lib/api'
+import { errorMessage } from '@/shared/lib/queryClient'
+import { queryKeys } from '@/shared/lib/queryKeys'
 import { useDocumentTitle } from '@/shared/hooks'
 import { formatMoney, formatNumber } from '@/shared/lib/format'
 import type { ProfileResponse } from './types'
@@ -41,10 +44,13 @@ export function ProfilePage() {
 
   useDocumentTitle('پروفایل من')
 
-  const { data, error, isLoading, reload } = useApi<ProfileResponse>('/profile')
+  const { data, error, isLoading, refetch } = useQuery({
+    queryKey: queryKeys.profile.all(),
+    queryFn: ({ signal }) => api<ProfileResponse>('/profile', { signal }),
+  })
 
   if (isLoading) return <LoadingState rows={5} />
-  if (error) return <ErrorState message={error} onRetry={reload} />
+  if (error) return <ErrorState message={errorMessage(error)} onRetry={() => void refetch()} />
   if (!data) return null
 
   const { profile, units, people, complexes, stats } = data
@@ -79,7 +85,7 @@ export function ProfilePage() {
             profile={profile}
             onSaved={() => {
               setEditing(false)
-              reload()
+              void refetch()
             }}
             onCancel={() => setEditing(false)}
           />

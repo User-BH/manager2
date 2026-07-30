@@ -8,7 +8,9 @@ import { Card } from '@/shared/ui/Card'
 import { Modal } from '@/shared/ui/Modal'
 import { SelectField, TextField } from '@/shared/ui/Field'
 import { EmptyState, ErrorState, LoadingState } from '@/shared/ui/PageState'
-import { useApi } from '@/shared/hooks/useApi'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { errorMessage } from '@/shared/lib/queryClient'
+import { queryKeys } from '@/shared/lib/queryKeys'
 import { useDocumentTitle } from '@/shared/hooks'
 import { api, ApiError } from '@/shared/lib/api'
 import { alertError, confirmAction, toastSuccess } from '@/shared/lib/alert'
@@ -50,7 +52,11 @@ export function DiscountsPage() {
   useDocumentTitle('تخفیف و بخشودگی')
 
   const query = period ? `/discounts?period=${encodeURIComponent(period)}` : '/discounts'
-  const { data, error, isLoading, reload, mutate } = useApi<DiscountsResponse>(query)
+  const queryClient = useQueryClient()
+  const { data, error, isLoading, refetch } = useQuery({
+    queryKey: queryKeys.discounts.list({ period }),
+    queryFn: ({ signal }) => api<DiscountsResponse>(query, { signal }),
+  })
 
   async function remove(discount: Discount) {
     const ok = await confirmAction({
@@ -61,7 +67,7 @@ export function DiscountsPage() {
     if (!ok) return
 
     // خوش‌بینانه: تخفیف بلافاصله از لیست می‌رود
-    mutate((current) =>
+    queryClient.setQueryData<DiscountsResponse>(queryKeys.discounts.list({ period }), (current) =>
       current ? { ...current, data: current.data.filter((d) => d.id !== discount.id) } : current,
     )
 
@@ -70,7 +76,7 @@ export function DiscountsPage() {
       toastSuccess('تخفیف حذف شد.')
     } catch (error) {
       alertError(error, 'حذف تخفیف ممکن نشد.')
-      reload() // اگر حذف نشد، تخفیف برمی‌گردد
+      void refetch() // اگر حذف نشد، تخفیف برمی‌گردد
     }
   }
 
@@ -131,7 +137,7 @@ export function DiscountsPage() {
       </Card>
 
       {isLoading && <LoadingState rows={3} />}
-      {error && <ErrorState message={error} onRetry={reload} />}
+      {error && <ErrorState message={errorMessage(error)} onRetry={() => void refetch()} />}
 
       {data && !isLoading && (
         <Card
@@ -207,7 +213,7 @@ export function DiscountsPage() {
             units={data.units}
             onSaved={() => {
               setCreating(false)
-              reload()
+              void refetch()
             }}
             onCancel={() => setCreating(false)}
           />

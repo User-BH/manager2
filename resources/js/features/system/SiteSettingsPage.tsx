@@ -10,7 +10,9 @@ import {
   RubikaIcon,
   BaleIcon,
 } from '@/shared/common/SocialIcons'
-import { useApi } from '@/shared/hooks/useApi'
+import { useQuery } from '@tanstack/react-query'
+import { errorMessage } from '@/shared/lib/queryClient'
+import { queryKeys } from '@/shared/lib/queryKeys'
 import { useDocumentTitle } from '@/shared/hooks'
 import { api } from '@/shared/lib/api'
 import { alertError, toastSuccess } from '@/shared/lib/alert'
@@ -49,9 +51,13 @@ const socialIconMap = {
 export function SiteSettingsPage() {
   useDocumentTitle('فوتر و شبکه‌های اجتماعی')
 
-  const { data, error, isLoading, reload } = useApi<{
-    footer: { contact: Contact; social: Social[] }
-  }>('/system/site-settings')
+  const { data, error, isLoading, refetch } = useQuery({
+    queryKey: queryKeys.system.siteSettings(),
+    queryFn: ({ signal }) =>
+      api<{
+        footer: { contact: Contact; social: Social[] }
+      }>('/system/site-settings', { signal }),
+  })
 
   const [contact, setContact] = useState<Contact | null>(null)
   const [social, setSocial] = useState<Social[] | null>(null)
@@ -70,7 +76,7 @@ export function SiteSettingsPage() {
     try {
       await api('/system/site-settings', { method: 'PUT', body: { contact, social } })
       toastSuccess('تنظیمات فوتر ذخیره شد.')
-      reload()
+      void refetch()
     } catch (err) {
       alertError(err, 'ذخیره‌ی تنظیمات ممکن نشد.')
     } finally {
@@ -79,7 +85,7 @@ export function SiteSettingsPage() {
   }
 
   if (isLoading) return <LoadingState rows={5} />
-  if (error) return <ErrorState message={error} onRetry={reload} />
+  if (error) return <ErrorState message={errorMessage(error)} onRetry={() => void refetch()} />
   if (!contact || !social) return null
 
   const setC = <K extends keyof Contact>(key: K, value: Contact[K]) =>

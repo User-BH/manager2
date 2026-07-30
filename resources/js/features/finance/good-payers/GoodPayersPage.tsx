@@ -2,7 +2,10 @@ import { motion } from 'framer-motion'
 import { Award, Info } from 'lucide-react'
 import { Card } from '@/shared/ui/Card'
 import { EmptyState, ErrorState, LoadingState } from '@/shared/ui/PageState'
-import { useApi } from '@/shared/hooks/useApi'
+import { useQuery } from '@tanstack/react-query'
+import { api } from '@/shared/lib/api'
+import { errorMessage } from '@/shared/lib/queryClient'
+import { queryKeys } from '@/shared/lib/queryKeys'
 import { useDocumentTitle } from '@/shared/hooks'
 import { formatMoney, formatNumber } from '@/shared/lib/format'
 
@@ -32,7 +35,10 @@ const TIER_COLOR: Record<string, string> = {
 export function GoodPayersPage() {
   useDocumentTitle('ساکنین خوش‌حساب')
 
-  const { data, error, isLoading, reload } = useApi<GoodPayersResponse>('/good-payers')
+  const { data, error, isLoading, refetch } = useQuery({
+    queryKey: queryKeys.finance.goodPayers(),
+    queryFn: ({ signal }) => api<GoodPayersResponse>('/good-payers', { signal }),
+  })
 
   return (
     <div className="flex flex-col gap-5">
@@ -46,7 +52,7 @@ export function GoodPayersPage() {
       </header>
 
       {isLoading && <LoadingState rows={4} />}
-      {error && <ErrorState message={error} onRetry={reload} />}
+      {error && <ErrorState message={errorMessage(error)} onRetry={() => void refetch()} />}
 
       {data && !isLoading && (
         <Card>

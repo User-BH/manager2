@@ -3,7 +3,9 @@ import { ShieldCheck } from 'lucide-react'
 import { Card } from '@/shared/ui/Card'
 import { BackupList, type BackupRow } from '@/shared/ui/BackupList'
 import { ErrorState, LoadingState } from '@/shared/ui/PageState'
-import { useApi } from '@/shared/hooks/useApi'
+import { useQuery } from '@tanstack/react-query'
+import { errorMessage } from '@/shared/lib/queryClient'
+import { queryKeys } from '@/shared/lib/queryKeys'
 import { useDocumentTitle } from '@/shared/hooks'
 import { api } from '@/shared/lib/api'
 import { alertError, toastSuccess } from '@/shared/lib/alert'
@@ -13,14 +15,17 @@ export function ComplexBackupPage() {
 
   useDocumentTitle('بکاپ مجتمع')
 
-  const { data, error, isLoading, reload } = useApi<{ data: BackupRow[] }>('/backups')
+  const { data, error, isLoading, refetch } = useQuery({
+    queryKey: queryKeys.backups.all(),
+    queryFn: ({ signal }) => api<{ data: BackupRow[] }>('/backups', { signal }),
+  })
 
   async function createBackup() {
     setBusy(true)
     try {
       await api('/backups', { method: 'POST' })
       toastSuccess('نسخه پشتیبان ساخته شد.')
-      reload()
+      void refetch()
     } catch (err) {
       alertError(err, 'ساخت نسخه پشتیبان ممکن نشد.')
     } finally {
@@ -53,7 +58,7 @@ export function ComplexBackupPage() {
       </Card>
 
       {isLoading && <LoadingState rows={3} />}
-      {error && <ErrorState message={error} onRetry={reload} />}
+      {error && <ErrorState message={errorMessage(error)} onRetry={() => void refetch()} />}
 
       {data && !isLoading && (
         <BackupList

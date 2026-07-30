@@ -11,7 +11,7 @@
  * کلیدها از کل به جزء چیده می‌شوند تا ابطالِ گروهی ممکن باشد:
  *
  *   queryKeys.units.all()        →  ['units']
- *   queryKeys.units.list(filter) →  ['units', 'list', {...}]
+ *   queryKeys.units.list(params) →  ['units', 'list', {...}]
  *
  * ابطالِ `['units']` هر دو را می‌گیرد، چون TanStack کلیدها را **پیشوندی**
  * تطبیق می‌دهد. پس پس از ساختنِ یک واحد کافی است `units.all()` را باطل کنید.
@@ -25,23 +25,87 @@ export const queryKeys = {
     all: () => ['dashboard'] as const,
   },
 
+  // ── واحدها و ساکنان ──────────────────────────────────────────────────────
   units: {
     all: () => ['units'] as const,
-    list: (params: { q?: string } = {}) => ['units', 'list', params] as const,
+    list: (params: { search?: string } = {}) => ['units', 'list', params] as const,
   },
 
+  residents: {
+    all: () => ['residents'] as const,
+    list: (params: { search?: string } = {}) => ['residents', 'list', params] as const,
+  },
+
+  managers: {
+    all: () => ['managers'] as const,
+  },
+
+  // ── مالی ─────────────────────────────────────────────────────────────────
   bills: {
     all: () => ['bills'] as const,
-    list: (params: { period?: string; status?: string } = {}) => ['bills', 'list', params] as const,
+    list: (params: { period?: string } = {}) => ['bills', 'list', params] as const,
     mine: () => ['bills', 'mine'] as const,
   },
 
+  chargeRules: {
+    all: () => ['charge-rules'] as const,
+  },
+
+  discounts: {
+    all: () => ['discounts'] as const,
+    list: (params: { period?: string } = {}) => ['discounts', 'list', params] as const,
+  },
+
+  finance: {
+    all: () => ['finance'] as const,
+    summary: (params: { period?: string } = {}) => ['finance', 'summary', params] as const,
+    goodPayers: () => ['finance', 'good-payers'] as const,
+  },
+
+  payments: {
+    all: () => ['payments'] as const,
+    /** صفحه‌ی پرداختِ یک قبضِ مشخص. */
+    forBill: (billId: string | number) => ['payments', 'bill', String(billId)] as const,
+  },
+
+  // ── ارتباطات ─────────────────────────────────────────────────────────────
+  announcements: {
+    all: () => ['announcements'] as const,
+  },
+
+  // ── حسابِ کاربر ──────────────────────────────────────────────────────────
+  profile: {
+    all: () => ['profile'] as const,
+  },
+
+  subscription: {
+    all: () => ['subscription'] as const,
+  },
+
+  // ── تنظیماتِ مجتمع ───────────────────────────────────────────────────────
+  settings: {
+    all: () => ['settings'] as const,
+  },
+
+  backups: {
+    all: () => ['backups'] as const,
+  },
+
+  // ── پنلِ ادمینِ کل ────────────────────────────────────────────────────────
   members: {
     all: () => ['members'] as const,
     list: (params: { q?: string } = {}) => ['members', 'list', params] as const,
   },
 
-  residents: {
-    all: () => ['residents'] as const,
+  system: {
+    all: () => ['system'] as const,
+    ads: () => ['system', 'ads'] as const,
+    auditLogs: (params: { query?: string } = {}) => ['system', 'audit-logs', params] as const,
+    backups: () => ['system', 'backups'] as const,
+    complexes: () => ['system', 'complexes'] as const,
+    plans: () => ['system', 'plans'] as const,
+    siteSettings: () => ['system', 'site-settings'] as const,
+    sms: () => ['system', 'sms'] as const,
+    subscriptions: () => ['system', 'subscriptions'] as const,
   },
 } as const

@@ -4,7 +4,10 @@ import { ChevronDown, ChevronUp, ScrollText } from 'lucide-react'
 import { Card } from '@/shared/ui/Card'
 import { SelectField } from '@/shared/ui/Field'
 import { EmptyState, ErrorState, LoadingState } from '@/shared/ui/PageState'
-import { useApi } from '@/shared/hooks/useApi'
+import { useQuery } from '@tanstack/react-query'
+import { api } from '@/shared/lib/api'
+import { errorMessage } from '@/shared/lib/queryClient'
+import { queryKeys } from '@/shared/lib/queryKeys'
 import { useDocumentTitle } from '@/shared/hooks'
 
 interface AuditEntry {
@@ -44,13 +47,16 @@ export function AuditLogPage() {
   if (action) query.set('action', action)
   if (page > 1) query.set('page', String(page))
 
-  const { data, error, isLoading, reload } = useApi<AuditResponse>(
-    `/system/audit-logs${query.toString() ? `?${query}` : ''}`,
-    [action, page],
-  )
+  const { data, error, isLoading, refetch } = useQuery({
+    queryKey: queryKeys.system.auditLogs({ query: query.toString() }),
+    // `action` و `page` دیگر آرگومانِ جدا نیستند؛ خودشان جزوِ کلیدند، پس
+    // تغییرشان به‌طور خودکار درخواستِ تازه می‌سازد و کشِ جدا می‌گیرد.
+    queryFn: ({ signal }) =>
+      api<AuditResponse>(`/system/audit-logs${query.toString() ? `?${query}` : ''}`, { signal }),
+  })
 
   if (isLoading) return <LoadingState rows={5} />
-  if (error) return <ErrorState message={error} onRetry={reload} />
+  if (error) return <ErrorState message={errorMessage(error)} onRetry={() => void refetch()} />
 
   const entries = data?.data ?? []
 

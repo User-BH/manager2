@@ -3,7 +3,9 @@ import { motion } from 'framer-motion'
 import { Eye, EyeOff, ExternalLink, Pencil, Plus, Trash2 } from 'lucide-react'
 import { Card } from '@/shared/ui/Card'
 import { EmptyState, ErrorState, LoadingState } from '@/shared/ui/PageState'
-import { useApi } from '@/shared/hooks/useApi'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { errorMessage } from '@/shared/lib/queryClient'
+import { queryKeys } from '@/shared/lib/queryKeys'
 import { useDocumentTitle } from '@/shared/hooks'
 import { api } from '@/shared/lib/api'
 import { alertError, confirmAction, toastSuccess } from '@/shared/lib/alert'
@@ -19,7 +21,11 @@ import type { AdItem } from './schema'
 export function AdvertisementsPage() {
   useDocumentTitle('تبلیغات صفحه اصلی')
 
-  const { data, error, isLoading, reload, mutate } = useApi<{ ads: AdItem[] }>('/system/ads')
+  const queryClient = useQueryClient()
+  const { data, error, isLoading, refetch } = useQuery({
+    queryKey: queryKeys.system.ads(),
+    queryFn: ({ signal }) => api<{ ads: AdItem[] }>('/system/ads', { signal }),
+  })
   const [formOpen, setFormOpen] = useState(false)
   const [editing, setEditing] = useState<AdItem | null>(null)
 
@@ -35,7 +41,7 @@ export function AdvertisementsPage() {
 
   async function toggle(ad: AdItem) {
     // خوش‌بینانه: وضعیتِ فعال همین حالا برعکس می‌شود (آیکون و برچسب فوراً عوض)
-    mutate((current) =>
+    queryClient.setQueryData<{ ads: AdItem[] }>(queryKeys.system.ads(), (current) =>
       current
         ? { ads: current.ads.map((a) => (a.id === ad.id ? { ...a, isActive: !a.isActive } : a)) }
         : current,
@@ -44,10 +50,10 @@ export function AdvertisementsPage() {
     try {
       await api<{ message: string }>(`/system/ads/${ad.id}/toggle`, { method: 'PATCH' })
       // برای هم‌گام‌شدنِ «در حال نمایش» با بازه‌ی زمانی، از سرور تازه می‌گیریم
-      reload()
+      void refetch()
     } catch (err) {
       alertError(err, 'تغییر وضعیت بنر ممکن نشد.')
-      reload() // برگرداندن به وضعیتِ درستِ سرور
+      void refetch() // برگرداندن به وضعیتِ درستِ سرور
     }
   }
 
@@ -61,19 +67,21 @@ export function AdvertisementsPage() {
     if (!confirmed) return
 
     // خوش‌بینانه: بنر بلافاصله از لیست می‌رود
-    mutate((current) => (current ? { ads: current.ads.filter((a) => a.id !== ad.id) } : current))
+    queryClient.setQueryData<{ ads: AdItem[] }>(queryKeys.system.ads(), (current) =>
+      current ? { ads: current.ads.filter((a) => a.id !== ad.id) } : current,
+    )
 
     try {
       const result = await api<{ message: string }>(`/system/ads/${ad.id}`, { method: 'DELETE' })
       toastSuccess(result.message)
     } catch (err) {
       alertError(err, 'حذف بنر ممکن نشد.')
-      reload() // اگر حذف نشد، بنر برمی‌گردد
+      void refetch() // اگر حذف نشد، بنر برمی‌گردد
     }
   }
 
   if (isLoading) return <LoadingState rows={3} />
-  if (error) return <ErrorState message={error} onRetry={reload} />
+  if (error) return <ErrorState message={errorMessage(error)} onRetry={() => void refetch()} />
 
   const ads = data?.ads ?? []
   const liveCount = ads.filter((ad) => ad.isLive).length
@@ -196,7 +204,7 @@ export function AdvertisementsPage() {
         open={formOpen}
         editing={editing}
         onClose={() => setFormOpen(false)}
-        onSaved={reload}
+        onSaved={() => void refetch()}
       />
     </div>
   )

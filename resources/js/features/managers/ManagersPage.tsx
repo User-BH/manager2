@@ -8,7 +8,9 @@ import { Card } from '@/shared/ui/Card'
 import { Modal } from '@/shared/ui/Modal'
 import { TextField } from '@/shared/ui/Field'
 import { EmptyState, ErrorState, LoadingState } from '@/shared/ui/PageState'
-import { useApi } from '@/shared/hooks/useApi'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { errorMessage } from '@/shared/lib/queryClient'
+import { queryKeys } from '@/shared/lib/queryKeys'
 import { useDocumentTitle } from '@/shared/hooks'
 import { api, ApiError } from '@/shared/lib/api'
 import { strongPassword } from '@/shared/lib/validation'
@@ -41,10 +43,15 @@ export function ManagersPage() {
 
   useDocumentTitle('مدیران مجتمع')
 
-  const { data, error, isLoading, reload, mutate } = useApi<{
-    data: Manager[]
-    complexName: string
-  }>('/managers')
+  const queryClient = useQueryClient()
+  const { data, error, isLoading, refetch } = useQuery({
+    queryKey: queryKeys.managers.all(),
+    queryFn: ({ signal }) =>
+      api<{
+        data: Manager[]
+        complexName: string
+      }>('/managers', { signal }),
+  })
 
   async function handleDelete(manager: Manager) {
     const ok = await confirmAction({
@@ -57,7 +64,10 @@ export function ManagersPage() {
 
     setActionError(null)
     // خوش‌بینانه: مدیر بلافاصله از لیست می‌رود
-    mutate((current) =>
+    queryClient.setQueryData<{
+      data: Manager[]
+      complexName: string
+    }>(queryKeys.managers.all(), (current) =>
       current ? { ...current, data: current.data.filter((m) => m.id !== manager.id) } : current,
     )
     try {
@@ -66,7 +76,7 @@ export function ManagersPage() {
     } catch (err) {
       // «آخرین مدیر» و «حذف خود» با ۴۲۲ برمی‌گردند و باید دیده شوند
       setActionError(err instanceof ApiError ? err.message : 'حذف ناموفق بود.')
-      reload() // اگر حذف نشد، مدیر برمی‌گردد
+      void refetch() // اگر حذف نشد، مدیر برمی‌گردد
     }
   }
 
@@ -106,7 +116,7 @@ export function ManagersPage() {
       )}
 
       {isLoading && <LoadingState rows={3} />}
-      {error && <ErrorState message={error} onRetry={reload} />}
+      {error && <ErrorState message={errorMessage(error)} onRetry={() => void refetch()} />}
 
       {data && !isLoading && (
         <Card>
@@ -182,7 +192,7 @@ export function ManagersPage() {
         <ManagerForm
           onSaved={() => {
             setCreating(false)
-            reload()
+            void refetch()
           }}
           onCancel={() => setCreating(false)}
         />

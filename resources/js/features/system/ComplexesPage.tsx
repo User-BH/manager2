@@ -8,7 +8,9 @@ import { Card } from '@/shared/ui/Card'
 import { Modal } from '@/shared/ui/Modal'
 import { TextField } from '@/shared/ui/Field'
 import { EmptyState, ErrorState, LoadingState } from '@/shared/ui/PageState'
-import { useApi } from '@/shared/hooks/useApi'
+import { useQuery } from '@tanstack/react-query'
+import { errorMessage } from '@/shared/lib/queryClient'
+import { queryKeys } from '@/shared/lib/queryKeys'
 import { useDocumentTitle } from '@/shared/hooks'
 import { useAuth } from '@/shared/stores/authStore'
 import { api, ApiError } from '@/shared/lib/api'
@@ -45,10 +47,14 @@ export function ComplexesPage() {
 
   useDocumentTitle('مدیریت مجتمع‌ها')
 
-  const { data, error, isLoading, reload } = useApi<{
-    data: ComplexRow[]
-    activeId: number | null
-  }>('/system/complexes')
+  const { data, error, isLoading, refetch } = useQuery({
+    queryKey: queryKeys.system.complexes(),
+    queryFn: ({ signal }) =>
+      api<{
+        data: ComplexRow[]
+        activeId: number | null
+      }>('/system/complexes', { signal }),
+  })
 
   async function select(complex: ComplexRow) {
     setSwitching(complex.id)
@@ -57,7 +63,7 @@ export function ComplexesPage() {
       // مجتمع فعال روی نشست ذخیره می‌شود و در پاسخ /api/me می‌آید، پس
       // اطلاعات کاربر باید تازه شود تا سایدبار و داشبورد به‌روز شوند.
       await refresh()
-      reload()
+      void refetch()
     } catch (error) {
       alertError(error, 'انتخاب مجتمع ممکن نشد.')
     } finally {
@@ -70,7 +76,7 @@ export function ComplexesPage() {
     try {
       await api('/system/complexes/clear', { method: 'POST' })
       await refresh()
-      reload()
+      void refetch()
     } catch (error) {
       alertError(error, 'خروج از مجتمع ممکن نشد.')
     } finally {
@@ -119,7 +125,7 @@ export function ComplexesPage() {
       </header>
 
       {isLoading && <LoadingState rows={3} />}
-      {error && <ErrorState message={error} onRetry={reload} />}
+      {error && <ErrorState message={errorMessage(error)} onRetry={() => void refetch()} />}
 
       {data && !isLoading && (
         <Card>
@@ -207,7 +213,7 @@ export function ComplexesPage() {
         <ComplexForm
           onSaved={() => {
             setCreating(false)
-            reload()
+            void refetch()
           }}
           onCancel={() => setCreating(false)}
         />

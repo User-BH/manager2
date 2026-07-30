@@ -6,7 +6,9 @@ import { Modal } from '@/shared/ui/Modal'
 import { SearchInput } from '@/shared/ui/SearchInput'
 import { EmptyState, ErrorState, LoadingState } from '@/shared/ui/PageState'
 import { UnitForm } from './UnitForm'
-import { useApi } from '@/shared/hooks/useApi'
+import { useQuery } from '@tanstack/react-query'
+import { errorMessage } from '@/shared/lib/queryClient'
+import { queryKeys } from '@/shared/lib/queryKeys'
 import { useDocumentTitle } from '@/shared/hooks'
 import { api } from '@/shared/lib/api'
 import { alertError, confirmAction, toastSuccess } from '@/shared/lib/alert'
@@ -21,7 +23,10 @@ export function UnitsPage() {
   useDocumentTitle('واحدها')
 
   const query = search ? `/units?search=${encodeURIComponent(search)}` : '/units'
-  const { data, error, isLoading, reload } = useApi<UnitsResponse>(query)
+  const { data, error, isLoading, refetch } = useQuery({
+    queryKey: queryKeys.units.list({ search }),
+    queryFn: ({ signal }) => api<UnitsResponse>(query, { signal }),
+  })
 
   // بدون useCallback، SearchInput هر رندر یک تابع تازه می‌گیرد و debounce ریست می‌شود
   const handleSearch = useCallback((value: string) => setSearch(value), [])
@@ -38,7 +43,7 @@ export function UnitsPage() {
     try {
       await api(`/units/${unit.id}`, { method: 'DELETE' })
       toastSuccess('واحد حذف شد.')
-      reload()
+      void refetch()
     } catch (error) {
       alertError(error, 'حذف واحد ممکن نشد.')
     }
@@ -47,7 +52,7 @@ export function UnitsPage() {
   function handleSaved() {
     setEditing(null)
     setCreating(false)
-    reload()
+    void refetch()
   }
 
   return (
@@ -76,7 +81,7 @@ export function UnitsPage() {
       </header>
 
       {isLoading && <LoadingState rows={5} />}
-      {error && <ErrorState message={error} onRetry={reload} />}
+      {error && <ErrorState message={errorMessage(error)} onRetry={() => void refetch()} />}
 
       {data && !isLoading && (
         <Card>

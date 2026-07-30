@@ -6,7 +6,9 @@ import { z } from 'zod'
 import { Card } from '@/shared/ui/Card'
 import { CheckField, SelectField, TextField } from '@/shared/ui/Field'
 import { ErrorState, LoadingState } from '@/shared/ui/PageState'
-import { useApi } from '@/shared/hooks/useApi'
+import { useQuery } from '@tanstack/react-query'
+import { errorMessage } from '@/shared/lib/queryClient'
+import { queryKeys } from '@/shared/lib/queryKeys'
 import { useDocumentTitle } from '@/shared/hooks'
 import { api, ApiError } from '@/shared/lib/api'
 
@@ -63,7 +65,10 @@ export function ComplexSettingsPage() {
 
   useDocumentTitle('تنظیمات مجتمع')
 
-  const { data, error, isLoading, reload } = useApi<SettingsResponse>('/settings')
+  const { data, error, isLoading, refetch } = useQuery({
+    queryKey: queryKeys.settings.all(),
+    queryFn: ({ signal }) => api<SettingsResponse>('/settings', { signal }),
+  })
 
   const {
     register,
@@ -87,7 +92,7 @@ export function ComplexSettingsPage() {
     try {
       await api('/settings', { method: 'PUT', body: values })
       setSaved(true)
-      reload()
+      void refetch()
     } catch (err) {
       if (err instanceof ApiError) {
         let handled = false
@@ -103,7 +108,7 @@ export function ComplexSettingsPage() {
   }
 
   if (isLoading) return <LoadingState rows={5} />
-  if (error) return <ErrorState message={error} onRetry={reload} />
+  if (error) return <ErrorState message={errorMessage(error)} onRetry={() => void refetch()} />
   if (!data) return null
 
   return (

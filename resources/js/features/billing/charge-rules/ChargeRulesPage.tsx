@@ -17,7 +17,9 @@ import { Card } from '@/shared/ui/Card'
 import { Modal } from '@/shared/ui/Modal'
 import { CheckField, SelectField, TextField } from '@/shared/ui/Field'
 import { EmptyState, ErrorState, LoadingState } from '@/shared/ui/PageState'
-import { useApi } from '@/shared/hooks/useApi'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { errorMessage } from '@/shared/lib/queryClient'
+import { queryKeys } from '@/shared/lib/queryKeys'
 import { useDocumentTitle } from '@/shared/hooks'
 import { api, ApiError } from '@/shared/lib/api'
 import { alertError, confirmAction, toastSuccess } from '@/shared/lib/alert'
@@ -79,11 +81,15 @@ export function ChargeRulesPage() {
 
   useDocumentTitle('قوانین شارژ')
 
-  const { data, error, isLoading, reload, mutate } = useApi<RulesResponse>('/charge-rules')
+  const queryClient = useQueryClient()
+  const { data, error, isLoading, refetch } = useQuery({
+    queryKey: queryKeys.chargeRules.all(),
+    queryFn: ({ signal }) => api<RulesResponse>('/charge-rules', { signal }),
+  })
 
   async function toggle(rule: ChargeRule) {
     // خوش‌بینانه: وضعیت فوراً برعکس می‌شود
-    mutate((current) =>
+    queryClient.setQueryData<RulesResponse>(queryKeys.chargeRules.all(), (current) =>
       current
         ? {
             ...current,
@@ -96,7 +102,7 @@ export function ChargeRulesPage() {
       await api(`/charge-rules/${rule.id}/toggle`, { method: 'PATCH' })
     } catch (error) {
       alertError(error, 'تغییر وضعیت قانون ممکن نشد.')
-      reload() // برگرداندن به وضعیت سرور
+      void refetch() // برگرداندن به وضعیت سرور
     }
   }
 
@@ -110,7 +116,7 @@ export function ChargeRulesPage() {
     if (!ok) return
 
     // خوش‌بینانه: قانون بلافاصله از لیست می‌رود
-    mutate((current) =>
+    queryClient.setQueryData<RulesResponse>(queryKeys.chargeRules.all(), (current) =>
       current ? { ...current, data: current.data.filter((r) => r.id !== rule.id) } : current,
     )
 
@@ -119,7 +125,7 @@ export function ChargeRulesPage() {
       toastSuccess('قانون شارژ حذف شد.')
     } catch (error) {
       alertError(error, 'حذف قانون ممکن نشد.')
-      reload() // اگر حذف نشد، قانون برمی‌گردد
+      void refetch() // اگر حذف نشد، قانون برمی‌گردد
     }
   }
 
@@ -146,7 +152,7 @@ export function ChargeRulesPage() {
       </header>
 
       {isLoading && <LoadingState rows={4} />}
-      {error && <ErrorState message={error} onRetry={reload} />}
+      {error && <ErrorState message={errorMessage(error)} onRetry={() => void refetch()} />}
 
       {data && !isLoading && (
         <Card>
@@ -231,7 +237,7 @@ export function ChargeRulesPage() {
             categories={data.categories}
             onSaved={() => {
               setCreating(false)
-              reload()
+              void refetch()
             }}
             onCancel={() => setCreating(false)}
           />

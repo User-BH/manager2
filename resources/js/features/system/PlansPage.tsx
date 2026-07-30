@@ -3,7 +3,9 @@ import { Loader2, Plus, Save, Trash2, X, Gift } from 'lucide-react'
 import { Card } from '@/shared/ui/Card'
 import { TextField } from '@/shared/ui/Field'
 import { ErrorState, LoadingState } from '@/shared/ui/PageState'
-import { useApi } from '@/shared/hooks/useApi'
+import { useQuery } from '@tanstack/react-query'
+import { errorMessage } from '@/shared/lib/queryClient'
+import { queryKeys } from '@/shared/lib/queryKeys'
 import { useDocumentTitle } from '@/shared/hooks'
 import { api } from '@/shared/lib/api'
 import { alertError, confirmAction, toastSuccess } from '@/shared/lib/alert'
@@ -53,7 +55,10 @@ const BLANK: Draft = {
 export function PlansPage() {
   useDocumentTitle('پکیج‌های اشتراک')
 
-  const { data, error, isLoading, reload } = useApi<PlansResponse>('/system/plans')
+  const { data, error, isLoading, refetch } = useQuery({
+    queryKey: queryKeys.system.plans(),
+    queryFn: ({ signal }) => api<PlansResponse>('/system/plans', { signal }),
+  })
   const [draft, setDraft] = useState<Draft | null>(null)
   const [saving, setSaving] = useState(false)
 
@@ -66,7 +71,7 @@ export function PlansPage() {
       else await api('/system/plans', { method: 'POST', body })
       toastSuccess('پکیج ذخیره شد.')
       setDraft(null)
-      reload()
+      void refetch()
     } catch (err) {
       alertError(err, 'ذخیره‌ی پکیج ممکن نشد.')
     } finally {
@@ -77,7 +82,7 @@ export function PlansPage() {
   async function toggle(plan: Plan) {
     try {
       await api(`/system/plans/${plan.id}/toggle`, { method: 'PATCH' })
-      reload()
+      void refetch()
     } catch (err) {
       alertError(err)
     }
@@ -94,14 +99,14 @@ export function PlansPage() {
     try {
       await api(`/system/plans/${plan.id}`, { method: 'DELETE' })
       toastSuccess('پکیج حذف شد.')
-      reload()
+      void refetch()
     } catch (err) {
       alertError(err)
     }
   }
 
   if (isLoading) return <LoadingState rows={5} />
-  if (error) return <ErrorState message={error} onRetry={reload} />
+  if (error) return <ErrorState message={errorMessage(error)} onRetry={() => void refetch()} />
   if (!data) return null
 
   return (
@@ -325,7 +330,7 @@ export function PlansPage() {
       </Card>
 
       {/* فعال‌سازیِ دستی برای مجتمع */}
-      <ManualGrant plans={data.plans} complexes={data.complexes} onDone={reload} />
+      <ManualGrant plans={data.plans} complexes={data.complexes} onDone={() => void refetch()} />
     </div>
   )
 }

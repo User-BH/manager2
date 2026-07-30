@@ -4,7 +4,9 @@ import { Check, X, FileText, Clock, Loader2, AlertCircle } from 'lucide-react'
 import { Card } from '@/shared/ui/Card'
 import { StatCard } from '@/shared/ui/StatCard'
 import { EmptyState, ErrorState, LoadingState } from '@/shared/ui/PageState'
-import { useApi } from '@/shared/hooks/useApi'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { errorMessage } from '@/shared/lib/queryClient'
+import { queryKeys } from '@/shared/lib/queryKeys'
 import { useDocumentTitle } from '@/shared/hooks'
 import { api, ApiError } from '@/shared/lib/api'
 import { confirmAction, promptText, toastSuccess } from '@/shared/lib/alert'
@@ -46,7 +48,11 @@ export function PaymentReviewPage() {
 
   useDocumentTitle('بررسی پرداخت‌ها')
 
-  const { data, error, isLoading, reload, mutate } = useApi<PaymentsResponse>('/payments')
+  const queryClient = useQueryClient()
+  const { data, error, isLoading, refetch } = useQuery({
+    queryKey: queryKeys.payments.all(),
+    queryFn: ({ signal }) => api<PaymentsResponse>('/payments', { signal }),
+  })
 
   async function approve(payment: PaymentRow) {
     const ok = await confirmAction({
@@ -59,7 +65,7 @@ export function PaymentReviewPage() {
     setBusyId(payment.id)
     setActionError(null)
     // خوش‌بینانه: رسید بلافاصله از فهرست «در انتظار» می‌رود
-    mutate((current) =>
+    queryClient.setQueryData<PaymentsResponse>(queryKeys.payments.all(), (current) =>
       current
         ? { ...current, pending: current.pending.filter((p) => p.id !== payment.id) }
         : current,
@@ -67,10 +73,10 @@ export function PaymentReviewPage() {
     try {
       await api(`/payments/${payment.id}/approve`, { method: 'POST' })
       toastSuccess('پرداخت تایید شد.')
-      reload() // فهرست «اخیر» و شمارنده‌ها از سرور تازه می‌شوند
+      void refetch() // فهرست «اخیر» و شمارنده‌ها از سرور تازه می‌شوند
     } catch (err) {
       setActionError(err instanceof ApiError ? err.message : 'تایید ناموفق بود.')
-      reload() // اگر تایید نشد، رسید به فهرست برمی‌گردد
+      void refetch() // اگر تایید نشد، رسید به فهرست برمی‌گردد
     } finally {
       setBusyId(null)
     }
@@ -89,7 +95,7 @@ export function PaymentReviewPage() {
     setBusyId(payment.id)
     setActionError(null)
     // خوش‌بینانه: رسید بلافاصله از فهرست «در انتظار» می‌رود
-    mutate((current) =>
+    queryClient.setQueryData<PaymentsResponse>(queryKeys.payments.all(), (current) =>
       current
         ? { ...current, pending: current.pending.filter((p) => p.id !== payment.id) }
         : current,
@@ -97,10 +103,10 @@ export function PaymentReviewPage() {
     try {
       await api(`/payments/${payment.id}/reject`, { method: 'POST', body: { note } })
       toastSuccess('رسید رد شد.')
-      reload()
+      void refetch()
     } catch (err) {
       setActionError(err instanceof ApiError ? err.message : 'رد کردن ناموفق بود.')
-      reload() // اگر رد نشد، رسید به فهرست برمی‌گردد
+      void refetch() // اگر رد نشد، رسید به فهرست برمی‌گردد
     } finally {
       setBusyId(null)
     }
@@ -131,7 +137,7 @@ export function PaymentReviewPage() {
       )}
 
       {isLoading && <LoadingState rows={4} />}
-      {error && <ErrorState message={error} onRetry={reload} />}
+      {error && <ErrorState message={errorMessage(error)} onRetry={() => void refetch()} />}
 
       {data && !isLoading && (
         <>

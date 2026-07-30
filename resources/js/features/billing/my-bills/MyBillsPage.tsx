@@ -6,7 +6,9 @@ import { Card } from '@/shared/ui/Card'
 import { StatCard } from '@/shared/ui/StatCard'
 import { Modal } from '@/shared/ui/Modal'
 import { EmptyState, ErrorState, LoadingState } from '@/shared/ui/PageState'
-import { useApi } from '@/shared/hooks/useApi'
+import { useQuery } from '@tanstack/react-query'
+import { errorMessage } from '@/shared/lib/queryClient'
+import { queryKeys } from '@/shared/lib/queryKeys'
 import { useDocumentTitle } from '@/shared/hooks'
 import { api } from '@/shared/lib/api'
 import { alertError, alertInfo, alertSuccess } from '@/shared/lib/alert'
@@ -63,7 +65,10 @@ export function MyBillsPage() {
 
   useDocumentTitle('صورت‌حساب‌های من')
 
-  const { data, error, isLoading, reload } = useApi<MyBillsResponse>('/my-bills')
+  const { data, error, isLoading, refetch } = useQuery({
+    queryKey: queryKeys.bills.mine(),
+    queryFn: ({ signal }) => api<MyBillsResponse>('/my-bills', { signal }),
+  })
 
   /*
    * نتیجه‌ی بازگشت از درگاه با پارامتر آدرس می‌آید، نه با state ری‌اکت — چون
@@ -82,7 +87,7 @@ export function MyBillsPage() {
         'پرداخت با موفقیت انجام شد.',
         tracking ? `کد رهگیری: ${tracking}` : undefined,
       )
-      reload()
+      void refetch()
     } else {
       void alertInfo('پرداخت انجام نشد.', 'اگر مبلغی از حساب شما کسر شده، طی ۷۲ ساعت برمی‌گردد.')
     }
@@ -119,7 +124,7 @@ export function MyBillsPage() {
       </header>
 
       {isLoading && <LoadingState rows={4} />}
-      {error && <ErrorState message={error} onRetry={reload} />}
+      {error && <ErrorState message={errorMessage(error)} onRetry={() => void refetch()} />}
 
       {data && !isLoading && (
         <>

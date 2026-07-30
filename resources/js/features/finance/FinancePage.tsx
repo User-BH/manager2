@@ -19,7 +19,9 @@ import { StatCard } from '@/shared/ui/StatCard'
 import { Modal } from '@/shared/ui/Modal'
 import { SelectField, TextField } from '@/shared/ui/Field'
 import { EmptyState, ErrorState, LoadingState } from '@/shared/ui/PageState'
-import { useApi } from '@/shared/hooks/useApi'
+import { useQuery } from '@tanstack/react-query'
+import { errorMessage } from '@/shared/lib/queryClient'
+import { queryKeys } from '@/shared/lib/queryKeys'
 import { useDocumentTitle } from '@/shared/hooks'
 import { api, ApiError } from '@/shared/lib/api'
 import { alertError, confirmAction, toastSuccess } from '@/shared/lib/alert'
@@ -84,7 +86,10 @@ export function FinancePage() {
   useDocumentTitle('هزینه‌ها و درآمدها')
 
   const query = period ? `/finance?period=${encodeURIComponent(period)}` : '/finance'
-  const { data, error, isLoading, reload } = useApi<FinanceResponse>(query)
+  const { data, error, isLoading, refetch } = useQuery({
+    queryKey: queryKeys.finance.summary({ period }),
+    queryFn: ({ signal }) => api<FinanceResponse>(query, { signal }),
+  })
 
   async function removeExpense(id: number) {
     const ok = await confirmAction({
@@ -98,7 +103,7 @@ export function FinancePage() {
     try {
       await api(`/finance/expenses/${id}`, { method: 'DELETE' })
       toastSuccess('هزینه حذف شد.')
-      reload()
+      void refetch()
     } catch (error) {
       alertError(error, 'حذف هزینه ممکن نشد.')
     }
@@ -115,7 +120,7 @@ export function FinancePage() {
     try {
       await api(`/finance/incomes/${id}`, { method: 'DELETE' })
       toastSuccess('درآمد حذف شد.')
-      reload()
+      void refetch()
     } catch (error) {
       alertError(error, 'حذف درآمد ممکن نشد.')
     }
@@ -154,7 +159,7 @@ export function FinancePage() {
       </header>
 
       {isLoading && <LoadingState rows={4} />}
-      {error && <ErrorState message={error} onRetry={reload} />}
+      {error && <ErrorState message={errorMessage(error)} onRetry={() => void refetch()} />}
 
       {data && !isLoading && (
         <>
@@ -340,7 +345,7 @@ export function FinancePage() {
             splitMethods={data.splitMethods}
             onSaved={() => {
               setAdding(null)
-              reload()
+              void refetch()
             }}
             onCancel={() => setAdding(null)}
           />
@@ -350,7 +355,7 @@ export function FinancePage() {
             period={data.period}
             onSaved={() => {
               setAdding(null)
-              reload()
+              void refetch()
             }}
             onCancel={() => setAdding(null)}
           />

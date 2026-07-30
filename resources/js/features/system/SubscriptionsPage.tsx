@@ -4,7 +4,9 @@ import { BadgeCheck, Check, Crown, FileText, Hourglass, Loader2, X } from 'lucid
 import { Card } from '@/shared/ui/Card'
 import { StatCard } from '@/shared/ui/StatCard'
 import { EmptyState, ErrorState, LoadingState } from '@/shared/ui/PageState'
-import { useApi } from '@/shared/hooks/useApi'
+import { useQuery } from '@tanstack/react-query'
+import { errorMessage } from '@/shared/lib/queryClient'
+import { queryKeys } from '@/shared/lib/queryKeys'
 import { useDocumentTitle } from '@/shared/hooks'
 import { api } from '@/shared/lib/api'
 import { alertError, confirmAction, promptText, toastSuccess } from '@/shared/lib/alert'
@@ -58,7 +60,10 @@ export function SubscriptionsPage() {
 
   useDocumentTitle('اشتراک‌ها')
 
-  const { data, error, isLoading, reload } = useApi<Response>('/system/subscriptions')
+  const { data, error, isLoading, refetch } = useQuery({
+    queryKey: queryKeys.system.subscriptions(),
+    queryFn: ({ signal }) => api<Response>('/system/subscriptions', { signal }),
+  })
 
   async function approve(request: SubscriptionRequest) {
     const ok = await confirmAction({
@@ -72,7 +77,7 @@ export function SubscriptionsPage() {
     try {
       await api(`/system/subscriptions/${request.id}/approve`, { method: 'POST' })
       toastSuccess('اشتراک فعال شد.')
-      reload()
+      void refetch()
     } catch (err) {
       alertError(err, 'تایید اشتراک ممکن نشد.')
     } finally {
@@ -93,7 +98,7 @@ export function SubscriptionsPage() {
     try {
       await api(`/system/subscriptions/${request.id}/reject`, { method: 'POST', body: { note } })
       toastSuccess('درخواست رد شد.')
-      reload()
+      void refetch()
     } catch (err) {
       alertError(err, 'رد درخواست ممکن نشد.')
     } finally {
@@ -117,7 +122,7 @@ export function SubscriptionsPage() {
       </header>
 
       {isLoading && <LoadingState rows={4} />}
-      {error && <ErrorState message={error} onRetry={reload} />}
+      {error && <ErrorState message={errorMessage(error)} onRetry={() => void refetch()} />}
 
       {data && !isLoading && (
         <>

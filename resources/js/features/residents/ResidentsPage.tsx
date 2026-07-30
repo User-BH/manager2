@@ -15,7 +15,9 @@ import { Modal } from '@/shared/ui/Modal'
 import { SearchInput } from '@/shared/ui/SearchInput'
 import { EmptyState, ErrorState, LoadingState } from '@/shared/ui/PageState'
 import { ResidentForm } from './ResidentForm'
-import { useApi } from '@/shared/hooks/useApi'
+import { useQuery } from '@tanstack/react-query'
+import { errorMessage } from '@/shared/lib/queryClient'
+import { queryKeys } from '@/shared/lib/queryKeys'
 import { useDocumentTitle } from '@/shared/hooks'
 import { api } from '@/shared/lib/api'
 import { alertError, confirmAction, toastSuccess } from '@/shared/lib/alert'
@@ -30,7 +32,10 @@ export function ResidentsPage() {
   useDocumentTitle('ساکنین')
 
   const query = search ? `/residents?search=${encodeURIComponent(search)}` : '/residents'
-  const { data, error, isLoading, reload } = useApi<ResidentsResponse>(query)
+  const { data, error, isLoading, refetch } = useQuery({
+    queryKey: queryKeys.residents.list({ search }),
+    queryFn: ({ signal }) => api<ResidentsResponse>(query, { signal }),
+  })
 
   const handleSearch = useCallback((value: string) => setSearch(value), [])
 
@@ -46,7 +51,7 @@ export function ResidentsPage() {
     try {
       await api(`/residents/${resident.id}`, { method: 'DELETE' })
       toastSuccess('ساکن حذف شد.')
-      reload()
+      void refetch()
     } catch (error) {
       alertError(error, 'حذف ساکن ممکن نشد.')
     }
@@ -55,7 +60,7 @@ export function ResidentsPage() {
   async function handleToggle(resident: Resident) {
     try {
       await api(`/residents/${resident.id}/toggle-active`, { method: 'PATCH' })
-      reload()
+      void refetch()
     } catch (error) {
       alertError(error, 'تغییر وضعیت ساکن ممکن نشد.')
     }
@@ -69,7 +74,7 @@ export function ResidentsPage() {
         { method: 'PATCH' },
       )
       toastSuccess(message)
-      reload()
+      void refetch()
     } catch (error) {
       alertError(error, 'تغییر دسترسی پیام‌رسان ممکن نشد.')
     }
@@ -78,7 +83,7 @@ export function ResidentsPage() {
   function handleSaved() {
     setEditing(null)
     setCreating(false)
-    reload()
+    void refetch()
   }
 
   return (
@@ -107,7 +112,7 @@ export function ResidentsPage() {
       </header>
 
       {isLoading && <LoadingState rows={5} />}
-      {error && <ErrorState message={error} onRetry={reload} />}
+      {error && <ErrorState message={errorMessage(error)} onRetry={() => void refetch()} />}
 
       {data && !isLoading && (
         <Card>

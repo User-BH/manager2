@@ -4,7 +4,9 @@ import { Receipt, Loader2, Sparkles, FileSpreadsheet } from 'lucide-react'
 import { Card } from '@/shared/ui/Card'
 import { StatCard } from '@/shared/ui/StatCard'
 import { EmptyState, ErrorState, LoadingState } from '@/shared/ui/PageState'
-import { useApi } from '@/shared/hooks/useApi'
+import { useQuery } from '@tanstack/react-query'
+import { errorMessage } from '@/shared/lib/queryClient'
+import { queryKeys } from '@/shared/lib/queryKeys'
 import { useDocumentTitle } from '@/shared/hooks'
 import { api } from '@/shared/lib/api'
 import { alertError, confirmAction, toastSuccess } from '@/shared/lib/alert'
@@ -48,7 +50,10 @@ export function BillsPage() {
   useDocumentTitle('قبوض و شارژ')
 
   const query = period ? `/bills?period=${encodeURIComponent(period)}` : '/bills'
-  const { data, error, isLoading, reload } = useApi<BillsResponse>(query)
+  const { data, error, isLoading, refetch } = useQuery({
+    queryKey: queryKeys.bills.list({ period }),
+    queryFn: ({ signal }) => api<BillsResponse>(query, { signal }),
+  })
 
   async function handleGenerate() {
     if (!data) return
@@ -64,7 +69,7 @@ export function BillsPage() {
     try {
       await api('/bills/generate', { method: 'POST', body: { period: data.period } })
       toastSuccess(`قبوض ${data.periodLabel} صادر شد.`)
-      reload()
+      void refetch()
     } catch (error) {
       alertError(error, 'صدور قبوض ممکن نشد.')
     } finally {
@@ -128,7 +133,7 @@ export function BillsPage() {
       </header>
 
       {isLoading && <LoadingState rows={5} />}
-      {error && <ErrorState message={error} onRetry={reload} />}
+      {error && <ErrorState message={errorMessage(error)} onRetry={() => void refetch()} />}
 
       {data && !isLoading && (
         <>

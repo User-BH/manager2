@@ -6,7 +6,9 @@ import { z } from 'zod'
 import { Card } from '@/shared/ui/Card'
 import { SelectField, TextField } from '@/shared/ui/Field'
 import { ErrorState, LoadingState } from '@/shared/ui/PageState'
-import { useApi } from '@/shared/hooks/useApi'
+import { useQuery } from '@tanstack/react-query'
+import { errorMessage } from '@/shared/lib/queryClient'
+import { queryKeys } from '@/shared/lib/queryKeys'
 import { useDocumentTitle } from '@/shared/hooks'
 import { api, ApiError } from '@/shared/lib/api'
 
@@ -37,7 +39,10 @@ export function SmsPage() {
 
   useDocumentTitle('پنل پیامک')
 
-  const { data, error, isLoading, reload } = useApi<SmsResponse>('/system/sms')
+  const { data, error, isLoading, refetch } = useQuery({
+    queryKey: queryKeys.system.sms(),
+    queryFn: ({ signal }) => api<SmsResponse>('/system/sms', { signal }),
+  })
 
   const {
     register,
@@ -61,7 +66,7 @@ export function SmsPage() {
     try {
       await api('/system/sms', { method: 'PUT', body: values })
       setNotice({ ok: true, text: 'تنظیمات پنل پیامک ذخیره شد.' })
-      reload()
+      void refetch()
     } catch (err) {
       if (err instanceof ApiError) {
         let handled = false
@@ -94,7 +99,7 @@ export function SmsPage() {
   }
 
   if (isLoading) return <LoadingState rows={4} />
-  if (error) return <ErrorState message={error} onRetry={reload} />
+  if (error) return <ErrorState message={errorMessage(error)} onRetry={() => void refetch()} />
   if (!data) return null
 
   // ملی‌پیامک با نام کاربری/رمز کار می‌کند، بقیه با API key

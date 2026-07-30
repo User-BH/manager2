@@ -20,7 +20,9 @@ import { Card } from '@/shared/ui/Card'
 import { Modal } from '@/shared/ui/Modal'
 import { CheckField, SelectField, TextField } from '@/shared/ui/Field'
 import { EmptyState, ErrorState, LoadingState } from '@/shared/ui/PageState'
-import { useApi } from '@/shared/hooks/useApi'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { errorMessage } from '@/shared/lib/queryClient'
+import { queryKeys } from '@/shared/lib/queryKeys'
 import { useDocumentTitle } from '@/shared/hooks'
 import { useNotifications } from '@/shared/stores/notificationStore'
 import { api, ApiError } from '@/shared/lib/api'
@@ -65,7 +67,11 @@ export function AnnouncementsPage() {
 
   useDocumentTitle('اطلاعیه‌ها')
 
-  const { data, error, isLoading, reload, mutate } = useApi<AnnouncementsResponse>('/announcements')
+  const queryClient = useQueryClient()
+  const { data, error, isLoading, refetch } = useQuery({
+    queryKey: queryKeys.announcements.all(),
+    queryFn: ({ signal }) => api<AnnouncementsResponse>('/announcements', { signal }),
+  })
   const { markRead, markAllRead, refresh } = useNotifications()
 
   /*
@@ -80,7 +86,7 @@ export function AnnouncementsPage() {
     element?.scrollIntoView({ behavior: 'smooth', block: 'center' })
 
     const target = data.data.find((item) => item.id === focusId)
-    if (target && !target.isRead) void markRead(focusId).then(reload)
+    if (target && !target.isRead) void markRead(focusId).then(() => refetch())
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [focusId, data])
 
@@ -88,7 +94,7 @@ export function AnnouncementsPage() {
     if (announcement.isRead) return
 
     // خوش‌بینانه: فوری «خوانده» علامت بخورد و از شمارنده کم شود
-    mutate((current) =>
+    queryClient.setQueryData<AnnouncementsResponse>(queryKeys.announcements.all(), (current) =>
       current
         ? {
             ...current,
@@ -101,13 +107,13 @@ export function AnnouncementsPage() {
     try {
       await markRead(announcement.id)
     } catch {
-      reload()
+      void refetch()
     }
   }
 
   async function handleReadAll() {
     await markAllRead()
-    reload()
+    void refetch()
     toastSuccess('همه‌ی اطلاعیه‌ها خوانده شد.')
   }
 
@@ -126,7 +132,7 @@ export function AnnouncementsPage() {
         },
       })
       toastSuccess(announcement.isPinned ? 'سنجاق برداشته شد.' : 'اطلاعیه سنجاق شد.')
-      reload()
+      void refetch()
     } catch (err) {
       alertError(err, 'تغییر وضعیت سنجاق ممکن نشد.')
     }
@@ -142,7 +148,7 @@ export function AnnouncementsPage() {
     if (!ok) return
 
     // خوش‌بینانه: فوری از فهرست برداشته می‌شود؛ با شکست، از سرور بازمی‌گردد.
-    mutate((current) =>
+    queryClient.setQueryData<AnnouncementsResponse>(queryKeys.announcements.all(), (current) =>
       current
         ? {
             ...current,
@@ -160,7 +166,7 @@ export function AnnouncementsPage() {
       // حذف اطلاعیه‌ی نخوانده باید شمارنده‌ی زنگوله را هم کم کند
       void refresh()
     } catch (err) {
-      reload()
+      void refetch()
       alertError(err, 'حذف اطلاعیه ممکن نشد.')
     }
   }
@@ -206,7 +212,7 @@ export function AnnouncementsPage() {
       </header>
 
       {isLoading && <LoadingState rows={4} />}
-      {error && <ErrorState message={error} onRetry={reload} />}
+      {error && <ErrorState message={errorMessage(error)} onRetry={() => void refetch()} />}
 
       {data && !isLoading && (
         <>
@@ -384,7 +390,7 @@ export function AnnouncementsPage() {
             onSaved={() => {
               setCreating(false)
               setEditing(null)
-              reload()
+              void refetch()
             }}
             onCancel={() => {
               setCreating(false)

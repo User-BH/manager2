@@ -7,7 +7,7 @@
     "dev": "vite",
     "test": "vitest run --config vitest.config.ts",
     "test:watch": "vitest --config vitest.config.ts",
-    "lint": "eslint . --max-warnings=16",
+    "lint": "eslint . --max-warnings=15",
     "typecheck": "tsc --noEmit",
     "check": "npm run format:check && npm run typecheck && npm run lint && npm run test",
     "format": "prettier --write .",

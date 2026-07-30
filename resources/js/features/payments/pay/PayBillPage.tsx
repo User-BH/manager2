@@ -7,7 +7,9 @@ import { z } from 'zod'
 import { Card } from '@/shared/ui/Card'
 import { TextField } from '@/shared/ui/Field'
 import { ErrorState, LoadingState } from '@/shared/ui/PageState'
-import { useApi } from '@/shared/hooks/useApi'
+import { useQuery } from '@tanstack/react-query'
+import { errorMessage } from '@/shared/lib/queryClient'
+import { queryKeys } from '@/shared/lib/queryKeys'
 import { useDocumentTitle } from '@/shared/hooks'
 import { api, ApiError } from '@/shared/lib/api'
 import { formatMoney } from '@/shared/lib/format'
@@ -45,7 +47,10 @@ export function PayBillPage() {
 
   useDocumentTitle('پرداخت قبض')
 
-  const { data, error, isLoading, reload } = useApi<PayResponse>(`/pay/${billId}`)
+  const { data, error, isLoading, refetch } = useQuery({
+    queryKey: queryKeys.payments.forBill(billId ?? ''),
+    queryFn: ({ signal }) => api<PayResponse>(`/pay/${billId}`, { signal }),
+  })
 
   const {
     register,
@@ -96,7 +101,7 @@ export function PayBillPage() {
   }
 
   if (isLoading) return <LoadingState rows={3} />
-  if (error) return <ErrorState message={error} onRetry={reload} />
+  if (error) return <ErrorState message={errorMessage(error)} onRetry={() => void refetch()} />
   if (!data) return null
 
   const csrf = document.querySelector<HTMLMetaElement>('meta[name="csrf-token"]')?.content ?? ''

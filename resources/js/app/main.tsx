@@ -1,4 +1,4 @@
-import { StrictMode } from 'react'
+import { StrictMode, Suspense, lazy } from 'react'
 import { createRoot } from 'react-dom/client'
 import { BrowserRouter } from 'react-router-dom'
 import { QueryClientProvider } from '@tanstack/react-query'
@@ -25,12 +25,30 @@ import { AppRouter } from './AppRouter'
  */
 const queryClient = createQueryClient()
 
+/*
+ * ابزارِ توسعه‌ی TanStack Query — فقط در حالتِ توسعه.
+ *
+ * `import.meta.env.DEV` را Vite هنگام بیلد به `false` تبدیل می‌کند و کلِ این
+ * شاخه به‌همراه خودِ پکیج از باندلِ محصول حذف می‌شود (tree-shaking). پس هزینه‌ی
+ * تولیدش صفر است — راستی‌آزمایی شد.
+ */
+const DevTools = import.meta.env.DEV
+  ? lazy(() =>
+      import('@tanstack/react-query-devtools').then((m) => ({ default: m.ReactQueryDevtools })),
+    )
+  : null
+
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <QueryClientProvider client={queryClient}>
       <BrowserRouter>
         <AppRouter />
       </BrowserRouter>
+      {DevTools && (
+        <Suspense fallback={null}>
+          <DevTools initialIsOpen={false} buttonPosition="bottom-left" />
+        </Suspense>
+      )}
     </QueryClientProvider>
   </StrictMode>,
 )
