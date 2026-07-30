@@ -88,37 +88,41 @@
 
 ### R1 — بازسازی فولدربندی فرانت (Feature-Based) + جداسازی type/constant/util/config
 
-**اندازه:** L · **وابستگی:** ندارد · **وضعیت:** ❌
+**اندازه:** L · **وابستگی:** ندارد · **وضعیت:** ✅ (کامیت `577fda9`)
 **منبع:** فنی-1, فنی-3, فنی-7, فنی-11, فنی-45, فنی-46 · DoD-7, 15, 16, 17, 49, 50, 53, 54 · (نیز فنی-19 بخش استایل مشترک)
 
 **مشکل فعلی (تأییدشده):** ساختار `pages/` تخت است و با تغییرات این چند ماه به‌روز نشده؛ store‌های zustand هنوز در پوشه‌ی `context/` با نام `*Context.tsx` هستند؛ ثابت‌ها و تایپ‌ها پراکنده‌اند.
 **کار:** مهاجرت به ساختار Feature-Based (`features/auth`, `features/payments`, `features/buildings`, `features/messaging`, …) + `shared/{ui,hooks,lib,types,constants,config}` + انتقال `context/` → `stores/` + دسته‌بندی مدیا (کدام تصویر از `public/` و کدام از `src` عبور کند و توسط Vite بهینه شود — فنی-3) + حذف Dead Code و import بلااستفاده.
+**نتیجه:** ۱۴۶ فایل به ساختار feature-based منتقل شد (`app/`, `features/`, `shared/`, `tests/`). `App.tsx` به‌عنوان واسطه‌ی بی‌کار حذف شد. پنج Context به store زوستند تغییر نام یافت (نام هوک‌های عمومی `useAuth`/`useTheme` دست‌نخورده). قاعده‌ی رسانه مستند شد: `resources/images/` برای دارایی‌های عبوری از Vite (هش‌دار) و `public/` برای مسیرهای ثابت. هوک `useMutation` استخراج شد تا بلوکِ تکراریِ confirm→pending→api→toast در ۸ صفحه یکجا شود (۱ صفحه مهاجرت کرد؛ ۷ صفحه‌ی بعدی در `FRONTEND_STRUCTURE.md` فهرست شده). تنها یک import شکست (`landingContent.ts`) که همان‌جا رفع شد.
 **معیار پذیرش:** `npm run check` سبز · `npm run build` سبز · هیچ import شکسته · نگاشت قدیمی→جدید مستند شود.
 
 ### R2 — تکمیل ابزار کیفیت: Prettier + Husky + lint-staged (+ تصمیم ESLint)
 
-**اندازه:** M · **وابستگی:** R1 · **وضعیت:** 🟡 (لینت با oxlint هست؛ Prettier/Husky نیست)
+**اندازه:** M · **وابستگی:** R1 · **وضعیت:** ✅ (کامیت `f6c16f2` — تصمیم: oxlint، چون typescript-eslint روی TS 7 اجرا نمی‌شود)
 **منبع:** فنی-4, فنی-52 · DoD-45, 46, 47, 48
 
 **وضعیت فعلی:** `oxlint` نصب و فعال است (۰ خطا). Prettier، Husky و lint-staged **نیستند**.
 **کار:** افزودن Prettier (با تنظیمات RTL/فارسی‌پسند) + Husky + lint-staged تا پیش از هر کامیت `lint`، `typecheck` و `test` اجرا شوند.
+**نتیجه:** Prettier + Husky + lint-staged نصب شد. دروازه‌ی pre-commit (`lint-staged` → `typecheck` → `test`) **در هر دو جهت آزموده شد**: کامیتِ سالم رد می‌شود و کامیتِ آزمایشی با خطای تایپ واقعاً بلوکه شد. تست بک‌اند و PHPStan عمداً از pre-commit بیرون ماندند (کندی → توسعه‌دهنده `--no-verify` می‌زند)؛ آن‌ها در `composer check` و CI (R42).
 **⚠️ تصمیم لازم:** ESLint روی TypeScript 7 اجرا نمی‌شود (`typescript-eslint` صریحاً خطا می‌دهد — [#10940](https://github.com/typescript-eslint/typescript-eslint/issues/10940)). گزینه‌ها: (الف) ماندن روی oxlint که همان قواعد مهم را دارد [پیشنهاد من]، (ب) نصب TS 6 به‌صورت side-by-side فقط برای لینت، (ج) صبر تا پشتیبانی رسمی.
 
 ### R3 — تکمیل تست فرانت: Component + Integration + E2E + Coverage
 
-**اندازه:** L · **وابستگی:** R1, R2 · **وضعیت:** 🟡 (۴۳ تست منطقی؛ Component/E2E ندارد)
+**اندازه:** L · **وابستگی:** R1, R2 · **وضعیت:** ✅ (کامیت `a81d761` — ۵۴ تست Vitest + ۱۱ تست Playwright)
 **منبع:** فنی-2 · DoD-55, 56, 57, 58, 59, 60
 
 **وضعیت فعلی:** ۴۳ تست Vitest روی منطق (پالایه، طرح‌های zod، rememberMe، ApiError، ProtectedRoute).
 **کار:** تست Component با RTL برای فرم‌های ورود/ثبت‌نام/پرداخت، تست Integration برای جریان‌ها، افزودن **Playwright** برای E2E روی جریان‌های بحرانی (Login, Register, Payment, Wallet, Dashboard, Permissions, Forms — DoD-60)، و گزارش Coverage.
+**نتیجه:** ۴۳ → ۵۴ تست Vitest (LoginForm ۶، RegisterForm ۵) + ۱۱ تست Playwright روی سرور واقعی + گزارش Coverage (`npm run test:coverage`). تست E2E **یک باگ واقعی گرفت**: خطای کنسولِ `<ellipse> attribute rx: Expected length, "undefined"` در `CtaMascot`، چون framer-motion مقدار `rx` را style می‌پندارد ولی روی `<ellipse>` یک attribute است؛ با افزودن `initial` رفع شد. پازلِ اسلایدی در تستِ کامپوننت جایگزین (stub) شد چون با درگِ اشاره‌گر حل می‌شود و jsdom آن را بازتولید نمی‌کند — ولی دروازه‌ی پازل و بازتولیدش هنوز واقعاً سنجیده می‌شوند. «کیف پول» و «پرداخت» از DoD-60 هنوز ساخته نشده‌اند (R22) و با ساخته‌شدن به همین فایل اضافه می‌شوند.
 
 ### R4 — بازسازی فولدربندی بک‌اند + Pint + PHPStan
 
-**اندازه:** M · **وابستگی:** ندارد (می‌تواند موازی R1) · **وضعیت:** 🟡
+**اندازه:** M · **وابستگی:** ندارد (می‌تواند موازی R1) · **وضعیت:** ✅ (کامیت `3ce8b70` — PHPStan سطح ۵ با baseline)
 **منبع:** Backend-2, 68, 69 · DoD-67
 
 **وضعیت فعلی:** `app/` دارای Controllers/Models/Services/Support است؛ **Policies، DTO، Actions، Events، Listeners، Jobs، Rules، Resources خالی یا موجود نیستند**. Pint هست ولی مخزن Pint-clean نیست. PHPStan نصب نیست.
 **کار:** ساخت ساختار استاندارد + نصب PHPStan (سطح معقول و افزایشی) + Pint روی کل مخزن (یک‌بار، در کامیت جدا تا دیف بعدی آلوده نشود).
+**نتیجه:** ۱۳ پوشه‌ی استاندارد (`Actions`, `DTO`, `Repositories`, `Policies`, `Events`, `Listeners`, `Jobs`, `Notifications`, `Rules`, `Traits`, `Helpers`, `Http/Requests`, `Http/Resources`) ساخته شد. PHPStan سطح ۵ + baseline با ۱۶۱ ورودی (۲۰۲ خطای خام که عمدتاً کمبودِ annotation در enum-cast و generics رابطه‌اند، نه باگ) — قاعده: baseline فقط کوچک می‌شود. Pint روی کل مخزن. `composer audit` برای نخستین بار اجرا شد و **۱۹ هشدار امنیتی PHP رفع شد** — مهم‌ترینش ارتقای Guzzle که روی مسیر پیامکِ ippanel است (افشای کوکی، تزریق CRLF، و تنزلِ خاموشِ HTTPS به متنِ ساده). ۲۷۷ تست بک‌اند پس از ارتقا هم سبز ماند.
 
 ---
 
