@@ -1,4 +1,6 @@
 import { useCallback, useState } from 'react'
+import { useQueryClient } from '@tanstack/react-query'
+
 import { api } from '@/shared/lib/api'
 import { alertError, confirmAction, toastSuccess } from '@/shared/lib/alert'
 
@@ -11,16 +13,22 @@ import { alertError, confirmAction, toastSuccess } from '@/shared/lib/alert'
  * هر تکرار یک جای خطای احتمالی بود (مثلاً یادرفتنِ `finally` که دکمه را برای
  * همیشه غیرفعال می‌گذاشت). حالا منطق یک‌جاست.
  *
+ * ─── چرا اسمش `useAction` است و نه `useMutation`؟ ──────────────────────────
+ * چون `useMutation` نامِ هوکِ خودِ TanStack Query است. دو چیزِ متفاوت با یک
+ * نام، برای کسی که تازه وارد پروژه می‌شود تله است. این هوک لایه‌ی رویی است:
+ * تاییدِ کاربر، توست، و ابطالِ کش.
+ *
  * `pendingKey` برای فهرست‌ها لازم است: می‌گوید *کدام ردیف* در حال ارسال است تا
- * فقط همان یک دکمه اسپینر بگیرد، نه کلِ جدول.
+ * فقط همان یک دکمه اسپینر بگیرد، نه کلِ جدول. (`useMutation`ِ تنستک یک
+ * `isPending` سراسری می‌دهد که برای جدول کافی نیست.)
  *
  * @example
- * const { run, isPending } = useMutation()
- * run(() => api(`/system/members/${m.id}`, { method: 'DELETE' }), {
+ * const { call, isPending } = useApiAction()
+ * void call(`/system/members/${m.id}`, { method: 'DELETE' }, {
  *   key: m.id,
  *   confirm: { title: 'حذف کاربر', danger: true },
  *   success: 'کاربر حذف شد.',
- *   onDone: reload,
+ *   invalidate: [queryKeys.members.all()],
  * })
  */
 
@@ -35,16 +43,25 @@ interface RunOptions {
   success?: string
   /** پیامِ جایگزین وقتی خطا شناخته نشد. */
   errorFallback?: string
-  /** پس از موفقیت صدا زده می‌شود (معمولاً `reload`). */
+  /**
+   * کلیدهایی که پس از موفقیت باید باطل شوند.
+   *
+   * جای `reload()`ِ دستی را می‌گیرد: به‌جای اینکه صفحه خودش دوباره بگیرد،
+   * می‌گوییم «این داده کهنه شد» و هر مصرف‌کننده‌ای در هر گوشه‌ی برنامه که آن
+   * کلید را دارد تازه می‌شود — نه فقط همان صفحه‌ای که دکمه در آن بود.
+   */
+  invalidate?: readonly (readonly unknown[])[]
+  /** پس از موفقیت صدا زده می‌شود. */
   onDone?: () => void
 }
 
-export function useMutation() {
+export function useAction() {
   const [pendingKey, setPendingKey] = useState<Key | null>(null)
+  const queryClient = useQueryClient()
 
   const run = useCallback(
     async <T>(action: () => Promise<T>, options: RunOptions = {}): Promise<T | undefined> => {
-      const { key = '__single__', confirm, success, errorFallback, onDone } = options
+      const { key = '__single__', confirm, success, errorFallback, invalidate, onDone } = options
 
       if (confirm && !(await confirmAction(confirm))) return undefined
 
@@ -52,6 +69,13 @@ export function useMutation() {
       try {
         const result = await action()
         if (success) toastSuccess(success)
+
+        if (invalidate) {
+          await Promise.all(
+            invalidate.map((queryKey) => queryClient.invalidateQueries({ queryKey })),
+          )
+        }
+
         onDone?.()
         return result
       } catch (error) {
@@ -62,7 +86,7 @@ export function useMutation() {
         setPendingKey(null)
       }
     },
-    [],
+    [queryClient],
   )
 
   return {
@@ -76,14 +100,14 @@ export function useMutation() {
 }
 
 /** نمونه‌ی آماده برای حالتِ رایج: فقط صدا زدنِ یک endpoint. */
-export function useApiMutation() {
-  const mutation = useMutation()
+export function useApiAction() {
+  const action = useAction()
 
   const call = useCallback(
     (path: string, init: Parameters<typeof api>[1], options?: RunOptions) =>
-      mutation.run(() => api(path, init), options),
-    [mutation],
+      action.run(() => api(path, init), options),
+    [action],
   )
 
-  return { ...mutation, call }
+  return { ...action, call }
 }

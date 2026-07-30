@@ -16,7 +16,10 @@ import { StatCard } from '@/shared/ui/StatCard'
 import { EmptyState, ErrorState, LoadingState } from '@/shared/ui/PageState'
 import { TrendChart } from './components/TrendChart'
 import { PaymentStatusChart } from './components/PaymentStatusChart'
-import { useApi } from '@/shared/hooks/useApi'
+import { useQuery } from '@tanstack/react-query'
+import { api } from '@/shared/lib/api'
+import { errorMessage } from '@/shared/lib/queryClient'
+import { queryKeys } from '@/shared/lib/queryKeys'
 import { useDocumentTitle } from '@/shared/hooks'
 import { useAuth } from '@/shared/stores/authStore'
 import { formatMoney, formatNumber } from '@/shared/lib/format'
@@ -61,12 +64,15 @@ type DashboardData = AdminDashboard | SystemDashboard | ResidentDashboard
 
 export function DashboardPage() {
   const { user } = useAuth()
-  const { data, error, isLoading, reload } = useApi<DashboardData>('/dashboard')
+  const { data, error, isLoading, refetch } = useQuery({
+    queryKey: queryKeys.dashboard.all(),
+    queryFn: ({ signal }) => api<DashboardData>('/dashboard', { signal }),
+  })
 
   useDocumentTitle('داشبورد')
 
   if (isLoading) return <LoadingState rows={4} />
-  if (error) return <ErrorState message={error} onRetry={reload} />
+  if (error) return <ErrorState message={errorMessage(error)} onRetry={() => void refetch()} />
   if (!data) return null
 
   return (

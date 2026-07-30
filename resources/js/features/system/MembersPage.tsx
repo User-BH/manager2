@@ -2,9 +2,12 @@ import { useDeferredValue, useState } from 'react'
 import { Loader2, Search, ShieldCheck, Trash2, UserCog } from 'lucide-react'
 import { Card } from '@/shared/ui/Card'
 import { ErrorState, LoadingState } from '@/shared/ui/PageState'
-import { useApi } from '@/shared/hooks/useApi'
+import { useQuery } from '@tanstack/react-query'
 import { useDebounce, useDocumentTitle } from '@/shared/hooks'
-import { useApiMutation } from '@/shared/hooks/useMutation'
+import { useApiAction } from '@/shared/hooks/useAction'
+import { api } from '@/shared/lib/api'
+import { errorMessage } from '@/shared/lib/queryClient'
+import { queryKeys } from '@/shared/lib/queryKeys'
 
 interface Member {
   id: number
@@ -35,12 +38,18 @@ export function MembersPage() {
   // می‌کند تا با حجمِ بالای ثبت‌نام‌ها، تایپ در کادرِ جست‌وجو روان بماند.
   const debounced = useDebounce(q, 400)
   const deferredQuery = useDeferredValue(debounced)
-  const { data, error, isLoading, reload } = useApi<MembersResponse>(
-    `/system/members?q=${encodeURIComponent(deferredQuery)}`,
-  )
+  /*
+   * کلید شاملِ عبارتِ جست‌وجو است، پس هر عبارت کشِ خودش را دارد: برگشتن به
+   * جست‌وجوی قبلی آنی است و دوباره به سرور نمی‌رود.
+   */
+  const { data, error, isLoading, refetch } = useQuery({
+    queryKey: queryKeys.members.list({ q: deferredQuery }),
+    queryFn: ({ signal }) =>
+      api<MembersResponse>(`/system/members?q=${encodeURIComponent(deferredQuery)}`, { signal }),
+  })
 
-  // تایید، وضعیتِ ارسال، توست و مدیریت خطا همه در همین هوک است
-  const { call, isPending } = useApiMutation()
+  // تایید، وضعیتِ ارسال، توست، ابطالِ کش و مدیریت خطا همه در همین هوک است
+  const { call, isPending } = useApiAction()
 
   function changeRole(member: Member, role: string) {
     if (role === member.role) return
@@ -60,7 +69,7 @@ export function MembersPage() {
         },
         success: 'نقشِ کاربر به‌روزرسانی شد.',
         errorFallback: 'تغییر نقش ممکن نشد.',
-        onDone: reload,
+        invalidate: [queryKeys.members.all()],
       },
     )
   }
@@ -79,7 +88,7 @@ export function MembersPage() {
         },
         success: 'کاربر حذف شد.',
         errorFallback: 'حذف کاربر ممکن نشد.',
-        onDone: reload,
+        invalidate: [queryKeys.members.all()],
       },
     )
   }
@@ -92,7 +101,7 @@ export function MembersPage() {
         key: member.id,
         success: member.isActive ? 'حساب غیرفعال شد.' : 'حساب فعال شد.',
         errorFallback: 'تغییرِ وضعیت ممکن نشد.',
-        onDone: reload,
+        invalidate: [queryKeys.members.all()],
       },
     )
   }
@@ -130,7 +139,7 @@ export function MembersPage() {
       </div>
 
       {isLoading && <LoadingState rows={5} />}
-      {error && <ErrorState message={error} onRetry={reload} />}
+      {error && <ErrorState message={errorMessage(error)} onRetry={() => void refetch()} />}
 
       {data && (
         <Card
