@@ -46,13 +46,23 @@ export function CtaMascot() {
         style={{ transformOrigin: '100px 200px' }}
       >
         {/* سایه‌ی زیر پا */}
+        {/*
+          `initial` اینجا اجباری است، نه تزئینی.
+
+          framer-motion `rx` را مثل یک ویژگیِ style مدیریت می‌کند، ولی روی
+          <ellipse> این یک *attribute* است. بدون مقدار اولیه، مقدارِ شروع را
+          undefined می‌خواند و `rx="undefined"` روی عنصر می‌نویسد؛ مرورگر هم
+          خطای `Expected length, "undefined"` در کنسول می‌داد.
+        */}
         <motion.ellipse
           cx="100"
           cy="201"
-          rx="44"
           ry="7"
           fill="rgba(0,0,0,0.14)"
-          animate={reduce ? {} : { rx: [44, 38, 44], opacity: [0.14, 0.1, 0.14] }}
+          initial={{ rx: 44, opacity: 0.14 }}
+          animate={
+            reduce ? { rx: 44, opacity: 0.14 } : { rx: [44, 38, 44], opacity: [0.14, 0.1, 0.14] }
+          }
           transition={{ duration: 3.6, repeat: Infinity, ease: 'easeInOut' }}
         />
 

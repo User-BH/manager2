@@ -99,3 +99,30 @@ resources/
 `shared/hooks/useMutation.ts` ساخته شد و `features/system/MembersPage.tsx` روی آن منتقل شد.
 **۷ صفحه‌ی دیگر** که همان الگو را دارند هنوز منتقل نشده‌اند و در **R39** (بهینه‌سازی React) یا هنگام نخستین دست‌زدن به هر صفحه منتقل می‌شوند:
 `AccountPage`, `PaymentReviewPage`, `PlansPage`, `SubscriptionsPage`, `SystemBackupPage`, `ComplexBackupPage`, `ForgotPasswordPage`
+
+## تست‌ها (پس از R3)
+
+```bash
+npm test              # ۵۴ تست Vitest (واحد + کامپوننت + یکپارچگی)
+npm run test:watch    # حالت تماشا
+npm run test:coverage # گزارش پوشش
+npm run test:e2e      # ۱۱ تست Playwright روی سرور واقعی
+npm run check         # format + typecheck + lint + test
+```
+
+| فایل                               | نوع      | تعداد | چه چیزی                                                                 |
+| ---------------------------------- | -------- | ----- | ----------------------------------------------------------------------- |
+| `inputFilters.test.ts`             | واحد     | ۱۳    | پالایه‌های ورودی فرم                                                    |
+| `authSchemas.test.ts`              | واحد     | ۱۳    | طرح‌های zod (آینه‌ی قواعد سرور)                                         |
+| `rememberMe.test.ts`               | واحد     | ۷     | مرزِ دقیقِ انقضای ۱۰ روزه                                               |
+| `apiError.test.ts`                 | واحد     | ۵     | نگاشت خطای لاراول به فیلد                                               |
+| `ProtectedRoute.test.tsx`          | کامپوننت | ۵     | کنترل دسترسی مسیرها                                                     |
+| `LoginForm.test.tsx`               | کامپوننت | ۶     | دروازه‌ی پازل، بوردر قرمز، بازنشانی پازل، منعِ کپیِ رمز                 |
+| `RegisterForm.test.tsx`            | یکپارچگی | ۵     | ثبت‌نام دومرحله‌ای: گام اول حساب نمی‌سازد، فقط تاییدِ کد می‌سازد        |
+| `tests/e2e/critical-flows.spec.ts` | E2E      | ۱۱    | مهمان/۴۰۱، تصاویر، هشِ Vite، CSRF (۴۱۹)، ورود نادرست، MPA سرورساید، ۴۰۳ |
+
+**تستِ E2E یک باگ واقعی گرفت:** روی صفحه‌ی اصلی خطای کنسولِ
+`<ellipse> attribute rx: Expected length, "undefined"` رخ می‌داد، چون
+framer-motion مقدار `rx` را مثل ویژگیِ style مدیریت می‌کند ولی روی `<ellipse>`
+یک attribute است و بدون `initial` مقدارِ شروع `undefined` می‌شد. با افزودن
+`initial={{ rx: 44 }}` در `CtaMascot` رفع شد.

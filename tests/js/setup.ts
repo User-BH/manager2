@@ -33,3 +33,20 @@ if (!window.matchMedia) {
 if (!window.scrollTo) {
   window.scrollTo = vi.fn() as unknown as typeof window.scrollTo
 }
+
+/*
+ * خاموش‌کردن یک هشدارِ شناخته‌شده‌ی framer-motion.
+ *
+ * چند کامپوننت (مثل میله‌های سنجه‌ی قدرت رمز) `backgroundColor` را از یک
+ * متغیر CSS به متغیر دیگر انیمیت می‌کنند و framer-motion نمی‌تواند متغیرِ CSS
+ * را درون‌یابی کند. این در مرورگر یعنی رنگ «می‌پرد» به‌جای اینکه نرم عوض شود —
+ * یک نقصِ ظاهریِ کوچک که در R37 (انیمیشن/دسترس‌پذیری) رسیدگی می‌شود.
+ *
+ * فقط همین یک پیام فیلتر می‌شود تا خروجیِ تست خوانا بماند؛ بقیه‌ی هشدارها و
+ * خطاها دست‌نخورده رد می‌شوند و پنهان نمی‌مانند.
+ */
+const originalWarn = console.warn
+console.warn = (...args: unknown[]) => {
+  if (typeof args[0] === 'string' && args[0].includes('is not an animatable value')) return
+  originalWarn(...(args as Parameters<typeof console.warn>))
+}

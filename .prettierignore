@@ -15,3 +15,8 @@ phpstan-baseline.neon
 
 # CSS پروژه دستی مرتب شده و ترتیب توکن‌ها معنادار است
 resources/css/app.css
+
+# خروجی تست
+coverage/
+test-results/
+playwright-report/
