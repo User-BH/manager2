@@ -3,6 +3,7 @@ import { createRoot } from 'react-dom/client'
 import { BrowserRouter } from 'react-router-dom'
 import { QueryClientProvider } from '@tanstack/react-query'
 
+import { initObservability, reportError } from '@/shared/lib/observability'
 import { createQueryClient } from '@/shared/lib/queryClient'
 import { ErrorBoundary, RootErrorFallback } from '@/shared/ui/ErrorBoundary'
 import { AppRouter } from './AppRouter'
@@ -24,6 +25,12 @@ import { AppRouter } from './AppRouter'
  * کلاینت در سطحِ ماژول ساخته می‌شود، نه داخلِ کامپوننت: این نقطه یک بار در
  * عمرِ صفحه اجرا می‌شود، پس `useState` لازم نیست.
  */
+/*
+ * پایش پیش از رندر راه می‌افتد تا خطای خودِ رندرِ اول هم گرفته شود.
+ * اگر هیچ شناسه‌ای تنظیم نشده باشد این فراخوانی عملاً بی‌اثر است.
+ */
+initObservability()
+
 const queryClient = createQueryClient()
 
 /*
@@ -48,7 +55,7 @@ createRoot(document.getElementById('root')!).render(
       دیوارِ درونِ داشبورد (در AppRouter) پیش از این یکی عمل می‌کند و پوسته را
       زنده نگه می‌دارد؛ این یکی فقط وقتی به کار می‌آید که آن هم از دست رفته باشد.
     */}
-    <ErrorBoundary fallback={(error) => <RootErrorFallback error={error} />}>
+    <ErrorBoundary onError={reportError} fallback={(error) => <RootErrorFallback error={error} />}>
       <QueryClientProvider client={queryClient}>
         <BrowserRouter>
           <AppRouter />

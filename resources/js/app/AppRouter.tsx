@@ -1,6 +1,7 @@
 import { Suspense, lazy, useEffect } from 'react'
 import { Route, Routes, useLocation } from 'react-router-dom'
 import { Loader2 } from 'lucide-react'
+import { trackPageView } from '@/shared/lib/observability'
 import { ProtectedRoute } from './ProtectedRoute'
 import type { UserRole } from '@/shared/types'
 
@@ -95,6 +96,11 @@ const MembersPage = lazy(() =>
 const PlansPage = lazy(() =>
   import('@/features/system/PlansPage').then((m) => ({ default: m.PlansPage })),
 )
+const ObservabilityPage = lazy(() =>
+  import('@/features/system/observability/ObservabilityPage').then((m) => ({
+    default: m.ObservabilityPage,
+  })),
+)
 const AuditLogPage = lazy(() =>
   import('@/features/system/AuditLogPage').then((m) => ({ default: m.AuditLogPage })),
 )
@@ -154,10 +160,30 @@ function ScrollToTop() {
   return null
 }
 
+/**
+ * ثبتِ بازدیدِ صفحه در SPA.
+ *
+ * GA4 فقط بارگذاریِ اولِ سند را می‌بیند و ناوبریِ داخلیِ روتر را نمی‌فهمد؛
+ * بدونِ این کامپوننت، کلِ داشبورد یک بازدید شمرده می‌شد. عنوانِ سند با یک
+ * تأخیرِ کوتاه خوانده می‌شود چون `useDocumentTitle` صفحه‌ها آن را در افکتِ
+ * خودشان ست می‌کنند و در همین لحظه هنوز عنوانِ قبلی است.
+ */
+function TrackPageViews() {
+  const { pathname } = useLocation()
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => trackPageView(pathname), 60)
+    return () => window.clearTimeout(timer)
+  }, [pathname])
+
+  return null
+}
+
 export function AppRouter() {
   return (
     <Suspense fallback={<RouteFallback />}>
       <ScrollToTop />
+      <TrackPageViews />
       <Routes>
         {/* صفحه‌های عمومی (/ , /auth , /demo , /support) اینجا نیستند؛ لاراول
             آن‌ها را به‌صورت MPA سرو می‌کند. این روتر فقط داشبورد است. */}
@@ -212,6 +238,7 @@ export function AppRouter() {
             <Route path="/system/members" element={<MembersPage />} />
             <Route path="/system/plans" element={<PlansPage />} />
             <Route path="/system/sms" element={<SmsPage />} />
+            <Route path="/system/observability" element={<ObservabilityPage />} />
             <Route path="/system/audit" element={<AuditLogPage />} />
             <Route path="/system/backup" element={<SystemBackupPage />} />
           </Route>

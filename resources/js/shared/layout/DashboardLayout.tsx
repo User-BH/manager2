@@ -3,6 +3,7 @@ import { Outlet, useLocation } from 'react-router-dom'
 import { Sidebar } from './Sidebar'
 import { Header } from './Header'
 import { ErrorBoundary } from '@/shared/ui/ErrorBoundary'
+import { reportError } from '@/shared/lib/observability'
 import { InlineSpinner } from '@/shared/ui/PageState'
 
 /**
@@ -42,7 +43,7 @@ export function DashboardLayout() {
             `resetKey={pathname}` اجباری است: بدونش کاربر پس از یک خطا هر جا
             برود همان صفحه‌ی خطا را می‌بیند، چون boundary در حالتِ خطا گیر کرده.
           */}
-          <ErrorBoundary resetKey={pathname}>
+          <ErrorBoundary resetKey={pathname} onError={reportError}>
             <Suspense fallback={<InlineSpinner />}>
               <Outlet />
             </Suspense>

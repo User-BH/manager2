@@ -107,5 +107,8 @@ export const queryKeys = {
     siteSettings: () => ['system', 'site-settings'] as const,
     sms: () => ['system', 'sms'] as const,
     subscriptions: () => ['system', 'subscriptions'] as const,
+    observability: () => ['system', 'observability'] as const,
+    observabilityErrors: (params: { includeResolved?: boolean } = {}) =>
+      ['system', 'observability', 'errors', params] as const,
   },
 } as const

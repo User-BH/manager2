@@ -110,6 +110,16 @@ class AppServiceProvider extends ServiceProvider
             Limit::perMinute(40)->by($request->user()?->id ?: $request->ip()),
         ]);
 
+        /*
+         * گزارشِ خطای مرورگر: یک صفحه‌ی خراب می‌تواند در حلقه‌ی رندر ده‌ها بار
+         * خطا بدهد. سقف باید آن‌قدر باشد که خطاهای واقعی برسند، ولی جدول را
+         * سیل نکند.
+         */
+        RateLimiter::for('client-errors', fn (Request $request) => [
+            Limit::perMinute((int) config('observability.error_log.client_rate_limit', 20))
+                ->by($request->user()?->id ?: $request->ip()),
+        ]);
+
         // هر بکاپ یک فایل کامل روی دیسک می‌سازد
         RateLimiter::for('backups', fn (Request $request) => [
             Limit::perHour(12)->by($request->user()?->id ?: $request->ip()),

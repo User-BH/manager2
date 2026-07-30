@@ -6,6 +6,7 @@ use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\BackupController;
 use App\Http\Controllers\Api\BillController;
 use App\Http\Controllers\Api\ChargeRuleController;
+use App\Http\Controllers\Api\ClientErrorController;
 use App\Http\Controllers\Api\DashboardController;
 use App\Http\Controllers\Api\DiscountController;
 use App\Http\Controllers\Api\FinanceController;
@@ -28,6 +29,7 @@ use App\Http\Controllers\Api\System\AuditLogController;
 use App\Http\Controllers\Api\System\BackupController as SystemBackupController;
 use App\Http\Controllers\Api\System\ComplexController as SystemComplexController;
 use App\Http\Controllers\Api\System\MemberController;
+use App\Http\Controllers\Api\System\ObservabilityController;
 use App\Http\Controllers\Api\System\PlanController;
 use App\Http\Controllers\Api\System\SiteSettingsController;
 use App\Http\Controllers\Api\System\SmsController;
@@ -76,6 +78,14 @@ Route::post('register/verify', [AuthController::class, 'registerVerify'])
 // هنگام بالا آمدن یک‌بار صدایش می‌زند تا بفهمد نشست فعالی هست یا نه.
 Route::get('me', [AuthController::class, 'me'])->name('me');
 Route::get('csrf-token', [AuthController::class, 'csrfToken'])->name('csrf-token');
+
+/*
+ * گزارشِ خطای رندرِ مرورگر. عمداً برای مهمان هم باز است، چون کرشِ صفحه‌ی
+ * فرود یا فرمِ ورود دقیقاً همان چیزی است که بیشتر از همه باید بدانیم.
+ * محافظتش محدودیتِ نرخ است، نه احراز هویت.
+ */
+Route::post('client-errors', [ClientErrorController::class, 'store'])
+    ->middleware('throttle:client-errors')->name('client-errors.store');
 
 // بنرهای صفحه‌ی فرود؛ عمومی است چون صفحه پیش از ورود کاربر دیده می‌شود.
 Route::get('ads', [AdvertisementController::class, 'index'])->name('ads.index');
@@ -207,6 +217,14 @@ Route::middleware('auth')->group(function () {
         Route::post('complexes/{complex}/select', [SystemComplexController::class, 'select'])
             ->name('complexes.select');
         Route::post('complexes/clear', [SystemComplexController::class, 'clear'])->name('complexes.clear');
+
+        // پایش و تحلیل: شناسه‌ها از همین‌جا یا از .env می‌آیند (پنل مقدم است)
+        Route::get('observability', [ObservabilityController::class, 'show'])->name('observability.show');
+        Route::put('observability', [ObservabilityController::class, 'update'])->name('observability.update');
+        Route::get('observability/errors', [ObservabilityController::class, 'errors'])
+            ->name('observability.errors');
+        Route::patch('observability/errors/{errorEvent}/resolve', [ObservabilityController::class, 'resolve'])
+            ->name('observability.errors.resolve');
 
         Route::get('sms', [SmsController::class, 'show'])->name('sms.show');
         Route::put('sms', [SmsController::class, 'update'])->name('sms.update');

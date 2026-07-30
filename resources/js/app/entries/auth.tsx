@@ -1,5 +1,6 @@
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
+import { initObservability, trackPageView } from '@/shared/lib/observability'
 import { BrowserRouter, Route, Routes } from 'react-router-dom'
 import { AuthPage } from '@/features/auth/AuthPage'
 import { VerifyOtpPage } from '@/features/auth/VerifyOtpPage'
@@ -13,6 +14,13 @@ import { ForgotPasswordPage } from '@/features/auth/ForgotPasswordPage'
  * حالت (شماره و کد) رد شود؛ این ناوبریِ داخلی سمتِ کلاینت است. رفتن به
  * داشبورد یا خانه اما ناوبریِ واقعیِ مرورگر است (سندِ جدا).
  */
+/*
+ * این صفحه یک سندِ مستقل است، پس بازدیدش همین‌جا یک بار ثبت می‌شود
+ * (برخلافِ SPA که ناوبریِ داخلی دارد و در روتر ثبت می‌کند).
+ */
+initObservability()
+trackPageView(window.location.pathname)
+
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <BrowserRouter>

@@ -5,6 +5,7 @@ use App\Http\Middleware\EnsureActive;
 use App\Http\Middleware\EnsureRole;
 use App\Http\Middleware\SetCurrentComplex;
 use App\Services\Auth\TrustedDeviceService;
+use App\Services\ErrorRecorder;
 use App\Support\Jalali;
 use Illuminate\Contracts\Auth\Middleware\AuthenticatesRequests;
 use Illuminate\Foundation\Application;
@@ -61,6 +62,16 @@ return Application::configure(basePath: dirname(__DIR__))
          * پس رمزنگاری امنیت تازه‌ای اضافه نمی‌کند. httpOnly هست و جاوااسکریپت
          * نمی‌تواند بخواندش.
          */
+        /*
+        | گزارشِ خطای مرورگر با `navigator.sendBeacon` فرستاده می‌شود و beacon
+        | نمی‌تواند هدرِ سفارشی (از جمله X-CSRF-TOKEN) بفرستد. این مسیر هیچ
+        | چیزی را تغییر نمی‌دهد جز افزودنِ یک ردیفِ خطا، پس مستثنا کردنش ریسکِ
+        | معناداری ندارد؛ محافظتش محدودیتِ نرخ است (throttle:client-errors).
+        */
+        $middleware->validateCsrfTokens(except: [
+            'api/client-errors',
+        ]);
+
         $middleware->encryptCookies(except: [
             TrustedDeviceService::COOKIE,
         ]);
@@ -114,6 +125,16 @@ return Application::configure(basePath: dirname(__DIR__))
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
+        /*
+        | هر استثنای گزارش‌شدنی در جدولِ خودمان هم ثبت می‌شود تا پنلِ ادمین
+        | حتی وقتی Sentry وصل نیست داده‌ی واقعی داشته باشد. `ErrorRecorder`
+        | خودش هرگز استثنا پرتاب نمی‌کند، پس این قلاب نمی‌تواند درخواست را
+        | بترکاند.
+        */
+        $exceptions->report(function (Throwable $e): void {
+            ErrorRecorder::fromException($e, request()->fullUrl(), request()->method());
+        });
+
         /*
         | پیام پیش‌فرض لاراول برای عبور از محدودیت نرخ انگلیسی است
         | («Too Many Attempts.») و کاربر فارسی‌زبان از آن چیزی نمی‌فهمد.

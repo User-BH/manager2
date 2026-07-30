@@ -26,6 +26,8 @@
         })();
     </script>
 
+    @include('partials.observability')
+
     @vite(['resources/css/app.css', 'resources/js/app/main.tsx'])
 </head>
 <body>
