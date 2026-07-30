@@ -150,6 +150,14 @@ export function VideoPlayer({
       className="group relative overflow-hidden rounded-3xl border shadow-2xl"
       style={{ borderColor: 'var(--border-subtle)', backgroundColor: '#05100c' }}
     >
+      {/*
+        این ویدیو باید <track> زیرنویس داشته باشد و ندارد — یک ایرادِ واقعیِ
+        دسترس‌پذیری، نه استثنای سلیقه‌ای. دلیلِ بازبودنش این است که خودِ فایلِ
+        ویدیو (`public/videos/demo.mp4`) هنوز از سمت کارفرما تحویل نشده؛ فایلِ
+        `.vtt` هم با همان تحویل ساخته می‌شود. تا آن موقع قاعده خاموش است تا
+        دروازه‌ی لینت روی چیزی که دارایی‌اش وجود ندارد قفل نشود.
+      */}
+      {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
       <video
         ref={videoRef}
         src={src}

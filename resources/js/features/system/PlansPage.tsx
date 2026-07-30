@@ -213,10 +213,15 @@ export function PlansPage() {
             </div>
 
             <div className="flex flex-col gap-1.5">
-              <label className="text-[13px] font-medium" style={{ color: 'var(--text-secondary)' }}>
+              <label
+                htmlFor="plan-features"
+                className="text-[13px] font-medium"
+                style={{ color: 'var(--text-secondary)' }}
+              >
                 امکانات (هر خط یک مورد)
               </label>
               <textarea
+                id="plan-features"
                 value={draft.features.join('\n')}
                 onChange={(e) =>
                   setDraft({
@@ -418,12 +423,14 @@ function ManualGrant({
         <div className="flex flex-wrap items-end gap-3">
           <div className="min-w-[180px] flex-1">
             <label
+              htmlFor="manual-plan-complex"
               className="mb-1.5 block text-[13px] font-medium"
               style={{ color: 'var(--text-secondary)' }}
             >
               مجتمع
             </label>
             <select
+              id="manual-plan-complex"
               value={complexId}
               onChange={(e) => setComplexId(e.target.value)}
               className="w-full rounded-xl border py-3 px-3 text-[13px] outline-none focus:ring-2"
@@ -439,12 +446,14 @@ function ManualGrant({
           </div>
           <div className="min-w-[150px] flex-1">
             <label
+              htmlFor="manual-plan-package"
               className="mb-1.5 block text-[13px] font-medium"
               style={{ color: 'var(--text-secondary)' }}
             >
               پکیج
             </label>
             <select
+              id="manual-plan-package"
               value={planId}
               onChange={(e) => setPlanId(e.target.value)}
               className="w-full rounded-xl border py-3 px-3 text-[13px] outline-none focus:ring-2"

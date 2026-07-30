@@ -127,11 +127,20 @@ export function ReceiptUploadForm({
         )}
       </div>
 
-      {/* انتخاب پلن */}
-      <div className="flex flex-col gap-1.5">
-        <label className="text-[13px] font-medium" style={{ color: 'var(--text-secondary)' }}>
+      {/*
+        انتخاب پلن — این «برچسبِ یک ورودی» نیست، عنوانِ یک گروه دکمه است.
+        پس به‌جای <label> (که کنترلی برای اشاره‌کردن ندارد) از الگوی استانداردِ
+        group + aria-labelledby استفاده می‌کنیم تا صفحه‌خوان عنوان گروه را
+        پیش از دکمه‌ها بخواند.
+      */}
+      <div className="flex flex-col gap-1.5" role="group" aria-labelledby="receipt-plan-label">
+        <span
+          id="receipt-plan-label"
+          className="text-[13px] font-medium"
+          style={{ color: 'var(--text-secondary)' }}
+        >
           پلن
-        </label>
+        </span>
         <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
           {plans.map((option) => (
             <button
@@ -174,11 +183,14 @@ export function ReceiptUploadForm({
         placeholder="مثلاً شماره پیگیری تراکنش"
       />
 
-      {/* فایل رسید */}
+      {/*
+        عنوانِ بخش است، نه برچسبِ ورودی — خودِ <input> داخلِ <label>ِ پایین‌تر
+        قرار دارد و از همان نام می‌گیرد.
+      */}
       <div className="flex flex-col gap-1.5">
-        <label className="text-[13px] font-medium" style={{ color: 'var(--text-secondary)' }}>
+        <span className="text-[13px] font-medium" style={{ color: 'var(--text-secondary)' }}>
           تصویر رسید
-        </label>
+        </span>
 
         <label
           className="flex cursor-pointer items-center gap-2.5 rounded-xl border border-dashed px-4 py-4 transition-colors hover:bg-(--surface-sunken)"

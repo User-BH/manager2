@@ -45,7 +45,7 @@ export function NotificationBell() {
     if (!item.isRead) void markRead(item.id)
 
     setOpen(false)
-    navigate(`/announcements?focus=${item.id}`)
+    void navigate(`/announcements?focus=${item.id}`)
   }
 
   return (
@@ -207,7 +207,7 @@ export function NotificationBell() {
             <button
               onClick={() => {
                 setOpen(false)
-                navigate('/announcements')
+                void navigate('/announcements')
               }}
               className="flex w-full items-center justify-center gap-1 py-2.5 text-[12px] font-bold transition-colors hover:bg-(--surface-sunken)"
               style={{

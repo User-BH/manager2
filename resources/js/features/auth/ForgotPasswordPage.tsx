@@ -168,6 +168,10 @@ export function ForgotPasswordPage() {
             onComplete={verify}
             disabled={busy}
             hasError={Boolean(error)}
+            // autoFocus آگاهانه است: کاربر همین لحظه درخواستِ کد کرده و تنها کارِ
+            // این مرحله واردکردنِ همان کد است؛ در موبایل یک لمس کم می‌کند و فوکوس
+            // را از جای دیگری نمی‌دزدد.
+            // eslint-disable-next-line jsx-a11y/no-autofocus
             autoFocus
           />
 

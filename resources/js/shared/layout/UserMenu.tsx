@@ -83,7 +83,7 @@ export function UserMenu() {
               label="پروفایل من"
               onClick={() => {
                 setOpen(false)
-                navigate('/profile')
+                void navigate('/profile')
               }}
             />
             <UserMenuItem
@@ -91,7 +91,7 @@ export function UserMenu() {
               label="تنظیمات حساب"
               onClick={() => {
                 setOpen(false)
-                navigate('/account')
+                void navigate('/account')
               }}
             />
             <div className="h-px" style={{ backgroundColor: 'var(--border-subtle)' }} />

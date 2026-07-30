@@ -27,7 +27,7 @@ function makeUser(role: CurrentUser['role']): CurrentUser {
     isAdmin: role === 'super_admin' || role === 'complex_admin',
     isSuperAdmin: role === 'super_admin',
     complex: null,
-  } as CurrentUser
+  }
 }
 
 function renderAt(initialPath = '/dashboard', roles?: CurrentUser['role'][]) {

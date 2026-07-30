@@ -25,7 +25,7 @@ export function SearchBox() {
     if (!canSubmit) return
 
     rememberSearch(term, total ?? 0)
-    navigate(`/search?q=${encodeURIComponent(term)}`)
+    void navigate(`/search?q=${encodeURIComponent(term)}`)
   }
 
   // زدن ضربدر فقط باکس را خالی نمی‌کند؛ کاربر را به صفحه‌ی جستجوهای اخیر
@@ -33,7 +33,7 @@ export function SearchBox() {
   // خالی‌شده گیر نکند.
   function clear() {
     setQuery('')
-    navigate(recent.length > 0 ? '/search' : '/dashboard')
+    void navigate(recent.length > 0 ? '/search' : '/dashboard')
   }
 
   return (

@@ -62,7 +62,7 @@ http.interceptors.request.use((config) => {
 
 async function refreshCsrfToken(): Promise<void> {
   try {
-    const { data } = await http.get('/csrf-token')
+    const { data } = await http.get<{ csrfToken?: string }>('/csrf-token')
     setCsrfToken(data?.csrfToken)
   } catch {
     // اگر شبکه هم قطع باشد، خطای اصلی به تماس‌گیرنده برمی‌گردد

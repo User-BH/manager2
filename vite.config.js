@@ -58,9 +58,7 @@ export default defineConfig({
           if (!id.includes('node_modules')) return undefined
 
           if (
-            /[\/]node_modules[\/](react|react-dom|react-router|react-router-dom|scheduler)[\/]/.test(
-              id,
-            )
+            /\/node_modules\/(react|react-dom|react-router|react-router-dom|scheduler)\//.test(id)
           ) {
             return 'vendor-react'
           }

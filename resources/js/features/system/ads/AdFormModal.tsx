@@ -179,12 +179,23 @@ export function AdFormModal({
 
         {/* --- تصویر --- */}
         <div className="flex flex-col gap-1.5">
-          <label className="text-[13px] font-medium" style={{ color: 'var(--text-secondary)' }}>
+          {/*
+            کنترلِ واقعی یک <button> است (ورودیِ فایل پنهان است و با کلیک باز
+            می‌شود)، پس <label> چیزی برای اشاره‌کردن ندارد. عنوان را span
+            می‌کنیم و با aria-describedby به دکمه می‌بندیم تا صفحه‌خوان بشنود
+            «انتخاب تصویر — تصویر بنر».
+          */}
+          <span
+            id="ad-image-label"
+            className="text-[13px] font-medium"
+            style={{ color: 'var(--text-secondary)' }}
+          >
             تصویر بنر
-          </label>
+          </span>
 
           <button
             type="button"
+            aria-describedby="ad-image-label"
             onClick={() => fileInput.current?.click()}
             className="group relative flex h-32 w-full items-center justify-center overflow-hidden rounded-xl border border-dashed transition-colors"
             style={{

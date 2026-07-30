@@ -88,7 +88,7 @@ export function LoginForm() {
 
       // مرحله‌ی دوم: به صفحه‌ی تایید کد می‌رویم (داخلِ همین island است)
       if (data.otpRequired) {
-        navigate('/auth/verify', {
+        void navigate('/auth/verify', {
           state: { phone: data.phone, devCode: data.dev_code ?? null },
         })
       }

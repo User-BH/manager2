@@ -74,7 +74,7 @@ export function SearchResultsPage() {
         recent={recent}
         onOpen={(q) => {
           setQuery(q)
-          navigate(`/search?q=${encodeURIComponent(q)}`)
+          void navigate(`/search?q=${encodeURIComponent(q)}`)
         }}
         onRemove={removeRecent}
         onClear={clearRecent}

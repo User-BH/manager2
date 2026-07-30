@@ -223,10 +223,15 @@ export function PayBillPage() {
             />
 
             <div className="flex flex-col gap-1.5">
-              <label className="text-[13px] font-medium" style={{ color: 'var(--text-secondary)' }}>
+              <label
+                htmlFor="pay-receipt-file"
+                className="text-[13px] font-medium"
+                style={{ color: 'var(--text-secondary)' }}
+              >
                 فایل رسید
               </label>
               <input
+                id="pay-receipt-file"
                 ref={fileRef}
                 type="file"
                 accept=".jpg,.jpeg,.png,.pdf"

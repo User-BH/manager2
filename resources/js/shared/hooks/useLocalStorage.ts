@@ -12,7 +12,6 @@ export function useLocalStorage<T>(key: string, initialValue: T) {
     try {
       const item = window.localStorage.getItem(key)
       return item ? (JSON.parse(item) as T) : initialValue
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
     } catch {
       return initialValue
     }
@@ -26,7 +25,6 @@ export function useLocalStorage<T>(key: string, initialValue: T) {
         const nextValue = value instanceof Function ? value(prev) : value
         try {
           window.localStorage.setItem(key, JSON.stringify(nextValue))
-          // eslint-disable-next-line @typescript-eslint/no-unused-vars
         } catch {
           // فضای ذخیره‌سازی پر است یا در دسترس نیست - بی‌خطر نادیده می‌گیریم
         }

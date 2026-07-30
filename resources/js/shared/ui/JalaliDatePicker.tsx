@@ -9,8 +9,8 @@ import persian_fa from 'react-date-object/locales/persian_fa'
  * `<DatePicker>` با «element type is invalid» می‌ترکد. این خط هر دو حالت را
  * می‌پذیرد: اگر namespace بود default را برمی‌دارد، وگرنه خودش کامپوننت است.
  */
-const DatePicker = ((DatePickerModule as { default?: typeof DatePickerModule }).default ??
-  DatePickerModule) as typeof DatePickerModule
+const DatePicker =
+  (DatePickerModule as { default?: typeof DatePickerModule }).default ?? DatePickerModule
 
 /**
  * انتخابگر تاریخِ شمسی.
@@ -62,7 +62,7 @@ export function JalaliDatePicker({
         // مقدارِ میلادی به‌صورت Date داده می‌شود تا کتابخانه خودش معادل شمسی
         // را نمایش دهد؛ اگر رشته می‌دادیم آن را شمسی تفسیر می‌کرد و غلط می‌شد.
         value={value ? new Date(value) : ''}
-        onChange={(date) => onChange(toGregorianISO(date as DateObject | null))}
+        onChange={(date) => onChange(toGregorianISO(date))}
         format="YYYY/MM/DD"
         maxDate={maxToday ? new Date() : undefined}
         // فقط از تقویم؛ تایپ دستیِ تاریخ خطای فرمت می‌سازد

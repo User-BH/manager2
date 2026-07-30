@@ -31,7 +31,7 @@ if (!window.matchMedia) {
 }
 
 if (!window.scrollTo) {
-  window.scrollTo = vi.fn() as unknown as typeof window.scrollTo
+  window.scrollTo = vi.fn()
 }
 
 /*

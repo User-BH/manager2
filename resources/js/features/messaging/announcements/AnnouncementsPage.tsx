@@ -478,10 +478,15 @@ function AnnouncementForm({
       <TextField label="عنوان" error={errors.title?.message} {...register('title')} />
 
       <div className="flex flex-col gap-1.5">
-        <label className="text-[13px] font-medium" style={{ color: 'var(--text-secondary)' }}>
+        <label
+          htmlFor="announcement-body"
+          className="text-[13px] font-medium"
+          style={{ color: 'var(--text-secondary)' }}
+        >
           متن اطلاعیه
         </label>
         <textarea
+          id="announcement-body"
           rows={6}
           className="w-full resize-none rounded-xl border px-3 py-2.5 text-[13.5px] outline-none transition-all focus:ring-2"
           style={{

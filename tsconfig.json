@@ -25,5 +25,6 @@
       "@/*": ["./resources/js/*"]
     }
   },
-  "include": ["resources/js"]
+  // تست‌ها هم باید تایپ‌چک شوند؛ پیش‌تر بیرون بودند و `tsc` هرگز نگاهشان نمی‌کرد
+  "include": ["resources/js", "tests"]
 }

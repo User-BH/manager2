@@ -480,8 +480,9 @@ npm run test:watch    # حالت تماشا هنگام توسعه
 # بررسی نوع‌ها (TypeScript)
 npm run typecheck
 
-# لینت (oxlint)
+# لینت (ESLint با آگاهی از تایپ)
 npm run lint
+npm run lint:fix
 
 # هر سه با هم — پیش از هر کامیت این را بزنید
 npm run check
@@ -491,7 +492,30 @@ npm run check
 
 **تست فرانت** (`tests/js`): پالایه‌های ورودی فرم، طرح‌های اعتبارسنجی ورود/ثبت‌نام (آینه‌ی قواعد سرور)، ماندگاری «مرا به خاطر بسپار» با انقضای ۱۰ روزه، نگاشت خطای API به فیلدها، و محافظت مسیرها (`ProtectedRoute`).
 
-> **چرا oxlint و نه ESLint؟** این پروژه روی TypeScript 7 است و `typescript-eslint` هنوز آن را پشتیبانی نمی‌کند (هنگام اجرا صریحاً خطا می‌دهد؛ [issue #10940](https://github.com/typescript-eslint/typescript-eslint/issues/10940)). `oxlint` بدون وابستگی به بسته‌ی TypeScript، همان قواعد مهم — به‌ویژه `rules-of-hooks` — را اعمال می‌کند. با انتشار نسخه‌ی سازگارِ `typescript-eslint` می‌توان مهاجرت کرد.
+### چرا در `package.json` دو تا TypeScript می‌بینید؟
+
+```json
+"@typescript/native": "npm:typescript@^7.0.2",          // کامپایلر  → tsc
+"typescript":         "npm:@typescript/typescript6@^6"  // فقط API  → tsc6
+```
+
+جای نام‌ها عوض شده و **عمدی است**. `typescript-eslint` روی TypeScript 7 اجرا
+نمی‌شود و صریحاً خطا می‌دهد ([#10940](https://github.com/typescript-eslint/typescript-eslint/issues/10940))،
+و چون پکیجِ `typescript` را مستقیم import می‌کند، همان نام باید TS 6 باشد. این
+دقیقاً راه‌حلِ رسمیِ تیمِ TypeScript است (اعلامیه‌ی TS 7.0، بخش
+«Running side-by-side with TypeScript 6.0»). باینری‌ها قاطی نمی‌شوند:
+TS 7 → `tsc`، TS 6 → `tsc6`.
+
+**نتیجه‌ی عملی:** مرجعِ درستیِ تایپ‌ها `npm run typecheck` است (TS 7)، نه ESLint.
+با پشتیبانی `typescript-eslint` از TS ≥ 7.1، نصبِ TS 6 حذف می‌شود.
+
+### سقفِ هشدارها
+
+`npm run lint` با `--max-warnings=16` اجرا می‌شود. آن ۱۶ مورد بدهیِ **واقعیِ**
+صحتِ React است (setState داخل effect، خواندن ref در رندر، `Date.now()` در رندر،
+و دو کامپوننت که React Compiler از کامپایلشان صرف‌نظر کرده). عدد قفل است: با
+هشدارِ هفدهم لینت می‌شکند، پس فقط می‌تواند کم شود. مرحله‌ی رفعشان R49 است و
+بخشی‌شان با مهاجرت به TanStack Query (R5/R6) خودبه‌خود می‌رود.
 
 ---
 

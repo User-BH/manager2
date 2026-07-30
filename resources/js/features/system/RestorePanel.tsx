@@ -80,7 +80,7 @@ export function RestorePanel() {
 
       // حساب کاربری فعلی هم بازنویسی شده و نشست بسته شده است.
       setUser(null)
-      navigate('/auth', { replace: true })
+      void navigate('/auth', { replace: true })
     } catch (err) {
       setError(err instanceof ApiError ? err.message : 'بازیابی ناموفق بود.')
     } finally {

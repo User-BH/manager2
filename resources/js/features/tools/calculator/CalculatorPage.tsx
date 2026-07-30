@@ -448,7 +448,7 @@ function Display({
             // جلوی تایپِ نویسه‌به‌نویسه‌ی حرف (مثل sin) را می‌گیرد؛ Enter و = را
             // شنونده‌ی سراسری صفحه‌کلید مدیریت می‌کند، نه اینجا. (paste را
             // onPaste جدا و با پاک‌سازی مدیریت می‌کند.)
-            const data = (event.nativeEvent as InputEvent).data
+            const data = event.nativeEvent.data
             if (data && ALLOWED_INPUT.test(data)) {
               event.preventDefault()
             }

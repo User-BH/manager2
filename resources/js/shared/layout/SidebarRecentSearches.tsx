@@ -30,7 +30,7 @@ export function SidebarRecentSearches({
   function openSearch(query: string) {
     // باکس هدر هم پر می‌شود تا کاربر ببیند چه چیزی در حال جستجوست
     setQuery(query)
-    navigate(`/search?q=${encodeURIComponent(query)}`)
+    void navigate(`/search?q=${encodeURIComponent(query)}`)
     onNavigate?.()
   }
 

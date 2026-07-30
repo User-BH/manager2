@@ -41,7 +41,6 @@ export function SupportPage() {
     // یک تیک صبر تا چیدمان کامل شود، وگرنه موقعیت اشتباه حساب می‌شود
     const timer = window.setTimeout(() => goToTopic(requested), 220)
     return () => window.clearTimeout(timer)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [requested])
 
   return (
