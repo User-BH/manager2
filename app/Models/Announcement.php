@@ -9,7 +9,18 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Carbon;
 
+/**
+ * @property int $id
+ * @property int $complex_id
+ * @property string $title
+ * @property string $body
+ * @property AnnouncementAudience $audience
+ * @property bool $is_pinned
+ * @property bool $is_active
+ * @property Carbon|null $published_at
+ */
 class Announcement extends Model
 {
     use BelongsToComplex;

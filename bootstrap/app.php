@@ -1,17 +1,16 @@
 <?php
 
+use App\Exceptions\ApiExceptionRenderer;
 use App\Http\Middleware\AuthenticateTrustedDevice;
 use App\Http\Middleware\EnsureActive;
 use App\Http\Middleware\EnsureRole;
 use App\Http\Middleware\SetCurrentComplex;
 use App\Services\Auth\TrustedDeviceService;
 use App\Services\ErrorRecorder;
-use App\Support\Jalali;
 use Illuminate\Contracts\Auth\Middleware\AuthenticatesRequests;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
-use Illuminate\Http\Exceptions\ThrottleRequestsException;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Middleware\SubstituteBindings;
 use Illuminate\Support\Facades\Route;
@@ -26,9 +25,30 @@ return Application::configure(basePath: dirname(__DIR__))
         commands: __DIR__.'/../routes/console.php',
         health: '/up',
         then: function (): void {
+            /*
+            | نسخه‌بندیِ API (R10).
+            |
+            | همان فایلِ مسیرها دو بار ثبت می‌شود:
+            |
+            |   /api/v1/...   ← نسخه‌ی رسمی؛ فرانت از این استفاده می‌کند
+            |   /api/...      ← نامِ مستعارِ سازگاری
+            |
+            | چرا هر دو؟ چون نسخه‌بندی برای این است که روزی بشود `v2` را کنارِ
+            | `v1` بالا آورد بی‌آنکه مصرف‌کننده‌های قدیمی بشکنند. اگر همین حالا
+            | مسیرِ بدونِ نسخه را حذف می‌کردیم، هر بوکمارک، هر اسکریپت و هر
+            | نسخه‌ی کش‌شده‌ی فرانت که هنوز در مرورگرِ کاربر باز است می‌شکست —
+            | دقیقاً همان چیزی که نسخه‌بندی قرار بود جلویش را بگیرد.
+            |
+            | نام‌های مسیر فقط یک بار (روی v1) ثبت می‌شوند تا `route()` مبهم
+            | نشود؛ نامِ مستعار بی‌نام می‌ماند.
+            */
+            Route::middleware('web')
+                ->prefix('api/v1')
+                ->name('api.')
+                ->group(__DIR__.'/../routes/api.php');
+
             Route::middleware('web')
                 ->prefix('api')
-                ->name('api.')
                 ->group(__DIR__.'/../routes/api.php');
         },
     )
@@ -69,6 +89,8 @@ return Application::configure(basePath: dirname(__DIR__))
         | معناداری ندارد؛ محافظتش محدودیتِ نرخ است (throttle:client-errors).
         */
         $middleware->validateCsrfTokens(except: [
+            // هر دو شکلِ مسیر، چون نامِ مستعارِ بدونِ نسخه هنوز زنده است
+            'api/v1/client-errors',
             'api/client-errors',
         ]);
 
@@ -136,23 +158,16 @@ return Application::configure(basePath: dirname(__DIR__))
         });
 
         /*
-        | پیام پیش‌فرض لاراول برای عبور از محدودیت نرخ انگلیسی است
-        | («Too Many Attempts.») و کاربر فارسی‌زبان از آن چیزی نمی‌فهمد.
-        | اینجا به پیام فارسی با زمان انتظار تبدیل می‌شود.
+        | تنها نقطه‌ی ساختِ پاسخِ خطای JSON در کلِ برنامه.
+        |
+        | پیش از این هر استثنا شکلِ خودش را داشت: بعضی `{message}`، بعضی
+        | `{message, errors}`، محدودیتِ نرخ `{message, retryAfter}`، و ۵۰۰ در
+        | محصول یک صفحه‌ی HTML که فرانت اصلاً نمی‌توانست بخواند.
+        |
+        | نکته‌ی ظریف: رندرهای اختصاصی (مثل آن‌که قبلاً برای throttle بود) با
+        | این یکی رقابت می‌کردند و نتیجه به ترتیبِ ثبت وابسته می‌شد — که شکننده
+        | است. حالا همه‌ی حالت‌ها داخلِ `ApiExceptionRenderer` تصمیم‌گیری
+        | می‌شوند و ترتیب اهمیتی ندارد.
         */
-        $exceptions->render(function (ThrottleRequestsException $e, Request $request) {
-            if (! $request->expectsJson()) {
-                return null;
-            }
-
-            $seconds = (int) ($e->getHeaders()['Retry-After'] ?? 60);
-            $wait = $seconds > 90
-                ? Jalali::digits((int) ceil($seconds / 60)).' دقیقه'
-                : Jalali::digits($seconds).' ثانیه';
-
-            return response()->json([
-                'message' => "تعداد تلاش‌ها بیش از حد مجاز است. لطفاً {$wait} دیگر دوباره تلاش کنید.",
-                'retryAfter' => $seconds,
-            ], 429, $e->getHeaders());
-        });
+        $exceptions->render(fn (Throwable $e, Request $request) => ApiExceptionRenderer::render($e, $request));
     })->create();

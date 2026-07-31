@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Enums\SubscriptionPlan;
+use App\Exceptions\DomainException;
 use App\Http\Controllers\Controller;
 use App\Models\Plan;
 use App\Models\Subscription;
@@ -81,7 +82,7 @@ class SubscriptionController extends Controller
     public function uploadReceipt(Request $request): JsonResponse
     {
         $user = Auth::user();
-        abort_unless($user->isAdmin(), 403, 'خرید اشتراک فقط برای مدیران مجتمع است.');
+        $this->authorize('purchase', Subscription::class);
 
         $complex = $this->requireComplex();
 
@@ -117,12 +118,14 @@ class SubscriptionController extends Controller
          */
         $active = $this->plans->activeSubscription($complex);
 
-        abort_if(
-            $active !== null,
-            422,
-            'اشتراک این مجتمع تا '.Jalali::date($active?->ends_at).' فعال است. '
-            .'برای تمدید، نزدیک پایان دوره اقدام کنید.',
-        );
+        if ($active !== null) {
+            // ۴۲۲ و نه ۴۰۹: کدِ پیش از بازآرایی همین بود و فرانت رویش حساب می‌کند
+            throw DomainException::invalid(
+                'اشتراک این مجتمع تا '.Jalali::date($active->ends_at).' فعال است. '
+                .'برای تمدید، نزدیک پایان دوره اقدام کنید.',
+                'subscription.already_active',
+            );
+        }
 
         $resolved = $this->resolvePurchasePlan($data['plan']);
 
@@ -159,8 +162,7 @@ class SubscriptionController extends Controller
         $complex = $this->requireComplex();
 
         // اشتراکِ مجتمع دیگری نباید با دستکاری شناسه لغو شود
-        abort_unless($subscription->complex_id === $complex->id, 403);
-        abort_unless(Auth::user()->isAdmin(), 403);
+        $this->authorize('view', $subscription);
 
         $subscription->update(['status' => 'canceled']);
 

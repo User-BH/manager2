@@ -20,3 +20,6 @@ resources/css/app.css
 coverage/
 test-results/
 playwright-report/
+
+# تولیدشده با `php artisan openapi:generate` — دستی ویرایش نمی‌شود
+public/openapi.json

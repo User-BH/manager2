@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Enums\PaymentStatus;
+use App\Exceptions\DomainException;
 use App\Http\Controllers\Controller;
 use App\Models\Payment;
 use App\Services\Payment\PaymentService;
@@ -43,7 +44,7 @@ class PaymentReviewController extends Controller
     /** فایل رسید روی دیسک خصوصی است و فقط از این مسیر سرو می‌شود. */
     public function receipt(Payment $payment): StreamedResponse
     {
-        $this->guard($payment);
+        $this->authorize('viewReceipt', $payment);
 
         abort_if(
             ! $payment->receipt_path || ! Storage::disk('local')->exists($payment->receipt_path),
@@ -55,8 +56,8 @@ class PaymentReviewController extends Controller
 
     public function approve(Payment $payment): JsonResponse
     {
-        $this->guard($payment);
-        abort_unless($payment->status === PaymentStatus::Pending, 422);
+        $this->authorize('review', $payment);
+        $this->requirePending($payment);
 
         $this->payments->settle($payment, Auth::user(), 'تایید رسید توسط مدیر');
 
@@ -65,8 +66,8 @@ class PaymentReviewController extends Controller
 
     public function reject(Request $request, Payment $payment): JsonResponse
     {
-        $this->guard($payment);
-        abort_unless($payment->status === PaymentStatus::Pending, 422);
+        $this->authorize('review', $payment);
+        $this->requirePending($payment);
 
         $data = $request->validate([
             'note' => ['nullable', 'string', 'max:255'],
@@ -99,9 +100,20 @@ class PaymentReviewController extends Controller
         ];
     }
 
-    /** پرداخت باید متعلق به مجتمع جاری باشد. */
-    private function guard(Payment $payment): void
+    /**
+     * تنها قاعده‌ی وضعیتی که چند اکشن مشترکاً دارند.
+     *
+     * مجوزدهی دیگر اینجا نیست (رفت به `PaymentPolicy`)؛ این فقط قاعده‌ی
+     * کسب‌وکار است: رسیدی که یک بار تعیین‌تکلیف شده دوباره بررسی نمی‌شود.
+     */
+    private function requirePending(Payment $payment): void
     {
-        abort_if($payment->complex_id !== $this->requireComplex()->id, 403);
+        if ($payment->status !== PaymentStatus::Pending) {
+            // ۴۲۲ مثل قبل از بازآرایی
+            throw DomainException::invalid(
+                'این رسید قبلاً بررسی شده است.',
+                'payment.already_reviewed',
+            );
+        }
     }
 }

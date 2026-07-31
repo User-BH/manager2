@@ -4,8 +4,9 @@ namespace App\Http\Controllers\Api;
 
 use App\Enums\AnnouncementAudience;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\StoreAnnouncementRequest;
+use App\Http\Resources\AnnouncementResource;
 use App\Models\Announcement;
-use App\Support\Jalali;
 use App\Support\Notifications;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -41,17 +42,13 @@ class AnnouncementController extends Controller
         ]);
     }
 
-    public function store(Request $request): JsonResponse
+    public function store(StoreAnnouncementRequest $request): JsonResponse
     {
-        abort_unless(Auth::user()->isAdmin(), 403);
+        $this->authorize('create', Announcement::class);
         $this->requireComplex();
 
-        $data = $request->validate([
-            'title' => ['required', 'string', 'max:150'],
-            'body' => ['required', 'string', 'max:5000'],
-            'audience' => ['required', 'in:all,owners,tenants'],
-            'is_pinned' => ['nullable', 'boolean'],
-        ], [], ['title' => 'عنوان', 'body' => 'متن', 'audience' => 'مخاطب']);
+        // قواعد در StoreAnnouncementRequest است؛ اینجا فقط داده‌ی معتبر می‌آید
+        $data = $request->validated();
 
         $announcement = Announcement::create([
             'title' => $data['title'],
@@ -71,10 +68,9 @@ class AnnouncementController extends Controller
 
     public function update(Request $request, Announcement $announcement): JsonResponse
     {
-        abort_unless(Auth::user()->isAdmin(), 403);
         // اطلاعیه‌ی مجتمع دیگری نباید از راه دستکاری شناسه ویرایش شود؛
         // ComplexScope فهرست را محدود می‌کند ولی route-model-binding آن را دور می‌زند.
-        abort_unless($announcement->complex_id === $this->requireComplex()->id, 403);
+        $this->authorize('update', $announcement);
 
         $data = $request->validate([
             'title' => ['required', 'string', 'max:150'],
@@ -97,7 +93,8 @@ class AnnouncementController extends Controller
 
     public function destroy(Announcement $announcement): JsonResponse
     {
-        abort_unless(Auth::user()->isAdmin(), 403);
+        // پیش از این فقط نقش بررسی می‌شد و نه مالکیتِ مجتمع — Policy هر دو را دارد
+        $this->authorize('delete', $announcement);
 
         $announcement->delete();
 
@@ -105,18 +102,15 @@ class AnnouncementController extends Controller
     }
 
     /** اطلاعیه‌ی تازه‌ساخته‌شده برای خودِ نویسنده خوانده حساب می‌شود. */
+    /**
+     * شکلِ خروجی حالا در `AnnouncementResource` است.
+     *
+     * این متد فقط یک پلِ کوتاه مانده تا فراخوانی‌های موجود دست‌نخورده بمانند؛
+     * نقطه‌ی حقیقتِ ساختار یکی است و افزودنِ فیلدِ تازه فقط همان‌جا انجام
+     * می‌شود.
+     */
     private function present(Announcement $a, bool $isRead = true): array
     {
-        return [
-            'id' => $a->id,
-            'title' => $a->title,
-            'body' => $a->body,
-            'audience' => $a->audience->value,
-            'audienceLabel' => $a->audience->label(),
-            'isPinned' => (bool) $a->is_pinned,
-            'isActive' => (bool) $a->is_active,
-            'isRead' => $isRead,
-            'publishedAt' => $a->published_at ? Jalali::date($a->published_at) : null,
-        ];
+        return (new AnnouncementResource($a, $isRead))->toArray(request());
     }
 }

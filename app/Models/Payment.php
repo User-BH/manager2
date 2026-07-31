@@ -10,6 +10,13 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Support\Facades\Storage;
 
+/**
+ * @property int $id
+ * @property int $complex_id
+ * @property int|null $user_id
+ * @property PaymentStatus $status
+ * @property string|null $receipt_path
+ */
 class Payment extends Model implements GatewayOrder
 {
     use BelongsToComplex;

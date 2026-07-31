@@ -25,18 +25,6 @@ parameters:
 			path: app/Exports/BillsExport.php
 
 		-
-			message: '#^Cannot access property \$value on string\.$#'
-			identifier: property.nonObject
-			count: 1
-			path: app/Http/Controllers/Api/AnnouncementController.php
-
-		-
-			message: '#^Cannot call method label\(\) on string\.$#'
-			identifier: method.nonObject
-			count: 1
-			path: app/Http/Controllers/Api/AnnouncementController.php
-
-		-
 			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Collection\<int, App\\Models\\Complex\>\|Illuminate\\Database\\Eloquent\\Model\:\:\$id\.$#'
 			identifier: property.notFound
 			count: 1
@@ -355,27 +343,15 @@ parameters:
 			path: app/Http/Controllers/Api/PaymentReviewController.php
 
 		-
-			message: '#^Call to function abort_unless\(\) with false and 422 will always evaluate to false\.$#'
-			identifier: function.impossibleType
-			count: 2
-			path: app/Http/Controllers/Api/PaymentReviewController.php
-
-		-
 			message: '#^Cannot access property \$value on string\.$#'
 			identifier: property.nonObject
-			count: 2
+			count: 1
 			path: app/Http/Controllers/Api/PaymentReviewController.php
 
 		-
 			message: '#^Cannot call method label\(\) on string\.$#'
 			identifier: method.nonObject
-			count: 2
-			path: app/Http/Controllers/Api/PaymentReviewController.php
-
-		-
-			message: '#^Strict comparison using \=\=\= between string and App\\Enums\\PaymentStatus\:\:Pending will always evaluate to false\.$#'
-			identifier: identical.alwaysFalse
-			count: 2
+			count: 1
 			path: app/Http/Controllers/Api/PaymentReviewController.php
 
 		-
@@ -669,30 +645,12 @@ parameters:
 		-
 			message: '#^Parameter \#1 \$complex of method App\\Services\\Payment\\GatewayManager\:\:for\(\) expects App\\Models\\Complex, Illuminate\\Database\\Eloquent\\Model\|null given\.$#'
 			identifier: argument.type
-			count: 1
-			path: app/Http/Controllers/GatewayController.php
-
-		-
-			message: '#^Strict comparison using \!\=\= between string and App\\Enums\\PaymentStatus\:\:Pending will always evaluate to true\.$#'
-			identifier: notIdentical.alwaysTrue
-			count: 1
+			count: 2
 			path: app/Http/Controllers/GatewayController.php
 
 		-
 			message: '#^Strict comparison using \=\=\= between ''GET'' and ''POST'' will always evaluate to false\.$#'
 			identifier: identical.alwaysFalse
-			count: 1
-			path: app/Http/Controllers/GatewayController.php
-
-		-
-			message: '#^Strict comparison using \=\=\= between string and App\\Enums\\PaymentStatus\:\:Success will always evaluate to false\.$#'
-			identifier: identical.alwaysFalse
-			count: 1
-			path: app/Http/Controllers/GatewayController.php
-
-		-
-			message: '#^Unreachable statement \- code above always terminates\.$#'
-			identifier: deadCode.unreachable
 			count: 1
 			path: app/Http/Controllers/GatewayController.php
 
@@ -897,18 +855,6 @@ parameters:
 		-
 			message: '#^Cannot access property \$value on string\.$#'
 			identifier: property.nonObject
-			count: 1
-			path: app/Services/Payment/PaymentService.php
-
-		-
-			message: '#^Property App\\Models\\Payment\:\:\$status \(string\) does not accept App\\Enums\\PaymentStatus\:\:Rejected\.$#'
-			identifier: assign.propertyType
-			count: 1
-			path: app/Services/Payment/PaymentService.php
-
-		-
-			message: '#^Property App\\Models\\Payment\:\:\$status \(string\) does not accept App\\Enums\\PaymentStatus\:\:Success\.$#'
-			identifier: assign.propertyType
 			count: 1
 			path: app/Services/Payment/PaymentService.php
 

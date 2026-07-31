@@ -66,11 +66,11 @@ function reportToServer(error: Error): void {
     const blob = new Blob([body], { type: 'application/json' })
 
     if (navigator.sendBeacon) {
-      navigator.sendBeacon('/api/client-errors', blob)
+      navigator.sendBeacon('/api/v1/client-errors', blob)
       return
     }
 
-    void fetch('/api/client-errors', {
+    void fetch('/api/v1/client-errors', {
       method: 'POST',
       body,
       headers: { 'Content-Type': 'application/json' },

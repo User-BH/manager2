@@ -33,7 +33,14 @@ export const TIMEOUT_MS = 20_000
 export const UPLOAD_TIMEOUT_MS = 120_000
 
 export const http: AxiosInstance = axios.create({
-  baseURL: '/api',
+  /*
+   * نسخه‌ی رسمیِ API (R10). مسیرِ بدونِ نسخه (`/api/...`) هنوز کار می‌کند
+   * ولی فقط برای سازگاری است؛ کدِ تازه باید همیشه نسخه‌دار باشد.
+   *
+   * چون همه‌ی درخواست‌ها از همین یک نمونه می‌گذرند، ارتقا به `v2` روزی که
+   * لازم شود، تغییرِ همین یک خط است.
+   */
+  baseURL: '/api/v1',
   // کوکی نشست باید همراه هر درخواست برود
   withCredentials: true,
   timeout: TIMEOUT_MS,
