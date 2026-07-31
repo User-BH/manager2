@@ -3,12 +3,12 @@
 namespace App\Http\Controllers\Api\System;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\RestoreBackupRequest;
+use App\Http\Resources\SystemBackupResource;
 use App\Models\AuditLog;
 use App\Models\Backup;
 use App\Models\User;
-use App\Support\Jalali;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
@@ -123,15 +123,9 @@ class BackupController extends Controller
      *  - نتیجه در `audit_logs` ثبت می‌شود، و آن جدول عمداً بازیابی نمی‌شود تا
      *    نشود با یک restore رد پا را شست.
      */
-    public function restore(Request $request): JsonResponse
+    public function restore(RestoreBackupRequest $request): JsonResponse
     {
-        $request->validate([
-            'backup' => ['required', 'file', 'mimes:json,txt', 'max:20480'],
-            'dry_run' => ['nullable', 'boolean'],
-            'confirm' => ['nullable', 'string'],
-        ], [
-            'backup.max' => 'حجم فایل بکاپ نباید از ۲۰ مگابایت بیشتر باشد.',
-        ], ['backup' => 'فایل بکاپ']);
+        $request->validated();
 
         $payload = json_decode((string) $request->file('backup')->get(), true);
 
@@ -300,16 +294,14 @@ class BackupController extends Controller
             ->all();
     }
 
+    /**
+     * شکلِ خروجی حالا در `SystemBackupResource` است.
+     *
+     * این متد یک پلِ کوتاه است تا فراخوانی‌های موجود دست‌نخورده بمانند؛
+     * نقطه‌ی حقیقتِ ساختار یکی شد.
+     */
     private function present(Backup $backup): array
     {
-        return [
-            'id' => $backup->id,
-            'type' => $backup->type,
-            'status' => $backup->status,
-            'note' => $backup->note,
-            'sizeKb' => (int) round(((int) $backup->size) / 1024),
-            'createdAt' => Jalali::dateTime($backup->created_at),
-            'downloadUrl' => route('api.system.backups.download', $backup),
-        ];
+        return (new SystemBackupResource($backup))->toArray(request());
     }
 }

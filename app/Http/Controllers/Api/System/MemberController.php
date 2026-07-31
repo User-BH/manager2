@@ -4,13 +4,13 @@ namespace App\Http\Controllers\Api\System;
 
 use App\Enums\UserRole;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\UpdateMemberRequest;
+use App\Http\Resources\MemberResource;
 use App\Models\User;
-use App\Support\Jalali;
 use App\Support\Phone;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 
 /**
@@ -52,14 +52,11 @@ class MemberController extends Controller
         ]);
     }
 
-    public function update(Request $request, string $user): JsonResponse
+    public function update(UpdateMemberRequest $request, string $user): JsonResponse
     {
         $target = User::withoutGlobalScopes()->findOrFail($user);
 
-        $data = $request->validate([
-            'role' => ['required', Rule::in(array_keys(UserRole::options()))],
-            'is_active' => ['boolean'],
-        ], [], ['role' => 'نقش']);
+        $data = $request->validated();
 
         $role = UserRole::from($data['role']);
 
@@ -105,17 +102,14 @@ class MemberController extends Controller
         return response()->json(['message' => 'کاربر حذف شد.']);
     }
 
+    /**
+     * شکلِ خروجی حالا در `MemberResource` است.
+     *
+     * این متد یک پلِ کوتاه است تا فراخوانی‌های موجود دست‌نخورده بمانند؛
+     * نقطه‌ی حقیقتِ ساختار یکی شد.
+     */
     private function present(User $user): array
     {
-        return [
-            'id' => $user->id,
-            'name' => $user->name,
-            'phone' => $user->phone,
-            'role' => $user->role->value,
-            'roleLabel' => $user->role->label(),
-            'isActive' => (bool) $user->is_active,
-            'complex' => $user->complex ? ['id' => $user->complex->id, 'name' => $user->complex->name] : null,
-            'registeredAt' => Jalali::date($user->created_at),
-        ];
+        return (new MemberResource($user))->toArray(request());
     }
 }

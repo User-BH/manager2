@@ -40,11 +40,13 @@ class Announcement extends Model
         ];
     }
 
+    /** @return BelongsTo<User, $this> */
     public function author(): BelongsTo
     {
         return $this->belongsTo(User::class, 'created_by');
     }
 
+    /** @return HasMany<AnnouncementRead, $this> */
     public function reads(): HasMany
     {
         return $this->hasMany(AnnouncementRead::class);

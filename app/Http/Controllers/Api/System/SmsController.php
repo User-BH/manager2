@@ -3,11 +3,12 @@
 namespace App\Http\Controllers\Api\System;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\TestSmsRequest;
+use App\Http\Requests\UpdateSmsSettingsRequest;
 use App\Services\Sms\SmsManager;
 use App\Support\Phone;
 use App\Support\SystemSettings;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Http\Request;
 
 class SmsController extends Controller
 {
@@ -37,19 +38,9 @@ class SmsController extends Controller
         ]);
     }
 
-    public function update(Request $request): JsonResponse
+    public function update(UpdateSmsSettingsRequest $request): JsonResponse
     {
-        $data = $request->validate([
-            'sms_driver' => ['required', 'in:'.implode(',', array_keys(SmsManager::DRIVERS))],
-            'apikey' => ['nullable', 'string', 'max:255'],
-            'sender' => ['nullable', 'string', 'max:30'],
-            'username' => ['nullable', 'string', 'max:100'],
-            'password' => ['nullable', 'string', 'max:100'],
-            'pattern_code' => ['nullable', 'string', 'max:50'],
-            'pattern_variable' => ['nullable', 'string', 'max:50'],
-            'phonebook_id' => ['nullable', 'string', 'max:20'],
-            'otp_disabled' => ['boolean'],
-        ], [], ['sms_driver' => 'سامانه پیامک']);
+        $data = $request->validated();
 
         $existing = SystemSettings::getJson('sms_config', []);
 
@@ -74,9 +65,9 @@ class SmsController extends Controller
         return response()->json(['message' => 'تنظیمات پنل پیامک ذخیره شد.']);
     }
 
-    public function test(Request $request, SmsManager $sms): JsonResponse
+    public function test(TestSmsRequest $request, SmsManager $sms): JsonResponse
     {
-        $request->validate(['phone' => ['required', 'string']], [], ['phone' => 'شماره تلفن']);
+        $request->validated();
 
         $phone = Phone::normalize($request->input('phone'));
 

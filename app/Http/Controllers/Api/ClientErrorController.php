@@ -3,9 +3,9 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\StoreClientErrorRequest;
 use App\Services\ErrorRecorder;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Http\Request;
 
 /**
  * دریافتِ خطای رندرِ مرورگر از Error Boundary فرانت.
@@ -20,14 +20,9 @@ use Illuminate\Http\Request;
  */
 class ClientErrorController extends Controller
 {
-    public function store(Request $request): JsonResponse
+    public function store(StoreClientErrorRequest $request): JsonResponse
     {
-        $data = $request->validate([
-            'type' => ['nullable', 'string', 'max:191'],
-            'message' => ['required', 'string', 'max:2000'],
-            'stack' => ['nullable', 'string', 'max:8000'],
-            'url' => ['nullable', 'string', 'max:500'],
-        ]);
+        $data = $request->validated();
 
         ErrorRecorder::fromClient($data);
 

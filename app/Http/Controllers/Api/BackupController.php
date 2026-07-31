@@ -3,9 +3,9 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Http\Resources\BackupResource;
 use App\Models\Backup;
 use App\Support\Audit;
-use App\Support\Jalali;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
@@ -84,16 +84,14 @@ class BackupController extends Controller
         return Storage::disk('local')->download($backup->path);
     }
 
+    /**
+     * شکلِ خروجی حالا در `BackupResource` است.
+     *
+     * این متد یک پلِ کوتاه است تا فراخوانی‌های موجود دست‌نخورده بمانند؛
+     * نقطه‌ی حقیقتِ ساختار یکی شد.
+     */
     private function present(Backup $backup): array
     {
-        return [
-            'id' => $backup->id,
-            'type' => $backup->type,
-            'status' => $backup->status,
-            'note' => $backup->note,
-            'sizeKb' => (int) round(((int) $backup->size) / 1024),
-            'createdAt' => Jalali::dateTime($backup->created_at),
-            'downloadUrl' => route('api.backups.download', $backup),
-        ];
+        return (new BackupResource($backup))->toArray(request());
     }
 }

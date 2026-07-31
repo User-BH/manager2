@@ -5,15 +5,14 @@ namespace App\Http\Controllers\Api;
 use App\Enums\ResidentRelation;
 use App\Enums\UserRole;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\StoreResidentRequest;
+use App\Http\Resources\ResidentResource;
 use App\Models\Unit;
 use App\Models\User;
 use App\Support\Audit;
-use App\Support\Phone;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Validation\Rule;
-use Illuminate\Validation\Rules\Password;
 
 class ResidentController extends Controller
 {
@@ -52,10 +51,10 @@ class ResidentController extends Controller
         ]);
     }
 
-    public function store(Request $request): JsonResponse
+    public function store(StoreResidentRequest $request): JsonResponse
     {
         $complex = $this->requireComplex();
-        $data = $this->validateData($request);
+        $data = $request->validated();
 
         $resident = User::create([
             'complex_id' => $complex->id,
@@ -73,10 +72,10 @@ class ResidentController extends Controller
         return response()->json(['resident' => $this->present($resident->load('currentUnits'))], 201);
     }
 
-    public function update(Request $request, User $resident): JsonResponse
+    public function update(StoreResidentRequest $request, User $resident): JsonResponse
     {
         $this->guard($resident);
-        $data = $this->validateData($request, $resident->id);
+        $data = $request->validated();
 
         $resident->update(array_filter([
             'name' => $data['name'],
@@ -149,23 +148,15 @@ class ResidentController extends Controller
         ]);
     }
 
+    /**
+     * شکلِ خروجی حالا در `ResidentResource` است.
+     *
+     * این متد یک پلِ کوتاه است تا فراخوانی‌های موجود دست‌نخورده بمانند؛
+     * نقطه‌ی حقیقتِ ساختار یکی شد.
+     */
     private function present(User $user): array
     {
-        return [
-            'id' => $user->id,
-            'name' => $user->name,
-            'phone' => $user->phone,
-            'email' => $user->email,
-            'nationalId' => $user->national_id,
-            'role' => $user->role->value,
-            'roleLabel' => $user->role->label(),
-            'isActive' => (bool) $user->is_active,
-            'canMessage' => (bool) $user->can_message,
-            'units' => $user->currentUnits->map(fn (Unit $u) => [
-                'id' => $u->id,
-                'label' => 'واحد '.$u->unit_number,
-            ])->values(),
-        ];
+        return (new ResidentResource($user))->toArray(request());
     }
 
     private function syncUnit(User $resident, array $data): void
@@ -195,36 +186,6 @@ class ResidentController extends Controller
                 'is_current' => true,
                 'start_date' => now(),
             ],
-        ]);
-    }
-
-    /** همان قواعد کنترلر وب تا رفتار API و پنل قدیمی یکی بماند. */
-    private function validateData(Request $request, ?int $ignoreId = null): array
-    {
-        $request->merge(['phone' => Phone::normalize($request->input('phone'))]);
-
-        return $request->validate([
-            'name' => ['required', 'string', 'max:120'],
-            'phone' => ['required', 'regex:/^09\d{9}$/', Rule::unique('users', 'phone')->ignore($ignoreId)],
-            'email' => ['nullable', 'email', Rule::unique('users', 'email')->ignore($ignoreId)],
-            'national_id' => ['nullable', 'string', 'max:20'],
-            'role' => ['required', 'in:owner,tenant'],
-            // exists خام به مجتمع محدود نیست و ComplexScope هم روی کوئریِ
-            // اعتبارسنجی اعمال نمی‌شود؛ بدون این قید، شناسه‌ی واحدِ مجتمع
-            // دیگری هم پذیرفته می‌شد.
-            'unit_id' => [
-                'nullable',
-                Rule::exists('units', 'id')->where('complex_id', $this->requireComplex()->id),
-            ],
-            // همان قاعده‌ی تغییر رمز در پروفایل؛ پیش از این min:6 بود و حساب‌هایی
-            // که مدیر می‌ساخت می‌توانستند رمز بسیار ضعیف داشته باشند.
-            'password' => [$ignoreId ? 'nullable' : 'required', 'nullable', Password::min(8)->letters()->numbers()],
-        ], [
-            'phone.regex' => 'شماره تلفن همراه باید به شکل ۰۹xxxxxxxxx باشد.',
-            'phone.unique' => 'این شماره تلفن قبلا ثبت شده است.',
-        ], [
-            'name' => 'نام', 'email' => 'ایمیل', 'phone' => 'شماره تلفن',
-            'role' => 'نقش', 'password' => 'رمز عبور',
         ]);
     }
 

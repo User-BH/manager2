@@ -37,16 +37,19 @@ class User extends Authenticatable
         ];
     }
 
+    /** @return BelongsTo<Complex, $this> */
     public function complex(): BelongsTo
     {
         return $this->belongsTo(Complex::class);
     }
 
+    /** @return HasMany<TrustedDevice, $this> */
     public function trustedDevices(): HasMany
     {
         return $this->hasMany(TrustedDevice::class);
     }
 
+    /** @return BelongsToMany<Unit, $this> */
     public function units(): BelongsToMany
     {
         return $this->belongsToMany(Unit::class)
@@ -59,6 +62,7 @@ class User extends Authenticatable
         return $this->units()->wherePivot('is_current', true);
     }
 
+    /** @return HasMany<Subscription, $this> */
     public function subscriptions(): HasMany
     {
         return $this->hasMany(Subscription::class);

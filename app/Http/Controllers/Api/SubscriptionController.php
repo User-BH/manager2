@@ -5,13 +5,14 @@ namespace App\Http\Controllers\Api;
 use App\Enums\SubscriptionPlan;
 use App\Exceptions\DomainException;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\UploadSubscriptionReceiptRequest;
+use App\Http\Resources\SubscriptionResource;
 use App\Models\Plan;
 use App\Models\Subscription;
 use App\Services\Subscription\PlanGate;
 use App\Services\Subscription\SubscriptionGatewayManager;
 use App\Support\Jalali;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Validation\ValidationException;
 
@@ -79,25 +80,14 @@ class SubscriptionController extends Controller
      * تا وقتی درگاهِ اشتراک فعال نشده، این تنها راه خرید است. اشتراک با
      * وضعیت «در انتظار بررسی» ساخته می‌شود و تا تایید ادمین کل فعال نمی‌شود.
      */
-    public function uploadReceipt(Request $request): JsonResponse
+    public function uploadReceipt(UploadSubscriptionReceiptRequest $request): JsonResponse
     {
         $user = Auth::user();
         $this->authorize('purchase', Subscription::class);
 
         $complex = $this->requireComplex();
 
-        $data = $request->validate([
-            'plan' => ['required', 'string'],
-            'paid_on' => ['nullable', 'date', 'before_or_equal:today'],
-            'note' => ['nullable', 'string', 'max:300'],
-            'receipt' => ['required', 'file', 'mimes:jpg,jpeg,png,pdf', 'max:4096'],
-        ], [
-            'receipt.mimes' => 'فایل رسید باید تصویر (jpg/png) یا PDF باشد.',
-            'receipt.max' => 'حجم فایل رسید نباید از ۴ مگابایت بیشتر باشد.',
-            'paid_on.before_or_equal' => 'تاریخ واریز نمی‌تواند در آینده باشد.',
-        ], [
-            'plan' => 'پلن', 'paid_on' => 'تاریخ واریز', 'receipt' => 'فایل رسید',
-        ]);
+        $data = $request->validated();
 
         // هر مجتمع هم‌زمان فقط یک درخواست در انتظار بررسی داشته باشد، وگرنه
         // صف بررسی ادمین با درخواست‌های تکراری پر می‌شود.
@@ -106,7 +96,12 @@ class SubscriptionController extends Controller
             ->where('method', 'receipt')
             ->exists();
 
-        abort_if($alreadyPending, 422, 'یک درخواست اشتراک در انتظار بررسی دارید. تا تعیین تکلیف آن، درخواست تازه ثبت نمی‌شود.');
+        if ($alreadyPending) {
+            throw DomainException::invalid(
+                'یک درخواست اشتراک در انتظار بررسی دارید. تا تعیین تکلیف آن، درخواست تازه ثبت نمی‌شود.',
+                'subscription.pending_exists',
+            );
+        }
 
         /*
          * اشتراک فعال هم مانع ثبت رسید تازه است.
@@ -232,26 +227,14 @@ class SubscriptionController extends Controller
         throw ValidationException::withMessages(['plan' => 'پکیجِ انتخاب‌شده معتبر نیست.']);
     }
 
+    /**
+     * شکلِ خروجی حالا در `SubscriptionResource` است.
+     *
+     * این متد یک پلِ کوتاه است تا فراخوانی‌های موجود دست‌نخورده بمانند؛
+     * نقطه‌ی حقیقتِ ساختار یکی شد.
+     */
     private function present(Subscription $s): array
     {
-        return [
-            'id' => $s->id,
-            'plan' => $s->plan_id ? $s->planRef?->slug : $s->plan->value,
-            'planLabel' => $s->planLabel(),
-            'status' => $s->status,
-            'statusLabel' => $s->statusLabel(),
-            'method' => $s->method,
-            'methodLabel' => $s->methodLabel(),
-            'amount' => (float) $s->amount,
-            'amountLabel' => Jalali::money($s->amount),
-            'buyerName' => $s->user?->name,
-            'startsAt' => $s->starts_at ? Jalali::date($s->starts_at) : null,
-            'endsAt' => $s->ends_at ? Jalali::date($s->ends_at) : null,
-            'daysLeft' => $s->ends_at ? max(0, (int) now()->diffInDays($s->ends_at, false)) : 0,
-            'trackingCode' => $s->tracking_code,
-            'reviewNote' => $s->review_note,
-            'hasReceipt' => filled($s->receipt_path),
-            'createdAt' => Jalali::dateTime($s->created_at),
-        ];
+        return (new SubscriptionResource($s))->toArray(request());
     }
 }

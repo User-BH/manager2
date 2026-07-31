@@ -5,6 +5,8 @@ namespace App\Http\Controllers\Api;
 use App\Enums\ChargeRuleType;
 use App\Enums\ExpenseCategory;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\StoreExpenseRequest;
+use App\Http\Requests\StoreIncomeRequest;
 use App\Models\Expense;
 use App\Models\Income;
 use App\Support\Jalali;
@@ -69,18 +71,11 @@ class FinanceController extends Controller
         ]);
     }
 
-    public function storeExpense(Request $request): JsonResponse
+    public function storeExpense(StoreExpenseRequest $request): JsonResponse
     {
         $this->requireComplex();
 
-        $data = $request->validate([
-            'title' => ['required', 'string', 'max:150'],
-            'amount' => ['required', 'numeric', 'min:0'],
-            'category' => ['required', 'in:owner,tenant'],
-            'period' => ['required', 'string', 'max:7'],
-            'split_method' => ['nullable', 'in:'.implode(',', array_column(ChargeRuleType::cases(), 'value'))],
-            'description' => ['nullable', 'string', 'max:255'],
-        ], [], ['title' => 'عنوان', 'amount' => 'مبلغ', 'category' => 'دسته', 'period' => 'دوره']);
+        $data = $request->validated();
 
         Expense::create([
             'title' => $data['title'],
@@ -105,16 +100,11 @@ class FinanceController extends Controller
         return response()->json(['message' => 'هزینه حذف شد.']);
     }
 
-    public function storeIncome(Request $request): JsonResponse
+    public function storeIncome(StoreIncomeRequest $request): JsonResponse
     {
         $this->requireComplex();
 
-        $data = $request->validate([
-            'title' => ['required', 'string', 'max:150'],
-            'amount' => ['required', 'numeric', 'min:0'],
-            'source' => ['nullable', 'string', 'max:120'],
-            'period' => ['required', 'string', 'max:7'],
-        ], [], ['title' => 'عنوان', 'amount' => 'مبلغ', 'period' => 'دوره']);
+        $data = $request->validated();
 
         Income::create([
             'title' => $data['title'],

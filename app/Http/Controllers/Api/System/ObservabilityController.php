@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api\System;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\UpdateObservabilityRequest;
 use App\Models\ErrorEvent;
 use App\Support\Observability;
 use Illuminate\Http\JsonResponse;
@@ -27,23 +28,9 @@ class ObservabilityController extends Controller
         ]);
     }
 
-    public function update(Request $request): JsonResponse
+    public function update(UpdateObservabilityRequest $request): JsonResponse
     {
-        $data = $request->validate([
-            'sentry_dsn' => ['nullable', 'string', 'max:500'],
-            'sentry_client_dsn' => ['nullable', 'string', 'max:500'],
-            'sentry_environment' => ['nullable', 'string', 'max:50'],
-            'sentry_traces_sample_rate' => ['nullable', 'numeric', 'between:0,1'],
-            'sentry_auth_token' => ['nullable', 'string', 'max:500'],
-            'ga4_measurement_id' => ['nullable', 'string', 'max:50', 'regex:/^G-[A-Z0-9]+$/i'],
-            'ga4_api_secret' => ['nullable', 'string', 'max:200'],
-            'gtm_container_id' => ['nullable', 'string', 'max:50', 'regex:/^GTM-[A-Z0-9]+$/i'],
-            'clarity_project_id' => ['nullable', 'string', 'max:50', 'alpha_num'],
-        ], [
-            'ga4_measurement_id.regex' => 'شناسه‌ی GA4 باید با G- شروع شود، مثل G-XXXXXXXXXX.',
-            'gtm_container_id.regex' => 'شناسه‌ی GTM باید با GTM- شروع شود، مثل GTM-XXXXXXX.',
-            'clarity_project_id.alpha_num' => 'شناسه‌ی Clarity فقط حرف و عدد است.',
-        ]);
+        $data = $request->validated();
 
         // مقدارهای محرمانه اگر ماسک باشند دست‌نخورده می‌مانند (داخل save)
         Observability::save($data);

@@ -55,16 +55,19 @@ class Payment extends Model implements GatewayOrder
         });
     }
 
+    /** @return BelongsTo<Unit, $this> */
     public function unit(): BelongsTo
     {
         return $this->belongsTo(Unit::class);
     }
 
+    /** @return BelongsTo<Bill, $this> */
     public function bill(): BelongsTo
     {
         return $this->belongsTo(Bill::class);
     }
 
+    /** @return BelongsTo<User, $this> */
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);

@@ -17,6 +17,7 @@ class Discount extends Model
         return ['amount' => 'decimal:2'];
     }
 
+    /** @return BelongsTo<Unit, $this> */
     public function unit(): BelongsTo
     {
         return $this->belongsTo(Unit::class);

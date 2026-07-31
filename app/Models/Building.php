@@ -12,6 +12,7 @@ class Building extends Model
 
     protected $fillable = ['complex_id', 'name', 'floors_count', 'description'];
 
+    /** @return HasMany<Unit, $this> */
     public function units(): HasMany
     {
         return $this->hasMany(Unit::class);

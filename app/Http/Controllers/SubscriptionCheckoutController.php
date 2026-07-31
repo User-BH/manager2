@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Enums\SubscriptionPlan;
+use App\Http\Requests\StartCheckoutRequest;
 use App\Models\Plan;
 use App\Models\Subscription;
 use App\Services\Subscription\SubscriptionGatewayManager;
@@ -19,7 +20,7 @@ class SubscriptionCheckoutController extends Controller
 {
     public function __construct(protected SubscriptionGatewayManager $gateways) {}
 
-    public function start(Request $request)
+    public function start(StartCheckoutRequest $request)
     {
         $user = Auth::user();
 
@@ -27,9 +28,7 @@ class SubscriptionCheckoutController extends Controller
         // ساکن نباید بتواند پرداختی انجام دهد که هیچ اثری برایش ندارد.
         abort_unless($user->isAdmin(), 403, 'خرید اشتراک فقط برای مدیران مجتمع است.');
 
-        $request->validate([
-            'plan' => ['required', 'string'],
-        ], [], ['plan' => 'پلن']);
+        $request->validated();
 
         $complex = $this->requireComplex();
 

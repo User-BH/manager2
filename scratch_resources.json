@@ -1,0 +1,114 @@
+{
+  "BackupResource": {
+    "file": "Api/BackupController.php",
+    "model": "Backup",
+    "var": "backup",
+    "body": "[\n            'id' => $backup->id,\n            'type' => $backup->type,\n            'status' => $backup->status,\n            'note' => $backup->note,\n            'sizeKb' => (int) round(((int) $backup->size) / 1024),\n            'createdAt' => Jalali::dateTime($backup->created_at),\n            'downloadUrl' => route('api.backups.download', $backup),\n        ]",
+    "extra_params": [],
+    "prelude": ""
+  },
+  "ChargeRuleResource": {
+    "file": "Api/ChargeRuleController.php",
+    "model": "ChargeRule",
+    "var": "rule",
+    "body": "[\n            'id' => $rule->id,\n            'name' => $rule->name,\n            'type' => $rule->type->value,\n            'typeLabel' => $rule->type->label(),\n            'isPoolBased' => $rule->type->isPoolBased(),\n            'category' => $rule->category->value,\n            'categoryLabel' => $rule->category === ExpenseCategory::Owner ? 'مالکانه' : 'مستاجرانه',\n            'config' => $rule->config ?? [],\n            'poolAmount' => $rule->pool_amount !== null ? (float) $rule->pool_amount : null,\n            'isActive' => (bool) $rule->is_active,\n        ]",
+    "extra_params": [],
+    "prelude": ""
+  },
+  "MessageResource": {
+    "file": "Api/MessengerController.php",
+    "model": "Message",
+    "var": "message",
+    "body": "[\n            'id' => $message->id,\n            'body' => $hidden && ! $mayReadHidden ? null : $message->body,\n            'authorName' => $message->author_name,\n            'unitLabel' => $message->unit_label,\n            'isMine' => $message->user_id === $viewer->id,\n            'isHidden' => $hidden,\n            'sentAt' => Jalali::dateTime($message->created_at),\n        ]",
+    "extra_params": ["User $viewer"],
+    "prelude": "$hidden = (bool) $message->is_hidden;\n        $mayReadHidden = $viewer->isAdmin();"
+  },
+  "BillResource": {
+    "file": "Api/MyBillController.php",
+    "model": "Bill",
+    "var": "bill",
+    "body": "[\n            'id' => $bill->id,\n            'unitLabel' => $bill->unit ? $bill->unit->label() : '—',\n            'period' => $bill->period,\n            'periodLabel' => Jalali::periodLabel($bill->period),\n            'ownerAmount' => (float) $bill->owner_amount,\n            'tenantAmount' => (float) $bill->tenant_amount,\n            'penaltyAmount' => (float) $bill->penalty_amount,\n            'totalAmount' => (float) $bill->total_amount,\n            'paidAmount' => (float) $bill->paid_amount,\n            'remaining' => (float) $bill->remaining(),\n            'status' => $bill->status->value,\n            'statusLabel' => $bill->status->label(),\n            'dueDate' => $bill->due_date ? Jalali::date($bill->due_date) : null,\n            // PDF یک دانلود مستقیم است و صفحه‌ی پرداخت مسیر داخلی SPA\n            'pdfUrl' => route('bills.invoice', $bill),\n            'payPath' => '/pay/'.$bill->id,\n        ]",
+    "extra_params": [],
+    "prelude": ""
+  },
+  "PaymentResource": {
+    "file": "Api/PaymentReviewController.php",
+    "model": "Payment",
+    "var": "payment",
+    "body": "[\n            'id' => $payment->id,\n            'amount' => (float) $payment->amount,\n            'method' => $payment->method?->value,\n            'methodLabel' => $payment->method?->label(),\n            'status' => $payment->status->value,\n            'statusLabel' => $payment->status->label(),\n            'unitLabel' => $payment->unit ? 'واحد '.$payment->unit->unit_number : '—',\n            'payerName' => $payment->user?->name ?? '—',\n            'billPeriod' => $payment->bill ? Jalali::periodLabel($payment->bill->period) : null,\n            'description' => $payment->description,\n            'hasReceipt' => filled($payment->receipt_path),\n            'receiptUrl' => filled($payment->receipt_path)\n                ? route('api.payments.receipt', $payment)\n                : null,\n            'createdAt' => Jalali::dateTime($payment->created_at),\n            'paidAt' => $payment->paid_at ? Jalali::dateTime($payment->paid_at) : null,\n        ]",
+    "extra_params": [],
+    "prelude": ""
+  },
+  "ProfileResource": {
+    "file": "Api/ProfileController.php",
+    "model": "User",
+    "var": "user",
+    "body": "[\n            'id' => $user->id,\n            'name' => $user->name,\n            'phone' => $user->phone,\n            'email' => $user->email,\n            'nationalId' => $user->national_id,\n            'birthDate' => $user->birth_date?->toDateString(),\n            'birthDateLabel' => $user->birth_date ? Jalali::date($user->birth_date) : null,\n            'emergencyPhone' => $user->emergency_phone,\n            'address' => $user->address,\n            'bio' => $user->bio,\n            'role' => $user->role->value,\n            'roleLabel' => $user->role->label(),\n            'isAdmin' => $user->isAdmin(),\n            'isActive' => (bool) $user->is_active,\n            'canMessage' => (bool) $user->can_message,\n            'joinedAt' => Jalali::date($user->created_at),\n            'complex' => $user->complex ? ['id' => $user->complex->id, 'name' => $user->complex->name] : null,\n        ]",
+    "extra_params": [],
+    "prelude": ""
+  },
+  "ResidentResource": {
+    "file": "Api/ResidentController.php",
+    "model": "User",
+    "var": "user",
+    "body": "[\n            'id' => $user->id,\n            'name' => $user->name,\n            'phone' => $user->phone,\n            'email' => $user->email,\n            'nationalId' => $user->national_id,\n            'role' => $user->role->value,\n            'roleLabel' => $user->role->label(),\n            'isActive' => (bool) $user->is_active,\n            'canMessage' => (bool) $user->can_message,\n            'units' => $user->currentUnits->map(fn (Unit $u) => [\n                'id' => $u->id,\n                'label' => 'واحد '.$u->unit_number,\n            ])->values(),\n        ]",
+    "extra_params": [],
+    "prelude": ""
+  },
+  "SubscriptionResource": {
+    "file": "Api/SubscriptionController.php",
+    "model": "Subscription",
+    "var": "s",
+    "body": "[\n            'id' => $s->id,\n            'plan' => $s->plan_id ? $s->planRef?->slug : $s->plan->value,\n            'planLabel' => $s->planLabel(),\n            'status' => $s->status,\n            'statusLabel' => $s->statusLabel(),\n            'method' => $s->method,\n            'methodLabel' => $s->methodLabel(),\n            'amount' => (float) $s->amount,\n            'amountLabel' => Jalali::money($s->amount),\n            'buyerName' => $s->user?->name,\n            'startsAt' => $s->starts_at ? Jalali::date($s->starts_at) : null,\n            'endsAt' => $s->ends_at ? Jalali::date($s->ends_at) : null,\n            'daysLeft' => $s->ends_at ? max(0, (int) now()->diffInDays($s->ends_at, false)) : 0,\n            'trackingCode' => $s->tracking_code,\n            'reviewNote' => $s->review_note,\n            'hasReceipt' => filled($s->receipt_path),\n            'createdAt' => Jalali::dateTime($s->created_at),\n        ]",
+    "extra_params": [],
+    "prelude": ""
+  },
+  "AdvertisementResource": {
+    "file": "Api/System/AdvertisementController.php",
+    "model": "Advertisement",
+    "var": "ad",
+    "body": "[\n            'id' => $ad->id,\n            'title' => $ad->title,\n            'subtitle' => $ad->subtitle,\n            'href' => $ad->href,\n            'image' => $ad->displayImageUrl(),\n            'isActive' => $ad->is_active,\n            'isLive' => $ad->isLive(),\n            'sortOrder' => $ad->sort_order,\n            'startsAt' => $ad->starts_at?->toDateString(),\n            'endsAt' => $ad->ends_at?->toDateString(),\n            'startsAtLabel' => $ad->starts_at ? Jalali::date($ad->starts_at) : null,\n            'endsAtLabel' => $ad->ends_at ? Jalali::date($ad->ends_at) : null,\n            // بنرهای پیش‌فرضِ همراه پروژه فایل آپلودی ندارند\n            'isBuiltIn' => ! $ad->image_path,\n        ]",
+    "extra_params": [],
+    "prelude": ""
+  },
+  "SystemBackupResource": {
+    "file": "Api/System/BackupController.php",
+    "model": "Backup",
+    "var": "backup",
+    "body": "[\n            'id' => $backup->id,\n            'type' => $backup->type,\n            'status' => $backup->status,\n            'note' => $backup->note,\n            'sizeKb' => (int) round(((int) $backup->size) / 1024),\n            'createdAt' => Jalali::dateTime($backup->created_at),\n            'downloadUrl' => route('api.system.backups.download', $backup),\n        ]",
+    "extra_params": [],
+    "prelude": ""
+  },
+  "MemberResource": {
+    "file": "Api/System/MemberController.php",
+    "model": "User",
+    "var": "user",
+    "body": "[\n            'id' => $user->id,\n            'name' => $user->name,\n            'phone' => $user->phone,\n            'role' => $user->role->value,\n            'roleLabel' => $user->role->label(),\n            'isActive' => (bool) $user->is_active,\n            'complex' => $user->complex ? ['id' => $user->complex->id, 'name' => $user->complex->name] : null,\n            'registeredAt' => Jalali::date($user->created_at),\n        ]",
+    "extra_params": [],
+    "prelude": ""
+  },
+  "PlanResource": {
+    "file": "Api/System/PlanController.php",
+    "model": "Plan",
+    "var": "p",
+    "body": "[\n            'id' => $p->id,\n            'name' => $p->name,\n            'slug' => $p->slug,\n            'price' => $p->price,\n            'priceLabel' => Jalali::money($p->price),\n            'months' => $p->months,\n            'unit_limit' => $p->unit_limit,\n            'real_gateway' => $p->real_gateway,\n            'excel_export' => $p->excel_export,\n            'features' => $p->features ?? [],\n            'is_active' => $p->is_active,\n            'sort_order' => $p->sort_order,\n        ]",
+    "extra_params": [],
+    "prelude": ""
+  },
+  "SubscriptionReviewResource": {
+    "file": "Api/System/SubscriptionReviewController.php",
+    "model": "Subscription",
+    "var": "s",
+    "body": "[\n            'id' => $s->id,\n            'complexName' => $s->complex?->name ?? '—',\n            'buyerName' => $s->user?->name ?? '—',\n            'buyerPhone' => $s->user?->phone,\n            'plan' => $s->plan_id ? $s->planRef?->slug : $s->plan->value,\n            'planLabel' => $s->planLabel(),\n            'months' => (int) $s->months,\n            'amount' => (float) $s->amount,\n            'amountLabel' => Jalali::money($s->amount),\n            'status' => $s->status,\n            'statusLabel' => $s->statusLabel(),\n            'method' => $s->method,\n            'methodLabel' => $s->methodLabel(),\n            'paidOn' => $s->receipt_paid_on ? Jalali::date($s->receipt_paid_on) : null,\n            'note' => $s->review_note,\n            'hasReceipt' => filled($s->receipt_path),\n            'receiptUrl' => filled($s->receipt_path)\n                ? route('api.system.subscriptions.receipt', $s)\n                : null,\n            'reviewedBy' => $s->reviewer?->name,\n            'reviewedAt' => $s->reviewed_at ? Jalali::dateTime($s->reviewed_at) : null,\n            'endsAt' => $s->ends_at ? Jalali::date($s->ends_at) : null,\n            'createdAt' => Jalali::dateTime($s->created_at),\n        ]",
+    "extra_params": [],
+    "prelude": ""
+  },
+  "UnitResource": {
+    "file": "Api/UnitController.php",
+    "model": "Unit",
+    "var": "unit",
+    "body": "[\n            'id' => $unit->id,\n            'unitNumber' => $unit->unit_number,\n            'buildingId' => $unit->building_id,\n            'buildingName' => $unit->building?->name,\n            'floor' => (int) $unit->floor,\n            'area' => (float) $unit->area,\n            'residentsCount' => (int) $unit->residents_count,\n            'parkingCount' => (int) $unit->parking_count,\n            'occupancyStatus' => $unit->occupancy_status->value,\n            'occupancyLabel' => $unit->occupancy_status->label(),\n            'coefficient' => (float) $unit->coefficient,\n            'usesElevator' => (bool) $unit->uses_elevator,\n            'balance' => (float) $unit->balance,\n            'notes' => $unit->notes,\n        ]",
+    "extra_params": [],
+    "prelude": ""
+  }
+}

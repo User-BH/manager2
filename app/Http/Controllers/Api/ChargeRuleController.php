@@ -5,9 +5,10 @@ namespace App\Http\Controllers\Api;
 use App\Enums\ChargeRuleType;
 use App\Enums\ExpenseCategory;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\StoreChargeRuleRequest;
+use App\Http\Resources\ChargeRuleResource;
 use App\Models\ChargeRule;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Http\Request;
 
 class ChargeRuleController extends Controller
 {
@@ -35,21 +36,11 @@ class ChargeRuleController extends Controller
         ]);
     }
 
-    public function store(Request $request): JsonResponse
+    public function store(StoreChargeRuleRequest $request): JsonResponse
     {
         $this->requireComplex();
 
-        $data = $request->validate([
-            'name' => ['required', 'string', 'max:120'],
-            'type' => ['required', 'in:'.implode(',', array_column(ChargeRuleType::cases(), 'value'))],
-            'category' => ['required', 'in:owner,tenant'],
-            'amount' => ['nullable', 'numeric', 'min:0'],
-            'base' => ['nullable', 'numeric', 'min:0'],
-            'per_area_rate' => ['nullable', 'numeric', 'min:0'],
-            'per_person_rate' => ['nullable', 'numeric', 'min:0'],
-            'pool_amount' => ['nullable', 'numeric', 'min:0'],
-            'exempt_ground_floor' => ['nullable', 'boolean'],
-        ], [], ['name' => 'نام قانون', 'type' => 'نوع', 'category' => 'دسته']);
+        $data = $request->validated();
 
         $type = ChargeRuleType::from($data['type']);
 
@@ -93,20 +84,15 @@ class ChargeRuleController extends Controller
         return response()->json(['message' => 'قانون حذف شد.']);
     }
 
+    /**
+     * شکلِ خروجی حالا در `ChargeRuleResource` است.
+     *
+     * این متد یک پلِ کوتاه است تا فراخوانی‌های موجود دست‌نخورده بمانند؛
+     * نقطه‌ی حقیقتِ ساختار یکی شد.
+     */
     private function present(ChargeRule $rule): array
     {
-        return [
-            'id' => $rule->id,
-            'name' => $rule->name,
-            'type' => $rule->type->value,
-            'typeLabel' => $rule->type->label(),
-            'isPoolBased' => $rule->type->isPoolBased(),
-            'category' => $rule->category->value,
-            'categoryLabel' => $rule->category === ExpenseCategory::Owner ? 'مالکانه' : 'مستاجرانه',
-            'config' => $rule->config ?? [],
-            'poolAmount' => $rule->pool_amount !== null ? (float) $rule->pool_amount : null,
-            'isActive' => (bool) $rule->is_active,
-        ];
+        return (new ChargeRuleResource($rule))->toArray(request());
     }
 
     /** فیلدهایی که هر نوع قانون واقعاً استفاده می‌کند. */

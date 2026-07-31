@@ -176,4 +176,35 @@ class ApiContractTest extends TestCase
 
         File::delete(base_path($output));
     }
+
+    /**
+     * پوششِ مستند نباید عقب برود.
+     *
+     * بدنه‌ی درخواست فقط برای اکشن‌هایی مستند می‌شود که FormRequest دارند. پس
+     * این عدد در عمل معیارِ «چقدر از اعتبارسنجی‌ها به FormRequest رفته‌اند»
+     * است — و اگر کسی بعداً یک اکشنِ تازه با `validate()`ِ درجا بنویسد،
+     * نسبتش پایین می‌آید.
+     *
+     * پیش از R9b فقط ۱ عملیات بدنه‌ی مستند داشت؛ الان ۴۳ تا.
+     */
+    public function test_most_write_endpoints_document_their_request_body(): void
+    {
+        $output = 'storage/framework/testing/openapi-coverage.json';
+        $this->artisan('openapi:generate', ['--output' => $output])->assertSuccessful();
+
+        $spec = json_decode(File::get(base_path($output)), true);
+
+        $documented = 0;
+        foreach ($spec['paths'] as $operations) {
+            foreach ($operations as $operation) {
+                if (isset($operation['requestBody'])) {
+                    $documented++;
+                }
+            }
+        }
+
+        $this->assertGreaterThanOrEqual(40, $documented);
+
+        File::delete(base_path($output));
+    }
 }

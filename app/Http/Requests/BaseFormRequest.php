@@ -2,6 +2,8 @@
 
 namespace App\Http\Requests;
 
+use App\Models\Complex;
+use App\Support\ComplexResolver;
 use Illuminate\Foundation\Http\FormRequest;
 
 /**
@@ -37,6 +39,32 @@ abstract class BaseFormRequest extends FormRequest
     public function authorize(): bool
     {
         return true;
+    }
+
+    /**
+     * شناسه‌ی مجتمعِ جاری — برای قواعدی که باید مستأجرمحور باشند.
+     *
+     * ─── چرا این متد لازم شد ───────────────────────────────────────────────
+     * قواعدی مثل «این واحد باید وجود داشته باشد» بدونِ محدودکردن به مجتمع،
+     * **نشتِ بین‌مستأجری** می‌سازند: مدیرِ یک مجتمع می‌تواند شناسه‌ی واحدِ
+     * مجتمعِ دیگری را بفرستد و اعتبارسنجی قبولش کند.
+     *
+     * در کنترلر این با متغیرِ محلیِ `$complex` انجام می‌شد. با انتقالِ قواعد
+     * به FormRequest آن متغیر دیگر در دسترس نیست، پس از همان منبعی خوانده
+     * می‌شود که خودِ کنترلر می‌خواند (`ComplexResolver`) — نه یک راهِ دوم که
+     * ممکن است روزی با آن واگرا شود.
+     */
+    protected function currentComplexId(): ?int
+    {
+        return ComplexResolver::idFor($this->user());
+    }
+
+    /** خودِ مجتمعِ جاری، وقتی قاعده به بیش از شناسه نیاز دارد. */
+    protected function currentComplex(): ?Complex
+    {
+        $id = $this->currentComplexId();
+
+        return $id ? Complex::find($id) : null;
     }
 
     /**

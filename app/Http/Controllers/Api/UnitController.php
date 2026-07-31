@@ -4,13 +4,14 @@ namespace App\Http\Controllers\Api;
 
 use App\Enums\OccupancyStatus;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\StoreUnitRequest;
+use App\Http\Resources\UnitResource;
 use App\Models\Building;
 use App\Models\Unit;
 use App\Services\Subscription\PlanGate;
 use App\Support\Audit;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Validation\Rule;
 
 class UnitController extends Controller
 {
@@ -45,7 +46,7 @@ class UnitController extends Controller
         ]);
     }
 
-    public function store(Request $request, PlanGate $plans): JsonResponse
+    public function store(StoreUnitRequest $request, PlanGate $plans): JsonResponse
     {
         $complex = $this->requireComplex();
 
@@ -53,14 +54,14 @@ class UnitController extends Controller
         // فرم را پر نکند و بعد رد شود.
         $plans->assertCanAddUnit($complex);
 
-        $unit = Unit::create($this->validateData($request));
+        $unit = Unit::create($request->validated());
 
         return response()->json(['unit' => $this->present($unit->load('building'))], 201);
     }
 
-    public function update(Request $request, Unit $unit): JsonResponse
+    public function update(StoreUnitRequest $request, Unit $unit): JsonResponse
     {
-        $unit->update($this->validateData($request));
+        $unit->update($request->validated());
 
         return response()->json(['unit' => $this->present($unit->fresh('building'))]);
     }
@@ -78,54 +79,14 @@ class UnitController extends Controller
         return response()->json(['message' => 'واحد حذف شد.']);
     }
 
+    /**
+     * شکلِ خروجی حالا در `UnitResource` است.
+     *
+     * این متد یک پلِ کوتاه است تا فراخوانی‌های موجود دست‌نخورده بمانند؛
+     * نقطه‌ی حقیقتِ ساختار یکی شد.
+     */
     private function present(Unit $unit): array
     {
-        return [
-            'id' => $unit->id,
-            'unitNumber' => $unit->unit_number,
-            'buildingId' => $unit->building_id,
-            'buildingName' => $unit->building?->name,
-            'floor' => (int) $unit->floor,
-            'area' => (float) $unit->area,
-            'residentsCount' => (int) $unit->residents_count,
-            'parkingCount' => (int) $unit->parking_count,
-            'occupancyStatus' => $unit->occupancy_status->value,
-            'occupancyLabel' => $unit->occupancy_status->label(),
-            'coefficient' => (float) $unit->coefficient,
-            'usesElevator' => (bool) $unit->uses_elevator,
-            'balance' => (float) $unit->balance,
-            'notes' => $unit->notes,
-        ];
-    }
-
-    /** همان قواعد اعتبارسنجی کنترلر وب، تا رفتار دو مسیر یکی بماند. */
-    private function validateData(Request $request): array
-    {
-        $request->merge(['uses_elevator' => $request->boolean('uses_elevator')]);
-
-        return $request->validate([
-            'unit_number' => ['required', 'string', 'max:20'],
-            // exists خام به مجتمع محدود نیست؛ بدون این قید می‌شد واحد را به
-            // ساختمانِ مجتمع دیگری چسباند.
-            'building_id' => [
-                'nullable',
-                Rule::exists('buildings', 'id')->where('complex_id', $this->requireComplex()->id),
-            ],
-            'floor' => ['required', 'integer', 'min:-5', 'max:200'],
-            'area' => ['required', 'numeric', 'min:0'],
-            'residents_count' => ['required', 'integer', 'min:0'],
-            'parking_count' => ['nullable', 'integer', 'min:0'],
-            'occupancy_status' => ['required', 'in:'.implode(',', array_column(OccupancyStatus::cases(), 'value'))],
-            'coefficient' => ['required', 'numeric', 'min:0'],
-            'uses_elevator' => ['nullable', 'boolean'],
-            'notes' => ['nullable', 'string', 'max:255'],
-        ], [], [
-            'unit_number' => 'شماره واحد',
-            'floor' => 'طبقه',
-            'area' => 'متراژ',
-            'residents_count' => 'تعداد ساکنین',
-            'occupancy_status' => 'وضعیت سکونت',
-            'coefficient' => 'ضریب',
-        ]);
+        return (new UnitResource($unit))->toArray(request());
     }
 }

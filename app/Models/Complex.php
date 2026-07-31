@@ -30,51 +30,61 @@ class Complex extends Model
         ];
     }
 
+    /** @return HasMany<Building, $this> */
     public function buildings(): HasMany
     {
         return $this->hasMany(Building::class);
     }
 
+    /** @return HasMany<Unit, $this> */
     public function units(): HasMany
     {
         return $this->hasMany(Unit::class);
     }
 
+    /** @return HasMany<User, $this> */
     public function users(): HasMany
     {
         return $this->hasMany(User::class);
     }
 
+    /** @return HasMany<ChargeRule, $this> */
     public function chargeRules(): HasMany
     {
         return $this->hasMany(ChargeRule::class);
     }
 
+    /** @return HasMany<Expense, $this> */
     public function expenses(): HasMany
     {
         return $this->hasMany(Expense::class);
     }
 
+    /** @return HasMany<Income, $this> */
     public function incomes(): HasMany
     {
         return $this->hasMany(Income::class);
     }
 
+    /** @return HasMany<Bill, $this> */
     public function bills(): HasMany
     {
         return $this->hasMany(Bill::class);
     }
 
+    /** @return HasMany<Payment, $this> */
     public function payments(): HasMany
     {
         return $this->hasMany(Payment::class);
     }
 
+    /** @return HasMany<Announcement, $this> */
     public function announcements(): HasMany
     {
         return $this->hasMany(Announcement::class);
     }
 
+    /** @return HasMany<Message, $this> */
     public function messages(): HasMany
     {
         return $this->hasMany(Message::class);

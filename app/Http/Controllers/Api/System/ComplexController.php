@@ -4,14 +4,13 @@ namespace App\Http\Controllers\Api\System;
 
 use App\Enums\UserRole;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\StoreComplexRequest;
 use App\Models\Complex;
 use App\Models\User;
 use App\Support\Phone;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
-use Illuminate\Validation\Rule;
 
 class ComplexController extends Controller
 {
@@ -32,30 +31,11 @@ class ComplexController extends Controller
         ]);
     }
 
-    public function store(Request $request): JsonResponse
+    public function store(StoreComplexRequest $request): JsonResponse
     {
         $request->merge(['admin_phone' => Phone::normalize($request->input('admin_phone'))]);
 
-        $data = $request->validate([
-            'name' => ['required', 'string', 'max:150'],
-            'address' => ['nullable', 'string', 'max:255'],
-            'admin_name' => ['required', 'string', 'max:120'],
-            // ورود سامانه با شماره تلفن است، پس مدیر مجتمع حتماً باید شماره
-            // داشته باشد؛ نسخه‌ی قبلی فقط ایمیل می‌گرفت و حساب ساخته‌شده
-            // عملاً قابل ورود نبود.
-            'admin_phone' => ['required', 'regex:/^09\d{9}$/', Rule::unique('users', 'phone')],
-            'admin_email' => ['nullable', 'email', Rule::unique('users', 'email')],
-            'admin_password' => ['required', 'string', 'min:6'],
-        ], [
-            'admin_phone.regex' => 'شماره تلفن همراه باید به شکل ۰۹xxxxxxxxx باشد.',
-            'admin_phone.unique' => 'این شماره تلفن قبلا ثبت شده است.',
-        ], [
-            'name' => 'نام مجتمع',
-            'admin_name' => 'نام مدیر',
-            'admin_phone' => 'شماره مدیر',
-            'admin_email' => 'ایمیل مدیر',
-            'admin_password' => 'رمز عبور مدیر',
-        ]);
+        $data = $request->validated();
 
         $complex = Complex::create([
             'name' => $data['name'],

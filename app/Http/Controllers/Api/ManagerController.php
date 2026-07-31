@@ -4,16 +4,14 @@ namespace App\Http\Controllers\Api;
 
 use App\Enums\UserRole;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\StoreManagerRequest;
 use App\Models\User;
 use App\Support\Audit;
 use App\Support\Jalali;
 use App\Support\Phone;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Validation\Rule;
-use Illuminate\Validation\Rules\Password;
 
 class ManagerController extends Controller
 {
@@ -39,20 +37,12 @@ class ManagerController extends Controller
         ]);
     }
 
-    public function store(Request $request): JsonResponse
+    public function store(StoreManagerRequest $request): JsonResponse
     {
         $complex = $this->requireComplex();
         $request->merge(['phone' => Phone::normalize($request->input('phone'))]);
 
-        $data = $request->validate([
-            'name' => ['required', 'string', 'max:120'],
-            'phone' => ['required', 'regex:/^09\d{9}$/', Rule::unique('users', 'phone')],
-            // مدیر مجتمع دسترسی مالی کامل دارد؛ رمزش نباید ضعیف‌تر از رمز پروفایل باشد.
-            'password' => ['required', Password::min(8)->letters()->numbers()],
-        ], [
-            'phone.regex' => 'شماره تلفن همراه باید به شکل ۰۹xxxxxxxxx باشد.',
-            'phone.unique' => 'این شماره قبلا ثبت شده است.',
-        ], ['name' => 'نام', 'phone' => 'شماره تلفن', 'password' => 'رمز عبور']);
+        $data = $request->validated();
 
         User::create([
             'complex_id' => $complex->id,

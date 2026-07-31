@@ -4,6 +4,13 @@ namespace App\Http\Controllers\Api;
 
 use App\Enums\UserRole;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\ForgotPasswordRequest;
+use App\Http\Requests\ForgotVerifyRequest;
+use App\Http\Requests\LoginRequest;
+use App\Http\Requests\LoginVerifyRequest;
+use App\Http\Requests\RegisterRequest;
+use App\Http\Requests\RegisterVerifyRequest;
+use App\Http\Requests\ResetPasswordRequest;
 use App\Models\Complex;
 use App\Models\User;
 use App\Services\Auth\OtpService;
@@ -14,7 +21,6 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Validation\Rules\Password;
 use Illuminate\Validation\ValidationException;
 
 /**
@@ -50,12 +56,9 @@ class AuthController extends Controller
      * «در انتظار مرحله‌ی دوم» نگه داشته می‌شود و یک کد پیامکی فرستاده می‌شود.
      * تنها میان‌بر، دستگاهِ مورداعتماد است.
      */
-    public function login(Request $request, OtpService $otp): JsonResponse
+    public function login(LoginRequest $request, OtpService $otp): JsonResponse
     {
-        $request->validate([
-            'phone' => ['required', 'string'],
-            'password' => ['required', 'string'],
-        ], [], ['phone' => 'شماره تلفن', 'password' => 'رمز عبور']);
+        $request->validated();
 
         $phone = Phone::normalize($request->input('phone'));
         $user = User::where('phone', $phone)->first();
@@ -111,11 +114,9 @@ class AuthController extends Controller
     /**
      * گام ۲ ورود: تایید کد پیامکی و ورود نهایی.
      */
-    public function loginVerify(Request $request, OtpService $otp): JsonResponse
+    public function loginVerify(LoginVerifyRequest $request, OtpService $otp): JsonResponse
     {
-        $request->validate([
-            'code' => ['required', 'string'],
-        ], [], ['code' => 'کد']);
+        $request->validated();
 
         $pending = $request->session()->get('login.pending');
 
@@ -174,11 +175,9 @@ class AuthController extends Controller
      * فقط شماره گرفته می‌شود؛ اثبات هویت با کد پیامکی است. محدودیت نرخِ
      * `otp-request` جلوی سوءاستفاده و مصرف بی‌رویه‌ی اعتبار پیامک را می‌گیرد.
      */
-    public function forgotPassword(Request $request, OtpService $otp): JsonResponse
+    public function forgotPassword(ForgotPasswordRequest $request, OtpService $otp): JsonResponse
     {
-        $data = $request->validate([
-            'phone' => ['required', 'string'],
-        ], [], ['phone' => 'شماره موبایل']);
+        $data = $request->validated();
 
         $phone = Phone::normalize($data['phone']);
         $user = User::where('phone', $phone)->first();
@@ -216,9 +215,9 @@ class AuthController extends Controller
     /**
      * فراموشی رمز — گام ۲: تایید کد پیامکی.
      */
-    public function forgotVerify(Request $request, OtpService $otp): JsonResponse
+    public function forgotVerify(ForgotVerifyRequest $request, OtpService $otp): JsonResponse
     {
-        $request->validate(['code' => ['required', 'string']], [], ['code' => 'کد']);
+        $request->validated();
 
         $pending = $request->session()->get('reset.pending');
         if (! $pending) {
@@ -241,11 +240,9 @@ class AuthController extends Controller
     /**
      * فراموشی رمز — گام ۳: ثبت رمز تازه.
      */
-    public function resetPassword(Request $request): JsonResponse
+    public function resetPassword(ResetPasswordRequest $request): JsonResponse
     {
-        $request->validate([
-            'password' => ['required', 'confirmed', Password::min(8)->letters()->numbers()],
-        ], [], ['password' => 'رمز عبور']);
+        $request->validated();
 
         $pending = $request->session()->get('reset.pending');
         if (! $pending || ! ($pending['verified'] ?? false)) {
@@ -299,21 +296,9 @@ class AuthController extends Controller
      * فرستاده می‌شود. اگر کاربر کد را تکمیل نکند و منصرف شود، هیچ رکوردی در
      * فهرست اعضا به‌جا نمی‌ماند. حساب تنها پس از تاییدِ کد (گام ۲) ساخته می‌شود.
      */
-    public function register(Request $request, OtpService $otp): JsonResponse
+    public function register(RegisterRequest $request, OtpService $otp): JsonResponse
     {
-        $data = $request->validate([
-            'name' => ['required', 'string', 'max:255'],
-            'phone' => ['required', 'string'],
-            'password' => ['required', 'confirmed', Password::min(8)->letters()->numbers()],
-            'accept_terms' => ['required', 'accepted'],
-        ], [
-            'accept_terms.required' => 'برای ادامه باید قوانین و مقررات را بپذیرید.',
-            'accept_terms.accepted' => 'برای ادامه باید قوانین و مقررات را بپذیرید.',
-        ], [
-            'name' => 'نام',
-            'phone' => 'شماره تلفن',
-            'password' => 'رمز عبور',
-        ]);
+        $data = $request->validated();
 
         $phone = Phone::normalize($data['phone']);
 
@@ -355,9 +340,9 @@ class AuthController extends Controller
      * نمی‌شود. حساب غیرفعال ساخته می‌شود تا مدیرِ کل/مدیرِ مجتمع نقش و دسترسی‌اش
      * را تعیین کند.
      */
-    public function registerVerify(Request $request, OtpService $otp): JsonResponse
+    public function registerVerify(RegisterVerifyRequest $request, OtpService $otp): JsonResponse
     {
-        $request->validate(['code' => ['required', 'string']], [], ['code' => 'کد']);
+        $request->validated();
 
         $pending = $request->session()->get('register.pending');
         if (! $pending) {

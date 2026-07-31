@@ -281,6 +281,39 @@
                             }
                         }
                     }
+                },
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "title": {
+                                        "type": "string",
+                                        "description": "عنوان"
+                                    },
+                                    "body": {
+                                        "type": "string",
+                                        "description": "متن"
+                                    },
+                                    "audience": {
+                                        "type": "string",
+                                        "description": "مخاطب"
+                                    },
+                                    "is_pinned": {
+                                        "type": "boolean",
+                                        "description": "سنجاق‌شده"
+                                    }
+                                },
+                                "required": [
+                                    "title",
+                                    "body",
+                                    "audience"
+                                ]
+                            }
+                        }
+                    }
                 }
             },
             "delete": {
@@ -732,7 +765,54 @@
                         }
                     }
                 },
-                "description": "فقط برای نقشِ: super_admin,complex_admin"
+                "description": "فقط برای نقشِ: super_admin,complex_admin",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "name": {
+                                        "type": "string",
+                                        "description": "نام قانون"
+                                    },
+                                    "type": {
+                                        "type": "string",
+                                        "description": "نوع"
+                                    },
+                                    "category": {
+                                        "type": "string",
+                                        "description": "دسته"
+                                    },
+                                    "amount": {
+                                        "type": "number"
+                                    },
+                                    "base": {
+                                        "type": "number"
+                                    },
+                                    "per_area_rate": {
+                                        "type": "number"
+                                    },
+                                    "per_person_rate": {
+                                        "type": "number"
+                                    },
+                                    "pool_amount": {
+                                        "type": "number"
+                                    },
+                                    "exempt_ground_floor": {
+                                        "type": "boolean"
+                                    }
+                                },
+                                "required": [
+                                    "name",
+                                    "type",
+                                    "category"
+                                ]
+                            }
+                        }
+                    }
+                }
             }
         },
         "/api/v1/charge-rules/{charge_rule}": {
@@ -891,6 +971,33 @@
                                 "schema": {
                                     "$ref": "#/components/schemas/Error"
                                 }
+                            }
+                        }
+                    }
+                },
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "type": {
+                                        "type": "string"
+                                    },
+                                    "message": {
+                                        "type": "string"
+                                    },
+                                    "stack": {
+                                        "type": "string"
+                                    },
+                                    "url": {
+                                        "type": "string"
+                                    }
+                                },
+                                "required": [
+                                    "message"
+                                ]
                             }
                         }
                     }
@@ -1090,7 +1197,39 @@
                         }
                     }
                 },
-                "description": "فقط برای نقشِ: super_admin,complex_admin"
+                "description": "فقط برای نقشِ: super_admin,complex_admin",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "unit_id": {
+                                        "type": "string",
+                                        "description": "واحد"
+                                    },
+                                    "period": {
+                                        "type": "string",
+                                        "description": "دوره"
+                                    },
+                                    "amount": {
+                                        "type": "number",
+                                        "description": "مبلغ تخفیف"
+                                    },
+                                    "reason": {
+                                        "type": "string"
+                                    }
+                                },
+                                "required": [
+                                    "unit_id",
+                                    "period",
+                                    "amount"
+                                ]
+                            }
+                        }
+                    }
+                }
             }
         },
         "/api/v1/discounts/{discount}": {
@@ -1264,7 +1403,47 @@
                         }
                     }
                 },
-                "description": "فقط برای نقشِ: super_admin,complex_admin"
+                "description": "فقط برای نقشِ: super_admin,complex_admin",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "title": {
+                                        "type": "string",
+                                        "description": "عنوان"
+                                    },
+                                    "amount": {
+                                        "type": "number",
+                                        "description": "مبلغ"
+                                    },
+                                    "category": {
+                                        "type": "string",
+                                        "description": "دسته"
+                                    },
+                                    "period": {
+                                        "type": "string",
+                                        "description": "دوره"
+                                    },
+                                    "split_method": {
+                                        "type": "string"
+                                    },
+                                    "description": {
+                                        "type": "string"
+                                    }
+                                },
+                                "required": [
+                                    "title",
+                                    "amount",
+                                    "category",
+                                    "period"
+                                ]
+                            }
+                        }
+                    }
+                }
             }
         },
         "/api/v1/finance/expenses/{expense}": {
@@ -1383,7 +1562,39 @@
                         }
                     }
                 },
-                "description": "فقط برای نقشِ: super_admin,complex_admin"
+                "description": "فقط برای نقشِ: super_admin,complex_admin",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "title": {
+                                        "type": "string",
+                                        "description": "عنوان"
+                                    },
+                                    "amount": {
+                                        "type": "number",
+                                        "description": "مبلغ"
+                                    },
+                                    "source": {
+                                        "type": "string"
+                                    },
+                                    "period": {
+                                        "type": "string",
+                                        "description": "دوره"
+                                    }
+                                },
+                                "required": [
+                                    "title",
+                                    "amount",
+                                    "period"
+                                ]
+                            }
+                        }
+                    }
+                }
             }
         },
         "/api/v1/finance/incomes/{income}": {
@@ -1535,6 +1746,30 @@
                             }
                         }
                     }
+                },
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "phone": {
+                                        "type": "string",
+                                        "description": "شماره تلفن"
+                                    },
+                                    "password": {
+                                        "type": "string",
+                                        "description": "رمز عبور"
+                                    }
+                                },
+                                "required": [
+                                    "phone",
+                                    "password"
+                                ]
+                            }
+                        }
+                    }
                 }
             }
         },
@@ -1600,6 +1835,25 @@
                                 "schema": {
                                     "$ref": "#/components/schemas/Error"
                                 }
+                            }
+                        }
+                    }
+                },
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "code": {
+                                        "type": "string",
+                                        "description": "کد"
+                                    }
+                                },
+                                "required": [
+                                    "code"
+                                ]
                             }
                         }
                     }
@@ -1765,7 +2019,36 @@
                         }
                     }
                 },
-                "description": "فقط برای نقشِ: super_admin,complex_admin"
+                "description": "فقط برای نقشِ: super_admin,complex_admin",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "name": {
+                                        "type": "string",
+                                        "description": "نام"
+                                    },
+                                    "phone": {
+                                        "type": "string",
+                                        "description": "شماره تلفن"
+                                    },
+                                    "password": {
+                                        "type": "string",
+                                        "description": "رمز عبور"
+                                    }
+                                },
+                                "required": [
+                                    "name",
+                                    "phone",
+                                    "password"
+                                ]
+                            }
+                        }
+                    }
+                }
             }
         },
         "/api/v1/managers/{manager}": {
@@ -1966,6 +2249,24 @@
                                 "schema": {
                                     "$ref": "#/components/schemas/Error"
                                 }
+                            }
+                        }
+                    }
+                },
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "body": {
+                                        "type": "string"
+                                    }
+                                },
+                                "required": [
+                                    "body"
+                                ]
                             }
                         }
                     }
@@ -2354,6 +2655,25 @@
                             }
                         }
                     }
+                },
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "phone": {
+                                        "type": "string",
+                                        "description": "شماره موبایل"
+                                    }
+                                },
+                                "required": [
+                                    "phone"
+                                ]
+                            }
+                        }
+                    }
                 }
             }
         },
@@ -2388,6 +2708,25 @@
                             }
                         }
                     }
+                },
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "code": {
+                                        "type": "string",
+                                        "description": "کد"
+                                    }
+                                },
+                                "required": [
+                                    "code"
+                                ]
+                            }
+                        }
+                    }
                 }
             }
         },
@@ -2419,6 +2758,25 @@
                                 "schema": {
                                     "$ref": "#/components/schemas/Error"
                                 }
+                            }
+                        }
+                    }
+                },
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "password": {
+                                        "type": "string",
+                                        "description": "رمز عبور"
+                                    }
+                                },
+                                "required": [
+                                    "password"
+                                ]
                             }
                         }
                     }
@@ -2545,6 +2903,37 @@
                                 "schema": {
                                     "$ref": "#/components/schemas/Error"
                                 }
+                            }
+                        }
+                    }
+                },
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "amount": {
+                                        "type": "number",
+                                        "description": "مبلغ"
+                                    },
+                                    "paid_on": {
+                                        "type": "string",
+                                        "description": "تاریخ واریز"
+                                    },
+                                    "description": {
+                                        "type": "string"
+                                    },
+                                    "receipt": {
+                                        "type": "string",
+                                        "description": "فایل رسید"
+                                    }
+                                },
+                                "required": [
+                                    "amount",
+                                    "receipt"
+                                ]
                             }
                         }
                     }
@@ -2795,7 +3184,23 @@
                         }
                     }
                 },
-                "description": "فقط برای نقشِ: super_admin,complex_admin"
+                "description": "فقط برای نقشِ: super_admin,complex_admin",
+                "requestBody": {
+                    "required": false,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "note": {
+                                        "type": "string",
+                                        "description": "توضیح"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
             }
         },
         "/api/v1/profile": {
@@ -2901,6 +3306,49 @@
                             }
                         }
                     }
+                },
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "name": {
+                                        "type": "string",
+                                        "description": "نام"
+                                    },
+                                    "email": {
+                                        "type": "string",
+                                        "description": "ایمیل"
+                                    },
+                                    "national_id": {
+                                        "type": "string",
+                                        "description": "کد ملی"
+                                    },
+                                    "birth_date": {
+                                        "type": "string",
+                                        "description": "تاریخ تولد"
+                                    },
+                                    "emergency_phone": {
+                                        "type": "string",
+                                        "description": "شماره اضطراری"
+                                    },
+                                    "address": {
+                                        "type": "string",
+                                        "description": "نشانی"
+                                    },
+                                    "bio": {
+                                        "type": "string",
+                                        "description": "درباره من"
+                                    }
+                                },
+                                "required": [
+                                    "name"
+                                ]
+                            }
+                        }
+                    }
                 }
             }
         },
@@ -2955,6 +3403,30 @@
                             }
                         }
                     }
+                },
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "current_password": {
+                                        "type": "string",
+                                        "description": "رمز عبور فعلی"
+                                    },
+                                    "password": {
+                                        "type": "string",
+                                        "description": "رمز عبور جدید"
+                                    }
+                                },
+                                "required": [
+                                    "current_password",
+                                    "password"
+                                ]
+                            }
+                        }
+                    }
                 }
             }
         },
@@ -2989,6 +3461,39 @@
                             }
                         }
                     }
+                },
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "name": {
+                                        "type": "string",
+                                        "description": "نام"
+                                    },
+                                    "phone": {
+                                        "type": "string",
+                                        "description": "شماره تلفن"
+                                    },
+                                    "password": {
+                                        "type": "string",
+                                        "description": "رمز عبور"
+                                    },
+                                    "accept_terms": {
+                                        "type": "string"
+                                    }
+                                },
+                                "required": [
+                                    "name",
+                                    "phone",
+                                    "password",
+                                    "accept_terms"
+                                ]
+                            }
+                        }
+                    }
                 }
             }
         },
@@ -3020,6 +3525,25 @@
                                 "schema": {
                                     "$ref": "#/components/schemas/Error"
                                 }
+                            }
+                        }
+                    }
+                },
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "code": {
+                                        "type": "string",
+                                        "description": "کد"
+                                    }
+                                },
+                                "required": [
+                                    "code"
+                                ]
                             }
                         }
                     }
@@ -3131,7 +3655,51 @@
                         }
                     }
                 },
-                "description": "فقط برای نقشِ: super_admin,complex_admin"
+                "description": "فقط برای نقشِ: super_admin,complex_admin",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "name": {
+                                        "type": "string",
+                                        "description": "نام"
+                                    },
+                                    "phone": {
+                                        "type": "string",
+                                        "description": "شماره تلفن"
+                                    },
+                                    "email": {
+                                        "type": "string",
+                                        "description": "ایمیل"
+                                    },
+                                    "national_id": {
+                                        "type": "string"
+                                    },
+                                    "role": {
+                                        "type": "string",
+                                        "description": "نقش"
+                                    },
+                                    "unit_id": {
+                                        "type": "string"
+                                    },
+                                    "password": {
+                                        "type": "string",
+                                        "description": "رمز عبور"
+                                    }
+                                },
+                                "required": [
+                                    "name",
+                                    "phone",
+                                    "role",
+                                    "password"
+                                ]
+                            }
+                        }
+                    }
+                }
             }
         },
         "/api/v1/residents/{resident}": {
@@ -3195,7 +3763,51 @@
                         }
                     }
                 },
-                "description": "فقط برای نقشِ: super_admin,complex_admin"
+                "description": "فقط برای نقشِ: super_admin,complex_admin",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "name": {
+                                        "type": "string",
+                                        "description": "نام"
+                                    },
+                                    "phone": {
+                                        "type": "string",
+                                        "description": "شماره تلفن"
+                                    },
+                                    "email": {
+                                        "type": "string",
+                                        "description": "ایمیل"
+                                    },
+                                    "national_id": {
+                                        "type": "string"
+                                    },
+                                    "role": {
+                                        "type": "string",
+                                        "description": "نقش"
+                                    },
+                                    "unit_id": {
+                                        "type": "string"
+                                    },
+                                    "password": {
+                                        "type": "string",
+                                        "description": "رمز عبور"
+                                    }
+                                },
+                                "required": [
+                                    "name",
+                                    "phone",
+                                    "role",
+                                    "password"
+                                ]
+                            }
+                        }
+                    }
+                }
             },
             "patch": {
                 "summary": "api.residents.update",
@@ -3257,7 +3869,51 @@
                         }
                     }
                 },
-                "description": "فقط برای نقشِ: super_admin,complex_admin"
+                "description": "فقط برای نقشِ: super_admin,complex_admin",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "name": {
+                                        "type": "string",
+                                        "description": "نام"
+                                    },
+                                    "phone": {
+                                        "type": "string",
+                                        "description": "شماره تلفن"
+                                    },
+                                    "email": {
+                                        "type": "string",
+                                        "description": "ایمیل"
+                                    },
+                                    "national_id": {
+                                        "type": "string"
+                                    },
+                                    "role": {
+                                        "type": "string",
+                                        "description": "نقش"
+                                    },
+                                    "unit_id": {
+                                        "type": "string"
+                                    },
+                                    "password": {
+                                        "type": "string",
+                                        "description": "رمز عبور"
+                                    }
+                                },
+                                "required": [
+                                    "name",
+                                    "phone",
+                                    "role",
+                                    "password"
+                                ]
+                            }
+                        }
+                    }
+                }
             },
             "delete": {
                 "summary": "api.residents.destroy",
@@ -3609,7 +4265,80 @@
                         }
                     }
                 },
-                "description": "فقط برای نقشِ: super_admin,complex_admin"
+                "description": "فقط برای نقشِ: super_admin,complex_admin",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "name": {
+                                        "type": "string",
+                                        "description": "نام مجتمع"
+                                    },
+                                    "address": {
+                                        "type": "string"
+                                    },
+                                    "phone": {
+                                        "type": "string"
+                                    },
+                                    "currency": {
+                                        "type": "string",
+                                        "description": "واحد پول"
+                                    },
+                                    "charge_due_day": {
+                                        "type": "number",
+                                        "description": "روز سررسید"
+                                    },
+                                    "payment_gateway": {
+                                        "type": "string",
+                                        "description": "درگاه پرداخت"
+                                    },
+                                    "gw_terminal_id": {
+                                        "type": "string"
+                                    },
+                                    "gw_username": {
+                                        "type": "string"
+                                    },
+                                    "gw_password": {
+                                        "type": "string"
+                                    },
+                                    "messenger_enabled": {
+                                        "type": "boolean"
+                                    },
+                                    "good_payer_enabled": {
+                                        "type": "boolean"
+                                    },
+                                    "penalty_enabled": {
+                                        "type": "boolean"
+                                    },
+                                    "penalty_type": {
+                                        "type": "string",
+                                        "description": "نوع جریمه"
+                                    },
+                                    "penalty_value": {
+                                        "type": "number",
+                                        "description": "مقدار جریمه"
+                                    },
+                                    "penalty_grace_days": {
+                                        "type": "number",
+                                        "description": "روزهای مهلت"
+                                    }
+                                },
+                                "required": [
+                                    "name",
+                                    "currency",
+                                    "charge_due_day",
+                                    "payment_gateway",
+                                    "penalty_type",
+                                    "penalty_value",
+                                    "penalty_grace_days"
+                                ]
+                            }
+                        }
+                    }
+                }
             }
         },
         "/api/v1/site-settings": {
@@ -3751,6 +4480,37 @@
                             }
                         }
                     }
+                },
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "plan": {
+                                        "type": "string",
+                                        "description": "پلن"
+                                    },
+                                    "paid_on": {
+                                        "type": "string",
+                                        "description": "تاریخ واریز"
+                                    },
+                                    "note": {
+                                        "type": "string"
+                                    },
+                                    "receipt": {
+                                        "type": "string",
+                                        "description": "فایل رسید"
+                                    }
+                                },
+                                "required": [
+                                    "plan",
+                                    "receipt"
+                                ]
+                            }
+                        }
+                    }
                 }
             }
         },
@@ -3845,6 +4605,24 @@
                                 "schema": {
                                     "$ref": "#/components/schemas/Error"
                                 }
+                            }
+                        }
+                    }
+                },
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "message": {
+                                        "type": "string"
+                                    }
+                                },
+                                "required": [
+                                    "message"
+                                ]
                             }
                         }
                     }
@@ -3990,7 +4768,55 @@
                         }
                     }
                 },
-                "description": "فقط برای نقشِ: super_admin"
+                "description": "فقط برای نقشِ: super_admin",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "title": {
+                                        "type": "string",
+                                        "description": "عنوان"
+                                    },
+                                    "subtitle": {
+                                        "type": "string",
+                                        "description": "توضیح کوتاه"
+                                    },
+                                    "href": {
+                                        "type": "string",
+                                        "description": "لینک مقصد"
+                                    },
+                                    "is_active": {
+                                        "type": "boolean"
+                                    },
+                                    "sort_order": {
+                                        "type": "number",
+                                        "description": "ترتیب نمایش"
+                                    },
+                                    "starts_at": {
+                                        "type": "string",
+                                        "description": "تاریخ شروع"
+                                    },
+                                    "ends_at": {
+                                        "type": "string",
+                                        "description": "تاریخ پایان"
+                                    },
+                                    "image": {
+                                        "type": "string",
+                                        "description": "تصویر بنر"
+                                    }
+                                },
+                                "required": [
+                                    "title",
+                                    "href",
+                                    "image"
+                                ]
+                            }
+                        }
+                    }
+                }
             }
         },
         "/api/v1/system/ads/{advertisement}": {
@@ -4054,7 +4880,55 @@
                         }
                     }
                 },
-                "description": "فقط برای نقشِ: super_admin"
+                "description": "فقط برای نقشِ: super_admin",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "title": {
+                                        "type": "string",
+                                        "description": "عنوان"
+                                    },
+                                    "subtitle": {
+                                        "type": "string",
+                                        "description": "توضیح کوتاه"
+                                    },
+                                    "href": {
+                                        "type": "string",
+                                        "description": "لینک مقصد"
+                                    },
+                                    "is_active": {
+                                        "type": "boolean"
+                                    },
+                                    "sort_order": {
+                                        "type": "number",
+                                        "description": "ترتیب نمایش"
+                                    },
+                                    "starts_at": {
+                                        "type": "string",
+                                        "description": "تاریخ شروع"
+                                    },
+                                    "ends_at": {
+                                        "type": "string",
+                                        "description": "تاریخ پایان"
+                                    },
+                                    "image": {
+                                        "type": "string",
+                                        "description": "تصویر بنر"
+                                    }
+                                },
+                                "required": [
+                                    "title",
+                                    "href",
+                                    "image"
+                                ]
+                            }
+                        }
+                    }
+                }
             },
             "delete": {
                 "summary": "api.system.ads.destroy",
@@ -4398,7 +5272,32 @@
                         }
                     }
                 },
-                "description": "فقط برای نقشِ: super_admin"
+                "description": "فقط برای نقشِ: super_admin",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "backup": {
+                                        "type": "string",
+                                        "description": "فایل بکاپ"
+                                    },
+                                    "dry_run": {
+                                        "type": "boolean"
+                                    },
+                                    "confirm": {
+                                        "type": "string"
+                                    }
+                                },
+                                "required": [
+                                    "backup"
+                                ]
+                            }
+                        }
+                    }
+                }
             }
         },
         "/api/v1/system/backups/{backup}/download": {
@@ -4570,7 +5469,48 @@
                         }
                     }
                 },
-                "description": "فقط برای نقشِ: super_admin"
+                "description": "فقط برای نقشِ: super_admin",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "name": {
+                                        "type": "string",
+                                        "description": "نام مجتمع"
+                                    },
+                                    "address": {
+                                        "type": "string"
+                                    },
+                                    "admin_name": {
+                                        "type": "string",
+                                        "description": "نام مدیر"
+                                    },
+                                    "admin_phone": {
+                                        "type": "string",
+                                        "description": "شماره مدیر"
+                                    },
+                                    "admin_email": {
+                                        "type": "string",
+                                        "description": "ایمیل مدیر"
+                                    },
+                                    "admin_password": {
+                                        "type": "string",
+                                        "description": "رمز عبور مدیر"
+                                    }
+                                },
+                                "required": [
+                                    "name",
+                                    "admin_name",
+                                    "admin_phone",
+                                    "admin_password"
+                                ]
+                            }
+                        }
+                    }
+                }
             }
         },
         "/api/v1/system/complexes/clear": {
@@ -4808,7 +5748,29 @@
                         }
                     }
                 },
-                "description": "فقط برای نقشِ: super_admin"
+                "description": "فقط برای نقشِ: super_admin",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "role": {
+                                        "type": "string",
+                                        "description": "نقش"
+                                    },
+                                    "is_active": {
+                                        "type": "boolean"
+                                    }
+                                },
+                                "required": [
+                                    "role"
+                                ]
+                            }
+                        }
+                    }
+                }
             },
             "delete": {
                 "summary": "api.system.members.destroy",
@@ -4978,7 +5940,46 @@
                         }
                     }
                 },
-                "description": "فقط برای نقشِ: super_admin"
+                "description": "فقط برای نقشِ: super_admin",
+                "requestBody": {
+                    "required": false,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "sentry_dsn": {
+                                        "type": "string"
+                                    },
+                                    "sentry_client_dsn": {
+                                        "type": "string"
+                                    },
+                                    "sentry_environment": {
+                                        "type": "string"
+                                    },
+                                    "sentry_traces_sample_rate": {
+                                        "type": "number"
+                                    },
+                                    "sentry_auth_token": {
+                                        "type": "string"
+                                    },
+                                    "ga4_measurement_id": {
+                                        "type": "string"
+                                    },
+                                    "ga4_api_secret": {
+                                        "type": "string"
+                                    },
+                                    "gtm_container_id": {
+                                        "type": "string"
+                                    },
+                                    "clarity_project_id": {
+                                        "type": "string"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
             }
         },
         "/api/v1/system/observability/errors": {
@@ -5205,7 +6206,62 @@
                         }
                     }
                 },
-                "description": "فقط برای نقشِ: super_admin"
+                "description": "فقط برای نقشِ: super_admin",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "name": {
+                                        "type": "string",
+                                        "description": "نام"
+                                    },
+                                    "slug": {
+                                        "type": "string",
+                                        "description": "شناسه"
+                                    },
+                                    "price": {
+                                        "type": "number",
+                                        "description": "قیمت"
+                                    },
+                                    "months": {
+                                        "type": "number",
+                                        "description": "مدت"
+                                    },
+                                    "unit_limit": {
+                                        "type": "number"
+                                    },
+                                    "real_gateway": {
+                                        "type": "boolean"
+                                    },
+                                    "excel_export": {
+                                        "type": "boolean"
+                                    },
+                                    "features": {
+                                        "type": "array"
+                                    },
+                                    "features.*": {
+                                        "type": "string"
+                                    },
+                                    "is_active": {
+                                        "type": "boolean"
+                                    },
+                                    "sort_order": {
+                                        "type": "number"
+                                    }
+                                },
+                                "required": [
+                                    "name",
+                                    "slug",
+                                    "price",
+                                    "months"
+                                ]
+                            }
+                        }
+                    }
+                }
             }
         },
         "/api/v1/system/plans/grant": {
@@ -5260,7 +6316,34 @@
                         }
                     }
                 },
-                "description": "فقط برای نقشِ: super_admin"
+                "description": "فقط برای نقشِ: super_admin",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "complex_id": {
+                                        "type": "string",
+                                        "description": "مجتمع"
+                                    },
+                                    "plan_id": {
+                                        "type": "string",
+                                        "description": "پکیج"
+                                    },
+                                    "months": {
+                                        "type": "number"
+                                    }
+                                },
+                                "required": [
+                                    "complex_id",
+                                    "plan_id"
+                                ]
+                            }
+                        }
+                    }
+                }
             }
         },
         "/api/v1/system/plans/revoke": {
@@ -5315,7 +6398,26 @@
                         }
                     }
                 },
-                "description": "فقط برای نقشِ: super_admin"
+                "description": "فقط برای نقشِ: super_admin",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "complex_id": {
+                                        "type": "string",
+                                        "description": "مجتمع"
+                                    }
+                                },
+                                "required": [
+                                    "complex_id"
+                                ]
+                            }
+                        }
+                    }
+                }
             }
         },
         "/api/v1/system/plans/{plan}": {
@@ -5379,7 +6481,62 @@
                         }
                     }
                 },
-                "description": "فقط برای نقشِ: super_admin"
+                "description": "فقط برای نقشِ: super_admin",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "name": {
+                                        "type": "string",
+                                        "description": "نام"
+                                    },
+                                    "slug": {
+                                        "type": "string",
+                                        "description": "شناسه"
+                                    },
+                                    "price": {
+                                        "type": "number",
+                                        "description": "قیمت"
+                                    },
+                                    "months": {
+                                        "type": "number",
+                                        "description": "مدت"
+                                    },
+                                    "unit_limit": {
+                                        "type": "number"
+                                    },
+                                    "real_gateway": {
+                                        "type": "boolean"
+                                    },
+                                    "excel_export": {
+                                        "type": "boolean"
+                                    },
+                                    "features": {
+                                        "type": "array"
+                                    },
+                                    "features.*": {
+                                        "type": "string"
+                                    },
+                                    "is_active": {
+                                        "type": "boolean"
+                                    },
+                                    "sort_order": {
+                                        "type": "number"
+                                    }
+                                },
+                                "required": [
+                                    "name",
+                                    "slug",
+                                    "price",
+                                    "months"
+                                ]
+                            }
+                        }
+                    }
+                }
             },
             "delete": {
                 "summary": "api.system.plans.destroy",
@@ -5613,7 +6770,64 @@
                         }
                     }
                 },
-                "description": "فقط برای نقشِ: super_admin"
+                "description": "فقط برای نقشِ: super_admin",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "contact.title": {
+                                        "type": "string"
+                                    },
+                                    "contact.address": {
+                                        "type": "string"
+                                    },
+                                    "contact.phone": {
+                                        "type": "string"
+                                    },
+                                    "contact.email": {
+                                        "type": "string"
+                                    },
+                                    "contact.mapEmbedUrl": {
+                                        "type": "string"
+                                    },
+                                    "contact.showAddress": {
+                                        "type": "boolean"
+                                    },
+                                    "contact.showPhone": {
+                                        "type": "boolean"
+                                    },
+                                    "contact.showEmail": {
+                                        "type": "boolean"
+                                    },
+                                    "contact.showMap": {
+                                        "type": "boolean"
+                                    },
+                                    "social": {
+                                        "type": "array"
+                                    },
+                                    "social.*.id": {
+                                        "type": "string"
+                                    },
+                                    "social.*.label": {
+                                        "type": "string"
+                                    },
+                                    "social.*.href": {
+                                        "type": "string"
+                                    },
+                                    "social.*.enabled": {
+                                        "type": "boolean"
+                                    }
+                                },
+                                "required": [
+                                    "social.*.id"
+                                ]
+                            }
+                        }
+                    }
+                }
             }
         },
         "/api/v1/system/sms": {
@@ -5721,7 +6935,50 @@
                         }
                     }
                 },
-                "description": "فقط برای نقشِ: super_admin"
+                "description": "فقط برای نقشِ: super_admin",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "sms_driver": {
+                                        "type": "string",
+                                        "description": "سامانه پیامک"
+                                    },
+                                    "apikey": {
+                                        "type": "string"
+                                    },
+                                    "sender": {
+                                        "type": "string"
+                                    },
+                                    "username": {
+                                        "type": "string"
+                                    },
+                                    "password": {
+                                        "type": "string"
+                                    },
+                                    "pattern_code": {
+                                        "type": "string"
+                                    },
+                                    "pattern_variable": {
+                                        "type": "string"
+                                    },
+                                    "phonebook_id": {
+                                        "type": "string"
+                                    },
+                                    "otp_disabled": {
+                                        "type": "boolean"
+                                    }
+                                },
+                                "required": [
+                                    "sms_driver"
+                                ]
+                            }
+                        }
+                    }
+                }
             }
         },
         "/api/v1/system/sms/test": {
@@ -5776,7 +7033,26 @@
                         }
                     }
                 },
-                "description": "فقط برای نقشِ: super_admin"
+                "description": "فقط برای نقشِ: super_admin",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "phone": {
+                                        "type": "string",
+                                        "description": "شماره تلفن"
+                                    }
+                                },
+                                "required": [
+                                    "phone"
+                                ]
+                            }
+                        }
+                    }
+                }
             }
         },
         "/api/v1/system/subscriptions": {
@@ -6023,7 +7299,23 @@
                         }
                     }
                 },
-                "description": "فقط برای نقشِ: super_admin"
+                "description": "فقط برای نقشِ: super_admin",
+                "requestBody": {
+                    "required": false,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "note": {
+                                        "type": "string",
+                                        "description": "دلیل رد"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
             }
         },
         "/api/v1/units": {
@@ -6131,7 +7423,63 @@
                         }
                     }
                 },
-                "description": "فقط برای نقشِ: super_admin,complex_admin"
+                "description": "فقط برای نقشِ: super_admin,complex_admin",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "unit_number": {
+                                        "type": "string",
+                                        "description": "شماره واحد"
+                                    },
+                                    "building_id": {
+                                        "type": "string"
+                                    },
+                                    "floor": {
+                                        "type": "number",
+                                        "description": "طبقه"
+                                    },
+                                    "area": {
+                                        "type": "number",
+                                        "description": "متراژ"
+                                    },
+                                    "residents_count": {
+                                        "type": "number",
+                                        "description": "تعداد ساکنین"
+                                    },
+                                    "parking_count": {
+                                        "type": "number"
+                                    },
+                                    "occupancy_status": {
+                                        "type": "string",
+                                        "description": "وضعیت سکونت"
+                                    },
+                                    "coefficient": {
+                                        "type": "number",
+                                        "description": "ضریب"
+                                    },
+                                    "uses_elevator": {
+                                        "type": "boolean"
+                                    },
+                                    "notes": {
+                                        "type": "string"
+                                    }
+                                },
+                                "required": [
+                                    "unit_number",
+                                    "floor",
+                                    "area",
+                                    "residents_count",
+                                    "occupancy_status",
+                                    "coefficient"
+                                ]
+                            }
+                        }
+                    }
+                }
             }
         },
         "/api/v1/units/{unit}": {
@@ -6195,7 +7543,63 @@
                         }
                     }
                 },
-                "description": "فقط برای نقشِ: super_admin,complex_admin"
+                "description": "فقط برای نقشِ: super_admin,complex_admin",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "unit_number": {
+                                        "type": "string",
+                                        "description": "شماره واحد"
+                                    },
+                                    "building_id": {
+                                        "type": "string"
+                                    },
+                                    "floor": {
+                                        "type": "number",
+                                        "description": "طبقه"
+                                    },
+                                    "area": {
+                                        "type": "number",
+                                        "description": "متراژ"
+                                    },
+                                    "residents_count": {
+                                        "type": "number",
+                                        "description": "تعداد ساکنین"
+                                    },
+                                    "parking_count": {
+                                        "type": "number"
+                                    },
+                                    "occupancy_status": {
+                                        "type": "string",
+                                        "description": "وضعیت سکونت"
+                                    },
+                                    "coefficient": {
+                                        "type": "number",
+                                        "description": "ضریب"
+                                    },
+                                    "uses_elevator": {
+                                        "type": "boolean"
+                                    },
+                                    "notes": {
+                                        "type": "string"
+                                    }
+                                },
+                                "required": [
+                                    "unit_number",
+                                    "floor",
+                                    "area",
+                                    "residents_count",
+                                    "occupancy_status",
+                                    "coefficient"
+                                ]
+                            }
+                        }
+                    }
+                }
             },
             "patch": {
                 "summary": "api.units.update",
@@ -6257,7 +7661,63 @@
                         }
                     }
                 },
-                "description": "فقط برای نقشِ: super_admin,complex_admin"
+                "description": "فقط برای نقشِ: super_admin,complex_admin",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "unit_number": {
+                                        "type": "string",
+                                        "description": "شماره واحد"
+                                    },
+                                    "building_id": {
+                                        "type": "string"
+                                    },
+                                    "floor": {
+                                        "type": "number",
+                                        "description": "طبقه"
+                                    },
+                                    "area": {
+                                        "type": "number",
+                                        "description": "متراژ"
+                                    },
+                                    "residents_count": {
+                                        "type": "number",
+                                        "description": "تعداد ساکنین"
+                                    },
+                                    "parking_count": {
+                                        "type": "number"
+                                    },
+                                    "occupancy_status": {
+                                        "type": "string",
+                                        "description": "وضعیت سکونت"
+                                    },
+                                    "coefficient": {
+                                        "type": "number",
+                                        "description": "ضریب"
+                                    },
+                                    "uses_elevator": {
+                                        "type": "boolean"
+                                    },
+                                    "notes": {
+                                        "type": "string"
+                                    }
+                                },
+                                "required": [
+                                    "unit_number",
+                                    "floor",
+                                    "area",
+                                    "residents_count",
+                                    "occupancy_status",
+                                    "coefficient"
+                                ]
+                            }
+                        }
+                    }
+                }
             },
             "delete": {
                 "summary": "api.units.destroy",

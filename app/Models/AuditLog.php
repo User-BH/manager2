@@ -14,6 +14,7 @@ class AuditLog extends Model
         'description', 'ip_address', 'properties', 'created_at',
     ];
 
+    /** @return BelongsTo<User, $this> */
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);

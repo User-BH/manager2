@@ -36,12 +36,14 @@ class Subscription extends Model implements GatewayOrder
         ];
     }
 
+    /** @return BelongsTo<User, $this> */
     public function reviewer(): BelongsTo
     {
         return $this->belongsTo(User::class, 'reviewed_by');
     }
 
     /** پکیجِ دیتابیسی (اگر این اشتراک به یکی وصل باشد). */
+    /** @return BelongsTo<Plan, $this> */
     public function planRef(): BelongsTo
     {
         return $this->belongsTo(Plan::class, 'plan_id');
@@ -114,11 +116,13 @@ class Subscription extends Model implements GatewayOrder
         });
     }
 
+    /** @return BelongsTo<Complex, $this> */
     public function complex(): BelongsTo
     {
         return $this->belongsTo(Complex::class);
     }
 
+    /** @return BelongsTo<User, $this> */
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);

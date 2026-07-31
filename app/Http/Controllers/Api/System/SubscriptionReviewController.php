@@ -2,12 +2,13 @@
 
 namespace App\Http\Controllers\Api\System;
 
+use App\Exceptions\DomainException;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\RejectSubscriptionRequest;
+use App\Http\Resources\SubscriptionReviewResource;
 use App\Models\Subscription;
 use App\Support\Audit;
-use App\Support\Jalali;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
@@ -67,7 +68,12 @@ class SubscriptionReviewController extends Controller
      */
     public function approve(Subscription $subscription): JsonResponse
     {
-        abort_unless($subscription->status === 'pending', 422, 'این درخواست قبلاً بررسی شده است.');
+        if ($subscription->status !== 'pending') {
+            throw DomainException::invalid(
+                'این درخواست قبلاً بررسی شده است.',
+                'subscription.already_reviewed',
+            );
+        }
 
         $subscription->update([
             'status' => 'active',
@@ -91,13 +97,16 @@ class SubscriptionReviewController extends Controller
         ]);
     }
 
-    public function reject(Request $request, Subscription $subscription): JsonResponse
+    public function reject(RejectSubscriptionRequest $request, Subscription $subscription): JsonResponse
     {
-        abort_unless($subscription->status === 'pending', 422, 'این درخواست قبلاً بررسی شده است.');
+        if ($subscription->status !== 'pending') {
+            throw DomainException::invalid(
+                'این درخواست قبلاً بررسی شده است.',
+                'subscription.already_reviewed',
+            );
+        }
 
-        $data = $request->validate([
-            'note' => ['nullable', 'string', 'max:300'],
-        ], [], ['note' => 'دلیل رد']);
+        $data = $request->validated();
 
         $subscription->update([
             'status' => 'failed',
@@ -114,32 +123,14 @@ class SubscriptionReviewController extends Controller
         return response()->json(['message' => 'درخواست اشتراک رد شد.']);
     }
 
+    /**
+     * شکلِ خروجی حالا در `SubscriptionReviewResource` است.
+     *
+     * این متد یک پلِ کوتاه است تا فراخوانی‌های موجود دست‌نخورده بمانند؛
+     * نقطه‌ی حقیقتِ ساختار یکی شد.
+     */
     private function present(Subscription $s): array
     {
-        return [
-            'id' => $s->id,
-            'complexName' => $s->complex?->name ?? '—',
-            'buyerName' => $s->user?->name ?? '—',
-            'buyerPhone' => $s->user?->phone,
-            'plan' => $s->plan_id ? $s->planRef?->slug : $s->plan->value,
-            'planLabel' => $s->planLabel(),
-            'months' => (int) $s->months,
-            'amount' => (float) $s->amount,
-            'amountLabel' => Jalali::money($s->amount),
-            'status' => $s->status,
-            'statusLabel' => $s->statusLabel(),
-            'method' => $s->method,
-            'methodLabel' => $s->methodLabel(),
-            'paidOn' => $s->receipt_paid_on ? Jalali::date($s->receipt_paid_on) : null,
-            'note' => $s->review_note,
-            'hasReceipt' => filled($s->receipt_path),
-            'receiptUrl' => filled($s->receipt_path)
-                ? route('api.system.subscriptions.receipt', $s)
-                : null,
-            'reviewedBy' => $s->reviewer?->name,
-            'reviewedAt' => $s->reviewed_at ? Jalali::dateTime($s->reviewed_at) : null,
-            'endsAt' => $s->ends_at ? Jalali::date($s->ends_at) : null,
-            'createdAt' => Jalali::dateTime($s->created_at),
-        ];
+        return (new SubscriptionReviewResource($s))->toArray(request());
     }
 }

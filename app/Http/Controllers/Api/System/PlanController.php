@@ -4,15 +4,17 @@ namespace App\Http\Controllers\Api\System;
 
 use App\Enums\SubscriptionPlan;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\GrantPlanRequest;
+use App\Http\Requests\RevokePlanRequest;
+use App\Http\Requests\StorePlanRequest;
+use App\Http\Resources\PlanResource;
 use App\Models\Complex;
 use App\Models\Plan;
 use App\Models\Subscription;
 use App\Services\Subscription\PlanGate;
 use App\Support\Jalali;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Validation\Rule;
 
 /**
  * پکیج‌های اشتراک برای ادمینِ کل: تعریف/ویرایش/فعال‌وغیرفعال‌کردنِ پکیج، و
@@ -43,17 +45,17 @@ class PlanController extends Controller
         ]);
     }
 
-    public function store(Request $request): JsonResponse
+    public function store(StorePlanRequest $request): JsonResponse
     {
-        $data = $this->validatePlan($request);
+        $data = $request->validated();
         $plan = Plan::create($data);
 
         return response()->json(['message' => 'پکیج ساخته شد.', 'plan' => $this->present($plan)], 201);
     }
 
-    public function update(Request $request, Plan $plan): JsonResponse
+    public function update(StorePlanRequest $request, Plan $plan): JsonResponse
     {
-        $plan->update($this->validatePlan($request, $plan));
+        $plan->update($request->validated());
 
         return response()->json(['message' => 'پکیج به‌روزرسانی شد.', 'plan' => $this->present($plan->fresh())]);
     }
@@ -75,13 +77,9 @@ class PlanController extends Controller
     }
 
     /** فعال‌سازیِ دستیِ یک پلن برای یک مجتمع (آفر/هدیه، بدونِ پرداخت). */
-    public function grant(Request $request): JsonResponse
+    public function grant(GrantPlanRequest $request): JsonResponse
     {
-        $data = $request->validate([
-            'complex_id' => ['required', 'exists:complexes,id'],
-            'plan_id' => ['required', 'exists:plans,id'],
-            'months' => ['nullable', 'integer', 'min:1', 'max:60'],
-        ], [], ['complex_id' => 'مجتمع', 'plan_id' => 'پکیج']);
+        $data = $request->validated();
 
         $complex = Complex::findOrFail($data['complex_id']);
         $plan = Plan::findOrFail($data['plan_id']);
@@ -117,11 +115,9 @@ class PlanController extends Controller
     }
 
     /** غیرفعال‌سازیِ دستیِ اشتراکِ فعالِ یک مجتمع. */
-    public function revoke(Request $request): JsonResponse
+    public function revoke(RevokePlanRequest $request): JsonResponse
     {
-        $data = $request->validate([
-            'complex_id' => ['required', 'exists:complexes,id'],
-        ], [], ['complex_id' => 'مجتمع']);
+        $data = $request->validated();
 
         $count = Subscription::where('complex_id', $data['complex_id'])
             ->where('status', 'active')
@@ -132,42 +128,14 @@ class PlanController extends Controller
         ]);
     }
 
-    private function validatePlan(Request $request, ?Plan $plan = null): array
-    {
-        return $request->validate([
-            'name' => ['required', 'string', 'max:100'],
-            'slug' => ['required', 'string', 'max:40', 'regex:/^[a-z0-9-]+$/', Rule::unique('plans', 'slug')->ignore($plan?->id)],
-            'price' => ['required', 'integer', 'min:0'],
-            'months' => ['required', 'integer', 'min:1', 'max:60'],
-            'unit_limit' => ['nullable', 'integer', 'min:1'],
-            'real_gateway' => ['boolean'],
-            'excel_export' => ['boolean'],
-            'features' => ['array'],
-            'features.*' => ['string', 'max:120'],
-            'is_active' => ['boolean'],
-            'sort_order' => ['nullable', 'integer', 'min:0'],
-        ], [
-            'slug.regex' => 'شناسه فقط می‌تواند حروف کوچک انگلیسی، عدد و خط تیره باشد.',
-        ], [
-            'name' => 'نام', 'slug' => 'شناسه', 'price' => 'قیمت', 'months' => 'مدت',
-        ]);
-    }
-
+    /**
+     * شکلِ خروجی حالا در `PlanResource` است.
+     *
+     * این متد یک پلِ کوتاه است تا فراخوانی‌های موجود دست‌نخورده بمانند؛
+     * نقطه‌ی حقیقتِ ساختار یکی شد.
+     */
     private function present(Plan $p): array
     {
-        return [
-            'id' => $p->id,
-            'name' => $p->name,
-            'slug' => $p->slug,
-            'price' => $p->price,
-            'priceLabel' => Jalali::money($p->price),
-            'months' => $p->months,
-            'unit_limit' => $p->unit_limit,
-            'real_gateway' => $p->real_gateway,
-            'excel_export' => $p->excel_export,
-            'features' => $p->features ?? [],
-            'is_active' => $p->is_active,
-            'sort_order' => $p->sort_order,
-        ];
+        return (new PlanResource($p))->toArray(request());
     }
 }

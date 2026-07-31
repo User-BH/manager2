@@ -3,13 +3,12 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\UpdateComplexSettingsRequest;
 use App\Models\Complex;
 use App\Services\Payment\Sandbox;
 use App\Services\Subscription\PlanGate;
 use App\Support\Audit;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Http\Request;
-use Illuminate\Validation\Rule;
 
 class SettingController extends Controller
 {
@@ -85,7 +84,7 @@ class SettingController extends Controller
         ]);
     }
 
-    public function update(Request $request, PlanGate $plans): JsonResponse
+    public function update(UpdateComplexSettingsRequest $request, PlanGate $plans): JsonResponse
     {
         $complex = $this->requireComplex();
 
@@ -109,36 +108,7 @@ class SettingController extends Controller
          */
         $sandboxAcceptable = Sandbox::isAllowed() || $complex->payment_gateway === 'fake';
 
-        $data = $request->validate([
-            'name' => ['required', 'string', 'max:150'],
-            'address' => ['nullable', 'string', 'max:255'],
-            'phone' => ['nullable', 'string', 'max:20'],
-            'currency' => ['required', 'in:toman,rial'],
-            'charge_due_day' => ['required', 'integer', 'min:1', 'max:31'],
-            'payment_gateway' => [
-                'required',
-                Rule::in(array_filter(['none', $sandboxAcceptable ? 'fake' : null, 'mellat', 'saman'])),
-            ],
-            'gw_terminal_id' => ['nullable', 'string', 'max:50'],
-            'gw_username' => ['nullable', 'string', 'max:100'],
-            'gw_password' => ['nullable', 'string', 'max:100'],
-            'messenger_enabled' => ['nullable', 'boolean'],
-            'good_payer_enabled' => ['nullable', 'boolean'],
-            'penalty_enabled' => ['nullable', 'boolean'],
-            'penalty_type' => ['required', 'in:fixed,percent,percent_per_day'],
-            'penalty_value' => ['required', 'numeric', 'min:0'],
-            'penalty_grace_days' => ['required', 'integer', 'min:0', 'max:60'],
-        ], [
-            'payment_gateway.in' => 'درگاه آزمایشی روی سرور واقعی مجاز نیست؛ درگاه بانکی واقعی را انتخاب کنید یا «بدون درگاه» را بگذارید.',
-        ], [
-            'name' => 'نام مجتمع',
-            'currency' => 'واحد پول',
-            'charge_due_day' => 'روز سررسید',
-            'payment_gateway' => 'درگاه پرداخت',
-            'penalty_type' => 'نوع جریمه',
-            'penalty_value' => 'مقدار جریمه',
-            'penalty_grace_days' => 'روزهای مهلت',
-        ]);
+        $data = $request->validated();
 
         $existing = $complex->gateway_config ?? [];
         $previousGateway = $complex->payment_gateway;

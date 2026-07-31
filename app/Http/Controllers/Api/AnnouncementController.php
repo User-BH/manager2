@@ -9,7 +9,6 @@ use App\Http\Resources\AnnouncementResource;
 use App\Models\Announcement;
 use App\Support\Notifications;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
 class AnnouncementController extends Controller
@@ -66,19 +65,13 @@ class AnnouncementController extends Controller
         return response()->json(['announcement' => $this->present($announcement)], 201);
     }
 
-    public function update(Request $request, Announcement $announcement): JsonResponse
+    public function update(StoreAnnouncementRequest $request, Announcement $announcement): JsonResponse
     {
         // اطلاعیه‌ی مجتمع دیگری نباید از راه دستکاری شناسه ویرایش شود؛
         // ComplexScope فهرست را محدود می‌کند ولی route-model-binding آن را دور می‌زند.
         $this->authorize('update', $announcement);
 
-        $data = $request->validate([
-            'title' => ['required', 'string', 'max:150'],
-            'body' => ['required', 'string', 'max:5000'],
-            'audience' => ['required', 'in:all,owners,tenants'],
-            'is_pinned' => ['nullable', 'boolean'],
-            'is_active' => ['nullable', 'boolean'],
-        ], [], ['title' => 'عنوان', 'body' => 'متن', 'audience' => 'مخاطب']);
+        $data = $request->validated();
 
         $announcement->update([
             'title' => $data['title'],

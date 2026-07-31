@@ -3,10 +3,11 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\StoreMessageRequest;
+use App\Http\Resources\MessageResource;
 use App\Models\Complex;
 use App\Models\Message;
 use App\Models\User;
-use App\Support\Jalali;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -74,21 +75,19 @@ class MessengerController extends Controller
         ]);
     }
 
-    public function store(Request $request): JsonResponse
+    public function store(StoreMessageRequest $request): JsonResponse
     {
         $user = Auth::user();
         $complex = $this->messengerComplex();
 
-        abort_if($complex === null, 409, 'ابتدا یک مجتمع را انتخاب کنید.');
+        // همان پیش‌نیاز، ولی با کدِ ماشین‌خوان تا فرانت انتخابگرِ مجتمع را باز کند
+        $complex = $this->requireComplex();
 
         if (! $complex->messenger_enabled || ! $user->can_message) {
             abort(403, 'امکان ارسال پیام برای شما فعال نیست.');
         }
 
-        $data = $request->validate(
-            ['body' => ['required', 'string', 'max:1000']],
-            ['body.required' => 'متن پیام را وارد کنید.', 'body.max' => 'پیام بیش از حد طولانی است.'],
-        );
+        $data = $request->validated();
 
         $message = Message::create([
             'complex_id' => $complex->id,
@@ -117,30 +116,14 @@ class MessengerController extends Controller
     }
 
     /**
-     * یک پیام برای این بیننده.
+     * شکلِ خروجی حالا در `MessageResource` است.
      *
-     * پیامِ مخفی‌شده متنش را از دست می‌دهد، نه فقط رنگش را. پیش از این متن
-     * کامل برای همه فرستاده می‌شد و رابط کاربری صرفاً کم‌رنگش می‌کرد، یعنی
-     * «مخفی کردن» عملاً هیچ چیزی را مخفی نمی‌کرد: هرکس با Inspect یا با
-     * صداکردن مستقیم API متن را می‌خواند.
-     *
-     * مدیر متن را می‌بیند، چون بدون دیدنش نمی‌تواند درباره‌ی برگرداندن یا
-     * نگه‌داشتنش تصمیم بگیرد.
+     * این متد یک پلِ کوتاه است تا فراخوانی‌های موجود دست‌نخورده بمانند؛
+     * نقطه‌ی حقیقتِ ساختار یکی شد.
      */
     private function present(Message $message, User $viewer): array
     {
-        $hidden = (bool) $message->is_hidden;
-        $mayReadHidden = $viewer->isAdmin();
-
-        return [
-            'id' => $message->id,
-            'body' => $hidden && ! $mayReadHidden ? null : $message->body,
-            'authorName' => $message->author_name,
-            'unitLabel' => $message->unit_label,
-            'isMine' => $message->user_id === $viewer->id,
-            'isHidden' => $hidden,
-            'sentAt' => Jalali::dateTime($message->created_at),
-        ];
+        return (new MessageResource($message, $viewer))->toArray(request());
     }
 
     private function blockReason(Complex $complex, User $user): ?string

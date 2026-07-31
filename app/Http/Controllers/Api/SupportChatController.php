@@ -3,10 +3,10 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\SupportChatReplyRequest;
 use App\Services\Support\KnowledgeBase;
 use App\Services\Support\SupportBot;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Http\Request;
 
 /**
  * چت پشتیبانی صفحه‌ی فرود.
@@ -24,14 +24,9 @@ class SupportChatController extends Controller
         return response()->json(['starters' => KnowledgeBase::starters()]);
     }
 
-    public function reply(Request $request): JsonResponse
+    public function reply(SupportChatReplyRequest $request): JsonResponse
     {
-        $data = $request->validate([
-            'message' => ['required', 'string', 'max:500'],
-        ], [
-            'message.required' => 'پیامتان را بنویسید.',
-            'message.max' => 'پیام بیش از حد طولانی است؛ کوتاه‌تر بپرسید تا بهتر بتوانم کمک کنم.',
-        ]);
+        $data = $request->validated();
 
         return response()->json($this->bot->reply($data['message']));
     }

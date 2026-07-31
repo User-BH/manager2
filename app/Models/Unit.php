@@ -32,11 +32,13 @@ class Unit extends Model
         ];
     }
 
+    /** @return BelongsTo<Building, $this> */
     public function building(): BelongsTo
     {
         return $this->belongsTo(Building::class);
     }
 
+    /** @return BelongsToMany<User, $this> */
     public function residents(): BelongsToMany
     {
         return $this->belongsToMany(User::class)
@@ -54,11 +56,13 @@ class Unit extends Model
         return $this->residents()->wherePivot('relation', ResidentRelation::Tenant->value)->wherePivot('is_current', true);
     }
 
+    /** @return HasMany<Bill, $this> */
     public function bills(): HasMany
     {
         return $this->hasMany(Bill::class);
     }
 
+    /** @return HasMany<Payment, $this> */
     public function payments(): HasMany
     {
         return $this->hasMany(Payment::class);

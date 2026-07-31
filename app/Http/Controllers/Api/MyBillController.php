@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Http\Resources\BillResource;
 use App\Models\Bill;
 use App\Support\Jalali;
 use Illuminate\Http\JsonResponse;
@@ -68,26 +69,15 @@ class MyBillController extends Controller
         ]);
     }
 
+    /**
+     * شکلِ خروجی حالا در `BillResource` است.
+     *
+     * این متد یک پلِ کوتاه است تا فراخوانی‌های موجود دست‌نخورده بمانند؛
+     * نقطه‌ی حقیقتِ ساختار یکی شد.
+     */
     private function present(Bill $bill): array
     {
-        return [
-            'id' => $bill->id,
-            'unitLabel' => $bill->unit ? $bill->unit->label() : '—',
-            'period' => $bill->period,
-            'periodLabel' => Jalali::periodLabel($bill->period),
-            'ownerAmount' => (float) $bill->owner_amount,
-            'tenantAmount' => (float) $bill->tenant_amount,
-            'penaltyAmount' => (float) $bill->penalty_amount,
-            'totalAmount' => (float) $bill->total_amount,
-            'paidAmount' => (float) $bill->paid_amount,
-            'remaining' => (float) $bill->remaining(),
-            'status' => $bill->status->value,
-            'statusLabel' => $bill->status->label(),
-            'dueDate' => $bill->due_date ? Jalali::date($bill->due_date) : null,
-            // PDF یک دانلود مستقیم است و صفحه‌ی پرداخت مسیر داخلی SPA
-            'pdfUrl' => route('bills.invoice', $bill),
-            'payPath' => '/pay/'.$bill->id,
-        ];
+        return (new BillResource($bill))->toArray(request());
     }
 
     /** قبض باید متعلق به یکی از واحدهای کاربر باشد. */
@@ -95,6 +85,6 @@ class MyBillController extends Controller
     {
         $unitIds = Auth::user()->currentUnits()->pluck('units.id');
 
-        abort_unless($unitIds->contains($bill->unit_id) || Auth::user()->isAdmin(), 403);
+        $this->authorize('view', $bill);
     }
 }
