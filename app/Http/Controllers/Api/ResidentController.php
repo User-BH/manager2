@@ -192,6 +192,6 @@ class ResidentController extends Controller
     /** جلوگیری از دست‌زدن به کاربران خارج از مجتمع جاری. */
     private function guard(User $resident): void
     {
-        abort_if($resident->complex_id !== $this->requireComplex()->id, 403);
+        $this->authorize('manageResident', $resident);
     }
 }

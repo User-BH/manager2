@@ -19,6 +19,18 @@ class AnnouncementPolicy
         return true;
     }
 
+    /**
+     * دیدنِ یک اطلاعیه‌ی مشخص.
+     *
+     * از همان اسکوپِ `visibleTo` استفاده می‌کند که فهرست را می‌سازد، تا قاعده
+     * یک‌جا بماند: اگر مخاطبِ اطلاعیه عوض شود، هم فهرست و هم این بررسی با هم
+     * تغییر می‌کنند.
+     */
+    public function view(User $user, Announcement $announcement): bool
+    {
+        return Announcement::query()->visibleTo($user)->whereKey($announcement->getKey())->exists();
+    }
+
     public function create(User $user): bool
     {
         return $user->isAdmin();

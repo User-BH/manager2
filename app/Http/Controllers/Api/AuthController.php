@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Enums\UserRole;
+use App\Exceptions\DomainException;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\ForgotPasswordRequest;
 use App\Http\Requests\ForgotVerifyRequest;
@@ -156,7 +157,17 @@ class AuthController extends Controller
         }
 
         $user = User::find($pending['user_id']);
-        abort_unless($user, 422);
+
+        /*
+         * حالتِ لبه: حساب وسطِ جریانِ چندمرحله‌ای حذف شده.
+         * پیامِ روشن به‌جای ۴۲۲ِ بی‌متن، تا کاربر بداند باید از اول شروع کند.
+         */
+        if (! $user) {
+            throw DomainException::invalid(
+                'حساب کاربری پیدا نشد. لطفاً از ابتدا شروع کنید.',
+                'auth.pending_user_missing',
+            );
+        }
 
         $result = $otp->request($user->phone);
         if (! $result['ok']) {
@@ -225,7 +236,17 @@ class AuthController extends Controller
         }
 
         $user = User::find($pending['user_id']);
-        abort_unless($user, 422);
+
+        /*
+         * حالتِ لبه: حساب وسطِ جریانِ چندمرحله‌ای حذف شده.
+         * پیامِ روشن به‌جای ۴۲۲ِ بی‌متن، تا کاربر بداند باید از اول شروع کند.
+         */
+        if (! $user) {
+            throw DomainException::invalid(
+                'حساب کاربری پیدا نشد. لطفاً از ابتدا شروع کنید.',
+                'auth.pending_user_missing',
+            );
+        }
 
         if (! $otp->verify($user->phone, $request->input('code'))) {
             throw ValidationException::withMessages(['code' => 'کد واردشده نادرست یا منقضی شده است.']);
@@ -250,7 +271,17 @@ class AuthController extends Controller
         }
 
         $user = User::find($pending['user_id']);
-        abort_unless($user, 422);
+
+        /*
+         * حالتِ لبه: حساب وسطِ جریانِ چندمرحله‌ای حذف شده.
+         * پیامِ روشن به‌جای ۴۲۲ِ بی‌متن، تا کاربر بداند باید از اول شروع کند.
+         */
+        if (! $user) {
+            throw DomainException::invalid(
+                'حساب کاربری پیدا نشد. لطفاً از ابتدا شروع کنید.',
+                'auth.pending_user_missing',
+            );
+        }
 
         $user->update(['password' => Hash::make($request->input('password'))]);
 

@@ -48,10 +48,7 @@ class NotificationController extends Controller
         $user = Auth::user();
 
         // اگر کاربر اجازه‌ی دیدن این اطلاعیه را ندارد، نباید بتواند علامتش بزند
-        abort_unless(
-            Announcement::query()->visibleTo($user)->whereKey($announcement->id)->exists(),
-            403,
-        );
+        $this->authorize('view', $announcement);
 
         Notifications::markRead($announcement, $user);
 

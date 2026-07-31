@@ -87,13 +87,9 @@ class ManagerController extends Controller
         return response()->json(['message' => 'مدیر حذف شد.']);
     }
 
+    /** قاعده‌اش حالا در `UserPolicy::manageManager` است، نه اینجا. */
     private function guard(User $manager): void
     {
-        abort_unless($manager->role === UserRole::ComplexAdmin, 403);
-
-        $user = Auth::user();
-        if (! $user->isSuperAdmin()) {
-            abort_unless($manager->complex_id === $user->complex_id, 403);
-        }
+        $this->authorize('manageManager', $manager);
     }
 }

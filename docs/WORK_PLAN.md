@@ -168,7 +168,7 @@
 
 ### R9 — Service Layer + FormRequest + API Resource + پاسخ یکسان + Exception Handler مرکزی
 
-**اندازه:** XL · **وابستگی:** R4 · **وضعیت:** ✅ (به‌جز استخراجِ Service layer — دلیلش در BACKEND_STRUCTURE.md)
+**اندازه:** XL · **وابستگی:** R4 · **وضعیت:** ✅ (به‌جز پوششِ `{success,data}` که آگاهانه انجام نشد — دلیلش در `ApiExceptionRenderer`)
 **منبع:** Backend-1, 3, 4, 5, 6, 7, 8, 9, 10, 11 · DoD-67–74
 
 **مشکل فعلی (تأییدشده):** اعتبارسنجی **داخل کنترلرها** است (نه FormRequest)، خروجی‌ها آرایه‌ی دستی‌اند (نه API Resource)، و ساختار پاسخ یکسان نیست. مجوزدهی با `abort_unless` در ۱۵ کنترلر پراکنده است و **صفر Policy** وجود دارد.

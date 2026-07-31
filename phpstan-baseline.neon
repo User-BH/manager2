@@ -4,37 +4,7 @@ parameters:
 			message: '#^Cannot call method label\(\) on string\.$#'
 			identifier: method.nonObject
 			count: 1
-			path: app/Console/Commands/CreateAdmin.php
-
-		-
-			message: '#^Cannot call method label\(\) on string\.$#'
-			identifier: method.nonObject
-			count: 1
 			path: app/Exports/BillsExport.php
-
-		-
-			message: '#^Cannot access property \$value on string\.$#'
-			identifier: property.nonObject
-			count: 1
-			path: app/Http/Controllers/Api/AuthController.php
-
-		-
-			message: '#^Cannot call method isAdmin\(\) on string\.$#'
-			identifier: method.nonObject
-			count: 1
-			path: app/Http/Controllers/Api/AuthController.php
-
-		-
-			message: '#^Cannot call method label\(\) on string\.$#'
-			identifier: method.nonObject
-			count: 1
-			path: app/Http/Controllers/Api/AuthController.php
-
-		-
-			message: '#^Parameter \#1 \$boolean of function abort_unless expects bool, App\\Models\\User\|Illuminate\\Database\\Eloquent\\Collection\<int, App\\Models\\User\>\|null given\.$#'
-			identifier: argument.type
-			count: 3
-			path: app/Http/Controllers/Api/AuthController.php
 
 		-
 			message: '#^Cannot access property \$value on string\.$#'
@@ -115,26 +85,8 @@ parameters:
 			path: app/Http/Controllers/Api/FinanceController.php
 
 		-
-			message: '#^Call to function abort_unless\(\) with false and 403 will always evaluate to false\.$#'
-			identifier: function.impossibleType
-			count: 1
-			path: app/Http/Controllers/Api/ManagerController.php
-
-		-
-			message: '#^Strict comparison using \=\=\= between string and App\\Enums\\UserRole\:\:ComplexAdmin will always evaluate to false\.$#'
-			identifier: identical.alwaysFalse
-			count: 1
-			path: app/Http/Controllers/Api/ManagerController.php
-
-		-
 			message: '#^Call to an undefined method Illuminate\\Database\\Eloquent\\Model&object\{pivot\: Illuminate\\Database\\Eloquent\\Relations\\Pivot\}\:\:label\(\)\.$#'
 			identifier: method.notFound
-			count: 1
-			path: app/Http/Controllers/Api/MessengerController.php
-
-		-
-			message: '#^Cannot access property \$value on string\.$#'
-			identifier: property.nonObject
 			count: 1
 			path: app/Http/Controllers/Api/MessengerController.php
 
@@ -211,24 +163,6 @@ parameters:
 			path: app/Http/Controllers/Api/ProfileController.php
 
 		-
-			message: '#^Cannot call method label\(\) on string\.$#'
-			identifier: method.nonObject
-			count: 2
-			path: app/Http/Controllers/Api/ProfileController.php
-
-		-
-			message: '#^Parameter \#1 \$callback of method Illuminate\\Database\\Eloquent\\Collection\<int,App\\Models\\User\>\:\:map\(\) contains unresolvable type\.$#'
-			identifier: argument.unresolvableType
-			count: 2
-			path: app/Http/Controllers/Api/ProfileController.php
-
-		-
-			message: '#^Strict comparison using \=\=\= between string and App\\Enums\\UserRole\:\:Owner will always evaluate to false\.$#'
-			identifier: identical.alwaysFalse
-			count: 1
-			path: app/Http/Controllers/Api/ResidentController.php
-
-		-
 			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$unit_number\.$#'
 			identifier: property.notFound
 			count: 1
@@ -237,7 +171,7 @@ parameters:
 		-
 			message: '#^Cannot call method label\(\) on string\.$#'
 			identifier: method.nonObject
-			count: 3
+			count: 2
 			path: app/Http/Controllers/Api/SearchController.php
 
 		-
@@ -271,22 +205,10 @@ parameters:
 			path: app/Http/Controllers/Api/System/AuditLogController.php
 
 		-
-			message: '#^Property App\\Models\\User\:\:\$role \(string\) does not accept App\\Enums\\UserRole\.$#'
-			identifier: assign.propertyType
-			count: 1
-			path: app/Http/Controllers/Api/System/MemberController.php
-
-		-
 			message: '#^Cannot access property \$value on string\.$#'
 			identifier: property.nonObject
 			count: 2
 			path: app/Http/Controllers/Api/System/SubscriptionReviewController.php
-
-		-
-			message: '#^Called ''contains'' on Laravel collection, but could have been retrieved as a query\.$#'
-			identifier: larastan.noUnnecessaryCollectionCall
-			count: 1
-			path: app/Http/Controllers/DownloadController.php
 
 		-
 			message: '#^Offset ''fields'' on \*NEVER\* on left side of \?\? always exists and is not nullable\.$#'
@@ -329,12 +251,6 @@ parameters:
 			identifier: identical.alwaysFalse
 			count: 1
 			path: app/Http/Controllers/SubscriptionCheckoutController.php
-
-		-
-			message: '#^Cannot access property \$value on string\.$#'
-			identifier: property.nonObject
-			count: 1
-			path: app/Http/Middleware/EnsureRole.php
 
 		-
 			message: '#^Cannot call method toDateString\(\) on string\.$#'
@@ -382,18 +298,6 @@ parameters:
 			message: '#^Cannot access property \$value on string\.$#'
 			identifier: property.nonObject
 			count: 1
-			path: app/Http/Resources/MemberResource.php
-
-		-
-			message: '#^Cannot call method label\(\) on string\.$#'
-			identifier: method.nonObject
-			count: 1
-			path: app/Http/Resources/MemberResource.php
-
-		-
-			message: '#^Cannot access property \$value on string\.$#'
-			identifier: property.nonObject
-			count: 1
 			path: app/Http/Resources/PaymentResource.php
 
 		-
@@ -421,34 +325,10 @@ parameters:
 			path: app/Http/Resources/PaymentResource.php
 
 		-
-			message: '#^Cannot access property \$value on string\.$#'
-			identifier: property.nonObject
-			count: 1
-			path: app/Http/Resources/ProfileResource.php
-
-		-
-			message: '#^Cannot call method label\(\) on string\.$#'
-			identifier: method.nonObject
-			count: 1
-			path: app/Http/Resources/ProfileResource.php
-
-		-
 			message: '#^Cannot call method toDateString\(\) on string\.$#'
 			identifier: method.nonObject
 			count: 1
 			path: app/Http/Resources/ProfileResource.php
-
-		-
-			message: '#^Cannot access property \$value on string\.$#'
-			identifier: property.nonObject
-			count: 1
-			path: app/Http/Resources/ResidentResource.php
-
-		-
-			message: '#^Cannot call method label\(\) on string\.$#'
-			identifier: method.nonObject
-			count: 1
-			path: app/Http/Resources/ResidentResource.php
 
 		-
 			message: '#^Parameter \#1 \$callback of method Illuminate\\Database\\Eloquent\\Collection\<int,Illuminate\\Database\\Eloquent\\Model\>\:\:map\(\) expects callable\(Illuminate\\Database\\Eloquent\\Model, int\)\: array\{id\: int, label\: non\-falsy\-string\}, Closure\(App\\Models\\Unit\)\: array\{id\: int, label\: non\-falsy\-string\} given\.$#'
@@ -499,12 +379,6 @@ parameters:
 			path: app/Models/Advertisement.php
 
 		-
-			message: '#^Strict comparison using \=\=\= between string and App\\Enums\\UserRole\:\:Owner will always evaluate to false\.$#'
-			identifier: identical.alwaysFalse
-			count: 1
-			path: app/Models/Announcement.php
-
-		-
 			message: '#^Property App\\Models\\Bill\:\:\$status \(string\) does not accept App\\Enums\\BillStatus\:\:Paid\.$#'
 			identifier: assign.propertyType
 			count: 1
@@ -529,25 +403,13 @@ parameters:
 			path: app/Models/Subscription.php
 
 		-
-			message: '#^Cannot call method isAdmin\(\) on string\.$#'
-			identifier: method.nonObject
+			message: '#^Expression on left side of \?\? is not nullable\.$#'
+			identifier: nullCoalesce.expr
 			count: 1
 			path: app/Models/User.php
 
 		-
-			message: '#^Strict comparison using \=\=\= between string and App\\Enums\\UserRole\:\:ComplexAdmin will always evaluate to false\.$#'
-			identifier: identical.alwaysFalse
-			count: 1
-			path: app/Models/User.php
-
-		-
-			message: '#^Strict comparison using \=\=\= between string and App\\Enums\\UserRole\:\:SuperAdmin will always evaluate to false\.$#'
-			identifier: identical.alwaysFalse
-			count: 1
-			path: app/Models/User.php
-
-		-
-			message: '#^Using nullsafe method call on non\-nullable type string\. Use \-\> instead\.$#'
+			message: '#^Using nullsafe method call on non\-nullable type App\\Enums\\UserRole\. Use \-\> instead\.$#'
 			identifier: nullsafe.neverNull
 			count: 1
 			path: app/Models/User.php

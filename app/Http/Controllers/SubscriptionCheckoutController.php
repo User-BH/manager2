@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Enums\SubscriptionPlan;
+use App\Exceptions\DomainException;
 use App\Http\Requests\StartCheckoutRequest;
 use App\Models\Plan;
 use App\Models\Subscription;
@@ -26,7 +27,7 @@ class SubscriptionCheckoutController extends Controller
 
         // اشتراک برای مجتمع خریداری می‌شود، پس فقط مدیر می‌تواند بخرد؛
         // ساکن نباید بتواند پرداختی انجام دهد که هیچ اثری برایش ندارد.
-        abort_unless($user->isAdmin(), 403, 'خرید اشتراک فقط برای مدیران مجتمع است.');
+        $this->authorize('purchase', Subscription::class);
 
         $request->validated();
 
@@ -44,11 +45,14 @@ class SubscriptionCheckoutController extends Controller
             $months = $dbPlan->months;
         } else {
             $legacy = SubscriptionPlan::tryFrom($slug);
-            abort_unless(
-                $legacy && in_array($legacy, SubscriptionPlan::purchasable(), true),
-                422,
-                'پکیجِ انتخاب‌شده معتبر نیست.',
-            );
+
+            // قاعده‌ی کسب‌وکار است، نه نبودِ دسترسی
+            if (! $legacy || ! in_array($legacy, SubscriptionPlan::purchasable(), true)) {
+                throw DomainException::invalid(
+                    'پکیجِ انتخاب‌شده معتبر نیست.',
+                    'subscription.invalid_plan',
+                );
+            }
             $shadow = $legacy->value;
             $planId = null;
             $amount = $legacy->price();
@@ -90,6 +94,11 @@ class SubscriptionCheckoutController extends Controller
          * مثل بازگشت پرداخت قبض، این درخواست ممکن است بدون نشست برسد (انقضای
          * نشست تا لحظه‌ی بازگشت از بانک). اعتبارش را تاییدیه‌ی درگاه تعیین
          * می‌کند نه کوکی؛ ولی اگر نشستی هست باید خودِ خریدار باشد.
+         */
+        /*
+         * عمداً Policy نشد: `authorize()` همیشه کاربرِ واردشده می‌خواهد، ولی
+         * این مسیر باید **بدونِ نشست هم** کار کند (بازگشت از بانک پس از انقضای
+         * نشست). قاعده اینجا شرطی است: «اگر نشستی هست، باید خودِ خریدار باشد».
          */
         abort_unless(! Auth::check() || $subscription->user_id === Auth::id(), 403);
 

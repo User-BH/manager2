@@ -123,11 +123,15 @@ class GatewayController extends Controller
             : redirect('/my-bills?payment=failed');
     }
 
+    /**
+     * قاعده در `BillPolicy::pay` است.
+     *
+     * عمداً `pay` و نه `view`: مدیر می‌تواند قبض را ببیند ولی نباید بتواند
+     * برای واحدِ دیگری پرداخت کند، وگرنه ردِ حسابداری مخدوش می‌شود.
+     */
     private function authorizeBill(Bill $bill): void
     {
-        $unitIds = Auth::user()->currentUnits()->pluck('units.id');
-
-        abort_unless($unitIds->contains($bill->unit_id), 403);
+        $this->authorize('pay', $bill);
     }
 
     /**
@@ -149,6 +153,6 @@ class GatewayController extends Controller
             return;
         }
 
-        abort_unless($payment->user_id === Auth::id() || Auth::user()->isAdmin(), 403);
+        $this->authorize('viewReceipt', $payment);
     }
 }

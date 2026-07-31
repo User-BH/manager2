@@ -105,7 +105,7 @@ class MessengerController extends Controller
     public function toggleHide(Message $message): JsonResponse
     {
         $user = Auth::user();
-        abort_unless($user->isAdmin(), 403);
+        $this->authorize('hide', $message);
 
         $message->update([
             'is_hidden' => ! $message->is_hidden,

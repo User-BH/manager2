@@ -37,8 +37,7 @@ class DownloadController extends Controller
     /** تسویه‌حساب یک واحد، برای زمان تخلیه یا فروش. */
     public function unitStatement(Unit $unit)
     {
-        abort_unless(Auth::user()->isAdmin(), 403);
-        abort_if($unit->complex_id !== $this->requireComplex()->id, 403);
+        $this->authorize('viewStatement', $unit);
 
         $unit->load(['bills' => fn ($q) => $q->orderBy('period'), 'owners', 'tenants']);
 
@@ -59,7 +58,7 @@ class DownloadController extends Controller
     /** خروجی Excel قبوض یک دوره — از امکانات پلن پرو. */
     public function billsExport(Request $request, PlanGate $plans)
     {
-        abort_unless(Auth::user()->isAdmin(), 403);
+        $this->authorize('export', Unit::class);
         $complex = $this->requireComplex();
 
         // خروجی PDF در پلن رایگان آزاد است؛ فقط Excel محدود شده.
@@ -90,13 +89,7 @@ class DownloadController extends Controller
     {
         $user = Auth::user();
 
-        if ($user->isAdmin()) {
-            return;
-        }
-
-        abort_unless(
-            $user->currentUnits()->pluck('units.id')->contains($bill->unit_id),
-            403,
-        );
+        // «مدیر یا صاحبِ واحد» — دقیقاً همان قاعده‌ی `BillPolicy::view`
+        $this->authorize('view', $bill);
     }
 }

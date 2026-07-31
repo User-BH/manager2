@@ -78,7 +78,7 @@ class BackupController extends Controller
     public function download(Backup $backup): StreamedResponse
     {
         // بکاپ یک مجتمع نباید از مجتمع دیگری قابل دانلود باشد.
-        abort_if($backup->complex_id !== $this->requireComplex()->id, 403);
+        $this->authorize('download', $backup);
         abort_if(! $backup->path || ! Storage::disk('local')->exists($backup->path), 404);
 
         return Storage::disk('local')->download($backup->path);
