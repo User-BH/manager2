@@ -73,7 +73,7 @@ export function AnnouncementsPage() {
     queryKey: queryKeys.announcements.all(),
     queryFn: ({ signal }) => api<AnnouncementsResponse>('/announcements', { signal }),
   })
-  const { markRead, markAllRead, refresh } = useNotifications()
+  const { markAnnouncementRead, markAllRead, refresh } = useNotifications()
 
   /*
    * ورود از دراپ‌داون اعلان‌ها با ?focus=ID: همان اطلاعیه در دید قرار
@@ -87,7 +87,7 @@ export function AnnouncementsPage() {
     element?.scrollIntoView({ behavior: 'smooth', block: 'center' })
 
     const target = data.data.find((item) => item.id === focusId)
-    if (target && !target.isRead) void markRead(focusId).then(() => refetch())
+    if (target && !target.isRead) void markAnnouncementRead(focusId).then(() => refetch())
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [focusId, data])
 
@@ -106,7 +106,7 @@ export function AnnouncementsPage() {
     )
 
     try {
-      await markRead(announcement.id)
+      await markAnnouncementRead(announcement.id)
     } catch {
       void refetch()
     }

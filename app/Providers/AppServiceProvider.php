@@ -2,6 +2,17 @@
 
 namespace App\Providers;
 
+use App\Models\Advertisement;
+use App\Models\Announcement;
+use App\Models\Bill;
+use App\Models\Building;
+use App\Models\ChargeRule;
+use App\Models\Discount;
+use App\Models\Expense;
+use App\Models\Income;
+use App\Models\Plan;
+use App\Models\Unit;
+use App\Observers\AuditObserver;
 use App\Support\Jalali;
 use App\Support\Phone;
 use App\Support\TenantContext;
@@ -27,6 +38,38 @@ class AppServiceProvider extends ServiceProvider
         Date::macro('jalali', fn () => Jalali::date($this));
 
         $this->registerRateLimiters();
+        $this->registerAuditObservers();
+    }
+
+    /**
+     * ثبتِ خودکارِ حذف‌ها در لاگ فعالیت.
+     *
+     * فهرست صریح است و نه «همه‌ی مدل‌ها»: جدول‌هایی مثل `otp_codes`،
+     * `announcement_reads` و `trusted_devices` مدام پاک می‌شوند و لاگ‌کردنشان
+     * فقط جدول را پر می‌کند و رویدادهای مهم را زیرِ نوفه دفن می‌کند.
+     *
+     * `User` هم عمداً اینجا نیست: حذفِ کاربر بسته به زمینه معنیِ متفاوتی دارد
+     * (ساکن، مدیرِ مجتمع، عضوِ سامانه) و کنترلرها با نامِ دقیقِ همان زمینه
+     * لاگ می‌کنند. یک `user.deleted`ِ عمومی آن تمایز را از بین می‌برد.
+     */
+    private function registerAuditObservers(): void
+    {
+        $auditable = [
+            Advertisement::class,
+            Announcement::class,
+            Bill::class,
+            Building::class,
+            ChargeRule::class,
+            Discount::class,
+            Expense::class,
+            Income::class,
+            Plan::class,
+            Unit::class,
+        ];
+
+        foreach ($auditable as $model) {
+            $model::observe(AuditObserver::class);
+        }
     }
 
     /**

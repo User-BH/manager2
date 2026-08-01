@@ -7,6 +7,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\UpdateMemberRequest;
 use App\Http\Resources\MemberResource;
 use App\Models\User;
+use App\Support\Audit;
 use App\Support\Phone;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -96,6 +97,13 @@ class MemberController extends Controller
                 'user' => 'نمی‌توانید حسابِ خودتان را حذف کنید.',
             ]);
         }
+
+        // پیش از این حذفِ عضو هیچ ردی به جا نمی‌گذاشت
+        Audit::log('member.deleted', 'حذف عضو سامانه', $target, [
+            'name' => $target->name,
+            'phone' => $target->phone,
+            'role' => $target->role->value,
+        ]);
 
         $target->delete();
 

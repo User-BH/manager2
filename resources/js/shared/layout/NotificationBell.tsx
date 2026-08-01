@@ -42,10 +42,21 @@ export function NotificationBell() {
   }
 
   function openItem(item: NotificationItem) {
-    if (!item.isRead) void markRead(item.id)
+    if (!item.isRead) void markRead(item)
 
     setOpen(false)
-    void navigate(`/announcements?focus=${item.id}`)
+
+    /*
+     * مقصد به گونه‌ی اعلان بستگی دارد: اطلاعیه‌ی همگانی به صفحه‌ی اطلاعیه‌ها
+     * با فوکوس روی همان مورد، و اعلانِ شخصی به جایی که موضوعش آنجاست (مثلاً
+     * قبضی که رسیدش بررسی شده). اگر اعلانِ شخصی مقصدی نداشته باشد، فقط
+     * دراپ‌داون بسته می‌شود — بردنِ کاربر به صفحه‌ی بی‌ربط بدتر از نبردنش است.
+     */
+    if (item.kind === 'announcement') {
+      void navigate(`/announcements?focus=${item.announcementId}`)
+    } else if (item.link) {
+      void navigate(item.link)
+    }
   }
 
   return (

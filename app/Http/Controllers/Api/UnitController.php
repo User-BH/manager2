@@ -9,7 +9,6 @@ use App\Http\Resources\UnitResource;
 use App\Models\Building;
 use App\Models\Unit;
 use App\Services\Subscription\PlanGate;
-use App\Support\Audit;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -68,12 +67,8 @@ class UnitController extends Controller
 
     public function destroy(Unit $unit): JsonResponse
     {
-        // حذف واحد آبشاری است و قبوض و پرداخت‌هایش را هم می‌برد؛ ردش باید بماند
-        Audit::log('unit.deleted', 'حذف واحد', $unit, [
-            'unit_number' => $unit->unit_number,
-            'balance' => (float) $unit->balance,
-        ]);
-
+        // حذف واحد آبشاری است و قبوض و پرداخت‌هایش را هم می‌برد؛ ردش باید
+        // بماند — که `AuditObserver` خودکار انجامش می‌دهد.
         $unit->delete();
 
         return response()->json(['message' => 'واحد حذف شد.']);

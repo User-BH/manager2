@@ -21,7 +21,12 @@ interface NotificationState {
   items: NotificationItem[]
   isLoading: boolean
   refresh: () => Promise<void>
-  markRead: (id: number) => Promise<void>
+  /** اطلاعیه‌ی همگانی — صفحه‌ی اطلاعیه‌ها هم از همین استفاده می‌کند. */
+  markAnnouncementRead: (id: number) => Promise<void>
+  /** اعلانِ شخصی (نتیجه‌ی بررسیِ رسید و مانندش). */
+  markPersonalRead: (id: string) => Promise<void>
+  /** دیسپچرِ زنگوله: بر اساس گونه‌ی آیتم یکی از دو تای بالا را صدا می‌زند. */
+  markRead: (item: NotificationItem) => Promise<void>
   markAllRead: () => Promise<void>
 }
 
@@ -40,9 +45,20 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
     }
   },
 
-  markRead: async (id) => {
+  /*
+   * دو گونه‌ی اعلان دو مسیرِ متفاوت دارند، چون وضعیتِ خواندنشان جای متفاوتی
+   * ذخیره می‌شود: اطلاعیه‌ی همگانی در `announcement_reads` و اعلانِ شخصی در
+   * ستونِ `read_at` خودش. عمداً دو تابعِ جدا و نه یکی با شرطِ درونی، تا
+   * فراخوانی‌کننده مجبور باشد بداند با کدام سروکار دارد.
+   *
+   * هر دو خوش‌بینانه‌اند: شمارنده فوری کم می‌شود و اگر درخواست شکست بخورد،
+   * بازخوانیِ بی‌صدا مقدارِ درستِ سرور را برمی‌گرداند.
+   */
+  markAnnouncementRead: async (id) => {
     set((state) => ({
-      items: state.items.map((item) => (item.id === id ? { ...item, isRead: true } : item)),
+      items: state.items.map((row) =>
+        row.kind === 'announcement' && row.announcementId === id ? { ...row, isRead: true } : row,
+      ),
       unreadCount: Math.max(0, state.unreadCount - 1),
     }))
 
@@ -54,6 +70,32 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
     } catch {
       void get().refresh()
     }
+  },
+
+  markPersonalRead: async (id) => {
+    set((state) => ({
+      items: state.items.map((row) => (row.id === `n:${id}` ? { ...row, isRead: true } : row)),
+      unreadCount: Math.max(0, state.unreadCount - 1),
+    }))
+
+    try {
+      const response = await api<{ unreadCount: number }>(`/notifications/personal/${id}/read`, {
+        method: 'POST',
+      })
+      set({ unreadCount: response.unreadCount })
+    } catch {
+      void get().refresh()
+    }
+  },
+
+  markRead: async (item) => {
+    if (item.kind === 'announcement') {
+      // `announcementId` همیشه برای اطلاعیه‌ها می‌آید؛ `id` پیشونددار است
+      await get().markAnnouncementRead(item.announcementId!)
+      return
+    }
+
+    await get().markPersonalRead(item.id.replace(/^n:/, ''))
   },
 
   markAllRead: async () => {

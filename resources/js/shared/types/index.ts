@@ -91,13 +91,26 @@ export interface RecentSearch {
 
 /* --- اعلان‌ها --- */
 
+/**
+ * یک آیتمِ زنگوله — از دو منبعِ متفاوت، با یک شکل.
+ *
+ * `kind` تعیین می‌کند کلیک روی آن کجا می‌برد و «خوانده شد» چطور ثبت می‌شود:
+ * اطلاعیه‌ی همگانی در `announcement_reads` و اعلانِ شخصی در ستونِ `read_at`
+ * خودش. `id` رشته است (`a:12` / `n:uuid`) چون دو فضای شناسه با هم ادغام
+ * شده‌اند و عددِ خالی می‌توانست بینشان تصادف کند.
+ */
 export interface NotificationItem {
-  id: number
+  id: string
+  kind: 'announcement' | 'personal'
   title: string
   excerpt: string
   isPinned: boolean
   isRead: boolean
   publishedAt: string | null
+  /** فقط برای اطلاعیه‌ها — شناسه‌ی خامِ عددی برای مسیرِ فوکوس. */
+  announcementId?: number
+  /** فقط برای اعلانِ شخصی — مقصدِ کلیک. */
+  link?: string | null
 }
 
 export interface NotificationsResponse {

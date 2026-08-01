@@ -125,6 +125,10 @@ Route::middleware('auth')->group(function () {
     // زنگوله‌ی هدر. منبعش همان اطلاعیه‌هاست، فقط با وضعیت خوانده/نخوانده.
     Route::get('notifications', [NotificationController::class, 'index'])->name('notifications.index');
     Route::post('notifications/read-all', [NotificationController::class, 'readAll'])->name('notifications.read-all');
+    // پیش از مسیرِ {announcement} می‌آید، وگرنه «personal» به‌عنوان شناسه‌ی
+    // اطلاعیه تفسیر می‌شود و هرگز به این‌جا نمی‌رسد.
+    Route::post('notifications/personal/{id}/read', [NotificationController::class, 'readPersonal'])
+        ->name('notifications.read-personal');
     Route::post('notifications/{announcement}/read', [NotificationController::class, 'read'])
         ->name('notifications.read');
 

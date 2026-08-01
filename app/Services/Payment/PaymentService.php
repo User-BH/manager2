@@ -4,6 +4,7 @@ namespace App\Services\Payment;
 
 use App\Enums\BillStatus;
 use App\Enums\PaymentStatus;
+use App\Events\PaymentReviewed;
 use App\Models\AuditLog;
 use App\Models\Bill;
 use App\Models\Payment;
@@ -35,6 +36,12 @@ class PaymentService
 
             $this->log($payment, 'payment.settled', $actor, 'تایید/تسویه پرداخت');
         });
+
+        /*
+         * بعد از تراکنش و نه داخلش: اگر اعلان داخلِ تراکنش می‌رفت و تراکنش
+         * برمی‌گشت، کاربر اعلانِ «تایید شد» می‌گرفت برای پرداختی که ثبت نشده.
+         */
+        PaymentReviewed::dispatch($payment, approved: true, note: $note);
     }
 
     public function reject(Payment $payment, ?User $actor = null, ?string $note = null): void
@@ -46,6 +53,8 @@ class PaymentService
         $payment->save();
 
         $this->log($payment, 'payment.rejected', $actor, 'رد رسید پرداخت');
+
+        PaymentReviewed::dispatch($payment, approved: false, note: $note);
     }
 
     /** Spread a successful payment across the unit's outstanding bills. */
