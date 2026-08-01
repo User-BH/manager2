@@ -13,6 +13,7 @@ use App\Services\Payment\GatewayManager;
 use App\Support\Jalali;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 
 /**
  * صفحه‌ی پرداخت یک قبض.
@@ -62,38 +63,52 @@ class PaymentController extends Controller
 
         $data = $request->validated();
 
-        // یک قبض هم‌زمان بیش از یک رسیدِ در انتظار بررسی نداشته باشد، وگرنه
-        // صف بررسی مدیر با ارسال‌های تکراری پر می‌شود.
-        $alreadyPending = Payment::where('bill_id', $bill->id)
-            ->where('status', PaymentStatus::Pending)
-            ->where('method', PaymentMethod::Receipt)
-            ->exists();
-
-        if ($alreadyPending) {
-            throw DomainException::invalid(
-                'برای این قبض یک رسید در انتظار بررسی دارید.',
-                'payment.pending_exists',
-            );
-        }
-
         // دیسک local خصوصی است؛ فایل فقط از مسیر کنترل‌شده‌ی بررسی پرداخت‌ها
         // سرو می‌شود، نه مستقیم از public.
         $path = $request->file('receipt')->store('receipts/'.$bill->complex_id, 'local');
 
-        Payment::create([
-            'complex_id' => $bill->complex_id,
-            'unit_id' => $bill->unit_id,
-            'bill_id' => $bill->id,
-            'user_id' => Auth::id(),
-            'amount' => $data['amount'],
-            'method' => PaymentMethod::Receipt,
-            'status' => PaymentStatus::Pending,
-            'period' => $bill->period,
-            'receipt_path' => $path,
-            'receipt_original_name' => $request->file('receipt')->getClientOriginalName(),
-            'receipt_paid_on' => $data['paid_on'] ?? now(),
-            'description' => $data['description'] ?? null,
-        ]);
+        /*
+         * بررسیِ «رسیدِ در انتظار» و ساختِ رسید باید **اتمیک** باشند.
+         *
+         * پیش از این، `exists()` بیرونِ تراکنش صدا زده می‌شد: دو ارسالِ هم‌زمان
+         * (دوبار زدنِ دکمه، یا یک درخواستِ تکرارشده) هر دو «رسیدی در انتظار
+         * نیست» می‌دیدند و هر دو رسید می‌ساختند — الگوی کلاسیکِ
+         * «بررسی کن، بعد عمل کن».
+         *
+         * با قفلِ ردیفِ قبض، دو درخواست پشتِ سرِ هم می‌شوند و دومی رسیدِ اولی
+         * را می‌بیند. قفل روی خودِ قبض است و نه پرداخت‌ها، چون قبض ردیفی است
+         * که قطعاً وجود دارد؛ روی چیزی که هنوز ساخته نشده نمی‌شود قفل گرفت.
+         */
+        DB::transaction(function () use ($bill, $data, $request, $path): void {
+            Bill::withoutGlobalScopes()->lockForUpdate()->find($bill->id);
+
+            $alreadyPending = Payment::where('bill_id', $bill->id)
+                ->where('status', PaymentStatus::Pending)
+                ->where('method', PaymentMethod::Receipt)
+                ->exists();
+
+            if ($alreadyPending) {
+                throw DomainException::invalid(
+                    'برای این قبض یک رسید در انتظار بررسی دارید.',
+                    'payment.pending_exists',
+                );
+            }
+
+            Payment::create([
+                'complex_id' => $bill->complex_id,
+                'unit_id' => $bill->unit_id,
+                'bill_id' => $bill->id,
+                'user_id' => Auth::id(),
+                'amount' => $data['amount'],
+                'method' => PaymentMethod::Receipt,
+                'status' => PaymentStatus::Pending,
+                'period' => $bill->period,
+                'receipt_path' => $path,
+                'receipt_original_name' => $request->file('receipt')->getClientOriginalName(),
+                'receipt_paid_on' => $data['paid_on'] ?? now(),
+                'description' => $data['description'] ?? null,
+            ]);
+        }, attempts: 3);
 
         return response()->json([
             'message' => 'رسید پرداخت ثبت شد و در انتظار تایید مدیر است.',
