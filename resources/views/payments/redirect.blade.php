@@ -3,7 +3,7 @@
 <head>
     <meta charset="utf-8">
     <title>در حال انتقال به درگاه پرداخت…</title>
-    <script>
+    <script @csp>
         (function () {
             const t = localStorage.getItem('theme') || 'system';
             document.documentElement.classList.toggle('dark',
@@ -25,6 +25,6 @@
             <button type="submit" class="mt-4 rounded-xl bg-brand-500 px-5 py-2 text-white">انتقال به درگاه</button>
         </form>
     </div>
-    <script>document.getElementById('gw').submit();</script>
+    <script @csp>document.getElementById('gw').submit();</script>
 </body>
 </html>

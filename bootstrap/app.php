@@ -4,6 +4,7 @@ use App\Exceptions\ApiExceptionRenderer;
 use App\Http\Middleware\AuthenticateTrustedDevice;
 use App\Http\Middleware\EnsureActive;
 use App\Http\Middleware\EnsureRole;
+use App\Http\Middleware\SecurityHeaders;
 use App\Http\Middleware\SetCurrentComplex;
 use App\Services\Auth\TrustedDeviceService;
 use App\Services\ErrorRecorder;
@@ -99,6 +100,13 @@ return Application::configure(basePath: dirname(__DIR__))
         ]);
 
         $middleware->web(append: [
+            /*
+             * هدرهای امنیتی روی همه‌ی پاسخ‌های web (شاملِ API، چون API هم روی
+             * همین گروه سوار است). عمداً در لاراول و نه nginx: کانفیگِ nginx
+             * طبق قید دست‌نخورده می‌ماند، و این‌طور هدرها با کد نسخه‌بندی
+             * می‌شوند و تست دارند.
+             */
+            SecurityHeaders::class,
             AuthenticateTrustedDevice::class,
             EnsureActive::class,
             SetCurrentComplex::class,

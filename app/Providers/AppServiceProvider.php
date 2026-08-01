@@ -19,6 +19,7 @@ use App\Support\TenantContext;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
 use Illuminate\Pagination\Paginator;
+use Illuminate\Support\Facades\Blade;
 use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
@@ -39,6 +40,15 @@ class AppServiceProvider extends ServiceProvider
 
         $this->registerRateLimiters();
         $this->registerAuditObservers();
+
+        /*
+         * `@csp` در Blade به `nonce="..."` تبدیل می‌شود.
+         *
+         * بدونِ این، هر اسکریپتِ درون‌خطی نیاز به `'unsafe-inline'` در CSP
+         * داشت که عملاً محافظت در برابر XSS را از بین می‌برد. مقدار را
+         * `SecurityHeaders` روی همین درخواست گذاشته است.
+         */
+        Blade::directive('csp', fn () => "<?php echo 'nonce=\"'.e(request()->attributes->get(\App\Http\Middleware\SecurityHeaders::NONCE_KEY, '')).'\"'; ?>");
     }
 
     /**
