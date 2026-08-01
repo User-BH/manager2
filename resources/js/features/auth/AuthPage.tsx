@@ -9,6 +9,7 @@ import { ThemeToggle } from '@/shared/layout/ThemeToggle'
 import { LogoMark } from '@/shared/common/LogoMark'
 import { authBackgroundImage } from '@/shared/constants/images'
 import { useAuth } from '@/shared/stores/authStore'
+import { safeInternalPath } from '@/shared/lib/safeRedirect'
 import { useDocumentTitle } from '@/shared/hooks'
 import { BRAND_NAME } from '@/shared/config/brand'
 
@@ -41,7 +42,7 @@ export function AuthPage() {
     // داشبورد یک سندِ SPAِ جداست؛ پس رفتن به آن ناوبریِ واقعیِ مرورگر است نه
     // مسیریابیِ داخلِ همین island.
     const from = (location.state as { from?: { pathname: string; search?: string } } | null)?.from
-    window.location.replace(from ? `${from.pathname}${from.search ?? ''}` : '/dashboard')
+    window.location.replace(safeInternalPath(from) ?? '/dashboard')
     return null
   }
 

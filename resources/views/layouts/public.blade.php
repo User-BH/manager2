@@ -57,7 +57,6 @@
     ];
 
     $graph = ['@context' => 'https://schema.org', '@graph' => [$organization, $website, $product]];
-    $jsonFlags = JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES;
 @endphp
 <!DOCTYPE html>
 <html lang="fa" dir="rtl">
@@ -101,7 +100,7 @@
     <link rel="apple-touch-icon" href="/icons/icon-192.png">
 
     {{-- داده‌ی ساخت‌یافته‌ی سطحِ سایت --}}
-    <script type="application/ld+json">{!! json_encode($graph, $jsonFlags) !!}</script>
+    <script type="application/ld+json">{!! \App\Support\Json::forScript($graph) !!}</script>
     @stack('jsonld')
 
     {{-- تم پیش از اولین رنگ‌آمیزی اعمال می‌شود تا صفحه هنگام بارگذاری پرش نکند --}}

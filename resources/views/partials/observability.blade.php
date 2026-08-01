@@ -22,6 +22,7 @@
 
 @if (! empty($observabilityConfig))
     <script type="application/json" id="observability-config">
-        {!! json_encode($observabilityConfig, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) !!}
+        {{-- مقدارها از پنل می‌آیند، پس باید طوری چاپ شوند که نتوانند از تگ بیرون بزنند --}}
+        {!! \App\Support\Json::forScript($observabilityConfig) !!}
     </script>
 @endif

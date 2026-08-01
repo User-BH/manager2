@@ -83,8 +83,18 @@ class Advertisement extends Model
          * دیده نمی‌شد.
          */
         if (str_starts_with($this->image_url, '/')) {
-            $path = public_path(ltrim((string) parse_url($this->image_url, PHP_URL_PATH), '/'));
-            if (is_file($path)) {
+            /*
+             * `realpath` و بررسیِ پیشوند لازم‌اند چون `image_url` را ادمین
+             * وارد می‌کند. آدرسی مثل `/../../etc/passwd` از شرطِ بالا رد
+             * می‌شد و `filemtime` را روی مسیری بیرونِ `public` صدا می‌زد.
+             *
+             * محتوای فایل لو نمی‌رفت — فقط «وجود دارد یا نه» و زمانِ تغییرش —
+             * ولی همان هم چیزی است که نباید بیرون برود، و بستنش دو خط است.
+             */
+            $public = realpath(public_path());
+            $path = realpath(public_path(ltrim((string) parse_url($this->image_url, PHP_URL_PATH), '/')));
+
+            if ($path && $public && str_starts_with($path, $public.DIRECTORY_SEPARATOR) && is_file($path)) {
                 return $this->image_url.'?v='.filemtime($path);
             }
         }

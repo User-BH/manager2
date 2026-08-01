@@ -16,5 +16,5 @@
             'publisher' => ['@id' => $base.'/#organization'],
         ];
     @endphp
-    <script type="application/ld+json">{!! json_encode($video, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) !!}</script>
+    <script type="application/ld+json">{!! \App\Support\Json::forScript($video) !!}</script>
 @endpush

@@ -106,9 +106,21 @@ class Notifications
                 ->get();
         }
 
+        /*
+         * شناسه‌ها با بایندینگ می‌روند، نه با چسباندن به رشته‌ی SQL.
+         *
+         * مقدارها اینجا کلیدهای اصلیِ خودِ دیتابیس‌اند و ورودیِ کاربر نیستند،
+         * پس این تزریقِ فعال **نبود**. ولی الگوی «رشته را به SQL بچسبان» همان
+         * چیزی است که روزی کسی منبعش را عوض می‌کند و آن‌وقت تزریق می‌شود.
+         */
+        $placeholders = $unreadIds->isEmpty() ? '0' : $unreadIds->map(fn () => '?')->implode(',');
+
         return Announcement::query()
             ->visibleTo($user)
-            ->orderByRaw('CASE WHEN id IN ('.($unreadIds->isEmpty() ? '0' : $unreadIds->implode(',')).') THEN 0 ELSE 1 END')
+            ->orderByRaw(
+                "CASE WHEN id IN ({$placeholders}) THEN 0 ELSE 1 END",
+                $unreadIds->isEmpty() ? [] : $unreadIds->all(),
+            )
             ->orderByDesc('is_pinned')
             ->orderByDesc('published_at')
             ->limit($limit)

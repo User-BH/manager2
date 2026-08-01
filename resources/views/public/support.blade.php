@@ -22,5 +22,5 @@
             ], $faqs),
         ];
     @endphp
-    <script type="application/ld+json">{!! json_encode($faqPage, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) !!}</script>
+    <script type="application/ld+json">{!! \App\Support\Json::forScript($faqPage) !!}</script>
 @endpush
