@@ -16,16 +16,27 @@ export function ComplexBackupPage() {
 
   useDocumentTitle('بکاپ مجتمع')
 
+  /*
+   * تا وقتی بکاپی در صف است، هر ۳ ثانیه دوباره می‌پرسیم.
+   *
+   * بدونِ این، کاربر «در حال ساخت…» را می‌بیند و صفحه هرگز خودش عوض نمی‌شود؛
+   * مجبور می‌شود دستی رفرش کند یا فکر کند خراب شده. با تمام‌شدنِ کار، شرط
+   * `false` می‌شود و نظرسنجی خودبه‌خود می‌ایستد — پس روی صفحه‌ی بی‌کار هیچ
+   * درخواستِ اضافه‌ای نمی‌رود.
+   */
   const { data, error, isLoading, refetch } = useQuery({
     queryKey: queryKeys.backups.all(),
     queryFn: ({ signal }) => api<{ data: BackupRow[] }>('/backups', { signal }),
+    refetchInterval: (query) =>
+      query.state.data?.data.some((backup) => backup.status === 'pending') ? 3000 : false,
   })
 
   async function createBackup() {
     setBusy(true)
     try {
       await api('/backups', { method: 'POST' })
-      toastSuccess('نسخه پشتیبان ساخته شد.')
+      // کار در صف است، پس «ساخته شد» گمراه‌کننده بود
+      toastSuccess('ساخت نسخه پشتیبان شروع شد.')
       void refetch()
     } catch (err) {
       alertError(err, 'ساخت نسخه پشتیبان ممکن نشد.')

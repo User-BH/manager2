@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion'
-import { Database, Download, Loader2 } from 'lucide-react'
+import { AlertTriangle, Database, Download, Loader2 } from 'lucide-react'
 import { Card } from '@/shared/ui/Card'
 import { EmptyState } from '@/shared/ui/PageState'
 import { formatNumber } from '@/shared/lib/format'
@@ -21,6 +21,41 @@ interface BackupListProps {
   createLabel: string
   emptyMessage: string
   delay?: number
+}
+
+/**
+ * وضعیتِ بکاپی که هنوز فایلش آماده نیست.
+ *
+ * `pending` عمداً اسپینر دارد و نه فقط متن: کاربر باید بفهمد کاری در جریان
+ * است و صفحه خودش به‌روز می‌شود، وگرنه دکمه را دوباره می‌زند و بکاپِ تکراری
+ * می‌سازد.
+ */
+function StatusBadge({ status }: { status: string }) {
+  const pending = status === 'pending'
+
+  return (
+    <span
+      className="flex shrink-0 items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium"
+      style={{
+        backgroundColor: `color-mix(in srgb, ${
+          pending ? 'var(--color-accent-500)' : 'var(--color-danger)'
+        } 12%, transparent)`,
+        color: pending ? 'var(--color-accent-600)' : 'var(--color-danger)',
+      }}
+    >
+      {pending ? (
+        <>
+          <Loader2 size={13} className="animate-spin" />
+          در حال ساخت…
+        </>
+      ) : (
+        <>
+          <AlertTriangle size={13} />
+          ناموفق
+        </>
+      )}
+    </span>
+  )
 }
 
 /** فهرست بکاپ‌ها — بین بکاپ مجتمع و بکاپ کل سیستم مشترک است. */
@@ -61,7 +96,7 @@ export function BackupList({
               className="flex items-center justify-between rounded-xl px-4 py-3"
               style={{ backgroundColor: 'var(--surface-sunken)' }}
             >
-              <div>
+              <div className="min-w-0">
                 <p className="text-[13px] font-semibold" style={{ color: 'var(--text-primary)' }}>
                   {backup.note ?? 'بکاپ'}
                 </p>
@@ -69,18 +104,33 @@ export function BackupList({
                   className="mt-0.5 text-[11px] tabular-nums"
                   style={{ color: 'var(--text-tertiary)' }}
                 >
-                  {backup.createdAt} · {formatNumber(backup.sizeKb)} کیلوبایت
+                  {/*
+                    تا وقتی فایل ساخته نشده، حجم صفر است و نشان‌دادنش
+                    («۰ کیلوبایت») گمراه‌کننده است — انگار بکاپ خالی گرفته شده.
+                  */}
+                  {backup.createdAt}
+                  {backup.status === 'completed' && ` · ${formatNumber(backup.sizeKb)} کیلوبایت`}
                 </p>
               </div>
 
-              <a
-                href={backup.downloadUrl}
-                className="flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-medium"
-                style={{ borderColor: 'var(--border-default)', color: 'var(--text-secondary)' }}
-              >
-                <Download size={13} />
-                دانلود
-              </a>
+              {/*
+                ساختِ بکاپ از R11 در صف انجام می‌شود، پس ردیف پیش از آماده‌شدنِ
+                فایل دیده می‌شود. لینکِ دانلود فقط وقتی معنا دارد که فایل باشد؛
+                در بقیه‌ی حالت‌ها وضعیت نشان داده می‌شود تا کاربر بداند منتظر
+                بماند یا دوباره تلاش کند.
+              */}
+              {backup.status === 'completed' ? (
+                <a
+                  href={backup.downloadUrl}
+                  className="flex shrink-0 items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-medium"
+                  style={{ borderColor: 'var(--border-default)', color: 'var(--text-secondary)' }}
+                >
+                  <Download size={13} />
+                  دانلود
+                </a>
+              ) : (
+                <StatusBadge status={backup.status} />
+              )}
             </motion.li>
           ))}
         </ul>

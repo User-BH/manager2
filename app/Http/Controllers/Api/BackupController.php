@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Http\Resources\BackupResource;
+use App\Jobs\BuildBackupJob;
 use App\Models\Backup;
 use App\Support\Audit;
 use Illuminate\Http\JsonResponse;
@@ -35,44 +36,29 @@ class BackupController extends Controller
     {
         $complex = $this->requireComplex();
 
-        $snapshot = [
-            'meta' => ['generated_at' => now()->toIso8601String(), 'complex_id' => $complex->id],
-            'complex' => $complex->toArray(),
-            'buildings' => $complex->buildings()->get()->toArray(),
-            'units' => $complex->units()->with('residents')->get()->toArray(),
-            'users' => $complex->users()->get()->makeHidden('password')->toArray(),
-            'charge_rules' => $complex->chargeRules()->get()->toArray(),
-            'expenses' => $complex->expenses()->get()->toArray(),
-            'incomes' => $complex->incomes()->get()->toArray(),
-            'bills' => $complex->bills()->get()->toArray(),
-            'payments' => $complex->payments()->get()->toArray(),
-            'announcements' => $complex->announcements()->get()->toArray(),
-        ];
-
-        $filename = 'backup-complex-'.$complex->id.'-'.now()->format('Ymd-His').'.json';
-        $path = 'backups/'.$filename;
-
-        Storage::disk('local')->put($path, json_encode($snapshot, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT));
-
+        /*
+         * رکورد **پیش از** صف‌شدن ساخته می‌شود تا کاربر بلافاصله ردیفش را با
+         * وضعیت «در حال ساخت» ببیند. اگر برعکس بود، دکمه را می‌زد و تا اجرای
+         * Job هیچ نشانه‌ای از کارش نمی‌دید.
+         */
         $backup = Backup::create([
             'complex_id' => $complex->id,
             'type' => 'complex',
-            'status' => 'completed',
+            'status' => 'pending',
             'disk' => 'local',
-            'path' => $path,
-            'size' => Storage::disk('local')->size($path),
             'note' => 'بکاپ دستی مجتمع',
             'created_by' => Auth::id(),
         ]);
 
-        Audit::log('backup.created', 'ساخت نسخه پشتیبان مجتمع', $backup, [
-            'size_kb' => (int) round(((int) $backup->size) / 1024),
-        ]);
+        BuildBackupJob::dispatch($backup->id);
 
+        Audit::log('backup.created', 'ساخت نسخه پشتیبان مجتمع', $backup);
+
+        // ۲۰۲ و نه ۲۰۱: کار پذیرفته شده ولی هنوز تمام نشده
         return response()->json([
-            'message' => 'بکاپ ساخته شد.',
+            'message' => 'ساخت بکاپ شروع شد. تا لحظاتی دیگر آماده می‌شود.',
             'backup' => $this->present($backup),
-        ], 201);
+        ], 202);
     }
 
     public function download(Backup $backup): StreamedResponse

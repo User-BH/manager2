@@ -3,6 +3,7 @@ import { useQuery } from '@tanstack/react-query'
 import {
   Activity,
   AlertTriangle,
+  ListChecks,
   BarChart3,
   CheckCircle2,
   ExternalLink,
@@ -49,6 +50,7 @@ interface ServiceStatus {
 }
 
 interface Summary {
+  queue: { pending: number; failed: number; oldestPendingMinutes: number }
   openErrors: number
   last24h: number
   last7days: number
@@ -129,6 +131,7 @@ export function ObservabilityPage() {
       </header>
 
       <SummaryCards summary={data.summary} />
+      <QueueHealth queue={data.summary.queue} />
       <ServiceCards services={data.services} />
 
       <SettingsForm fields={data.fields} />
@@ -227,6 +230,58 @@ function SourceBadge({ source }: { source?: string }) {
     <span className="text-[11px]" style={{ color: badge.color }}>
       {badge.text}
     </span>
+  )
+}
+
+/**
+ * سلامتِ صف.
+ *
+ * از R11 بکاپ‌ها در صف ساخته می‌شوند. اگر کارگر روی سرور بالا نباشد، کارها
+ * بی‌صدا تلنبار می‌شوند و کاربر «در حال ساخت…» می‌بیند که هرگز تمام نمی‌شود.
+ * هشدار بر اساس **سنِ قدیمی‌ترین کارِ منتظر** است و نه تعدادشان: صفِ شلوغ
+ * لزوماً مشکل نیست، ولی کاری که ده دقیقه منتظر مانده یعنی کسی آن را برنمی‌دارد.
+ */
+function QueueHealth({ queue }: { queue: Summary['queue'] }) {
+  const stalled = queue.oldestPendingMinutes >= 10
+
+  return (
+    <div
+      className="flex flex-wrap items-center gap-x-6 gap-y-2 rounded-2xl border p-4"
+      style={{
+        borderColor: stalled ? 'var(--color-danger)' : 'var(--border-subtle)',
+        backgroundColor: 'var(--surface-base)',
+      }}
+    >
+      <span
+        className="flex items-center gap-1.5 text-[12.5px] font-semibold"
+        style={{ color: 'var(--text-primary)' }}
+      >
+        <ListChecks size={14} style={{ color: 'var(--text-tertiary)' }} />
+        وضعیت صف
+      </span>
+
+      <span className="text-[12px]" style={{ color: 'var(--text-secondary)' }}>
+        در انتظار: <b className="tabular-nums">{formatNumber(queue.pending)}</b>
+      </span>
+
+      <span
+        className="text-[12px]"
+        style={{ color: queue.failed > 0 ? 'var(--color-danger)' : 'var(--text-secondary)' }}
+      >
+        ناموفق: <b className="tabular-nums">{formatNumber(queue.failed)}</b>
+      </span>
+
+      {stalled && (
+        <span
+          className="flex items-center gap-1.5 text-[12px] font-semibold"
+          style={{ color: 'var(--color-danger)' }}
+        >
+          <AlertTriangle size={13} />
+          قدیمی‌ترین کار {formatNumber(queue.oldestPendingMinutes)} دقیقه منتظر است — احتمالاً
+          کارگرِ صف (queue:work) روی سرور اجرا نمی‌شود.
+        </span>
+      )}
+    </div>
   )
 }
 

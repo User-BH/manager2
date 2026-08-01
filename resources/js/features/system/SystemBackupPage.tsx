@@ -15,9 +15,19 @@ export function SystemBackupPage() {
 
   useDocumentTitle('بکاپ کل سیستم')
 
+  /*
+   * تا وقتی بکاپی در صف است، هر ۳ ثانیه دوباره می‌پرسیم.
+   *
+   * بدونِ این، کاربر «در حال ساخت…» را می‌بیند و صفحه هرگز خودش عوض نمی‌شود؛
+   * مجبور می‌شود دستی رفرش کند یا فکر کند خراب شده. با تمام‌شدنِ کار، شرط
+   * `false` می‌شود و نظرسنجی خودبه‌خود می‌ایستد — پس روی صفحه‌ی بی‌کار هیچ
+   * درخواستِ اضافه‌ای نمی‌رود.
+   */
   const { data, error, isLoading, refetch } = useQuery({
     queryKey: queryKeys.system.backups(),
     queryFn: ({ signal }) => api<{ data: BackupRow[] }>('/system/backups', { signal }),
+    refetchInterval: (query) =>
+      query.state.data?.data.some((backup) => backup.status === 'pending') ? 3000 : false,
   })
 
   async function createBackup() {

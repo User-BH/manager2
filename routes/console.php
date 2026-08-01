@@ -26,3 +26,15 @@ Schedule::command('backups:prune --keep=10')->weeklyOn(5, '03:30');
 
 // دستگاه‌های مورداعتمادِ منقضی‌شده‌ی «مرا به خاطر بسپار»
 Schedule::command('trusted-devices:prune')->dailyAt('03:45');
+
+/*
+| نگه‌داریِ صف (R11)
+|
+| `failed_jobs` خودش هرگز پاک نمی‌شود. اگر رهایش کنیم، جدولی که کسی نگاهش
+| نمی‌کند بی‌نهایت بزرگ می‌شود — و چون هر ردیفش بدنه‌ی کاملِ Job را دارد،
+| سریع‌تر از انتظار رشد می‌کند. دو هفته برای بررسی کافی است.
+*/
+Schedule::command('queue:prune-failed --hours=336')->weeklyOn(6, '04:00');
+
+// دسته‌های ناتمامِ صف هم همین‌طور
+Schedule::command('queue:prune-batches --hours=336')->weeklyOn(6, '04:15');

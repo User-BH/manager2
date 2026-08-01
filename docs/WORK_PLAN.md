@@ -186,11 +186,12 @@
 
 ### R11 — Queue + Job + Retry/Backoff/Timeout + Scheduler
 
-**اندازه:** L · **وابستگی:** R9 · **وضعیت:** ❌
+**اندازه:** L · **وابستگی:** R9 · **وضعیت:** ✅
 **منبع:** Backend-13, 14, 15, 45, 46 · DoD-77, 78, 81, 82
 
 **مشکل فعلی (تأییدشده):** `QUEUE_CONNECTION=database` تنظیم است و `queue:listen` در اسکریپت dev هست، اما **پوشه‌ی `app/Jobs` وجود ندارد** — یعنی پیامک، ایمیل، گزارش‌گیری و بکاپ همه همزمان (blocking) اجرا می‌شوند.
 **کار:** Job برای SMS/Email/Notification/Report/Import/Export + `tries`/`backoff`/`timeout` + مدیریت `failed_jobs` + انتقال زمان‌بندی‌ها به Scheduler.
+**نتیجه:** `BaseJob` با سقفِ tries/backoff/timeout و اتصالِ `failed()` به ثبتِ خطای R8، و `BuildBackupJob` که ساختِ فایل را از چرخه‌ی درخواست بیرون برد. منطقِ بکاپ از دو کنترلر به `BackupBuilder` رفت. پاسخ ۲۰۲ شد و رکوردِ `pending` **پیش از** صف‌شدن ساخته می‌شود تا کاربر بلافاصله ردیفش را ببیند؛ فرانت تا پایانِ کار هر ۳ ثانیه تازه می‌کند و بعد خودش می‌ایستد. کارتِ «وضعیت صف» به پنلِ پایش اضافه شد تا کارگرِ نخوابیده بی‌صدا نماند. **پیامکِ OTP عمداً به صف نرفت** (دلیل در `BACKEND_STRUCTURE.md`). `queue:prune-failed` و `prune-batches` هفتگی. **یک باگِ واقعی که فقط کارگرِ واقعی نشانش داد:** نامِ ویژگیِ `retryUntil` باعث می‌شد لاراول ۳۶۰۰ را timestamp بفهمد و هر Job پیش از اولین اجرا شکست بخورد.
 
 ### R12 — Event / Listener / Observer / سیستم Notification لاراول
 

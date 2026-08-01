@@ -196,7 +196,7 @@ class OperationalHardeningTest extends TestCase
         Storage::fake('local');
 
         for ($i = 0; $i < 12; $i++) {
-            $this->actingAs($this->admin)->postJson('/api/backups')->assertStatus(201);
+            $this->actingAs($this->admin)->postJson('/api/backups')->assertStatus(202);
         }
 
         $this->actingAs($this->admin)->postJson('/api/backups')->assertStatus(429);

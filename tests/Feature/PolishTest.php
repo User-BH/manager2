@@ -176,7 +176,7 @@ class PolishTest extends TestCase
     {
         Storage::fake('local');
 
-        $this->actingAs($this->superAdmin)->postJson('/api/system/backups')->assertStatus(201);
+        $this->actingAs($this->superAdmin)->postJson('/api/system/backups')->assertStatus(202);
         $backup = Backup::where('type', 'full')->latest('id')->firstOrFail();
 
         $this->actingAs($this->superAdmin)

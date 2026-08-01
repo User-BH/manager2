@@ -98,11 +98,38 @@ class ObservabilityController extends Controller
      * همه از دیتابیسِ خودمان می‌آید، پس حتی وقتی هیچ سرویسِ بیرونی وصل نیست
      * این صفحه داده‌ی واقعی دارد.
      */
+    /**
+     * سلامتِ صف.
+     *
+     * ─── چرا این در پنل لازم است ───────────────────────────────────────────
+     * از R11 بکاپ‌ها در صف ساخته می‌شوند. اگر کارگر (`queue:work`) روی سرور
+     * بالا نباشد، Jobها بی‌صدا در جدول تلنبار می‌شوند: کاربر «در حال ساخت…»
+     * می‌بیند و هیچ‌وقت تمام نمی‌شود، بی‌آنکه خطایی جایی ثبت شود.
+     *
+     * `oldestPendingMinutes` همان زنگِ خطر است: کارِ چنددقیقه‌ای که ساعت‌ها
+     * منتظر مانده یعنی کارگر نمی‌چرخد.
+     *
+     * @return array<string, mixed>
+     */
+    private function queueHealth(): array
+    {
+        $oldest = DB::table('jobs')->min('available_at');
+
+        return [
+            'pending' => DB::table('jobs')->count(),
+            'failed' => DB::table('failed_jobs')->count(),
+            'oldestPendingMinutes' => $oldest
+                ? (int) round((now()->timestamp - (int) $oldest) / 60)
+                : 0,
+        ];
+    }
+
     private function summary(): array
     {
         $now = now();
 
         return [
+            'queue' => $this->queueHealth(),
             'openErrors' => ErrorEvent::where('is_resolved', false)->count(),
             'last24h' => ErrorEvent::where('last_seen_at', '>=', $now->copy()->subDay())->sum('occurrences'),
             'last7days' => ErrorEvent::where('last_seen_at', '>=', $now->copy()->subDays(7))->sum('occurrences'),

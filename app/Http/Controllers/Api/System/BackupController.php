@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api\System;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\RestoreBackupRequest;
 use App\Http\Resources\SystemBackupResource;
+use App\Jobs\BuildBackupJob;
 use App\Models\AuditLog;
 use App\Models\Backup;
 use App\Models\User;
@@ -60,10 +61,22 @@ class BackupController extends Controller
 
     public function store(): JsonResponse
     {
+        // مثل بکاپِ مجتمع: رکوردِ pending اول، ساختِ فایل در صف
+        $backup = Backup::create([
+            'complex_id' => null,
+            'type' => 'full',
+            'status' => 'pending',
+            'disk' => 'local',
+            'note' => 'بکاپ کامل سیستم',
+            'created_by' => Auth::id(),
+        ]);
+
+        BuildBackupJob::dispatch($backup->id);
+
         return response()->json([
-            'message' => 'بکاپ کامل سیستم ساخته شد.',
-            'backup' => $this->present($this->snapshot('بکاپ کامل سیستم')),
-        ], 201);
+            'message' => 'ساخت بکاپ کامل شروع شد. تا لحظاتی دیگر آماده می‌شود.',
+            'backup' => $this->present($backup),
+        ], 202);
     }
 
     /** گرفتن یک بکاپ کامل و ثبت رکوردش. */

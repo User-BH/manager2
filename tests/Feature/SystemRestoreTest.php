@@ -64,7 +64,7 @@ class SystemRestoreTest extends TestCase
     /** بکاپ واقعیِ گرفته‌شده از وضعیت فعلی سامانه. */
     private function realBackupFile(): UploadedFile
     {
-        $this->actingAs($this->superAdmin)->postJson('/api/system/backups')->assertStatus(201);
+        $this->actingAs($this->superAdmin)->postJson('/api/system/backups')->assertStatus(202);
 
         $backup = Backup::latest('id')->firstOrFail();
 
@@ -243,7 +243,7 @@ class SystemRestoreTest extends TestCase
             'image_url' => '/images/ad-nitropanel.webp', 'is_active' => true, 'sort_order' => 0,
         ]);
 
-        $this->actingAs($this->superAdmin)->postJson('/api/system/backups')->assertStatus(201);
+        $this->actingAs($this->superAdmin)->postJson('/api/system/backups')->assertStatus(202);
 
         $snapshot = json_decode(Storage::disk('local')->get(Backup::latest('id')->first()->path), true);
 
