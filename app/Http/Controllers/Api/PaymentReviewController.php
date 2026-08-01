@@ -9,6 +9,7 @@ use App\Http\Requests\RejectPaymentRequest;
 use App\Http\Resources\PaymentResource;
 use App\Models\Payment;
 use App\Services\Payment\PaymentService;
+use App\Support\Uploads;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
@@ -51,7 +52,8 @@ class PaymentReviewController extends Controller
             404,
         );
 
-        return Storage::disk('local')->response($payment->receipt_path);
+        // نوعِ محتوا صریح فرستاده می‌شود، نه حدسِ لحظه‌ی سرو (R19)
+        return Uploads::serve($payment->receipt_path);
     }
 
     public function approve(Payment $payment): JsonResponse

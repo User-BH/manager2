@@ -98,4 +98,36 @@ class ArchitectureTest extends TestCase
             );
         }
     }
+
+    /**
+     * تستی که فایل آپلود می‌کند باید `Storage::fake` داشته باشد (R19).
+     *
+     * بدونِ آن، تست واقعاً در `storage/app/private` می‌نویسد و پوشه‌ی پروژه با
+     * فایلِ زباله پر می‌شود — بی‌آنکه چیزی شکست بخورد یا کسی بفهمد. این
+     * دقیقاً در جریانِ خودِ R19 یک بار اتفاق افتاد و چهار فایل به جا گذاشت.
+     */
+    public function test_upload_tests_fake_the_disk(): void
+    {
+        $offenders = [];
+
+        foreach (File::allFiles(base_path('tests')) as $file) {
+            // خودِ این فایل هر دو رشته را به‌عنوان متن دارد و باید کنار برود
+            if ($file->getExtension() !== 'php' || $file->getFilename() === 'ArchitectureTest.php') {
+                continue;
+            }
+
+            $source = File::get($file->getPathname());
+
+            if (str_contains($source, 'UploadedFile::fake')
+                && ! str_contains($source, 'Storage::fake')) {
+                $offenders[] = $file->getRelativePathname();
+            }
+        }
+
+        $this->assertSame(
+            [],
+            $offenders,
+            'این تست‌ها فایل آپلود می‌کنند ولی دیسک را fake نکرده‌اند؛ در storage واقعی می‌نویسند.',
+        );
+    }
 }

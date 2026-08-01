@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreAdvertisementRequest;
 use App\Http\Resources\AdvertisementResource;
 use App\Models\Advertisement;
+use App\Support\Uploads;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Storage;
 
@@ -30,9 +31,14 @@ class AdvertisementController extends Controller
     {
         $data = $request->validated();
 
-        $ad = new Advertisement($data);
-        $ad->image_path = $request->file('image')->store('ads', 'local');
-        $ad->save();
+        // اگر ذخیره در دیتابیس شکست بخورد، فایل هم نباید بماند (R19)
+        $ad = Uploads::keepIf($request->file('image'), 'ads', function (string $path) use ($data) {
+            $ad = new Advertisement($data);
+            $ad->image_path = $path;
+            $ad->save();
+
+            return $ad;
+        });
 
         return response()->json([
             'message' => 'بنر تبلیغاتی ثبت شد.',
@@ -44,17 +50,28 @@ class AdvertisementController extends Controller
     {
         $data = $request->validated();
 
-        // تصویر تازه اختیاری است؛ نبودنش یعنی تصویر فعلی بماند
+        /*
+         * تصویر تازه اختیاری است؛ نبودنش یعنی تصویر فعلی بماند.
+         *
+         * ترتیب اینجا مهم است (R19): تصویرِ قبلی **پس از** ذخیره‌ی موفق پاک
+         * می‌شود، نه پیش از آن. در حالت قبلی اگر `save()` شکست می‌خورد، فایلِ
+         * قدیمی رفته بود و مسیرِ تازه هم ذخیره نشده بود — یعنی بنر بی‌تصویر
+         * می‌ماند.
+         */
         if ($request->hasFile('image')) {
             $previous = $advertisement->image_path;
-            $advertisement->image_path = $request->file('image')->store('ads', 'local');
+
+            Uploads::keepIf($request->file('image'), 'ads', function (string $path) use ($advertisement, $data): void {
+                $advertisement->image_path = $path;
+                $advertisement->fill($data)->save();
+            });
 
             if ($previous) {
                 Storage::disk('local')->delete($previous);
             }
+        } else {
+            $advertisement->fill($data)->save();
         }
-
-        $advertisement->fill($data)->save();
 
         return response()->json([
             'message' => 'بنر تبلیغاتی به‌روزرسانی شد.',

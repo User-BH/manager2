@@ -11,6 +11,7 @@ use App\Models\Bill;
 use App\Models\Payment;
 use App\Services\Payment\GatewayManager;
 use App\Support\Jalali;
+use App\Support\Uploads;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -63,52 +64,64 @@ class PaymentController extends Controller
 
         $data = $request->validated();
 
-        // دیسک local خصوصی است؛ فایل فقط از مسیر کنترل‌شده‌ی بررسی پرداخت‌ها
-        // سرو می‌شود، نه مستقیم از public.
-        $path = $request->file('receipt')->store('receipts/'.$bill->complex_id, 'local');
-
         /*
-         * بررسیِ «رسیدِ در انتظار» و ساختِ رسید باید **اتمیک** باشند.
+         * دیسک local خصوصی است؛ فایل فقط از مسیر کنترل‌شده‌ی بررسی پرداخت‌ها
+         * سرو می‌شود، نه مستقیم از public.
          *
-         * پیش از این، `exists()` بیرونِ تراکنش صدا زده می‌شد: دو ارسالِ هم‌زمان
-         * (دوبار زدنِ دکمه، یا یک درخواستِ تکرارشده) هر دو «رسیدی در انتظار
-         * نیست» می‌دیدند و هر دو رسید می‌ساختند — الگوی کلاسیکِ
-         * «بررسی کن، بعد عمل کن».
-         *
-         * با قفلِ ردیفِ قبض، دو درخواست پشتِ سرِ هم می‌شوند و دومی رسیدِ اولی
-         * را می‌بیند. قفل روی خودِ قبض است و نه پرداخت‌ها، چون قبض ردیفی است
-         * که قطعاً وجود دارد؛ روی چیزی که هنوز ساخته نشده نمی‌شود قفل گرفت.
+         * `keepIf` فایل را فقط وقتی نگه می‌دارد که تراکنش موفق شود (R19).
+         * پیش از این، ارسالِ دوباره برای یک قبض ۴۲۲ می‌گرفت ولی فایلِ ۴
+         * مگابایتی‌اش برای همیشه روی دیسک می‌ماند بی‌آنکه هیچ ردیفی به آن
+         * اشاره کند — و با سقفِ ۲۰ آپلود در ساعت، ساعتی ۸۰ مگابایت زباله.
          */
-        DB::transaction(function () use ($bill, $data, $request, $path): void {
-            Bill::withoutGlobalScopes()->lockForUpdate()->find($bill->id);
+        Uploads::keepIf(
+            $request->file('receipt'),
+            'receipts/'.$bill->complex_id,
+            function (string $path) use ($bill, $data, $request): void {
+                /*
+                 * بررسیِ «رسیدِ در انتظار» و ساختِ رسید باید **اتمیک** باشند.
+                 *
+                 * پیش از این، `exists()` بیرونِ تراکنش صدا زده می‌شد: دو ارسالِ
+                 * هم‌زمان (دوبار زدنِ دکمه، یا یک درخواستِ تکرارشده) هر دو
+                 * «رسیدی در انتظار نیست» می‌دیدند و هر دو رسید می‌ساختند —
+                 * الگوی کلاسیکِ «بررسی کن، بعد عمل کن».
+                 *
+                 * با قفلِ ردیفِ قبض، دو درخواست پشتِ سرِ هم می‌شوند و دومی
+                 * رسیدِ اولی را می‌بیند. قفل روی خودِ قبض است و نه پرداخت‌ها،
+                 * چون قبض ردیفی است که قطعاً وجود دارد؛ روی چیزی که هنوز ساخته
+                 * نشده نمی‌شود قفل گرفت.
+                 */
+                DB::transaction(function () use ($bill, $data, $request, $path): void {
+                    Bill::withoutGlobalScopes()->lockForUpdate()->find($bill->id);
 
-            $alreadyPending = Payment::where('bill_id', $bill->id)
-                ->where('status', PaymentStatus::Pending)
-                ->where('method', PaymentMethod::Receipt)
-                ->exists();
+                    $alreadyPending = Payment::where('bill_id', $bill->id)
+                        ->where('status', PaymentStatus::Pending)
+                        ->where('method', PaymentMethod::Receipt)
+                        ->exists();
 
-            if ($alreadyPending) {
-                throw DomainException::invalid(
-                    'برای این قبض یک رسید در انتظار بررسی دارید.',
-                    'payment.pending_exists',
-                );
-            }
+                    if ($alreadyPending) {
+                        throw DomainException::invalid(
+                            'برای این قبض یک رسید در انتظار بررسی دارید.',
+                            'payment.pending_exists',
+                        );
+                    }
 
-            Payment::create([
-                'complex_id' => $bill->complex_id,
-                'unit_id' => $bill->unit_id,
-                'bill_id' => $bill->id,
-                'user_id' => Auth::id(),
-                'amount' => $data['amount'],
-                'method' => PaymentMethod::Receipt,
-                'status' => PaymentStatus::Pending,
-                'period' => $bill->period,
-                'receipt_path' => $path,
-                'receipt_original_name' => $request->file('receipt')->getClientOriginalName(),
-                'receipt_paid_on' => $data['paid_on'] ?? now(),
-                'description' => $data['description'] ?? null,
-            ]);
-        }, attempts: 3);
+                    Payment::create([
+                        'complex_id' => $bill->complex_id,
+                        'unit_id' => $bill->unit_id,
+                        'bill_id' => $bill->id,
+                        'user_id' => Auth::id(),
+                        'amount' => $data['amount'],
+                        'method' => PaymentMethod::Receipt,
+                        'status' => PaymentStatus::Pending,
+                        'period' => $bill->period,
+                        'receipt_path' => $path,
+                        'receipt_original_name' => Uploads::safeOriginalName($request->file('receipt')),
+                        'receipt_paid_on' => $data['paid_on'] ?? now(),
+                        'description' => $data['description'] ?? null,
+                    ]);
+                }, attempts: 3);
+            },
+        );
 
         return response()->json([
             'message' => 'رسید پرداخت ثبت شد و در انتظار تایید مدیر است.',

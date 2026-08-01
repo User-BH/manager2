@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Advertisement;
+use App\Support\Uploads;
 use Illuminate\Support\Facades\Storage;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
@@ -27,7 +28,7 @@ class AdvertisementImageController extends Controller
 
         // آدرس تصویر پارامتر نسخه (?v=updated_at) دارد، پس با تعویض فایل
         // آدرس عوض می‌شود و می‌توان محتوای فعلی را برای همیشه کش کرد.
-        return Storage::disk('local')->response($advertisement->image_path, null, [
+        return Uploads::serve($advertisement->image_path, [
             'Cache-Control' => 'public, max-age=31536000, immutable',
         ]);
     }

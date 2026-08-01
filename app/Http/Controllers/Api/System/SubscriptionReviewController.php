@@ -8,6 +8,7 @@ use App\Http\Requests\RejectSubscriptionRequest;
 use App\Http\Resources\SubscriptionReviewResource;
 use App\Models\Subscription;
 use App\Support\Audit;
+use App\Support\Uploads;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
@@ -59,7 +60,8 @@ class SubscriptionReviewController extends Controller
             404,
         );
 
-        return Storage::disk('local')->response($subscription->receipt_path);
+        // نوعِ محتوا صریح فرستاده می‌شود، نه حدسِ لحظه‌ی سرو (R19)
+        return Uploads::serve($subscription->receipt_path);
     }
 
     /**
