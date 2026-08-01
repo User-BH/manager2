@@ -5,14 +5,29 @@ namespace App\Models;
 use App\Enums\OccupancyStatus;
 use App\Enums\ResidentRelation;
 use App\Models\Concerns\BelongsToComplex;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
+/**
+ * واحدِ مسکونی.
+ *
+ * ─── چرا حذفِ نرم (R14) ────────────────────────────────────────────────────
+ * `bills.unit_id` و `payments.unit_id` روی `cascadeOnDelete` هستند، پس حذفِ
+ * سختِ یک واحد **کلِ تاریخچه‌ی مالی‌اش را پاک می‌کرد**. با `SoftDeletes` حذف
+ * هرگز به دیتابیس نمی‌رسد، cascade شلیک نمی‌شود، و قبض‌ها و پرداخت‌ها برای
+ * حسابداری می‌مانند — در حالی که واحد از دیدِ کاربر حذف شده است.
+ *
+ * توجه: شماره‌ی واحدِ حذف‌شده رزرو می‌ماند (قیدِ یکتاییِ
+ * `complex_id, unit_number` دست‌نخورده است). حذفِ اشتباهی را با `restore()`
+ * برگردانید، نه با ساختِ دوباره.
+ */
 class Unit extends Model
 {
-    use BelongsToComplex;
+    use BelongsToComplex, HasFactory, SoftDeletes;
 
     protected $fillable = [
         'complex_id', 'building_id', 'unit_number', 'floor', 'area',

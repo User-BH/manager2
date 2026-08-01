@@ -2,11 +2,14 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Complex extends Model
 {
+    use HasFactory;
+
     protected $fillable = [
         'name', 'slug', 'address', 'phone', 'currency',
         'messenger_enabled', 'good_payer_enabled', 'good_payer_config',
