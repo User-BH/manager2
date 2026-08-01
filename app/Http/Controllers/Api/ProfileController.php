@@ -12,6 +12,7 @@ use App\Models\Complex;
 use App\Models\Payment;
 use App\Models\Unit;
 use App\Models\User;
+use App\Services\Auth\TrustedDeviceService;
 use App\Support\Jalali;
 use App\Support\Phone;
 use Illuminate\Http\JsonResponse;
@@ -27,6 +28,8 @@ use Illuminate\Validation\ValidationException;
  */
 class ProfileController extends Controller
 {
+    public function __construct(private readonly TrustedDeviceService $devices) {}
+
     public function show(): JsonResponse
     {
         $user = Auth::user();
@@ -76,7 +79,30 @@ class ProfileController extends Controller
 
         $user->update(['password' => Hash::make($data['password'])]);
 
-        return response()->json(['message' => 'رمز عبور تغییر کرد.']);
+        /*
+         * تغییر رمز باید اعتمادِ دستگاه‌های قبلی را هم باطل کند (R18).
+         *
+         * مسیرِ «فراموشی رمز» این کار را از قبل انجام می‌داد، ولی این مسیر نه —
+         * و همان ناهماهنگی یعنی رایج‌ترین واکنش به «رمزم لو رفته» بی‌اثر بود:
+         * کاربر رمز را عوض می‌کرد و مهاجمی که کوکیِ دستگاهِ مورداعتماد داشت
+         * تا ۱۰ روز واردشده می‌ماند.
+         *
+         * دستگاهِ **همین** درخواست هم پاک می‌شود؛ ساده‌تر و امن‌تر از استثنا
+         * قائل‌شدن است، و هزینه‌اش فقط یک بار کدِ پیامکی در ورود بعدی است.
+         */
+        $user->trustedDevices()->delete();
+        $this->devices->forget($request);
+
+        /*
+         * شناسه‌ی نشست عوض می‌شود تا اگر کسی شناسه‌ی نشست را دزدیده باشد،
+         * با همان رمزِ عوض‌شده بیرون بیفتد. خودِ کاربر واردشده می‌ماند.
+         */
+        $request->session()->regenerate();
+
+        return response()->json([
+            'message' => 'رمز عبور تغییر کرد. برای ورود بعدی دوباره کد پیامکی لازم است.',
+            'csrfToken' => csrf_token(),
+        ]);
     }
 
     /**

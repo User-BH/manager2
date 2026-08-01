@@ -113,6 +113,7 @@
     </script>
 
     @include('partials.observability')
+    @include('partials.viewer')
 
     @vite(['resources/css/app.css', $entry])
 </head>

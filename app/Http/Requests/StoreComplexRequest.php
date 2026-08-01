@@ -3,6 +3,7 @@
 namespace App\Http\Requests;
 
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\Rules\Password;
 
 /**
  * ساختِ مجتمعِ تازه (ادمینِ کل).
@@ -26,7 +27,15 @@ class StoreComplexRequest extends BaseFormRequest
             // عملاً قابل ورود نبود.
             'admin_phone' => ['required', 'regex:/^09\d{9}$/', Rule::unique('users', 'phone')],
             'admin_email' => ['nullable', 'email', Rule::unique('users', 'email')],
-            'admin_password' => ['required', 'string', 'min:6'],
+            /*
+             * همان سیاستِ رمزِ بقیه‌ی سامانه (R18).
+             *
+             * پیش از این `min:6` بدونِ هیچ قیدی بود — یعنی سست‌ترین قاعده‌ی
+             * پروژه دقیقاً روی پرقدرت‌ترین حسابِ داخلِ یک مجتمع اعمال می‌شد.
+             * حسابِ مدیرِ مجتمع به قبض، پرداخت و همه‌ی ساکنین دسترسی دارد؛
+             * «123456» برایش قابل قبول نیست.
+             */
+            'admin_password' => ['required', Password::min(8)->letters()->numbers()],
         ];
     }
 

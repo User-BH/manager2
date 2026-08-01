@@ -13,6 +13,7 @@ import {
   BaleIcon,
 } from '@/shared/common/SocialIcons'
 import { BRAND_NAME, contactInfo, socialHover, socialLinks } from '@/shared/config/brand'
+import { isViewerAuthenticated } from '@/shared/lib/viewer'
 
 const socialIconMap = {
   instagram: InstagramIcon,
@@ -57,6 +58,8 @@ function telHref(phone: string): string {
 }
 
 export function HomeFooter() {
+  const authenticated = isViewerAuthenticated()
+
   // تماس و شبکه‌ها از پنلِ مدیرِ کل می‌آیند؛ تا رسیدنشان، پیش‌فرض نشان داده می‌شود.
   const [contact, setContact] = useState<FooterContact>(DEFAULT_CONTACT)
   const [social, setSocial] = useState<FooterSocial[]>(DEFAULT_SOCIAL)
@@ -133,7 +136,9 @@ export function HomeFooter() {
               { label: 'گالری', section: 'gallery' },
               { label: 'نظرات کاربران', section: 'testimonials' },
               { label: 'مشاهده دمو', to: '/demo' },
-              { label: 'ورود به پنل', to: '/auth' },
+              authenticated
+                ? { label: 'ورود به داشبورد', to: '/dashboard' }
+                : { label: 'ورود به پنل', to: '/auth' },
             ]}
           />
 

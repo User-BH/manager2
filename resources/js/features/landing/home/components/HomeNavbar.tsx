@@ -6,6 +6,7 @@ import { useToggle } from '@/shared/hooks'
 import { ThemeToggle } from '@/shared/layout/ThemeToggle'
 import { Logo } from '@/shared/common/Logo'
 import { scrollToSection } from '@/shared/lib/scroll'
+import { isViewerAuthenticated } from '@/shared/lib/viewer'
 
 /** به‌جای href لنگری، شناسه‌ی بخش؛ حرکت با اسکرول نرم انجام می‌شود و آدرس
     سایت دست‌نخورده می‌ماند. */
@@ -24,6 +25,13 @@ export function HomeNavbar({ minimal = false }: { minimal?: boolean } = {}) {
   const navigate = useNavigate()
   const [scrolled, setScrolled] = useState(false)
   const [mobileOpen, toggleMobileOpen, setMobileOpen] = useToggle(false)
+
+  /*
+   * سرور این را در `<head>` گذاشته، پس همان اولین رندر درست است و کاربرِ
+   * واردشده هیچ‌وقت دکمه‌ی «ورود» را نمی‌بیند تا بعد عوض شود. مقدارش در طولِ
+   * عمرِ صفحه ثابت است، پس state لازم ندارد.
+   */
+  const authenticated = isViewerAuthenticated()
 
   useEffect(() => {
     function handleScroll() {
@@ -91,20 +99,32 @@ export function HomeNavbar({ minimal = false }: { minimal?: boolean } = {}) {
         */}
         <div className="hidden items-center gap-3 min-[600px]:flex">
           <ThemeToggle />
-          <button
-            onClick={() => navigate('/auth')}
-            className="rounded-xl px-4 py-2 text-[13.5px] font-semibold transition-colors hover:opacity-90"
-            style={{ color: 'var(--text-secondary)' }}
-          >
-            ورود
-          </button>
-          <button
-            onClick={() => navigate('/auth?tab=register')}
-            className="rounded-xl px-4 py-2 text-[13.5px] font-semibold text-white shadow-sm transition-transform duration-200 hover:scale-105"
-            style={{ backgroundColor: 'var(--color-brand-500)' }}
-          >
-            ثبت‌نام رایگان
-          </button>
+          {authenticated ? (
+            <button
+              onClick={() => navigate('/dashboard')}
+              className="rounded-xl px-4 py-2 text-[13.5px] font-semibold text-white shadow-sm transition-transform duration-200 hover:scale-105"
+              style={{ backgroundColor: 'var(--color-brand-500)' }}
+            >
+              ورود به داشبورد
+            </button>
+          ) : (
+            <>
+              <button
+                onClick={() => navigate('/auth')}
+                className="rounded-xl px-4 py-2 text-[13.5px] font-semibold transition-colors hover:opacity-90"
+                style={{ color: 'var(--text-secondary)' }}
+              >
+                ورود
+              </button>
+              <button
+                onClick={() => navigate('/auth?tab=register')}
+                className="rounded-xl px-4 py-2 text-[13.5px] font-semibold text-white shadow-sm transition-transform duration-200 hover:scale-105"
+                style={{ backgroundColor: 'var(--color-brand-500)' }}
+              >
+                ثبت‌نام رایگان
+              </button>
+            </>
+          )}
         </div>
 
         {/* برگر فقط زیر ۶۰۰، با انیمیشنِ هاور (خط‌ها با هاور جابه‌جا می‌شوند). */}
@@ -150,26 +170,41 @@ export function HomeNavbar({ minimal = false }: { minimal?: boolean } = {}) {
               <ThemeToggle />
             </div>
             <div className="flex gap-2">
-              <button
-                onClick={() => {
-                  setMobileOpen(false)
-                  navigate('/auth')
-                }}
-                className="flex-1 rounded-xl border py-2.5 text-sm font-semibold"
-                style={{ borderColor: 'var(--border-subtle)', color: 'var(--text-primary)' }}
-              >
-                ورود
-              </button>
-              <button
-                onClick={() => {
-                  setMobileOpen(false)
-                  navigate('/auth?tab=register')
-                }}
-                className="flex-1 rounded-xl py-2.5 text-sm font-semibold text-white"
-                style={{ backgroundColor: 'var(--color-brand-500)' }}
-              >
-                ثبت‌نام رایگان
-              </button>
+              {authenticated ? (
+                <button
+                  onClick={() => {
+                    setMobileOpen(false)
+                    navigate('/dashboard')
+                  }}
+                  className="flex-1 rounded-xl py-2.5 text-sm font-semibold text-white"
+                  style={{ backgroundColor: 'var(--color-brand-500)' }}
+                >
+                  ورود به داشبورد
+                </button>
+              ) : (
+                <>
+                  <button
+                    onClick={() => {
+                      setMobileOpen(false)
+                      navigate('/auth')
+                    }}
+                    className="flex-1 rounded-xl border py-2.5 text-sm font-semibold"
+                    style={{ borderColor: 'var(--border-subtle)', color: 'var(--text-primary)' }}
+                  >
+                    ورود
+                  </button>
+                  <button
+                    onClick={() => {
+                      setMobileOpen(false)
+                      navigate('/auth?tab=register')
+                    }}
+                    className="flex-1 rounded-xl py-2.5 text-sm font-semibold text-white"
+                    style={{ backgroundColor: 'var(--color-brand-500)' }}
+                  >
+                    ثبت‌نام رایگان
+                  </button>
+                </>
+              )}
             </div>
           </div>
         </motion.div>

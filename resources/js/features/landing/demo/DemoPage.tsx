@@ -17,6 +17,7 @@ import { HomeNavbar } from '../home/components/HomeNavbar'
 import { FloatingActions } from '../home/components/FloatingActions'
 import { DemoSignboard } from './DemoSignboard'
 import { VideoPlayer, type VideoChapter } from './VideoPlayer'
+import { isViewerAuthenticated } from '@/shared/lib/viewer'
 
 /** فصل‌های ویدیو — روی نوار پیشرفت هم نشانه می‌خورند. */
 const chapters: VideoChapter[] = [
@@ -93,6 +94,8 @@ const features: DemoFeature[] = [
  * دسترسی هم در دو دکمه‌ی شناورِ گوشه‌ی صفحه هست.
  */
 export function DemoPage() {
+  const authenticated = isViewerAuthenticated()
+
   return (
     <div style={{ backgroundColor: 'var(--surface-canvas)' }}>
       <HomeNavbar minimal />
@@ -233,16 +236,18 @@ export function DemoPage() {
             className="mx-auto mt-3 max-w-md text-[13.5px] leading-7"
             style={{ color: 'var(--text-secondary)' }}
           >
-            ساخت حساب رایگان است و برای شروع فقط یک شماره موبایل لازم دارید.
+            {authenticated
+              ? 'حساب شما آماده است؛ از داشبورد ادامه بدهید.'
+              : 'ساخت حساب رایگان است و برای شروع فقط یک شماره موبایل لازم دارید.'}
           </p>
 
           <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
             <Link
-              to="/auth?tab=register"
+              to={authenticated ? '/dashboard' : '/auth?tab=register'}
               className="group flex items-center gap-2 rounded-2xl px-6 py-3.5 text-sm font-bold text-white shadow-lg transition-transform duration-200 hover:scale-105"
               style={{ backgroundColor: 'var(--color-brand-500)' }}
             >
-              شروع رایگان
+              {authenticated ? 'ورود به داشبورد' : 'شروع رایگان'}
               <ArrowRight
                 size={16}
                 className="rotate-180 transition-transform group-hover:-translate-x-1"

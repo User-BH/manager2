@@ -4,9 +4,11 @@ import { motion, useScroll, useTransform } from 'framer-motion'
 import { ArrowLeft, PlayCircle } from 'lucide-react'
 import { heroHighlights } from '@/features/landing/content/landingContent'
 import { heroImages as imageUrls } from '@/shared/constants/images'
+import { isViewerAuthenticated } from '@/shared/lib/viewer'
 
 export function HeroSection() {
   const navigate = useNavigate()
+  const authenticated = isViewerAuthenticated()
   const sectionRef = useRef<HTMLDivElement>(null)
 
   const { scrollYProgress } = useScroll({
@@ -77,12 +79,13 @@ export function HeroSection() {
             transition={{ duration: 0.65, delay: 0.3 }}
             className="mt-8 flex flex-wrap items-center gap-3"
           >
+            {/* «شروع رایگان» برای کسی که از قبل حساب دارد بی‌معناست (R18) */}
             <button
-              onClick={() => navigate('/auth?tab=register')}
+              onClick={() => navigate(authenticated ? '/dashboard' : '/auth?tab=register')}
               className="group flex items-center gap-2 rounded-2xl px-6 py-3.5 text-sm font-bold text-white shadow-lg shadow-emerald-900/10 transition-transform duration-200 hover:scale-105"
               style={{ backgroundColor: 'var(--color-brand-500)' }}
             >
-              شروع رایگان
+              {authenticated ? 'ورود به داشبورد' : 'شروع رایگان'}
               <ArrowLeft size={16} className="transition-transform group-hover:-translate-x-1" />
             </button>
             <button
