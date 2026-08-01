@@ -102,7 +102,7 @@ export const queryKeys = {
     ads: () => ['system', 'ads'] as const,
     auditLogs: (params: { query?: string } = {}) => ['system', 'audit-logs', params] as const,
     backups: () => ['system', 'backups'] as const,
-    complexes: () => ['system', 'complexes'] as const,
+    complexes: (params: { page?: number } = {}) => ['system', 'complexes', params] as const,
     plans: () => ['system', 'plans'] as const,
     siteSettings: () => ['system', 'site-settings'] as const,
     sms: () => ['system', 'sms'] as const,

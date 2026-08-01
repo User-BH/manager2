@@ -48,13 +48,21 @@ export function ComplexesPage() {
 
   useDocumentTitle('مدیریت مجتمع‌ها')
 
+  const [page, setPage] = useState(1)
+
+  /*
+   * فهرستِ مجتمع‌ها از R13 صفحه‌بندی می‌شود: تنها فهرستی بود که با رشدِ
+   * کسب‌وکار بی‌کران می‌شد. `page` جزوِ کلید است، پس هر صفحه کشِ خودش را دارد
+   * و برگشتن به صفحه‌ی قبلی آنی است.
+   */
   const { data, error, isLoading, refetch } = useQuery({
-    queryKey: queryKeys.system.complexes(),
+    queryKey: queryKeys.system.complexes({ page }),
     queryFn: ({ signal }) =>
       api<{
         data: ComplexRow[]
         activeId: number | null
-      }>('/system/complexes', { signal }),
+        meta: { currentPage: number; lastPage: number; total: number }
+      }>(`/system/complexes?page=${page}`, { signal }),
   })
 
   async function select(complex: ComplexRow) {
@@ -206,6 +214,37 @@ export function ComplexesPage() {
                 </motion.li>
               ))}
             </ul>
+          )}
+
+          {/*
+            صفحه‌بند فقط وقتی دیده می‌شود که واقعاً بیش از یک صفحه باشد؛ برای
+            پلتفرمی با پنج مجتمع، دکمه‌های همیشه‌خاموش فقط شلوغی است.
+          */}
+          {data.meta.lastPage > 1 && (
+            <div className="mt-4 flex items-center justify-center gap-3">
+              <button
+                onClick={() => setPage((p) => Math.max(1, p - 1))}
+                disabled={page <= 1}
+                className="rounded-lg border px-3 py-1.5 text-[12.5px] disabled:opacity-40"
+                style={{ borderColor: 'var(--border-subtle)', color: 'var(--text-secondary)' }}
+              >
+                قبلی
+              </button>
+
+              <span className="text-[12px] tabular-nums" style={{ color: 'var(--text-tertiary)' }}>
+                {formatNumber(data.meta.currentPage)} از {formatNumber(data.meta.lastPage)} ·{' '}
+                {formatNumber(data.meta.total)} مجتمع
+              </span>
+
+              <button
+                onClick={() => setPage((p) => p + 1)}
+                disabled={page >= data.meta.lastPage}
+                className="rounded-lg border px-3 py-1.5 text-[12.5px] disabled:opacity-40"
+                style={{ borderColor: 'var(--border-subtle)', color: 'var(--text-secondary)' }}
+              >
+                بعدی
+              </button>
+            </div>
           )}
         </Card>
       )}

@@ -16,10 +16,22 @@ class ComplexController extends Controller
 {
     public function index(): JsonResponse
     {
-        $complexes = Complex::withCount(['units', 'users'])->latest()->get();
+        /*
+         * تنها فهرستی که با رشدِ کسب‌وکار بی‌کران می‌شود.
+         *
+         * بقیه‌ی فهرست‌های بدونِ صفحه‌بندی ذاتاً محدودند (یک دوره، یک مجتمع)،
+         * ولی تعدادِ مجتمع‌های پلتفرم فقط زیاد می‌شود. بدونِ صفحه‌بندی، این
+         * صفحه روزی همه‌ی رکوردها را در یک پاسخ می‌ریخت.
+         */
+        $complexes = Complex::withCount(['units', 'users'])->latest()->paginate(20);
 
         return response()->json([
-            'data' => $complexes->map(fn (Complex $c) => [
+            'meta' => [
+                'currentPage' => $complexes->currentPage(),
+                'lastPage' => $complexes->lastPage(),
+                'total' => $complexes->total(),
+            ],
+            'data' => $complexes->getCollection()->map(fn (Complex $c) => [
                 'id' => $c->id,
                 'name' => $c->name,
                 'address' => $c->address,

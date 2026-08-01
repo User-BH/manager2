@@ -22,11 +22,29 @@ abstract class Controller
      * The complex the current admin is acting within. Complex-admins are
      * locked to their own; the super-admin uses the one selected in session.
      */
+    /**
+     * مجتمعِ جاری، با حافظه‌ی درون‌درخواستی.
+     *
+     * چند اکشن `requireComplex()` را بیش از یک بار صدا می‌زنند (مثلاً یک بار
+     * برای مجوزدهی و یک بار برای فیلترِ کوئری) و هر بار یک `select` تازه
+     * می‌رفت. مقدار در طولِ یک درخواست تغییر نمی‌کند، پس یک بار خواندنش کافی
+     * است.
+     *
+     * عمداً `Cache` نیست: مجتمعِ جاری به کاربرِ همین درخواست بستگی دارد و
+     * کشِ مشترک بین درخواست‌ها می‌توانست داده‌ی یک مستأجر را به دیگری نشان
+     * دهد — بدترین باگِ ممکن در یک سامانه‌ی چندمستأجری.
+     */
+    private ?Complex $resolvedComplex = null;
+
     protected function currentComplex(): ?Complex
     {
+        if ($this->resolvedComplex !== null) {
+            return $this->resolvedComplex;
+        }
+
         $id = ComplexResolver::idFor(Auth::user());
 
-        return $id ? Complex::find($id) : null;
+        return $this->resolvedComplex = $id ? Complex::find($id) : null;
     }
 
     /**
