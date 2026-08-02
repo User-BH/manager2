@@ -109,7 +109,7 @@
 ## ۵) دستورهای اجرا و تست (نتیجه‌ی واقعی — 2026-08-02، پس از R21)
 
 ```bash
-php artisan test        # ✅ 444 passed / 1371 assertions
+php artisan test        # ✅ 461 passed / 1411 assertions
 npm test                # ✅ 166 passed (۱۷ فایل) — Vitest
 npm run test:coverage   # ✅ گزارش پوشش (v8)
 npm run test:e2e        # ✅ 11 passed — Playwright/Chromium روی سرور واقعی
@@ -254,6 +254,10 @@ php artisan route:list       # ✅ ۱۳۲ سطر
   اضافه‌اش کنید — و دلیلش را بنویسید.
 - **پیوستن به مجتمع همیشه با رضایتِ کاربر است.** مدیر فقط دعوت می‌فرستد
   (`ComplexInvitation`)؛ اتصالِ مستقیمِ حسابِ موجود عمداً پیاده نشد.
+- **دو جهت روی یک جدول:** `complex_invitations.direction` یا `invite` است
+  (مدیر می‌فرستد، کاربر می‌پذیرد) یا `request` (کاربر می‌فرستد، مدیر تایید
+  می‌کند). جدولِ جدا ساخته نشد چون هر دو یک چیزند و دو مسیرِ تاییدِ موازی
+  دیر یا زود از هم جدا می‌افتند.
 - `ComplexInvitation` عمداً `BelongsToComplex` **ندارد** — گیرنده هنوز به
   مجتمعی وصل نیست و با دامنه هرگز دعوتش را نمی‌دید. محدودسازی در کنترلر
   دستی و اجباری است.

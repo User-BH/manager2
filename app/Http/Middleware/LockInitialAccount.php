@@ -29,8 +29,9 @@ class LockInitialAccount
      * `api/v1/` را پوشش می‌دهند.
      */
     private const ALLOWED = [
-        // بیرون‌رفتن از حالتِ اولیه
+        // بیرون‌رفتن از حالتِ اولیه — پذیرشِ دعوت، یا فرستادنِ درخواست به مدیر
         '*/invitations/*',
+        '*/join-requests',
         // خرید اشتراک — راهِ دوم بیرون‌رفتن
         '*/subscription/*',
         '*/subscription',

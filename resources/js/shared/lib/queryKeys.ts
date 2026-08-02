@@ -102,6 +102,11 @@ export const queryKeys = {
     all: () => ['invitations'] as const,
   },
 
+  // درخواست‌های پیوستن که مدیر باید پاسخ بدهد (R21b)
+  joinRequests: {
+    all: () => ['join-requests'] as const,
+  },
+
   system: {
     all: () => ['system'] as const,
     ads: () => ['system', 'ads'] as const,

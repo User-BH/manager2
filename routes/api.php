@@ -12,6 +12,7 @@ use App\Http\Controllers\Api\DiscountController;
 use App\Http\Controllers\Api\FinanceController;
 use App\Http\Controllers\Api\GoodPayerController;
 use App\Http\Controllers\Api\InvitationController;
+use App\Http\Controllers\Api\JoinRequestController;
 use App\Http\Controllers\Api\ManagerController;
 use App\Http\Controllers\Api\MessengerController;
 use App\Http\Controllers\Api\MyBillController;
@@ -144,6 +145,24 @@ Route::middleware('auth')->group(function () {
      * او را از آن حالت بیرون می‌برد. `LockInitialAccount` این مسیرها را
      * صریحاً مستثنا کرده است.
      */
+    /*
+     * درخواستِ پیوستن از سمتِ واحد (R21b) — جهتِ برعکسِ دعوت.
+     *
+     * `lookup` وجودِ مدیر را لحظه‌ای تایید می‌کند. محدودیتِ نرخ دارد چون
+     * وگرنه می‌شد با آن شماره‌ها را پیمود و فهمید کدام‌یک مدیرِ مجتمع است.
+     */
+    Route::get('join-requests/lookup', [JoinRequestController::class, 'lookup'])
+        ->middleware('throttle:search')->name('join-requests.lookup');
+    Route::post('join-requests', [JoinRequestController::class, 'store'])
+        ->middleware('throttle:search')->name('join-requests.store');
+
+    // سمتِ مدیر: صندوقِ درخواست‌ها
+    Route::get('join-requests', [JoinRequestController::class, 'index'])->name('join-requests.index');
+    Route::post('join-requests/{invitation}/approve', [JoinRequestController::class, 'approve'])
+        ->name('join-requests.approve');
+    Route::post('join-requests/{invitation}/reject', [JoinRequestController::class, 'reject'])
+        ->name('join-requests.reject');
+
     Route::get('invitations', [InvitationController::class, 'index'])->name('invitations.index');
     Route::post('invitations/{invitation}/accept', [InvitationController::class, 'accept'])
         ->name('invitations.accept');

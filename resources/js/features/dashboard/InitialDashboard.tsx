@@ -6,6 +6,7 @@ import { queryKeys } from '@/shared/lib/queryKeys'
 import { useAction } from '@/shared/hooks/useAction'
 import { useAuth } from '@/shared/stores/authStore'
 import type { Invitation } from '@/shared/types'
+import { JoinByManagerPhone } from './JoinByManagerPhone'
 
 /**
  * داشبوردِ «حالتِ اولیه» — پنجمین حالتِ داشبورد (R21).
@@ -23,6 +24,7 @@ export function InitialDashboard() {
     <div className="mx-auto flex max-w-3xl flex-col gap-5">
       <DemoBanner />
       <InvitationList />
+      <JoinByManagerPhone />
       <NextSteps />
       <DemoVideo />
       {user?.role === 'tenant' || user?.role === 'owner' ? <RoleHint /> : null}

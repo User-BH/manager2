@@ -23,6 +23,7 @@ use Illuminate\Support\Carbon;
  * @property int $user_id
  * @property int|null $unit_id
  * @property UserRole $role
+ * @property string $direction
  * @property int|null $invited_by
  * @property string $status
  * @property Carbon|null $responded_at
@@ -36,9 +37,15 @@ class ComplexInvitation extends Model
 
     public const DECLINED = 'declined';
 
+    /** مدیر فرستاده؛ کاربر تایید می‌کند. */
+    public const INVITE = 'invite';
+
+    /** کاربر فرستاده؛ مدیر تایید می‌کند. */
+    public const REQUEST = 'request';
+
     protected $fillable = [
         'complex_id', 'user_id', 'unit_id', 'role',
-        'invited_by', 'status', 'responded_at',
+        'direction', 'invited_by', 'status', 'responded_at',
     ];
 
     protected function casts(): array
@@ -53,6 +60,18 @@ class ComplexInvitation extends Model
     public function scopePending(Builder $query): void
     {
         $query->where('status', self::PENDING);
+    }
+
+    /** دعوت‌هایی که مدیر فرستاده و کاربر باید پاسخ بدهد. */
+    public function scopeInvites(Builder $query): void
+    {
+        $query->where('direction', self::INVITE);
+    }
+
+    /** درخواست‌هایی که کاربر فرستاده و مدیر باید پاسخ بدهد. */
+    public function scopeRequests(Builder $query): void
+    {
+        $query->where('direction', self::REQUEST);
     }
 
     /** @return BelongsTo<Complex, $this> */

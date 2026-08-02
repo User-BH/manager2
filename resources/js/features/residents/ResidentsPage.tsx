@@ -24,6 +24,7 @@ import { api } from '@/shared/lib/api'
 import { alertError, confirmAction, toastSuccess } from '@/shared/lib/alert'
 import { formatNumber } from '@/shared/lib/format'
 import type { Resident, ResidentsResponse } from './types'
+import { JoinRequestInbox } from './JoinRequestInbox'
 
 export function ResidentsPage() {
   const [search, setSearch] = useState('')
@@ -111,6 +112,9 @@ export function ResidentsPage() {
           </button>
         </div>
       </header>
+
+      {/* درخواست‌های پیوستن بالای فهرست می‌آیند چون منتظرِ اقدام‌اند (R21b) */}
+      <JoinRequestInbox />
 
       {isLoading && <TableSkeleton rows={6} columns={5} />}
       {error && <ErrorState message={errorMessage(error)} onRetry={() => void refetch()} />}
