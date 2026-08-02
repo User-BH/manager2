@@ -37,6 +37,7 @@ use App\Http\Controllers\Api\System\SiteSettingsController;
 use App\Http\Controllers\Api\System\SmsController;
 use App\Http\Controllers\Api\System\SubscriptionReviewController;
 use App\Http\Controllers\Api\UnitController;
+use App\Http\Controllers\Api\WalletController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -123,6 +124,16 @@ Route::middleware('auth')->group(function () {
         ->name('announcements.destroy');
 
     Route::get('good-payers', [GoodPayerController::class, 'index'])->name('good-payers.index');
+
+    /*
+     * کیفِ پولِ واحد (R22).
+     *
+     * موجودی همیشه از دفتر حساب می‌شود، پس این مسیرها هیچ ستونِ مانده‌ای را
+     * دست‌کاری نمی‌کنند.
+     */
+    Route::get('wallet', [WalletController::class, 'index'])->name('wallet.index');
+    Route::get('wallet/{unit}', [WalletController::class, 'statement'])->name('wallet.statement');
+    Route::post('wallet/pay/{bill}', [WalletController::class, 'payBill'])->name('wallet.pay');
 
     // زنگوله‌ی هدر. منبعش همان اطلاعیه‌هاست، فقط با وضعیت خوانده/نخوانده.
     Route::get('notifications', [NotificationController::class, 'index'])->name('notifications.index');

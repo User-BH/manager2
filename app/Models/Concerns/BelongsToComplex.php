@@ -54,6 +54,7 @@ trait BelongsToComplex
         return $query->first();
     }
 
+    /** @return BelongsTo<Complex, $this> */
     public function complex(): BelongsTo
     {
         return $this->belongsTo(Complex::class);

@@ -10,6 +10,7 @@ use App\Http\Requests\UploadPaymentReceiptRequest;
 use App\Models\Bill;
 use App\Models\Payment;
 use App\Services\Payment\GatewayManager;
+use App\Services\Wallet\WalletService;
 use App\Support\Jalali;
 use App\Support\Uploads;
 use Illuminate\Http\JsonResponse;
@@ -45,6 +46,22 @@ class PaymentController extends Controller
             ],
             'currency' => $bill->complex?->currencyLabel() ?? 'تومان',
             'onlineEnabled' => $this->gateways->isOnlineEnabled($bill->complex),
+
+            /*
+             * کارتِ مقصدِ کارت‌به‌کارت (R22). تا پیش از این، ساکنِ مجتمعی که
+             * درگاه نداشت دکمه‌ی «آپلود رسید» را می‌دید ولی هیچ‌جا نمی‌گفت
+             * پول را کجا بفرستد.
+             */
+            'card' => array_filter([
+                'number' => $bill->complex?->settings['card_number'] ?? null,
+                'holder' => $bill->complex?->settings['card_holder'] ?? null,
+                'bank' => $bill->complex?->settings['card_bank'] ?? null,
+            ]) ?: null,
+
+            // موجودیِ کیفِ پولِ همین واحد، تا بتواند مستقیم از آن بپردازد
+            'walletBalance' => $bill->unit
+                ? app(WalletService::class)->balance($bill->unit)
+                : 0.0,
             // فرم پرداخت آنلاین باید به این مسیر POST شود تا مرورگر به درگاه برود
             'onlineAction' => route('payments.online', $bill),
         ]);

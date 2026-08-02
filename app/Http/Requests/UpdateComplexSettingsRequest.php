@@ -31,6 +31,20 @@ class UpdateComplexSettingsRequest extends BaseFormRequest
             'gw_terminal_id' => ['nullable', 'string', 'max:50'],
             'gw_username' => ['nullable', 'string', 'max:100'],
             'gw_password' => ['nullable', 'string', 'max:100'],
+
+            /*
+             * کارتِ کارت‌به‌کارت (R22).
+             *
+             * مدیری که درگاه ندارد تنها راهش واریزِ کارت‌به‌کارت است، ولی تا
+             * اینجا هیچ‌جا شماره‌ی کارتش را نمی‌گفت: ساکن دکمه‌ی «آپلود رسید»
+             * را می‌دید بی‌آنکه بداند پول را کجا بفرستد.
+             *
+             * فقط رقم و خط تیره؛ رشته‌ی آزاد اینجا یعنی هر چیزی می‌تواند در
+             * صفحه‌ی پرداخت چاپ شود.
+             */
+            'card_number' => ['nullable', 'string', 'max:25', 'regex:/^[\d-]+$/'],
+            'card_holder' => ['nullable', 'string', 'max:100'],
+            'card_bank' => ['nullable', 'string', 'max:60'],
             'messenger_enabled' => ['nullable', 'boolean'],
             'good_payer_enabled' => ['nullable', 'boolean'],
             'penalty_enabled' => ['nullable', 'boolean'],
@@ -63,6 +77,7 @@ class UpdateComplexSettingsRequest extends BaseFormRequest
             'penalty_type' => 'نوع جریمه',
             'penalty_value' => 'مقدار جریمه',
             'penalty_grace_days' => 'روزهای مهلت',
+            'card_number' => 'شماره کارت', 'card_holder' => 'نام صاحب کارت', 'card_bank' => 'نام بانک',
         ];
     }
 

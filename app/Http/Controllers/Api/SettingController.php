@@ -129,6 +129,16 @@ class SettingController extends Controller
                     ? $data['gw_password']
                     : ($existing['password'] ?? ''),
             ],
+            /*
+             * اطلاعاتِ کارت داخلِ `settings` می‌نشیند نه `gateway_config`:
+             * آن یکی اعتبارنامه‌ی درگاه است و نباید با چیزی که عمداً به
+             * ساکنین **نشان داده می‌شود** قاتی شود.
+             */
+            'settings' => array_merge($complex->settings ?? [], [
+                'card_number' => $data['card_number'] ?? null,
+                'card_holder' => $data['card_holder'] ?? null,
+                'card_bank' => $data['card_bank'] ?? null,
+            ]),
             'messenger_enabled' => $request->boolean('messenger_enabled'),
             'good_payer_enabled' => $request->boolean('good_payer_enabled'),
             'penalty_enabled' => $request->boolean('penalty_enabled'),

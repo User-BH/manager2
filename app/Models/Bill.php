@@ -4,10 +4,16 @@ namespace App\Models;
 
 use App\Enums\BillStatus;
 use App\Models\Concerns\BelongsToComplex;
+use Carbon\CarbonInterface;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
+/**
+ * @property CarbonInterface|null $due_date
+ * @property int $reminders_sent
+ * @property CarbonInterface|null $last_reminded_at
+ */
 class Bill extends Model
 {
     use BelongsToComplex;

@@ -139,20 +139,8 @@ parameters:
 			path: app/Http/Controllers/Api/MyBillController.php
 
 		-
-			message: '#^Call to an undefined method Illuminate\\Database\\Eloquent\\Model\:\:currencyLabel\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: app/Http/Controllers/Api/PaymentController.php
-
-		-
 			message: '#^Cannot call method label\(\) on string\.$#'
 			identifier: method.nonObject
-			count: 1
-			path: app/Http/Controllers/Api/PaymentController.php
-
-		-
-			message: '#^Parameter \#1 \$complex of method App\\Services\\Payment\\GatewayManager\:\:isOnlineEnabled\(\) expects App\\Models\\Complex, Illuminate\\Database\\Eloquent\\Model\|null given\.$#'
-			identifier: argument.type
 			count: 1
 			path: app/Http/Controllers/Api/PaymentController.php
 
@@ -173,24 +161,6 @@ parameters:
 			identifier: method.nonObject
 			count: 2
 			path: app/Http/Controllers/Api/SearchController.php
-
-		-
-			message: '#^Offset ''password'' on array\{\}\|string on left side of \?\? does not exist\.$#'
-			identifier: nullCoalesce.offset
-			count: 2
-			path: app/Http/Controllers/Api/SettingController.php
-
-		-
-			message: '#^Offset ''terminal_id'' on array\{\}\|string on left side of \?\? does not exist\.$#'
-			identifier: nullCoalesce.offset
-			count: 1
-			path: app/Http/Controllers/Api/SettingController.php
-
-		-
-			message: '#^Offset ''username'' on array\{\}\|string on left side of \?\? does not exist\.$#'
-			identifier: nullCoalesce.offset
-			count: 1
-			path: app/Http/Controllers/Api/SettingController.php
 
 		-
 			message: '#^Cannot access property \$value on string\.$#'
@@ -220,12 +190,6 @@ parameters:
 			message: '#^Offset ''method'' on array\{redirect_url\: string, ref_id\: string\} on left side of \?\? does not exist\.$#'
 			identifier: nullCoalesce.offset
 			count: 1
-			path: app/Http/Controllers/GatewayController.php
-
-		-
-			message: '#^Parameter \#1 \$complex of method App\\Services\\Payment\\GatewayManager\:\:for\(\) expects App\\Models\\Complex, Illuminate\\Database\\Eloquent\\Model\|null given\.$#'
-			identifier: argument.type
-			count: 2
 			path: app/Http/Controllers/GatewayController.php
 
 		-
@@ -419,12 +383,6 @@ parameters:
 			identifier: argument.type
 			count: 1
 			path: app/Providers/AppServiceProvider.php
-
-		-
-			message: '#^Cannot call method diffInDays\(\) on string\.$#'
-			identifier: method.nonObject
-			count: 1
-			path: app/Services/Charge/BillGenerator.php
 
 		-
 			message: '#^Property App\\Models\\Bill\:\:\$breakdown \(string\|null\) does not accept array\.$#'

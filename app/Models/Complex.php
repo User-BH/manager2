@@ -6,6 +6,10 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
+/**
+ * @property array<string, mixed>|null $settings
+ * @property array<string, mixed>|null $gateway_config
+ */
 class Complex extends Model
 {
     use HasFactory;
