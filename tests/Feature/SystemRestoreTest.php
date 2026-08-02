@@ -8,6 +8,7 @@ use App\Models\AuditLog;
 use App\Models\Backup;
 use App\Models\Complex;
 use App\Models\User;
+use App\Services\Backup\BackupCipher;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
@@ -245,7 +246,8 @@ class SystemRestoreTest extends TestCase
 
         $this->actingAs($this->superAdmin)->postJson('/api/system/backups')->assertStatus(202);
 
-        $snapshot = json_decode(Storage::disk('local')->get(Backup::latest('id')->first()->path), true);
+        // فایل از R20 رمزشده است؛ خواندنش باید از همان مسیرِ رسمی باشد
+        $snapshot = BackupCipher::open(Storage::disk('local')->get(Backup::latest('id')->first()->path));
 
         $this->assertArrayHasKey('advertisements', $snapshot['tables']);
         $this->assertArrayHasKey('announcement_reads', $snapshot['tables']);

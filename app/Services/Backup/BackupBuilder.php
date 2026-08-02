@@ -52,10 +52,14 @@ class BackupBuilder
 
         $path = "backups/{$name}.json";
 
-        Storage::disk('local')->put(
-            $path,
-            json_encode($snapshot, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT),
-        );
+        /*
+         * فایل رمزگذاری می‌شود (R20).
+         *
+         * ممیزی نشان داد بکاپِ سیستم همه‌ی هشِ رمزها، رمزِ درگاه بانکی و کلیدِ
+         * پیامک را به‌صورتِ متنِ ساده در خود دارد؛ یعنی یک فایلِ بکاپ که از
+         * سرور بیرون برود، عملاً کلِ سامانه است.
+         */
+        Storage::disk('local')->put($path, BackupCipher::seal($snapshot));
 
         $backup->update([
             'status' => 'completed',

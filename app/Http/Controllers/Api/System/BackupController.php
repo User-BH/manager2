@@ -9,6 +9,7 @@ use App\Jobs\BuildBackupJob;
 use App\Models\AuditLog;
 use App\Models\Backup;
 use App\Models\User;
+use App\Services\Backup\BackupCipher;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -96,7 +97,9 @@ class BackupController extends Controller
 
         $path = 'backups/backup-system-'.now()->format('Ymd-His').'-'.Str::random(6).'.json';
 
-        Storage::disk('local')->put($path, json_encode($snapshot, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT));
+        // بکاپِ ایمنی هم مثل بقیه رمزگذاری می‌شود (R20) — همان داده‌ی حساس را
+        // دارد و اینکه خودکار ساخته می‌شود دلیل نمی‌شود ساده بماند.
+        Storage::disk('local')->put($path, BackupCipher::seal($snapshot));
 
         return Backup::create([
             'complex_id' => null,
@@ -140,7 +143,15 @@ class BackupController extends Controller
     {
         $request->validated();
 
-        $payload = json_decode((string) $request->file('backup')->get(), true);
+        /*
+         * بکاپ‌های تازه رمزشده‌اند؛ فایل‌های قدیمیِ ساده هم عمداً پذیرفته
+         * می‌شوند تا نصب‌های موجود ناگهان بکاپ‌هایشان را از دست ندهند (R20).
+         */
+        try {
+            $payload = BackupCipher::open((string) $request->file('backup')->get());
+        } catch (\RuntimeException $e) {
+            return response()->json(['message' => $e->getMessage()], 422);
+        }
 
         $error = $this->validateSnapshot($payload);
         if ($error !== null) {

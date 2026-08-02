@@ -8,6 +8,7 @@ use App\Models\Backup;
 use App\Models\Complex;
 use App\Models\User;
 use App\Services\Backup\BackupBuilder;
+use App\Services\Backup\BackupCipher;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Facades\Storage;
@@ -98,7 +99,8 @@ class QueuedBackupTest extends TestCase
         $backup = Backup::first();
         (new BuildBackupJob($backup->id))->handle(new BackupBuilder);
 
-        $contents = json_decode(Storage::disk('local')->get($backup->refresh()->path), true);
+        // فایل از R20 رمزشده است؛ خواندنش باید از همان مسیرِ رسمی باشد
+        $contents = BackupCipher::open(Storage::disk('local')->get($backup->refresh()->path));
 
         // اگر جدولی از فهرست بیفتد، بازیابی ناقص می‌شود و کسی نمی‌فهمد
         foreach (BackupBuilder::SYSTEM_TABLES as $table) {
