@@ -2,7 +2,15 @@ import { useRef, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { ArrowRight, CreditCard, Upload, Loader2, AlertCircle, CheckCircle2 } from 'lucide-react'
+import {
+  ArrowRight,
+  CreditCard,
+  Upload,
+  Loader2,
+  AlertCircle,
+  CheckCircle2,
+  Wallet,
+} from 'lucide-react'
 import { z } from 'zod'
 import { Card } from '@/shared/ui/Card'
 import { TextField } from '@/shared/ui/Field'
@@ -14,6 +22,7 @@ import { queryKeys } from '@/shared/lib/queryKeys'
 import { useDocumentTitle } from '@/shared/hooks'
 import { api, ApiError } from '@/shared/lib/api'
 import { formatMoney } from '@/shared/lib/format'
+import { toastSuccess } from '@/shared/lib/alert'
 
 const receiptSchema = z.object({
   amount: z.coerce.number({ message: 'مبلغ را وارد کنید' }).min(1000, 'مبلغ باید حداقل ۱۰۰۰ باشد'),
@@ -38,6 +47,10 @@ interface PayResponse {
   currency: string
   onlineEnabled: boolean
   onlineAction: string
+  /** کارتِ مقصدِ کارت‌به‌کارت؛ اگر مدیر تعریف نکرده باشد null است (R22). */
+  card: { number?: string; holder?: string; bank?: string } | null
+  /** موجودیِ کیفِ پولِ همین واحد (R22). */
+  walletBalance: number
 }
 
 export function PayBillPage() {
@@ -45,6 +58,8 @@ export function PayBillPage() {
   const [done, setDone] = useState<string | null>(null)
   const [formError, setFormError] = useState<string | null>(null)
   const fileRef = useRef<HTMLInputElement>(null)
+
+  const [payingFromWallet, setPayingFromWallet] = useState(false)
 
   useDocumentTitle('پرداخت قبض')
 
@@ -98,6 +113,26 @@ export function PayBillPage() {
       } else {
         setFormError('ارتباط با سرور برقرار نشد.')
       }
+    }
+  }
+
+  /**
+   * پرداخت از کیف پول.
+   *
+   * پس از موفقیت صفحه دوباره خوانده می‌شود تا هم مانده‌ی قبض و هم موجودیِ
+   * کیف تازه شوند — هر دو را سرور می‌دهد و اینجا چیزی حساب نمی‌شود.
+   */
+  async function payFromWallet() {
+    setPayingFromWallet(true)
+    setFormError(null)
+    try {
+      const result = await api<{ message: string }>(`/wallet/pay/${billId}`, { method: 'POST' })
+      toastSuccess(result.message)
+      void refetch()
+    } catch (error) {
+      setFormError(error instanceof ApiError ? error.message : 'پرداخت از کیف پول ممکن نشد.')
+    } finally {
+      setPayingFromWallet(false)
     }
   }
 
@@ -174,6 +209,73 @@ export function PayBillPage() {
           <AlertCircle size={16} />
           درگاه پرداخت آنلاین برای این مجتمع فعال نیست. لطفاً رسید واریز خود را آپلود کنید.
         </div>
+      )}
+
+      {/*
+        پرداخت از کیف پول (R22).
+        بی‌درنگ است و منتظرِ تاییدِ مدیر نمی‌ماند، چون پول از قبل در سامانه است.
+      */}
+      {data.walletBalance > 0 && data.bill.remaining > 0 && (
+        <Card title="پرداخت از کیف پول" delay={0.07}>
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <p className="text-[13px]" style={{ color: 'var(--text-secondary)' }}>
+              موجودی کیف پول شما:{' '}
+              <span className="font-bold tabular-nums" style={{ color: 'var(--text-primary)' }}>
+                {formatMoney(data.walletBalance)} {data.currency}
+              </span>
+            </p>
+
+            <button
+              type="button"
+              disabled={payingFromWallet}
+              onClick={() => void payFromWallet()}
+              className="flex items-center gap-2 rounded-xl px-5 py-2.5 text-[13px] font-bold text-white disabled:opacity-60"
+              style={{ backgroundColor: 'var(--color-brand-500)' }}
+            >
+              <Wallet size={16} />
+              پرداخت {formatMoney(Math.min(data.walletBalance, data.bill.remaining))}
+            </button>
+          </div>
+        </Card>
+      )}
+
+      {/*
+        کارتِ مقصد (R22). پیش از این، ساکنِ مجتمعی که درگاه نداشت دکمه‌ی
+        «آپلود رسید» را می‌دید ولی هیچ‌جا نمی‌گفت پول را کجا بفرستد.
+      */}
+      {data.card && (
+        <Card
+          title="واریز کارت‌به‌کارت"
+          subtitle="مبلغ را به این کارت واریز و رسیدش را ثبت کنید"
+          delay={0.08}
+        >
+          <dl className="flex flex-col gap-2 text-[13px]">
+            {data.card.number && (
+              <div className="flex items-center justify-between gap-3">
+                <dt style={{ color: 'var(--text-tertiary)' }}>شماره کارت</dt>
+                <dd
+                  className="font-bold tabular-nums"
+                  dir="ltr"
+                  style={{ color: 'var(--text-primary)' }}
+                >
+                  {data.card.number}
+                </dd>
+              </div>
+            )}
+            {data.card.holder && (
+              <div className="flex items-center justify-between gap-3">
+                <dt style={{ color: 'var(--text-tertiary)' }}>به نام</dt>
+                <dd style={{ color: 'var(--text-primary)' }}>{data.card.holder}</dd>
+              </div>
+            )}
+            {data.card.bank && (
+              <div className="flex items-center justify-between gap-3">
+                <dt style={{ color: 'var(--text-tertiary)' }}>بانک</dt>
+                <dd style={{ color: 'var(--text-primary)' }}>{data.card.bank}</dd>
+              </div>
+            )}
+          </dl>
+        </Card>
       )}
 
       <Card title="ثبت رسید واریز" subtitle="پس از تایید مدیر، از بدهی شما کسر می‌شود" delay={0.1}>

@@ -57,6 +57,9 @@ const PayBillPage = lazy(() =>
 const MyBillsPage = lazy(() =>
   import('@/features/billing/my-bills/MyBillsPage').then((m) => ({ default: m.MyBillsPage })),
 )
+const WalletPage = lazy(() =>
+  import('@/features/wallet/WalletPage').then((m) => ({ default: m.WalletPage })),
+)
 const GoodPayersPage = lazy(() =>
   import('@/features/finance/good-payers/GoodPayersPage').then((m) => ({
     default: m.GoodPayersPage,
@@ -199,6 +202,7 @@ export function AppRouter() {
             {/* صورت‌حساب‌ها زیر روت مشترک است چون مدیر هم واحد شخصی دارد و
                 باید بتواند قبوض خودش را ببیند، نه فقط ساکنین. */}
             <Route path="/my-bills" element={<MyBillsPage />} />
+            <Route path="/wallet" element={<WalletPage />} />
             <Route path="/pay/:billId" element={<PayBillPage />} />
             <Route path="/top-residents" element={<GoodPayersPage />} />
 

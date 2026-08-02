@@ -107,6 +107,12 @@ export const queryKeys = {
     all: () => ['join-requests'] as const,
   },
 
+  // کیفِ پولِ واحد (R22)
+  wallet: {
+    all: () => ['wallet'] as const,
+    statement: (unitId: number) => ['wallet', 'statement', unitId] as const,
+  },
+
   system: {
     all: () => ['system'] as const,
     ads: () => ['system', 'ads'] as const,

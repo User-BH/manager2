@@ -60,6 +60,8 @@ export const navSections: NavSection[] = [
     title: 'عمومی',
     items: [
       { label: 'صورت‌حساب‌های من', path: '/my-bills', icon: Receipt, roles: RESIDENTS },
+      // کیف پول برای مدیر هم دیده می‌شود: موجودیِ همه‌ی واحدها را می‌بیند
+      { label: 'کیف پول', path: '/wallet', icon: Wallet },
       { label: 'اطلاعیه‌ها', path: '/announcements', icon: Megaphone },
       { label: 'پیام‌رسان', path: '/messenger', icon: MessageSquare },
       { label: 'ساکنین خوش‌حساب', path: '/top-residents', icon: Award },
