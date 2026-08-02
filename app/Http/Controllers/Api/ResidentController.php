@@ -7,11 +7,15 @@ use App\Enums\UserRole;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreResidentRequest;
 use App\Http\Resources\ResidentResource;
+use App\Models\Complex;
+use App\Models\ComplexInvitation;
 use App\Models\Unit;
 use App\Models\User;
 use App\Support\Audit;
+use App\Support\Phone;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 
 class ResidentController extends Controller
@@ -56,6 +60,21 @@ class ResidentController extends Controller
         $complex = $this->requireComplex();
         $data = $request->validated();
 
+        /*
+         * شماره‌ای که از قبل ثبت شده، دعوت می‌گیرد نه خطا (R21).
+         *
+         * پیش از این، کاربری که خودش ثبت‌نام کرده بود در بن‌بستِ کامل می‌ماند:
+         * خودش نمی‌توانست وارد شود (حساب غیرفعال ساخته می‌شد) و مدیر هم
+         * نمی‌توانست اضافه‌اش کند چون شماره یکتاست. سنجیده شد و اثبات شد.
+         *
+         * وصل‌کردنِ مستقیمِ حسابِ موجود عمداً انتخاب **نشد**: یعنی هر مدیری با
+         * دانستنِ یک شماره می‌توانست آن حساب را به مجتمعِ خودش بکشد و نقشش را
+         * عوض کند، بدونِ اطلاعِ صاحبش.
+         */
+        if ($existing = $this->existingUnattachedUser($data['phone'])) {
+            return $this->invite($existing, $complex, $data);
+        }
+
         $resident = User::create([
             'complex_id' => $complex->id,
             'name' => $data['name'],
@@ -70,6 +89,48 @@ class ResidentController extends Controller
         $this->syncUnit($resident, $data);
 
         return response()->json(['resident' => $this->present($resident->load('currentUnits'))], 201);
+    }
+
+    /**
+     * کاربرِ موجودی که هنوز به هیچ مجتمعی وصل نیست — یعنی «حالتِ اولیه».
+     *
+     * کاربری که از قبل عضوِ مجتمعِ دیگری است اینجا برنمی‌گردد و مسیرِ عادیِ
+     * اعتبارسنجی ۴۲۲ می‌دهد. عمدی است: بیرون‌کشیدنِ ساکنِ مجتمعِ دیگر کارِ
+     * این فرم نیست.
+     */
+    private function existingUnattachedUser(string $phone): ?User
+    {
+        return User::withoutGlobalScopes()
+            ->where('phone', Phone::normalize($phone))
+            ->whereNull('complex_id')
+            ->first();
+    }
+
+    /** @param  array<string, mixed>  $data */
+    private function invite(User $user, Complex $complex, array $data): JsonResponse
+    {
+        $invitation = ComplexInvitation::updateOrCreate(
+            [
+                'complex_id' => $complex->id,
+                'user_id' => $user->id,
+                'status' => ComplexInvitation::PENDING,
+            ],
+            [
+                'unit_id' => $data['unit_id'] ?? null,
+                'role' => $data['role'],
+                'invited_by' => Auth::id(),
+            ],
+        );
+
+        Audit::log('invitation.sent', 'ارسال دعوت به کاربر موجود', $invitation, [
+            'phone' => $user->phone,
+        ]);
+
+        return response()->json([
+            'invited' => true,
+            'message' => 'این شماره از قبل در سامانه حساب دارد. دعوت برایش فرستاده شد و '
+                .'پس از پذیرشِ خودش به مجتمع اضافه می‌شود.',
+        ], 202);
     }
 
     public function update(StoreResidentRequest $request, User $resident): JsonResponse

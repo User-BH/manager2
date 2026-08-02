@@ -31,6 +31,29 @@ export interface CurrentUser {
   isAdmin: boolean
   isSuperAdmin: boolean
   complex: ComplexSummary | null
+
+  /**
+   * حالتِ حساب (R21) — از واقعیت مشتق می‌شود، نه از نقش.
+   *
+   * `initial` یعنی ثبت‌نام کرده ولی نه خریده و نه مدیری اضافه‌اش کرده.
+   * داشبوردش فقط‌خواندنی است و سرور هم همین را جداگانه اعمال می‌کند.
+   */
+  accountState: AccountState
+  canWrite: boolean
+  pendingInvitations: number
+}
+
+export type AccountState = 'initial' | 'member' | 'platform'
+
+/** دعوتی که مدیرِ یک مجتمع برای کاربر فرستاده (R21). */
+export interface Invitation {
+  id: number
+  complexName: string | null
+  complexAddress: string | null
+  unitLabel: string | null
+  roleLabel: string
+  invitedBy: string | null
+  createdAt: string | null
 }
 
 export type Theme = 'light' | 'dark'

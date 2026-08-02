@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Enums\AccountState;
 use App\Enums\SubscriptionPlan;
 use App\Exceptions\DomainException;
 use App\Http\Controllers\Controller;
@@ -9,6 +10,7 @@ use App\Http\Requests\UploadSubscriptionReceiptRequest;
 use App\Http\Resources\SubscriptionResource;
 use App\Models\Plan;
 use App\Models\Subscription;
+use App\Services\Account\ComplexUpgrader;
 use App\Services\Subscription\PlanGate;
 use App\Services\Subscription\SubscriptionGatewayManager;
 use App\Support\Jalali;
@@ -32,6 +34,7 @@ class SubscriptionController extends Controller
     public function __construct(
         protected SubscriptionGatewayManager $gateways,
         protected PlanGate $plans,
+        protected ComplexUpgrader $upgrader,
     ) {}
 
     public function show(): JsonResponse
@@ -86,9 +89,23 @@ class SubscriptionController extends Controller
         $user = Auth::user();
         $this->authorize('purchase', Subscription::class);
 
-        $complex = $this->requireComplex();
-
         $data = $request->validated();
+
+        /*
+         * خریدارِ «حالتِ اولیه» هنوز مجتمعی ندارد؛ همین خرید مجتمعش را
+         * می‌سازد و او را مدیرش می‌کند (R21).
+         *
+         * پیش از این `requireComplex()` جلویش را می‌گرفت، یعنی کاربری که
+         * ثبت‌نام کرده بود حتی نمی‌توانست بخرد — و راهِ دیگری هم برای بیرون
+         * آمدن از آن حالت نداشت.
+         *
+         * ساختِ مجتمع **پیش از** تاییدِ رسید انجام می‌شود تا کاربر بلافاصله
+         * فضای کارش را ببیند؛ اشتراک همچنان `pending` است و تا تایید ادمین
+         * محدودیت‌های پلنِ رایگان اعمال می‌شود.
+         */
+        $complex = AccountState::of($user) === AccountState::Initial
+            ? $this->upgrader->upgrade($user, $data['complex_name'], $data['complex_address'] ?? null)
+            : $this->requireComplex();
 
         // هر مجتمع هم‌زمان فقط یک درخواست در انتظار بررسی داشته باشد، وگرنه
         // صف بررسی ادمین با درخواست‌های تکراری پر می‌شود.

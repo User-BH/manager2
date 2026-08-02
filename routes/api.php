@@ -11,6 +11,7 @@ use App\Http\Controllers\Api\DashboardController;
 use App\Http\Controllers\Api\DiscountController;
 use App\Http\Controllers\Api\FinanceController;
 use App\Http\Controllers\Api\GoodPayerController;
+use App\Http\Controllers\Api\InvitationController;
 use App\Http\Controllers\Api\ManagerController;
 use App\Http\Controllers\Api\MessengerController;
 use App\Http\Controllers\Api\MyBillController;
@@ -135,6 +136,19 @@ Route::middleware('auth')->group(function () {
     // جستجوی سراسری. هر گروه داخل کنترلر همان قید نقشی صفحه‌ی خودش را دارد.
     Route::get('search', [SearchController::class, 'index'])
         ->middleware('throttle:search')->name('search');
+
+    /*
+     * دعوت به مجتمع (R21).
+     *
+     * تنها نوشتنی‌ای که حسابِ «حالتِ اولیه» اجازه دارد — چون همان کاری است که
+     * او را از آن حالت بیرون می‌برد. `LockInitialAccount` این مسیرها را
+     * صریحاً مستثنا کرده است.
+     */
+    Route::get('invitations', [InvitationController::class, 'index'])->name('invitations.index');
+    Route::post('invitations/{invitation}/accept', [InvitationController::class, 'accept'])
+        ->name('invitations.accept');
+    Route::post('invitations/{invitation}/decline', [InvitationController::class, 'decline'])
+        ->name('invitations.decline');
 
     // پروفایل و حساب کاربری — همیشه دربارهٔ خودِ کاربر واردشده
     Route::get('profile', [ProfileController::class, 'show'])->name('profile.show');

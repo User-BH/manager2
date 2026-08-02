@@ -25,6 +25,7 @@ import { useDocumentTitle } from '@/shared/hooks'
 import { useAuth } from '@/shared/stores/authStore'
 import { formatMoney, formatNumber } from '@/shared/lib/format'
 import type { BillStatus } from '@/shared/types'
+import { InitialDashboard } from './InitialDashboard'
 
 interface AdminDashboard {
   type: 'admin'
@@ -65,12 +66,22 @@ type DashboardData = AdminDashboard | SystemDashboard | ResidentDashboard
 
 export function DashboardPage() {
   const { user } = useAuth()
+  const isInitial = user?.accountState === 'initial'
+
   const { data, error, isLoading, refetch } = useQuery({
     queryKey: queryKeys.dashboard.all(),
     queryFn: ({ signal }) => api<DashboardData>('/dashboard', { signal }),
+    // حالتِ اولیه به هیچ مجتمعی وصل نیست؛ این درخواست چیزی برایش ندارد
+    enabled: !isInitial,
   })
 
   useDocumentTitle('داشبورد')
+
+  /*
+   * پنجمین حالتِ داشبورد (R21): ثبت‌نام‌کرده ولی هنوز نه خریده و نه مدیری
+   * اضافه‌اش کرده. صفحه‌ی جداگانه‌ای می‌بیند که فقط می‌گوید چه کند.
+   */
+  if (isInitial) return <InitialDashboard />
 
   if (isLoading) return <DashboardSkeleton />
   if (error) return <ErrorState message={errorMessage(error)} onRetry={() => void refetch()} />

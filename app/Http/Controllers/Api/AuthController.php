@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Enums\AccountState;
 use App\Enums\UserRole;
 use App\Exceptions\DomainException;
 use App\Http\Controllers\Controller;
@@ -13,6 +14,7 @@ use App\Http\Requests\RegisterRequest;
 use App\Http\Requests\RegisterVerifyRequest;
 use App\Http\Requests\ResetPasswordRequest;
 use App\Models\Complex;
+use App\Models\ComplexInvitation;
 use App\Models\User;
 use App\Services\Auth\OtpService;
 use App\Services\Auth\TrustedDeviceService;
@@ -392,13 +394,26 @@ class AuthController extends Controller
             throw ValidationException::withMessages(['code' => 'این شماره قبلاً ثبت شده است. وارد شوید.']);
         }
 
+        /*
+         * حساب **فعال** ساخته می‌شود و به هیچ مجتمعی وصل نیست — «حالتِ اولیه»
+         * (R21).
+         *
+         * پیش از این `is_active => false` بود و پیامش می‌گفت «پس از تایید وارد
+         * شوید»، ولی هیچ مسیرِ تاییدی وجود نداشت: خودش نمی‌توانست وارد شود و
+         * مدیرِ مجتمع هم نمی‌توانست اضافه‌اش کند (شماره یکتا بود و ۴۲۲ می‌گرفت).
+         * یعنی هر کسی که خودش ثبت‌نام می‌کرد، برای همیشه گیر می‌کرد. سنجیده و
+         * اثبات شد.
+         *
+         * ورودش خطری ندارد چون داشبوردش فقط‌خواندنی است و دامنه‌ی مستأجر برای
+         * کاربرِ بدونِ مجتمع «هیچ‌چیز» است، نه «همه‌چیز».
+         */
         User::create([
             'complex_id' => null,
             'name' => $pending['name'],
             'phone' => $pending['phone'],
             'password' => $pending['password'],
             'role' => UserRole::Owner,
-            'is_active' => false,
+            'is_active' => true,
             'terms_accepted_at' => now(),
         ]);
 
@@ -406,7 +421,7 @@ class AuthController extends Controller
         $otp->clear($pending['phone']);
 
         return response()->json([
-            'message' => 'ثبت‌نام کامل شد. پس از تایید، می‌توانید وارد شوید.',
+            'message' => 'ثبت‌نام کامل شد. اکنون می‌توانید وارد شوید.',
         ], 201);
     }
 
@@ -472,6 +487,17 @@ class AuthController extends Controller
             'isAdmin' => $user->role->isAdmin(),
             'isSuperAdmin' => $user->isSuperAdmin(),
             'complex' => $complex ? ['id' => $complex->id, 'name' => $complex->name] : null,
+
+            /*
+             * حالتِ حساب برای شاخه‌زدنِ رابط (R21). از واقعیت مشتق می‌شود
+             * (وصل بودن به مجتمع)، نه از یک نقشِ جدا که می‌تواند با واقعیت
+             * ناهماهنگ شود.
+             */
+            'accountState' => AccountState::of($user)->value,
+            'canWrite' => AccountState::of($user)->canWrite(),
+            'pendingInvitations' => AccountState::of($user)->canWrite()
+                ? 0
+                : ComplexInvitation::where('user_id', $user->id)->pending()->count(),
         ];
     }
 }

@@ -97,6 +97,11 @@ export const queryKeys = {
     list: (params: { q?: string } = {}) => ['members', 'list', params] as const,
   },
 
+  // دعوت‌های دریافتیِ کاربر در «حالتِ اولیه» (R21)
+  invitations: {
+    all: () => ['invitations'] as const,
+  },
+
   system: {
     all: () => ['system'] as const,
     ads: () => ['system', 'ads'] as const,

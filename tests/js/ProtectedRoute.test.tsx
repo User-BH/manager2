@@ -24,6 +24,10 @@ function makeUser(role: CurrentUser['role']): CurrentUser {
     phone: '09123456789',
     role,
     roleLabel: 'نقش',
+    // عضوِ یک مجتمع؛ حالتِ اولیه تستِ خودش را دارد (R21)
+    accountState: 'member',
+    canWrite: true,
+    pendingInvitations: 0,
     isAdmin: role === 'super_admin' || role === 'complex_admin',
     isSuperAdmin: role === 'super_admin',
     complex: null,

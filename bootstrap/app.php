@@ -4,6 +4,7 @@ use App\Exceptions\ApiExceptionRenderer;
 use App\Http\Middleware\AuthenticateTrustedDevice;
 use App\Http\Middleware\EnsureActive;
 use App\Http\Middleware\EnsureRole;
+use App\Http\Middleware\LockInitialAccount;
 use App\Http\Middleware\SecurityHeaders;
 use App\Http\Middleware\SetCurrentComplex;
 use App\Services\Auth\TrustedDeviceService;
@@ -137,6 +138,14 @@ return Application::configure(basePath: dirname(__DIR__))
             AuthenticateTrustedDevice::class,
             EnsureActive::class,
             SetCurrentComplex::class,
+            /*
+             * قفلِ فقط‌خواندنیِ «حالتِ اولیه» (R21).
+             *
+             * پس از `SetCurrentComplex` می‌آید چون به کاربرِ واردشده نیاز
+             * دارد، و پیش‌فرضش **بستن** است: هر مسیرِ نوشتنیِ تازه‌ای که فردا
+             * اضافه شود خودبه‌خود قفل است، مگر صریحاً مستثنا شود.
+             */
+            LockInitialAccount::class,
         ]);
 
         /*

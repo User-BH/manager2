@@ -20,7 +20,22 @@ class StoreResidentRequest extends BaseFormRequest
     {
         return [
             'name' => ['required', 'string', 'max:120'],
-            'phone' => ['required', 'regex:/^09\d{9}$/', Rule::unique('users', 'phone')->ignore($this->route('resident')?->id)],
+            /*
+             * یکتایی فقط میانِ کاربرانی که **از قبل به مجتمعی وصل‌اند** (R21).
+             *
+             * شماره‌ای که متعلق به کاربرِ ثبت‌نام‌کرده‌ی بدونِ مجتمع است باید از
+             * اعتبارسنجی رد شود تا کنترلر بتواند برایش دعوت بفرستد. پیش از این
+             * همین‌جا ۴۲۲ می‌گرفت و آن کاربر در بن‌بستِ دائمی می‌ماند.
+             *
+             * ساکنِ مجتمعِ دیگر همچنان رد می‌شود؛ بیرون‌کشیدنش کارِ این فرم نیست.
+             */
+            'phone' => [
+                'required',
+                'regex:/^09\d{9}$/',
+                Rule::unique('users', 'phone')
+                    ->whereNotNull('complex_id')
+                    ->ignore($this->route('resident')?->id),
+            ],
             'email' => ['nullable', 'email', Rule::unique('users', 'email')->ignore($this->route('resident')?->id)],
             'national_id' => ['nullable', 'string', 'max:20'],
             'role' => ['required', 'in:owner,tenant'],

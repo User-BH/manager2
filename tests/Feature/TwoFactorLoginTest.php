@@ -324,8 +324,17 @@ class TwoFactorLoginTest extends TestCase
 
         // تیک قوانین دیگر دکوری نیست؛ لحظه‌ی پذیرش در دیتابیس می‌ماند
         $this->assertNotNull($created->terms_accepted_at);
-        // و حساب تا تایید مدیر غیرفعال است
-        $this->assertFalse((bool) $created->is_active);
+
+        /*
+         * حساب **فعال** ساخته می‌شود و به هیچ مجتمعی وصل نیست (R21).
+         *
+         * پیش از این غیرفعال ساخته می‌شد با این توضیح که «تا تایید مدیر»، ولی
+         * هیچ مسیرِ تاییدی وجود نداشت: خودش نمی‌توانست وارد شود و مدیر هم
+         * نمی‌توانست اضافه‌اش کند (شماره یکتا بود). یعنی هر کسی که خودش
+         * ثبت‌نام می‌کرد برای همیشه گیر می‌کرد.
+         */
+        $this->assertTrue((bool) $created->is_active);
+        $this->assertNull($created->complex_id);
     }
 
     public function test_an_abandoned_registration_leaves_no_user(): void

@@ -202,7 +202,17 @@ class EventsAndNotificationsTest extends TestCase
         (new SendPaymentReviewedNotification)->handle(new PaymentReviewed($payment, approved: true));
 
         $notificationId = $payment->user->notifications()->first()->id;
-        $stranger = User::factory()->create(['is_active' => true]);
+
+        /*
+         * غریبه باید عضوِ یک مجتمع باشد، وگرنه در «حالتِ اولیه»ی R21 می‌افتد و
+         * قفلِ فقط‌خواندنی ۴۰۳ می‌دهد — که تستِ درستی است ولی تستِ **این**
+         * موضوع نیست. اینجا موضوع این است که عضوِ کاملاً مجاز هم نباید اعلانِ
+         * دیگری را ببیند.
+         */
+        $stranger = User::factory()->create([
+            'is_active' => true,
+            'complex_id' => $this->complex->id,
+        ]);
 
         $this->actingAs($stranger)
             ->postJson("/api/v1/notifications/personal/{$notificationId}/read")

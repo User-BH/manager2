@@ -2,6 +2,7 @@
 
 namespace App\Policies;
 
+use App\Enums\AccountState;
 use App\Models\Subscription;
 use App\Models\User;
 use App\Support\ComplexResolver;
@@ -16,7 +17,12 @@ class SubscriptionPolicy
 {
     public function purchase(User $user): bool
     {
-        return $user->isAdmin();
+        /*
+         * خریدارِ «حالتِ اولیه» هنوز مدیر نیست — و دقیقاً همین خرید است که
+         * مدیرش می‌کند (R21). بدونِ این شرط، تنها راهِ بیرون آمدن از آن حالت
+         * برای کسی که مدیری ندارد تا دعوتش کند، بسته می‌ماند.
+         */
+        return $user->isAdmin() || AccountState::of($user) === AccountState::Initial;
     }
 
     public function view(User $user, Subscription $subscription): bool
