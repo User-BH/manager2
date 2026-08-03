@@ -2,15 +2,18 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Enums\MessageAudience;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreMessageRequest;
 use App\Http\Resources\MessageResource;
 use App\Models\Complex;
 use App\Models\Message;
+use App\Models\Unit;
 use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 
 /**
  * پیام‌رسان داخلی مجتمع.
@@ -36,7 +39,12 @@ class MessengerController extends Controller
             ]);
         }
 
-        $base = Message::where('complex_id', $complex->id);
+        /*
+         * `visibleTo` تنها جایی است که تصمیم می‌گیرد چه کسی چه پیامی را
+         * می‌بیند (R23). پیش از این پیام‌رسان یک کانالِ واحد بود و هر پیام
+         * به همه می‌رسید.
+         */
+        $base = Message::where('complex_id', $complex->id)->visibleTo($user)->with('recipientUnits:id,unit_number');
         $total = (clone $base)->count();
 
         if ($since = $request->integer('since')) {
@@ -68,7 +76,19 @@ class MessengerController extends Controller
              * کهنه‌ی خودش را هم پاک می‌کند.
              */
             'hiddenIds' => Message::where('complex_id', $complex->id)
+                ->visibleTo($user)
                 ->where('is_hidden', true)->pluck('id')->all(),
+
+            /*
+             * فهرستِ واحدها فقط برای مدیر، تا بتواند گیرنده انتخاب کند.
+             * ساکن این را نمی‌گیرد؛ نه لازمش دارد و نه باید فهرستِ واحدهای
+             * مجتمع را ببیند.
+             */
+            'units' => $user->role->isAdmin()
+                ? Unit::orderBy('unit_number')->get(['id', 'unit_number'])
+                    ->map(fn (Unit $u) => ['id' => $u->id, 'label' => 'واحد '.$u->unit_number])
+                    ->values()
+                : [],
             'canSend' => $complex->messenger_enabled && $user->can_message,
             'reason' => $this->blockReason($complex, $user),
             'isAdmin' => $user->isAdmin(),
@@ -89,16 +109,74 @@ class MessengerController extends Controller
 
         $data = $request->validated();
 
-        $message = Message::create([
-            'complex_id' => $complex->id,
-            'user_id' => $user->id,
-            'body' => $data['body'],
-            'author_name' => $user->name,
-            'author_role' => $user->role->value,
-            'unit_label' => $this->unitLabel($user),
-        ]);
+        $audience = $this->resolveAudience($user, $data);
+
+        /*
+         * پیامِ ساکن به رشته‌ی **واحدِ خودش** بسته می‌شود، نه به خودش.
+         * بقیه‌ی سامانه هم واحد-محور است و مالک/مستاجرِ یک واحد باید یک
+         * گفت‌وگوی مشترک با مدیریت داشته باشند، نه دو رشته‌ی جدا که مدیر
+         * باید حدس بزند کدام را جواب بدهد.
+         *
+         * ⚠️ ساکنی که هنوز واحدی به او تخصیص نیافته `null` می‌گیرد و **باز
+         * هم می‌تواند پیام بدهد**. اول جلویش گرفته شده بود، ولی تستِ موجودِ
+         * R21 نشان داد کسی که با پذیرشِ دعوت عضو شده و هنوز واحد نگرفته،
+         * اصلاً نمی‌تواند با مدیریت حرف بزند — یعنی همان کسی که بیشتر از همه
+         * به تماس با مدیر نیاز دارد. پیامش به مدیریت می‌رسد و رشته‌ی واحد
+         * ندارد.
+         */
+        $senderUnitId = $audience === MessageAudience::Management
+            ? $user->units()->value('units.id')
+            : null;
+
+        $message = DB::transaction(function () use ($complex, $user, $data, $audience, $senderUnitId) {
+            $message = Message::create([
+                'complex_id' => $complex->id,
+                'user_id' => $user->id,
+                'body' => $data['body'],
+                'audience' => $audience,
+                'unit_id' => $senderUnitId,
+                'author_name' => $user->name,
+                'author_role' => $user->role->value,
+                'unit_label' => $this->unitLabel($user),
+            ]);
+
+            if ($audience === MessageAudience::Units) {
+                /*
+                 * شناسه‌ها از `Unit` خوانده می‌شوند که دامنه‌ی مستأجر دارد،
+                 * پس واحدِ مجتمعِ دیگری حتی اگر در درخواست بیاید، اینجا پیدا
+                 * نمی‌شود و ضمیمه نمی‌گردد.
+                 */
+                $units = Unit::whereIn('id', $data['unit_ids'])->pluck('id');
+                $message->recipientUnits()->sync($units);
+            }
+
+            return $message;
+        });
 
         return response()->json(['message' => $this->present($message, $user)], 201);
+    }
+
+    /**
+     * مخاطبِ این پیام چیست؟ (R23)
+     *
+     * ساکن انتخابی ندارد: هر چه بفرستد به مدیریت می‌رود. حتی اگر `audience`
+     * را در درخواست دست‌کاری کند، اینجا نادیده گرفته می‌شود — قاعده سمتِ
+     * سرور اعمال می‌شود، نه با پنهان‌کردنِ گزینه در رابط.
+     *
+     * @param  array<string, mixed>  $data
+     */
+    private function resolveAudience(User $user, array $data): MessageAudience
+    {
+        if (! $user->role->isAdmin()) {
+            return MessageAudience::Management;
+        }
+
+        $requested = MessageAudience::tryFrom((string) ($data['audience'] ?? '')) ?? MessageAudience::All;
+
+        // «به واحدهای انتخابی» بدونِ انتخاب، عملاً یعنی «به همه» — که خطرناک است
+        return $requested === MessageAudience::Units && empty($data['unit_ids'])
+            ? MessageAudience::All
+            : $requested;
     }
 
     /** مخفی/آشکار کردن پیام توسط مدیر. */

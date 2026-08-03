@@ -2,6 +2,9 @@
 
 namespace App\Http\Requests;
 
+use App\Enums\MessageAudience;
+use Illuminate\Validation\Rule;
+
 /**
  * پیامِ تازه در پیام‌رسانِ داخلی.
  *
@@ -15,7 +18,25 @@ class StoreMessageRequest extends BaseFormRequest
      */
     public function rules(): array
     {
-        return ['body' => ['required', 'string', 'max:1000']];
+        return [
+            'body' => ['required', 'string', 'max:1000'],
+
+            /*
+             * مخاطب (R23) — فقط مدیر می‌تواند تعیینش کند و خودِ کنترلر این را
+             * اعمال می‌کند. اینجا صرفاً شکلِ ورودی سنجیده می‌شود.
+             */
+            'audience' => ['nullable', Rule::enum(MessageAudience::class)],
+
+            /*
+             * `exists` خام به مجتمع محدود نیست و `ComplexScope` روی کوئریِ
+             * اعتبارسنجی اعمال نمی‌شود — همان درسِ `StoreResidentRequest`.
+             * بدونِ این قید، شناسه‌ی واحدِ مجتمعِ دیگری هم پذیرفته می‌شد.
+             */
+            'unit_ids' => ['nullable', 'array', 'max:200'],
+            'unit_ids.*' => [
+                Rule::exists('units', 'id')->where('complex_id', $this->currentComplexId()),
+            ],
+        ];
     }
 
     /**

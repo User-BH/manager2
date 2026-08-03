@@ -10,6 +10,7 @@ import { useAuth } from '@/shared/stores/authStore'
 import { api, ApiError } from '@/shared/lib/api'
 import { alertError, toastSuccess } from '@/shared/lib/alert'
 import { cn } from '@/shared/lib/cn'
+import { AudiencePicker, type Audience, type MessengerUnit } from './AudiencePicker'
 
 const messageSchema = z.object({
   body: z.string().min(1, 'متن پیام را وارد کنید').max(1000, 'پیام بیش از حد طولانی است'),
@@ -26,6 +27,9 @@ interface ChatMessage {
   isMine: boolean
   isHidden: boolean
   sentAt: string
+  /** مخاطبِ پیام (R23) — تا فرستنده ببیند پیامش کجا رفته. */
+  audience?: 'management' | 'all' | 'units'
+  audienceLabel?: string
   /** پیامِ خوش‌بینانه که هنوز پاسخِ سرور برایش نیامده. */
   pending?: boolean
 }
@@ -39,6 +43,8 @@ interface MessengerResponse {
   canSend: boolean
   reason: string | null
   isAdmin?: boolean
+  /** فهرستِ واحدها برای انتخابگرِ گیرنده؛ فقط برای مدیر پر می‌شود (R23). */
+  units?: MessengerUnit[]
 }
 
 const POLL_INTERVAL = 8000
@@ -54,6 +60,7 @@ export function MessengerPage() {
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [hasOlder, setHasOlder] = useState(false)
+  const [units, setUnits] = useState<MessengerUnit[]>([])
 
   const listRef = useRef<HTMLDivElement>(null)
   const lastIdRef = useRef(0)
@@ -90,6 +97,7 @@ export function MessengerPage() {
       const data = await api<MessengerResponse>(`/messenger${query}`)
 
       setMeta({ canSend: data.canSend, reason: data.reason, isAdmin: Boolean(data.isAdmin) })
+      if (data.units) setUnits(data.units)
       if (!incremental) setHasOlder(Boolean(data.hasOlder))
 
       if (data.messages.length > 0) {
@@ -174,6 +182,19 @@ export function MessengerPage() {
     scrollToBottom()
   }, [messages, scrollToBottom])
 
+  /*
+   * انتخابِ گیرنده فقط برای مدیر معنا دارد. ساکن این حالت را هم دارد ولی
+   * هرگز استفاده نمی‌شود؛ سرور مخاطبِ پیامِ او را خودش تعیین می‌کند.
+   */
+  const [audience, setAudience] = useState<Audience>('all')
+  const [selectedUnits, setSelectedUnits] = useState<number[]>([])
+
+  function toggleUnit(unitId: number) {
+    setSelectedUnits((current) =>
+      current.includes(unitId) ? current.filter((id) => id !== unitId) : [...current, unitId],
+    )
+  }
+
   async function onSubmit(values: MessageFormValues) {
     /*
      * ارسالِ خوش‌بینانه: پیام بی‌درنگ در گفت‌وگو ظاهر می‌شود (با نشانه‌ی «در حال
@@ -201,7 +222,9 @@ export function MessengerPage() {
     try {
       const { message } = await api<{ message: ChatMessage }>('/messenger', {
         method: 'POST',
-        body: values,
+        body: meta.isAdmin
+          ? { ...values, audience, unit_ids: audience === 'units' ? selectedUnits : [] }
+          : values,
       })
 
       lastIdRef.current = Math.max(lastIdRef.current, message.id)
@@ -344,37 +367,54 @@ export function MessengerPage() {
       </div>
 
       {meta.canSend ? (
-        <form onSubmit={handleSubmit(onSubmit)} className="flex items-start gap-2">
-          <div className="flex-1">
-            <textarea
-              rows={1}
-              placeholder="پیام خود را بنویسید…"
-              className="w-full resize-none rounded-xl border px-3.5 py-3 text-[13.5px] outline-none transition-all focus:ring-2"
-              style={{
-                backgroundColor: 'var(--surface-sunken)',
-                borderColor: errors.body ? 'var(--color-danger)' : 'var(--border-subtle)',
-                color: 'var(--text-primary)',
-                ['--tw-ring-color' as string]: 'var(--ring-focus)',
-              }}
-              {...register('body')}
+        <div className="flex flex-col">
+          {meta.isAdmin ? (
+            <AudiencePicker
+              audience={audience}
+              units={units}
+              selected={selectedUnits}
+              onAudienceChange={setAudience}
+              onToggleUnit={toggleUnit}
             />
-            {errors.body && (
-              <p className="mt-1 text-xs" style={{ color: 'var(--color-danger)' }}>
-                {errors.body.message}
-              </p>
-            )}
-          </div>
+          ) : (
+            /* ساکن باید بداند پیامش خصوصی است و همسایه‌ها نمی‌بینند */
+            <p className="pb-2 text-xs" style={{ color: 'var(--text-tertiary)' }}>
+              این پیام فقط برای مدیریت ساختمان فرستاده می‌شود.
+            </p>
+          )}
 
-          <button
-            type="submit"
-            disabled={isSubmitting}
-            aria-label="ارسال پیام"
-            className="flex h-[46px] w-[46px] shrink-0 items-center justify-center rounded-xl text-white disabled:opacity-60"
-            style={{ backgroundColor: 'var(--color-brand-500)' }}
-          >
-            {isSubmitting ? <Loader2 size={17} className="animate-spin" /> : <Send size={17} />}
-          </button>
-        </form>
+          <form onSubmit={handleSubmit(onSubmit)} className="flex items-start gap-2">
+            <div className="flex-1">
+              <textarea
+                rows={1}
+                placeholder="پیام خود را بنویسید…"
+                className="w-full resize-none rounded-xl border px-3.5 py-3 text-[13.5px] outline-none transition-all focus:ring-2"
+                style={{
+                  backgroundColor: 'var(--surface-sunken)',
+                  borderColor: errors.body ? 'var(--color-danger)' : 'var(--border-subtle)',
+                  color: 'var(--text-primary)',
+                  ['--tw-ring-color' as string]: 'var(--ring-focus)',
+                }}
+                {...register('body')}
+              />
+              {errors.body && (
+                <p className="mt-1 text-xs" style={{ color: 'var(--color-danger)' }}>
+                  {errors.body.message}
+                </p>
+              )}
+            </div>
+
+            <button
+              type="submit"
+              disabled={isSubmitting}
+              aria-label="ارسال پیام"
+              className="flex h-[46px] w-[46px] shrink-0 items-center justify-center rounded-xl text-white disabled:opacity-60"
+              style={{ backgroundColor: 'var(--color-brand-500)' }}
+            >
+              {isSubmitting ? <Loader2 size={17} className="animate-spin" /> : <Send size={17} />}
+            </button>
+          </form>
+        </div>
       ) : (
         <div
           className="flex items-center gap-2 rounded-xl px-4 py-3 text-[13px]"

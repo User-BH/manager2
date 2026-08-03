@@ -2,7 +2,9 @@
 
 namespace App\Http\Resources;
 
+use App\Enums\MessageAudience;
 use App\Models\Message;
+use App\Models\Unit;
 use App\Models\User;
 use App\Support\Jalali;
 use Illuminate\Http\Request;
@@ -52,6 +54,39 @@ class MessageResource extends JsonResource
             'isMine' => $message->user_id === $this->viewer->id,
             'isHidden' => $hidden,
             'sentAt' => Jalali::dateTime($message->created_at),
+
+            /*
+             * مخاطب (R23) تا فرستنده ببیند پیامش کجا رفته.
+             *
+             * برچسبِ گیرنده‌ها فقط برای مدیر ساخته می‌شود: ساکن نباید از روی
+             * یک پیامِ گروهی بفهمد کدام واحدهای دیگر هم گیرنده بوده‌اند.
+             */
+            'audience' => $message->audience->value,
+            'audienceLabel' => $this->audienceLabel($message),
         ];
+    }
+
+    /**
+     * برچسبِ خواناى مخاطب.
+     *
+     * برای پیامِ چندواحدی، نامِ واحدها فقط به مدیر نشان داده می‌شود. ساکنی
+     * که یکی از گیرنده‌هاست نباید بفهمد مدیر همین پیام را به چه کسانی دیگر
+     * فرستاده.
+     */
+    private function audienceLabel(Message $message): string
+    {
+        if ($message->audience !== MessageAudience::Units) {
+            return $message->audience->label();
+        }
+
+        if (! $this->viewer->isAdmin()) {
+            return 'به شما';
+        }
+
+        $labels = $message->recipientUnits
+            ->map(fn (Unit $unit) => 'واحد '.$unit->unit_number)
+            ->all();
+
+        return $labels === [] ? 'به واحدهای انتخابی' : 'به '.implode('، ', $labels);
     }
 }
