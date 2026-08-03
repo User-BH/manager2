@@ -31,7 +31,7 @@ class Unit extends Model
 
     protected $fillable = [
         'complex_id', 'building_id', 'unit_number', 'floor', 'area',
-        'residents_count', 'parking_count', 'occupancy_status',
+        'residents_count', 'parking_count', 'storage_count', 'occupancy_status',
         'coefficient', 'uses_elevator', 'balance', 'notes', 'is_active',
     ];
 
@@ -69,6 +69,22 @@ class Unit extends Model
     public function tenants(): BelongsToMany
     {
         return $this->residents()->wherePivot('relation', ResidentRelation::Tenant->value)->wherePivot('is_current', true);
+    }
+
+    /**
+     * همه‌ی دوره‌های مالکیت و سکونت — جاری و پایان‌یافته (R26).
+     *
+     * ─── چرا کنارِ `residents()` ────────────────────────────────────────────
+     * `residents()` یک `belongsToMany` است و ذاتاً «چه کسانی الان اینجا
+     * هستند» را جواب می‌دهد. تاریخچه پرسشِ دیگری است («چه کسی از کِی تا
+     * کِی») و با همان رابطه هم خوانا نمی‌شود و هم وسوسه‌ی `sync` را زنده
+     * نگه می‌دارد — همان چیزی که سابقه را پاک می‌کرد.
+     *
+     * @return HasMany<UnitTenure, $this>
+     */
+    public function tenures(): HasMany
+    {
+        return $this->hasMany(UnitTenure::class);
     }
 
     /** @return HasMany<Bill, $this> */

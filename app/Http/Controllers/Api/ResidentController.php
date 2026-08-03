@@ -11,6 +11,7 @@ use App\Models\Complex;
 use App\Models\ComplexInvitation;
 use App\Models\Unit;
 use App\Models\User;
+use App\Services\Units\TenureService;
 use App\Support\Audit;
 use App\Support\Phone;
 use Illuminate\Http\JsonResponse;
@@ -20,6 +21,8 @@ use Illuminate\Support\Facades\Hash;
 
 class ResidentController extends Controller
 {
+    public function __construct(private readonly TenureService $tenures) {}
+
     public function index(Request $request): JsonResponse
     {
         $complexId = $this->requireComplex()->id;
@@ -220,34 +223,35 @@ class ResidentController extends Controller
         return (new ResidentResource($user))->toArray(request());
     }
 
+    /**
+     * تخصیصِ واحد به ساکن — از راهِ `TenureService` (R26).
+     *
+     * ─── چه چیزی عوض شد و چرا ───────────────────────────────────────────────
+     * پیش از این `syncWithoutDetaching` استفاده می‌شد. آن متد ردیفِ موجودِ
+     * همان (واحد، کاربر) را **بازنویسی** می‌کند، پس:
+     *
+     *   • مستاجری که واحد ۵ را ترک کرده و دو سال بعد برگشته، دوره‌ی اولش
+     *     برای همیشه پاک می‌شد،
+     *   • و `end_date` هرگز پر نمی‌شد، پس حتی دوره‌های بسته‌شده تاریخِ
+     *     پایان نداشتند.
+     *
+     * حالا هر تخصیص یک ردیفِ تازه است و ردیف‌های قبلی بسته می‌شوند.
+     */
     private function syncUnit(User $resident, array $data): void
     {
         if (empty($data['unit_id'])) {
             return;
         }
 
-        $relation = $resident->role === UserRole::Owner
-            ? ResidentRelation::Owner
-            : ResidentRelation::Tenant;
+        $unit = Unit::findOrFail($data['unit_id']);
 
-        // سابقه‌ی سکونت قبلی حفظ می‌شود؛ فقط ردیف جاری جابه‌جا می‌شود.
-        $resident->units()->newPivotStatement()
-            ->where('user_id', $resident->id)
-            ->update(['is_current' => false]);
-
-        /*
-         * complex_id در جدول pivot ستون NOT NULL است و برخلاف مدل‌ها،
-         * BelongsToComplex آن را برای رابطه‌ی چند-به-چند پر نمی‌کند. بدون
-         * این خط، اتصال ساکن به واحد همیشه با خطای پایگاه‌داده می‌ترکید.
-         */
-        $resident->units()->syncWithoutDetaching([
-            $data['unit_id'] => [
-                'complex_id' => $this->requireComplex()->id,
-                'relation' => $relation->value,
-                'is_current' => true,
-                'start_date' => now(),
-            ],
-        ]);
+        $this->tenures->open(
+            $unit,
+            $resident,
+            $resident->role === UserRole::Owner ? ResidentRelation::Owner : ResidentRelation::Tenant,
+            // سهمِ مالکیت اختیاری است؛ نبودش یعنی تک‌مالکی
+            (float) ($data['share_percent'] ?? 100),
+        );
     }
 
     /** جلوگیری از دست‌زدن به کاربران خارج از مجتمع جاری. */

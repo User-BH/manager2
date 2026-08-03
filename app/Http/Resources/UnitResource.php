@@ -36,6 +36,7 @@ class UnitResource extends JsonResource
             'area' => (float) $unit->area,
             'residentsCount' => (int) $unit->residents_count,
             'parkingCount' => (int) $unit->parking_count,
+            'storageCount' => (int) $unit->storage_count,
             'occupancyStatus' => $unit->occupancy_status->value,
             'occupancyLabel' => $unit->occupancy_status->label(),
             'coefficient' => (float) $unit->coefficient,

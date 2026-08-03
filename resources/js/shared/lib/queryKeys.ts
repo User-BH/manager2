@@ -29,6 +29,8 @@ export const queryKeys = {
   units: {
     all: () => ['units'] as const,
     list: (params: { search?: string } = {}) => ['units', 'list', params] as const,
+    // پرونده‌ی یک واحد با تاریخچه‌اش (R26)
+    dossier: (id: number) => ['units', 'dossier', id] as const,
   },
 
   residents: {

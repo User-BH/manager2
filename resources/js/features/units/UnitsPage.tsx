@@ -1,8 +1,9 @@
 import { useCallback, useState } from 'react'
 import { motion } from 'framer-motion'
-import { Plus, Pencil, Trash2, Building2, FileText } from 'lucide-react'
+import { Plus, Pencil, Trash2, Building2, FileText, History } from 'lucide-react'
 import { Card } from '@/shared/ui/Card'
 import { Modal } from '@/shared/ui/Modal'
+import { UnitDossier } from './UnitDossier'
 import { SearchInput } from '@/shared/ui/SearchInput'
 import { EmptyState, ErrorState } from '@/shared/ui/PageState'
 import { TableSkeleton } from '@/shared/ui/Skeleton'
@@ -19,6 +20,8 @@ import type { Unit, UnitsResponse } from './types'
 export function UnitsPage() {
   const [search, setSearch] = useState('')
   const [editing, setEditing] = useState<Unit | null>(null)
+  // پرونده‌ی واحدی که مدیر بازش کرده (R26)
+  const [dossier, setDossier] = useState<Unit | null>(null)
   const [creating, setCreating] = useState(false)
 
   useDocumentTitle('واحدها')
@@ -167,6 +170,15 @@ export function UnitsPage() {
                             <FileText size={15} />
                           </a>
                           <button
+                            onClick={() => setDossier(unit)}
+                            aria-label={`پرونده واحد ${unit.unitNumber}`}
+                            title="پرونده و تاریخچه"
+                            className="flex h-8 w-8 items-center justify-center rounded-lg transition-colors hover:bg-(--surface-sunken)"
+                            style={{ color: 'var(--text-secondary)' }}
+                          >
+                            <History size={15} />
+                          </button>
+                          <button
                             onClick={() => setEditing(unit)}
                             aria-label={`ویرایش واحد ${unit.unitNumber}`}
                             className="flex h-8 w-8 items-center justify-center rounded-lg transition-colors hover:bg-(--surface-sunken)"
@@ -192,6 +204,15 @@ export function UnitsPage() {
           )}
         </Card>
       )}
+
+      {/* پرونده و تاریخچه‌ی واحد (R26) */}
+      <Modal
+        open={dossier !== null}
+        title={dossier ? `پرونده واحد ${dossier.unitNumber}` : ''}
+        onClose={() => setDossier(null)}
+      >
+        {dossier && <UnitDossier unitId={dossier.id} />}
+      </Modal>
 
       <Modal
         open={creating || editing !== null}

@@ -15,6 +15,7 @@ export const unitSchema = z.object({
   area: z.coerce.number({ message: 'متراژ را وارد کنید' }).min(0, 'متراژ نمی‌تواند منفی باشد'),
   residents_count: z.coerce.number({ message: 'تعداد ساکنین را وارد کنید' }).int().min(0),
   parking_count: z.coerce.number().int().min(0).optional(),
+  storage_count: z.coerce.number().int().min(0).optional(),
   occupancy_status: z.string().min(1, 'وضعیت سکونت را انتخاب کنید'),
   coefficient: z.coerce.number({ message: 'ضریب را وارد کنید' }).min(0),
   uses_elevator: z.boolean().optional(),

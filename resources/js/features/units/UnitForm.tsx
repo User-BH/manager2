@@ -31,6 +31,7 @@ export function UnitForm({ unit, filters, onSaved, onCancel }: UnitFormProps) {
       area: unit?.area ?? 0,
       residents_count: unit?.residentsCount ?? 1,
       parking_count: unit?.parkingCount ?? 0,
+      storage_count: unit?.storageCount ?? 0,
       occupancy_status: unit?.occupancyStatus ?? filters.occupancyOptions[0]?.value ?? '',
       coefficient: unit?.coefficient ?? 1,
       uses_elevator: unit?.usesElevator ?? true,
@@ -116,6 +117,12 @@ export function UnitForm({ unit, filters, onSaved, onCancel }: UnitFormProps) {
           type="number"
           error={errors.parking_count?.message}
           {...register('parking_count')}
+        />
+        <TextField
+          label="تعداد انباری"
+          type="number"
+          error={errors.storage_count?.message}
+          {...register('storage_count')}
         />
         <SelectField
           label="وضعیت سکونت"

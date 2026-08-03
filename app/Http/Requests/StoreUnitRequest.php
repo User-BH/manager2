@@ -30,6 +30,8 @@ class StoreUnitRequest extends BaseFormRequest
             'area' => ['required', 'numeric', 'min:0'],
             'residents_count' => ['required', 'integer', 'min:0'],
             'parking_count' => ['nullable', 'integer', 'min:0'],
+            // انباری هم‌وزنِ پارکینگ است، هم در پرونده‌ی واحد و هم در قوانین شارژ
+            'storage_count' => ['nullable', 'integer', 'min:0'],
             'occupancy_status' => ['required', 'in:'.implode(',', array_column(OccupancyStatus::cases(), 'value'))],
             'coefficient' => ['required', 'numeric', 'min:0'],
             'uses_elevator' => ['nullable', 'boolean'],
@@ -47,6 +49,8 @@ class StoreUnitRequest extends BaseFormRequest
             'floor' => 'طبقه',
             'area' => 'متراژ',
             'residents_count' => 'تعداد ساکنین',
+            'parking_count' => 'تعداد پارکینگ',
+            'storage_count' => 'تعداد انباری',
             'occupancy_status' => 'وضعیت سکونت',
             'coefficient' => 'ضریب',
         ];

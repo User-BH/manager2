@@ -244,7 +244,17 @@ Route::middleware('auth')->group(function () {
     // همان میدل‌ور نقشی که پنل Blade استفاده می‌کند، تا سطح دسترسی در هر دو
     // مسیر یکسان بماند.
     Route::middleware('role:super_admin,complex_admin')->group(function () {
-        Route::apiResource('units', UnitController::class)->except('show');
+        Route::apiResource('units', UnitController::class);
+
+        /*
+         * پرونده و تاریخچه‌ی واحد (R26). انتقالِ مالکیت عملیاتِ مستقلی است
+         * و نه یک `update` معمولی، چون باید مالکانِ قبلی و تازه را با هم
+         * جابه‌جا کند.
+         */
+        Route::post('units/{unit}/transfer-ownership', [UnitController::class, 'transferOwnership'])
+            ->name('units.transfer-ownership');
+        Route::patch('units/{unit}/tenures/{tenure}/end', [UnitController::class, 'endTenure'])
+            ->name('units.tenures.end');
         Route::apiResource('residents', ResidentController::class)->except('show');
         Route::patch('residents/{resident}/toggle-active', [ResidentController::class, 'toggleActive'])
             ->name('residents.toggle-active');
