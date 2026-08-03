@@ -3,6 +3,8 @@
 namespace App\Http\Controllers\Api;
 
 use App\Enums\MessageAudience;
+use App\Enums\PollVoterScope;
+use App\Enums\PollWeightMode;
 use App\Exceptions\DomainException;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreMessageRequest;
@@ -11,9 +13,10 @@ use App\Models\Complex;
 use App\Models\Message;
 use App\Models\MessagePoll;
 use App\Models\MessageRead;
-use App\Models\PollVote;
+use App\Models\PollOption;
 use App\Models\Unit;
 use App\Models\User;
+use App\Services\Poll\PollService;
 use App\Support\Notifications;
 use App\Support\Uploads;
 use Illuminate\Http\JsonResponse;
@@ -33,6 +36,8 @@ class MessengerController extends Controller
 {
     /** تعداد پیامی که در بارگذاری اول برمی‌گردد. */
     private const WINDOW = 200;
+
+    public function __construct(private readonly PollService $polls) {}
 
     public function index(Request $request): JsonResponse
     {
@@ -161,6 +166,11 @@ class MessengerController extends Controller
             if ($request->filled('poll_question') && $user->role->isAdmin()) {
                 $poll = $message->poll()->create([
                     'question' => $request->string('poll_question')->trim()->value(),
+                    'voter_scope' => $request->input('poll_voter_scope', PollVoterScope::Residents->value),
+                    'weight_mode' => $request->input('poll_weight_mode', PollWeightMode::PerPerson->value),
+                    'quorum_percent' => $request->input('poll_quorum_percent'),
+                    'allow_change' => $request->boolean('poll_allow_change', true),
+                    'closes_at' => $request->input('poll_closes_at'),
                 ]);
 
                 foreach (array_values($request->input('poll_options', [])) as $index => $label) {
@@ -267,26 +277,51 @@ class MessengerController extends Controller
 
         abort_unless($visible, 404);
 
-        if ($poll->isClosed()) {
-            throw DomainException::invalid('این نظرسنجی بسته شده است.', 'poll.closed');
-        }
-
-        $option = $poll->options()->whereKey($request->integer('option_id'))->first();
+        $option = PollOption::whereKey($request->integer('option_id'))->first();
 
         if (! $option) {
             throw DomainException::invalid('گزینه‌ی انتخابی معتبر نیست.', 'poll.invalid_option');
         }
 
         /*
-         * `updateOrCreate` روی (نظرسنجی، کاربر): تعویضِ رأی همان ردیف را
-         * به‌روز می‌کند و کسی نمی‌تواند دو گزینه را هم‌زمان داشته باشد.
+         * واجدِ شرایط بودن، قفل و وزن همه در سرویس‌اند (R24) — نه اینجا.
+         * همان منطق را کارتِ داشبورد و `MessageResource` هم مصرف می‌کنند و
+         * نباید سه نسخه‌ی جدا داشته باشد.
          */
-        PollVote::updateOrCreate(
-            ['message_poll_id' => $poll->id, 'user_id' => $user->id],
-            ['poll_option_id' => $option->id],
-        );
+        $this->polls->castVote($poll, $user, $option);
 
-        return response()->json(['message' => 'رأی شما ثبت شد.']);
+        return response()->json([
+            'message' => 'رأی شما ثبت شد.',
+            'poll' => $this->polls->results($poll->fresh(['options', 'votes']), $user),
+        ]);
+    }
+
+    /**
+     * بستنِ نظرسنجی توسط مدیر (R24).
+     *
+     * تا وقتی نظرسنجی باز است برنده اعلام نمی‌شود، پس بستن فقط «دیگر رأی
+     * نگیر» نیست — همان لحظه‌ای است که نتیجه رسمی می‌شود.
+     */
+    public function closePoll(MessagePoll $poll): JsonResponse
+    {
+        $user = Auth::user();
+
+        /*
+         * ۴۰۴ پیش از مجوزدهی: پیامِ مجتمعِ دیگری اصلاً نباید وجودش تایید
+         * شود، حتی برای کسی که در مجتمعِ خودش مدیر است.
+         */
+        $message = Message::where('complex_id', $this->requireComplex()->id)
+            ->whereKey($poll->message_id)
+            ->firstOrFail();
+
+        $this->authorize('closePoll', $message);
+
+        $poll->closeNow();
+
+        return response()->json([
+            'message' => 'نظرسنجی بسته شد.',
+            'poll' => $this->polls->results($poll->fresh(['options', 'votes']), $user),
+        ]);
     }
 
     /** سروِ پیوستِ پیام از دیسکِ خصوصی. */

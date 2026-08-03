@@ -370,6 +370,13 @@ export function MessengerPage() {
       if (sentPoll) {
         payload.poll_question = sentPoll.question.trim()
         payload.poll_options = sentPoll.options.map((o) => o.trim()).filter(Boolean)
+        payload.poll_voter_scope = sentPoll.voterScope
+        payload.poll_weight_mode = sentPoll.weightMode
+        payload.poll_allow_change = sentPoll.allowChange ? '1' : '0'
+
+        // فیلدهای خالی اصلاً فرستاده نمی‌شوند تا `nullable` سرور کار کند
+        if (sentPoll.quorumPercent) payload.poll_quorum_percent = sentPoll.quorumPercent
+        if (sentPoll.closesAt) payload.poll_closes_at = new Date(sentPoll.closesAt).toISOString()
       }
     }
 
@@ -548,6 +555,7 @@ export function MessengerPage() {
                           <PollCard
                             poll={message.poll}
                             isMine={message.isMine}
+                            isAdmin={meta.isAdmin}
                             onVoted={(poll) => replaceMessage({ ...message, poll })}
                           />
                         )}

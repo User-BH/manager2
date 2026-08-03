@@ -6,11 +6,13 @@ import { PollCard, type MessagePoll } from '@/features/messaging/messenger/PollC
 import { EmojiPicker } from '@/features/messaging/messenger/EmojiPicker'
 
 /**
- * نظرسنجیِ درون‌چت و انتخابگرِ اموجی (R23b).
+ * نظرسنجیِ درون‌چت (R23b) با نتیجه‌گیریِ حرفه‌ای (R24) و انتخابگرِ اموجی.
  *
  * حساس‌ترین رفتارِ نظرسنجی **تعویضِ رأی** است: اگر شمارشِ خوش‌بینانه گزینه‌ی
- * قبلی را کم نکند، کاربر جمعی می‌بیند که از تعدادِ رأی‌دهنده‌ها بیشتر است و
- * تا واکشیِ بعدی فکر می‌کند نتیجه دستکاری شده.
+ * قبلی را کم نکند، کاربر جمعی می‌بیند که از تعدادِ رأی‌دهنده‌ها بیشتر است.
+ *
+ * دومی، **دلیلِ نبودِ حقِ رأی** است: دکمه‌ی خاموشِ بی‌دلیل کاربر را به
+ * پشتیبانی می‌فرستد، پس متنِ دلیل باید روی کارت دیده شود.
  */
 const post = vi.fn()
 
@@ -25,17 +27,33 @@ const poll: MessagePoll = {
   id: 7,
   question: 'رنگ نمای ساختمان؟',
   isClosed: false,
+  closesAt: null,
+  voterScope: 'residents',
+  voterScopeLabel: 'همه‌ی ساکنین',
+  weightMode: 'per_person',
+  weightModeLabel: 'هر نفر یک رأی',
+  weightUnit: 'رأی',
+  allowChange: true,
+  options: [
+    { id: 1, label: 'آبی', votes: 1, weight: 1, share: 50 },
+    { id: 2, label: 'خاکستری', votes: 1, weight: 1, share: 50 },
+  ],
   totalVotes: 2,
   myOptionId: null,
-  options: [
-    { id: 1, label: 'آبی', votes: 1 },
-    { id: 2, label: 'خاکستری', votes: 1 },
-  ],
+  blockReason: null,
+  eligibleWeight: 4,
+  castWeight: 2,
+  turnoutPercent: 50,
+  quorumPercent: null,
+  quorumMet: true,
+  weightUnavailable: false,
+  leaderId: null,
+  isTie: false,
 }
 
 beforeEach(() => {
   post.mockReset()
-  post.mockResolvedValue({})
+  post.mockResolvedValue({ poll })
 })
 
 afterEach(() => {
@@ -43,51 +61,42 @@ afterEach(() => {
 })
 
 describe('PollCard', () => {
-  it('نتیجه را پیش از رأی‌دادن هم نشان می‌دهد', () => {
+  it('نتیجه و درصد مشارکت را پیش از رأی‌دادن هم نشان می‌دهد', () => {
     render(<PollCard poll={poll} isMine={false} onVoted={vi.fn()} />)
 
-    expect(screen.getByText('2 رأی')).toBeInTheDocument()
     expect(screen.getAllByText('50٪')).toHaveLength(2)
+    expect(screen.getByText(/مشارکت 50٪/)).toBeInTheDocument()
+    expect(screen.getByText('هر نفر یک رأی')).toBeInTheDocument()
   })
 
-  it('با رأی‌دادن، شمارش و مجموع خوش‌بینانه بالا می‌رود', async () => {
+  it('با رأی‌دادن، شمارش خوش‌بینانه بالا می‌رود و نتیجه‌ی سرور جایگزین می‌شود', async () => {
     const onVoted = vi.fn()
     render(<PollCard poll={poll} isMine={false} onVoted={onVoted} />)
 
     await userEvent.click(screen.getByRole('button', { name: /آبی/ }))
 
-    expect(onVoted).toHaveBeenCalledWith(
-      expect.objectContaining({
-        myOptionId: 1,
-        totalVotes: 3,
-        options: [
-          expect.objectContaining({ id: 1, votes: 2 }),
-          expect.objectContaining({ id: 2, votes: 1 }),
-        ],
-      }),
+    expect(onVoted).toHaveBeenNthCalledWith(
+      1,
+      expect.objectContaining({ myOptionId: 1, totalVotes: 3 }),
     )
 
     expect(post).toHaveBeenCalledWith('/messenger/polls/7/vote', {
       method: 'POST',
       body: { option_id: 1 },
     })
+
+    // پاسخِ سرور حرفِ آخر است، چون وزن را کلاینت نمی‌تواند حساب کند
+    expect(onVoted).toHaveBeenLastCalledWith(poll)
   })
 
   it('تعویضِ رأی مجموع را بالا نمی‌برد و گزینه‌ی قبلی را کم می‌کند', async () => {
     const onVoted = vi.fn()
-    const voted: MessagePoll = {
-      ...poll,
-      myOptionId: 1,
-      options: [
-        { id: 1, label: 'آبی', votes: 1 },
-        { id: 2, label: 'خاکستری', votes: 1 },
-      ],
-    }
+    render(<PollCard poll={{ ...poll, myOptionId: 1 }} isMine={false} onVoted={onVoted} />)
 
-    render(<PollCard poll={voted} isMine={false} onVoted={onVoted} />)
     await userEvent.click(screen.getByRole('button', { name: /خاکستری/ }))
 
-    expect(onVoted).toHaveBeenCalledWith(
+    expect(onVoted).toHaveBeenNthCalledWith(
+      1,
       expect.objectContaining({
         myOptionId: 2,
         totalVotes: 2, // ← نه ۳
@@ -99,19 +108,81 @@ describe('PollCard', () => {
     )
   })
 
-  it('نظرسنجیِ بسته رأی نمی‌گیرد', async () => {
-    render(<PollCard poll={{ ...poll, isClosed: true }} isMine={false} onVoted={vi.fn()} />)
+  it('وقتی حق رأی ندارد، دکمه خاموش است و دلیلش نوشته می‌شود', async () => {
+    render(
+      <PollCard
+        poll={{ ...poll, blockReason: 'این نظرسنجی فقط برای مالکان است.' }}
+        isMine={false}
+        onVoted={vi.fn()}
+      />,
+    )
 
-    expect(screen.getByRole('button', { name: /آبی/ })).toBeDisabled()
+    expect(screen.getByText('این نظرسنجی فقط برای مالکان است.')).toBeInTheDocument()
     await userEvent.click(screen.getByRole('button', { name: /آبی/ }))
 
+    expect(post).not.toHaveBeenCalled()
+  })
+
+  it('حد نصابِ نرسیده را با علامتِ منفی نشان می‌دهد', () => {
+    render(
+      <PollCard
+        poll={{ ...poll, quorumPercent: 75, quorumMet: false }}
+        isMine={false}
+        onVoted={vi.fn()}
+      />,
+    )
+
+    expect(screen.getByText(/حد نصاب 75٪/)).toBeInTheDocument()
+    expect(screen.getByText('✗')).toBeInTheDocument()
+  })
+
+  it('نظرسنجیِ وزنی بدونِ متراژ هشدار می‌دهد', () => {
+    render(
+      <PollCard
+        poll={{ ...poll, weightMode: 'by_area', weightUnavailable: true }}
+        isMine={false}
+        onVoted={vi.fn()}
+      />,
+    )
+
+    expect(screen.getByText(/متراژ واحدها ثبت نشده/)).toBeInTheDocument()
+  })
+
+  it('دکمه‌ی بستن فقط به مدیر نشان داده می‌شود', () => {
+    const { rerender } = render(<PollCard poll={poll} isMine onVoted={vi.fn()} />)
+    expect(screen.queryByText(/بستن نظرسنجی/)).not.toBeInTheDocument()
+
+    rerender(<PollCard poll={poll} isMine isAdmin onVoted={vi.fn()} />)
+    expect(screen.getByText(/بستن نظرسنجی/)).toBeInTheDocument()
+  })
+
+  it('نظرسنجیِ بسته رأی نمی‌گیرد و دکمه‌ی بستن هم ندارد', async () => {
+    render(
+      <PollCard
+        poll={{ ...poll, isClosed: true, blockReason: 'این نظرسنجی بسته شده است.' }}
+        isMine={false}
+        isAdmin
+        onVoted={vi.fn()}
+      />,
+    )
+
+    expect(screen.getByRole('button', { name: /آبی/ })).toBeDisabled()
+    expect(screen.queryByText(/بستن نظرسنجی/)).not.toBeInTheDocument()
+
+    await userEvent.click(screen.getByRole('button', { name: /آبی/ }))
     expect(post).not.toHaveBeenCalled()
   })
 
   it('نظرسنجیِ بی‌رأی صفر درصد نشان می‌دهد و تقسیم بر صفر نمی‌کند', () => {
     render(
       <PollCard
-        poll={{ ...poll, totalVotes: 0, options: poll.options.map((o) => ({ ...o, votes: 0 })) }}
+        poll={{
+          ...poll,
+          totalVotes: 0,
+          castWeight: 0,
+          turnoutPercent: 0,
+          options: poll.options.map((o) => ({ ...o, votes: 0, weight: 0, share: 0 })),
+        }}
         isMine={false}
         onVoted={vi.fn()}
       />,

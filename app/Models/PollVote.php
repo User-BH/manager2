@@ -18,7 +18,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  */
 class PollVote extends Model
 {
-    protected $fillable = ['message_poll_id', 'poll_option_id', 'user_id'];
+    protected $fillable = ['message_poll_id', 'poll_option_id', 'user_id', 'unit_id', 'weight'];
 
     /** @return BelongsTo<PollOption, $this> */
     public function option(): BelongsTo

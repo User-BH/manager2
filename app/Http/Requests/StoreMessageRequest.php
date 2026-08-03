@@ -3,6 +3,8 @@
 namespace App\Http\Requests;
 
 use App\Enums\MessageAudience;
+use App\Enums\PollVoterScope;
+use App\Enums\PollWeightMode;
 use Illuminate\Validation\Rule;
 
 /**
@@ -51,6 +53,17 @@ class StoreMessageRequest extends BaseFormRequest
             'poll_question' => ['nullable', 'string', 'max:255'],
             'poll_options' => ['nullable', 'array', 'min:2', 'max:10', 'required_with:poll_question'],
             'poll_options.*' => ['required', 'string', 'max:120'],
+
+            /*
+             * تنظیماتِ حرفه‌ای (R24). همه اختیاری‌اند و نبودنشان همان
+             * رفتارِ ساده‌ی R23b را می‌دهد، پس نظرسنجیِ سریع هنوز با یک
+             * سوال و دو گزینه ساخته می‌شود.
+             */
+            'poll_voter_scope' => ['nullable', Rule::enum(PollVoterScope::class)],
+            'poll_weight_mode' => ['nullable', Rule::enum(PollWeightMode::class)],
+            'poll_quorum_percent' => ['nullable', 'integer', 'min:1', 'max:100'],
+            'poll_allow_change' => ['nullable', 'boolean'],
+            'poll_closes_at' => ['nullable', 'date', 'after:now'],
 
             'unit_ids.*' => [
                 Rule::exists('units', 'id')->where('complex_id', $this->currentComplexId()),

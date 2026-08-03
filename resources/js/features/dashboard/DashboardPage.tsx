@@ -26,6 +26,13 @@ import { useAuth } from '@/shared/stores/authStore'
 import { formatMoney, formatNumber } from '@/shared/lib/format'
 import type { BillStatus } from '@/shared/types'
 import { InitialDashboard } from './InitialDashboard'
+import { OpenPollsCard } from './components/OpenPollsCard'
+import type { MessagePoll } from '@/features/messaging/messenger/PollCard'
+
+/** نظرسنجی‌های باز، مشترکِ هر سه نوعِ داشبورد (R24). */
+interface WithPolls {
+  openPolls?: MessagePoll[]
+}
 
 interface AdminDashboard {
   type: 'admin'
@@ -62,7 +69,7 @@ interface ResidentDashboard {
   }[]
 }
 
-type DashboardData = AdminDashboard | SystemDashboard | ResidentDashboard
+type DashboardData = (AdminDashboard | SystemDashboard | ResidentDashboard) & WithPolls
 
 export function DashboardPage() {
   const { user } = useAuth()
@@ -105,6 +112,12 @@ export function DashboardPage() {
               : 'خلاصه‌ی وضعیت واحدهای شما'}
         </p>
       </motion.header>
+
+      {/*
+       * پیش از بقیه‌ی کارت‌ها: نظرسنجیِ باز مهلت دارد و اگر پایینِ صفحه
+       * بنشیند، همان‌جایی می‌رود که در پیام‌رسان رفته بود.
+       */}
+      <OpenPollsCard polls={data.openPolls ?? []} isAdmin={data.type !== 'resident'} />
 
       {data.type === 'admin' && <AdminView data={data} />}
       {data.type === 'system' && <SystemView data={data} />}

@@ -4,9 +4,9 @@ namespace App\Http\Resources;
 
 use App\Enums\MessageAudience;
 use App\Models\Message;
-use App\Models\PollOption;
 use App\Models\Unit;
 use App\Models\User;
+use App\Services\Poll\PollService;
 use App\Support\Jalali;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
@@ -90,36 +90,22 @@ class MessageResource extends JsonResource
      * فرستاده.
      */
     /**
-     * نظرسنجی با شمارشِ آرا و رأیِ خودِ بیننده (R23b).
+     * نظرسنجی با نتیجه‌ی کامل (R23b + R24).
      *
      * نتیجه همیشه نشان داده می‌شود — نه فقط پس از رأی‌دادن. در یک ساختمان،
      * پنهان‌کردنِ نتیجه چیزی را منصفانه‌تر نمی‌کند و فقط باعث می‌شود کسی که
      * رأی نداده نداند اصلاً موضوع چیست.
      *
+     * شکلِ خروجی از `PollService` می‌آید تا با کارتِ داشبورد و پاسخِ رأی
+     * یکی بماند؛ سه نسخه‌ی جدا دیر یا زود از هم واگرا می‌شدند.
+     *
      * @return array<string, mixed>|null
      */
     private function poll(Message $message): ?array
     {
-        $poll = $message->poll;
-
-        if (! $poll) {
-            return null;
-        }
-
-        $votes = $poll->votes;
-
-        return [
-            'id' => $poll->id,
-            'question' => $poll->question,
-            'isClosed' => $poll->isClosed(),
-            'totalVotes' => $votes->count(),
-            'myOptionId' => $votes->firstWhere('user_id', $this->viewer->id)?->poll_option_id,
-            'options' => $poll->options->map(fn (PollOption $option) => [
-                'id' => $option->id,
-                'label' => $option->label,
-                'votes' => $votes->where('poll_option_id', $option->id)->count(),
-            ])->values()->all(),
-        ];
+        return $message->poll
+            ? app(PollService::class)->results($message->poll, $this->viewer)
+            : null;
     }
 
     private function audienceLabel(Message $message): string

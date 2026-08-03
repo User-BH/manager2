@@ -17,4 +17,16 @@ class MessagePolicy
     {
         return $user->isAdmin();
     }
+
+    /**
+     * بستنِ نظرسنجی (R24).
+     *
+     * روی `Message` نشسته و نه `MessagePoll`، چون نظرسنجی موجودیتِ مستقل
+     * نیست: مالکِ واقعی همان پیام است و `ComplexScope` هم روی همان اعمال
+     * می‌شود.
+     */
+    public function closePoll(User $user, Message $message): bool
+    {
+        return $user->isAdmin();
+    }
 }

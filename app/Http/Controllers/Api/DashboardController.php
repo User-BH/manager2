@@ -4,6 +4,9 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Complex;
+use App\Models\Message;
+use App\Models\MessagePoll;
+use App\Services\Poll\PollService;
 use App\Services\ReportService;
 use App\Support\Jalali;
 use Illuminate\Http\JsonResponse;
@@ -18,6 +21,9 @@ use Illuminate\Support\Facades\Auth;
  */
 class DashboardController extends Controller
 {
+    /** بیش از این، کارتِ نظرسنجی داشبورد را می‌بلعد. */
+    private const POLL_CARDS = 3;
+
     public function index(): JsonResponse
     {
         $user = Auth::user();
@@ -26,11 +32,14 @@ class DashboardController extends Controller
             return response()->json(['type' => 'system'] + $this->systemData());
         }
 
+        // نظرسنجیِ باز برای هر دو نقش می‌آید؛ فقط محتوایش با دامنه‌ی دید فرق دارد
+        $polls = ['openPolls' => $this->openPolls()];
+
         if ($user->isAdmin()) {
-            return response()->json(['type' => 'admin'] + $this->adminData());
+            return response()->json(['type' => 'admin'] + $this->adminData() + $polls);
         }
 
-        return response()->json(['type' => 'resident'] + $this->residentData());
+        return response()->json(['type' => 'resident'] + $this->residentData() + $polls);
     }
 
     private function systemData(): array
@@ -110,6 +119,49 @@ class DashboardController extends Controller
                 ];
             })->values(),
         ];
+    }
+
+    /**
+     * نظرسنجی‌های بازِ قابلِ دیدِ کاربر — کارتِ داشبورد (R24).
+     *
+     * ─── چرا داشبورد و نه فقط پیام‌رسان ────────────────────────────────────
+     * نظرسنجی در جریانِ گفت‌وگو بالا می‌رود و پس از چند پیام دیده نمی‌شود.
+     * مشارکتِ پایین معمولاً بی‌علاقگی نیست، فراموشی است. کارتِ داشبورد همان
+     * نظرسنجی را جلوی چشم نگه می‌دارد تا مهلتش تمام نشده.
+     *
+     * دامنه‌ی دید همان `visibleTo` است، پس ساکن نظرسنجیِ واحدِ دیگری را
+     * اینجا هم نمی‌بیند.
+     *
+     * @return array<int, array<string, mixed>>
+     */
+    private function openPolls(): array
+    {
+        $user = Auth::user();
+        $complex = $this->currentComplex();
+
+        if (! $complex) {
+            return [];
+        }
+
+        $service = app(PollService::class);
+
+        return MessagePoll::query()
+            ->where(fn ($q) => $q->whereNull('closes_at')->orWhere('closes_at', '>', now()))
+            /*
+             * `whereIn` روی زیرکوئریِ `Message` و نه `whereHas`: این‌طور
+             * اسکوپِ `visibleTo` روی خودِ `Message` صدا زده می‌شود و نه روی
+             * سازنده‌ی بی‌نوعِ رابطه.
+             */
+            ->whereIn('message_id', Message::where('complex_id', $complex->id)
+                ->where('is_hidden', false)
+                ->visibleTo($user)
+                ->select('id'))
+            ->with(['message', 'options', 'votes'])
+            ->latest('id')
+            ->limit(self::POLL_CARDS)
+            ->get()
+            ->map(fn (MessagePoll $poll) => $service->results($poll, $user))
+            ->all();
     }
 
     /** @param array{labels: string[], income: float[], expense: float[]} $trend */

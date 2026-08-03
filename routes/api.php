@@ -128,6 +128,8 @@ Route::middleware('auth')->group(function () {
         ->name('messenger.read');
     Route::post('messenger/polls/{poll}/vote', [MessengerController::class, 'vote'])
         ->name('messenger.poll.vote');
+    Route::post('messenger/polls/{poll}/close', [MessengerController::class, 'closePoll'])
+        ->name('messenger.poll.close');
 
     Route::get('announcements', [AnnouncementController::class, 'index'])->name('announcements.index');
     Route::post('announcements', [AnnouncementController::class, 'store'])->name('announcements.store');
