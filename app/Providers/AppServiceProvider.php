@@ -190,6 +190,15 @@ class AppServiceProvider extends ServiceProvider
                 ->by($request->user()?->id ?: $request->ip()),
         ]);
 
+        /*
+         * کارزارِ پیامک (R27): سهمیه‌ی واقعی در دیتابیس است و ماهی یکی، پس
+         * این محدودیت فقط ضربه‌گیرِ کلیکِ تکراری و باگِ رابط است — نه
+         * جایگزینِ سهمیه.
+         */
+        RateLimiter::for('sms-campaign', fn (Request $request) => [
+            Limit::perHour(5)->by($request->user()?->id ?: $request->ip()),
+        ]);
+
         // هر بکاپ یک فایل کامل روی دیسک می‌سازد
         RateLimiter::for('backups', fn (Request $request) => [
             Limit::perHour(12)->by($request->user()?->id ?: $request->ip()),

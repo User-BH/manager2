@@ -93,11 +93,55 @@ class Notifications
                 'isPinned' => false,
                 'isRead' => $notification->read_at !== null,
                 'publishedAt' => Jalali::date($notification->created_at),
-                'link' => isset($notification->data['billId'])
-                    ? '/my-bills/'.$notification->data['billId']
-                    : null,
+                'link' => self::linkFor($notification->data ?? []),
             ])
             ->all();
+    }
+
+    /**
+     * اعلان‌های شخصی برای **تاریخچه** (R27).
+     *
+     * جدا از `personal()` است چون مصرفش فرق دارد: دراپ‌داون خلاصه می‌خواهد
+     * و تاریخچه متنِ کامل و کلیدِ مرتب‌سازی. با یک متدِ مشترک، یکی از دو
+     * مصرف‌کننده همیشه چیزی اضافه یا کم داشت.
+     *
+     * @return array<int, array<string, mixed>>
+     */
+    public static function personalHistory(User $user, int $limit): array
+    {
+        return $user->notifications()
+            ->latest()
+            ->limit($limit)
+            ->get()
+            ->map(fn ($notification) => [
+                'id' => 'n:'.$notification->id,
+                'kind' => 'personal',
+                'title' => $notification->data['title'] ?? 'اعلان',
+                'excerpt' => $notification->data['body'] ?? '',
+                'isRead' => $notification->read_at !== null,
+                'publishedAt' => Jalali::dateTime($notification->created_at),
+                'sortAt' => $notification->created_at->timestamp,
+                'link' => self::linkFor($notification->data ?? []),
+            ])
+            ->all();
+    }
+
+    /**
+     * مقصدِ کلیک روی یک اعلانِ شخصی.
+     *
+     * یک‌جا جمع شده تا افزودنِ نوعِ تازه فقط همین‌جا باشد؛ پیش از این در
+     * `personal()` درجا نوشته شده بود و نوعِ درخواست‌ها (R25) از قلم افتاده
+     * بود — اعلان می‌آمد ولی کلیکش هیچ‌جا نمی‌برد.
+     *
+     * @param  array<string, mixed>  $data
+     */
+    private static function linkFor(array $data): ?string
+    {
+        return match (true) {
+            isset($data['billId']) => '/my-bills/'.$data['billId'],
+            isset($data['serviceRequestId']) => '/requests',
+            default => null,
+        };
     }
 
     /** خواندنِ همه‌ی اعلان‌های شخصی. */

@@ -11,7 +11,9 @@ import {
   LayoutDashboard,
   Megaphone,
   Megaphone as MegaphoneIcon,
+  BellRing,
   MessageSquare,
+  MessageSquareWarning,
   Receipt,
   ScrollText,
   ScrollText as AuditIcon,
@@ -53,6 +55,8 @@ export const navSections: NavSection[] = [
       { label: 'هزینه‌ها و درآمدها', path: '/finance', icon: Wallet, roles: ADMINS },
       { label: 'قبوض و شارژ', path: '/bills', icon: Receipt, roles: ADMINS },
       { label: 'بررسی پرداخت‌ها', path: '/payments', icon: ClipboardCheck, roles: ADMINS },
+      // سهمیه‌ی ماهانه‌ی پیامک یادآوری شارژ (R27)
+      { label: 'پیامک یادآوری', path: '/sms-campaign', icon: MessageSquareWarning, roles: ADMINS },
       { label: 'تخفیف و بخشودگی', path: '/discounts', icon: BadgePercent, roles: ADMINS },
     ],
   },
@@ -64,6 +68,7 @@ export const navSections: NavSection[] = [
       // کیف پول برای مدیر هم دیده می‌شود: موجودیِ همه‌ی واحدها را می‌بیند
       { label: 'کیف پول', path: '/wallet', icon: Wallet },
       { label: 'اطلاعیه‌ها', path: '/announcements', icon: Megaphone },
+      { label: 'اعلان‌ها', path: '/notifications', icon: BellRing },
       { label: 'پیام‌رسان', path: '/messenger', icon: MessageSquare },
       // برای هر سه نقش: ساکن ثبت می‌کند، مسئول پیگیری، مدیر واگذار
       { label: 'درخواست‌ها', path: '/requests', icon: ClipboardList },

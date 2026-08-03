@@ -2,9 +2,11 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Enums\NotificationChannelKey;
 use App\Http\Controllers\Controller;
 use App\Models\Announcement;
 use App\Support\Jalali;
+use App\Support\NotificationPreferences;
 use App\Support\Notifications;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -24,6 +26,9 @@ use Illuminate\Support\Str;
  */
 class NotificationController extends Controller
 {
+    /** سقفِ ادغامِ در-حافظه‌ی تاریخچه، از هر منبع. */
+    private const HISTORY_CAP = 200;
+
     public function index(Request $request): JsonResponse
     {
         $user = Auth::user();
@@ -79,6 +84,78 @@ class NotificationController extends Controller
             'unreadCount' => Notifications::unreadCount($user),
             'items' => $items,
         ]);
+    }
+
+    /**
+     * تاریخچه‌ی کاملِ اعلان‌ها (R27).
+     *
+     * ─── چرا جدا از `index()` ───────────────────────────────────────────────
+     * `index()` دراپ‌داونِ زنگوله را می‌سازد و عمداً سه تا پنج آیتم
+     * برمی‌گرداند. تا امروز راهی برای دیدنِ بقیه نبود: اعلانی که کاربر
+     * یک بار از دستش می‌داد، برای همیشه از دسترس خارج می‌شد. اینجا همان
+     * دو منبع با صفحه‌بندیِ واقعی می‌آیند.
+     */
+    public function history(Request $request): JsonResponse
+    {
+        $user = Auth::user();
+        $perPage = 20;
+        $page = max(1, (int) $request->integer('page', 1));
+
+        /*
+         * دو منبعِ متفاوت با ساختارِ متفاوت را نمی‌شود با یک کوئریِ SQL
+         * صفحه‌بندی کرد. تعدادشان در عمل کوچک است (اطلاعیه‌های یک مجتمع و
+         * اعلان‌های یک کاربر)، پس ادغام در حافظه انجام می‌شود — با سقفِ
+         * صریح تا اگر روزی بزرگ شد، بی‌سروصدا کند نشود.
+         */
+        $announcements = Announcement::query()
+            ->visibleTo($user)
+            ->orderByDesc('published_at')
+            ->limit(self::HISTORY_CAP)
+            ->get();
+
+        $readIds = Notifications::readIds($user, $announcements->pluck('id'));
+
+        $items = collect([
+            ...$announcements->map(fn (Announcement $a) => [
+                'id' => 'a:'.$a->id,
+                'kind' => 'announcement',
+                'title' => $a->title,
+                'excerpt' => Str::limit(preg_replace('/\s+/u', ' ', $a->body), 160),
+                'isRead' => in_array($a->id, $readIds, true),
+                'publishedAt' => $a->published_at ? Jalali::dateTime($a->published_at) : null,
+                // اطلاعیه‌ی منتشرنشده ته فهرست می‌نشیند، نه بالای آن
+                'sortAt' => $a->published_at === null ? 0 : $a->published_at->timestamp,
+                'link' => '/announcements',
+            ]),
+            ...Notifications::personalHistory($user, self::HISTORY_CAP),
+        ])
+            ->sortByDesc('sortAt')
+            ->values();
+
+        return response()->json([
+            'items' => $items->forPage($page, $perPage)->values()->all(),
+            'total' => $items->count(),
+            'currentPage' => $page,
+            'lastPage' => max(1, (int) ceil($items->count() / $perPage)),
+            'unreadCount' => Notifications::unreadCount($user),
+        ]);
+    }
+
+    /** تنظیماتِ اعلانِ کاربر (R27). */
+    public function settings(NotificationPreferences $preferences): JsonResponse
+    {
+        return response()->json(['channels' => $preferences->all(Auth::user())]);
+    }
+
+    /** روشن/خاموش کردنِ یک کانال. */
+    public function updateSettings(Request $request, NotificationPreferences $preferences): JsonResponse
+    {
+        $key = NotificationChannelKey::tryFrom((string) $request->input('key'));
+        abort_if($key === null, 422);
+
+        $preferences->set(Auth::user(), $key, $request->boolean('enabled'));
+
+        return response()->json(['channels' => $preferences->all(Auth::user())]);
     }
 
     /** خواندنِ یک اطلاعیه (کلیک روی آن در دراپ‌داون یا در فهرست). */

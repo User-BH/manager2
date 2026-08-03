@@ -53,6 +53,17 @@ export const queryKeys = {
     detail: (id: number) => ['service-requests', 'detail', id] as const,
   },
 
+  // اعلان‌ها و سهمیه‌ی پیامک (R27)
+  notifications: {
+    all: () => ['notifications'] as const,
+    history: (page: number) => ['notifications', 'history', page] as const,
+    settings: () => ['notifications', 'settings'] as const,
+  },
+
+  smsCampaign: {
+    all: () => ['sms-campaign'] as const,
+  },
+
   // ── مالی ─────────────────────────────────────────────────────────────────
   bills: {
     all: () => ['bills'] as const,

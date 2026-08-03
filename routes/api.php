@@ -25,6 +25,7 @@ use App\Http\Controllers\Api\SearchController;
 use App\Http\Controllers\Api\ServiceRequestController;
 use App\Http\Controllers\Api\SettingController;
 use App\Http\Controllers\Api\SiteContentController;
+use App\Http\Controllers\Api\SmsCampaignController;
 use App\Http\Controllers\Api\SubscriptionController;
 use App\Http\Controllers\Api\SupportChatController;
 use App\Http\Controllers\Api\System\AdvertisementController as SystemAdvertisementController;
@@ -176,6 +177,17 @@ Route::middleware('auth')->group(function () {
 
     // زنگوله‌ی هدر. منبعش همان اطلاعیه‌هاست، فقط با وضعیت خوانده/نخوانده.
     Route::get('notifications', [NotificationController::class, 'index'])->name('notifications.index');
+
+    /*
+     * تاریخچه و تنظیماتِ اعلان (R27). هر دو برای همه‌ی نقش‌ها بازند؛
+     * محتوایشان را دامنه‌ی دیدِ خودِ کاربر می‌سازد.
+     */
+    Route::get('notifications/history', [NotificationController::class, 'history'])
+        ->name('notifications.history');
+    Route::get('notifications/settings', [NotificationController::class, 'settings'])
+        ->name('notifications.settings');
+    Route::patch('notifications/settings', [NotificationController::class, 'updateSettings'])
+        ->name('notifications.settings.update');
     Route::post('notifications/read-all', [NotificationController::class, 'readAll'])->name('notifications.read-all');
     // پیش از مسیرِ {announcement} می‌آید، وگرنه «personal» به‌عنوان شناسه‌ی
     // اطلاعیه تفسیر می‌شود و هرگز به این‌جا نمی‌رسد.
@@ -244,6 +256,16 @@ Route::middleware('auth')->group(function () {
     // همان میدل‌ور نقشی که پنل Blade استفاده می‌کند، تا سطح دسترسی در هر دو
     // مسیر یکسان بماند.
     Route::middleware('role:super_admin,complex_admin')->group(function () {
+        /*
+         * سهمیه‌ی ماهانه‌ی پیامکِ یادآوریِ شارژ (R27) — تنها پیامکی جز کدِ
+         * ورود. محدودیتِ نرخ روی ارسال هست تا حتی با یک باگ در رابط، فشارِ
+         * تکراری به درگاهِ پیامک نرود.
+         */
+        Route::get('sms-campaign', [SmsCampaignController::class, 'show'])
+            ->name('sms-campaign.show');
+        Route::post('sms-campaign', [SmsCampaignController::class, 'store'])
+            ->middleware('throttle:sms-campaign')->name('sms-campaign.store');
+
         Route::apiResource('units', UnitController::class);
 
         /*

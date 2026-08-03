@@ -46,6 +46,14 @@ const MessengerPage = lazy(() =>
     default: m.MessengerPage,
   })),
 )
+const NotificationsPage = lazy(() =>
+  import('@/features/notifications/NotificationsPage').then((m) => ({
+    default: m.NotificationsPage,
+  })),
+)
+const SmsCampaignPage = lazy(() =>
+  import('@/features/notifications/SmsCampaignPage').then((m) => ({ default: m.SmsCampaignPage })),
+)
 const ServiceRequestsPage = lazy(() =>
   import('@/features/requests/ServiceRequestsPage').then((m) => ({
     default: m.ServiceRequestsPage,
@@ -208,6 +216,9 @@ export function AppRouter() {
                 می‌کند و مدیر واگذار — همه در یک صفحه با دامنه‌ی دیدِ متفاوت. */}
             <Route path="/requests" element={<ServiceRequestsPage />} />
 
+            {/* تاریخچه و تنظیماتِ اعلان برای همه‌ی نقش‌ها (R27) */}
+            <Route path="/notifications" element={<NotificationsPage />} />
+
             {/* صورت‌حساب‌ها زیر روت مشترک است چون مدیر هم واحد شخصی دارد و
                 باید بتواند قبوض خودش را ببیند، نه فقط ساکنین. */}
             <Route path="/my-bills" element={<MyBillsPage />} />
@@ -228,6 +239,8 @@ export function AppRouter() {
         <Route element={<ProtectedRoute roles={ADMINS} />}>
           <Route element={<DashboardLayout />}>
             <Route path="/units" element={<UnitsPage />} />
+            {/* سهمیه‌ی ماهانه‌ی پیامک — فقط مدیر (R27) */}
+            <Route path="/sms-campaign" element={<SmsCampaignPage />} />
             <Route path="/residents" element={<ResidentsPage />} />
             <Route path="/bills" element={<BillsPage />} />
 
