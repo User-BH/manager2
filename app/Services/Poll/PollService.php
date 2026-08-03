@@ -74,12 +74,22 @@ class PollService
             return new Collection;
         }
 
+        /*
+         * ⚠️ اینجا `wherePivot()` **کار نمی‌کند** و باید نامِ کاملِ ستونِ
+         * جدولِ واسط نوشته شود.
+         *
+         * `wherePivot` فقط روی خودِ رابطه‌ی BelongsToMany تعریف شده؛
+         * سازنده‌ای که `whereHas` به کلوژر می‌دهد Builderِ مدلِ **مقصد**
+         * است، پس فراخوانی‌اش از راهِ `__call` به
+         * `where('pivot', 'is_current')` تبدیل می‌شد — روی MySQL خطای
+         * «Unknown column 'pivot'» و روی SQLite بی‌صدا صفر.
+         */
         return User::where('is_active', true)
             ->whereHas('units', function ($query) use ($unitIds, $poll) {
-                $query->whereIn('units.id', $unitIds)->wherePivot('is_current', true);
+                $query->whereIn('units.id', $unitIds)->where('unit_user.is_current', true);
 
                 if ($poll->voter_scope === PollVoterScope::Owners) {
-                    $query->wherePivot('relation', ResidentRelation::Owner->value);
+                    $query->where('unit_user.relation', ResidentRelation::Owner->value);
                 }
             })
             ->get();

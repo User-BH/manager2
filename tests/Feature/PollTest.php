@@ -283,6 +283,42 @@ class PollTest extends TestCase
         $this->assertFalse($result['quorumMet']);
     }
 
+    /**
+     * ⚠️ رگرسیونِ واقعی: این کوئری در تولید با
+     * «Unknown column 'pivot'» می‌ترکید.
+     *
+     * علتش این بود که `wherePivot()` فقط روی خودِ رابطه‌ی BelongsToMany
+     * معنا دارد؛ داخلِ `whereHas()` سازنده‌ای که به کلوژر می‌رسد Builderِ
+     * مدلِ مقصد است، پس `wherePivot` از راهِ `__call` به
+     * `where('pivot', 'is_current')` تبدیل می‌شد.
+     *
+     * تستِ قبلی این را نگرفت چون جامعه‌ی آماری‌اش خالی بود و تابع پیش از
+     * ساختنِ کوئری برمی‌گشت. اینجا عمداً ساکنِ واقعی هست.
+     */
+    public function test_a_per_person_poll_counts_real_residents(): void
+    {
+        $this->resident($this->unit());
+        $this->resident($this->unit());
+
+        $poll = $this->createPoll();
+        $result = $this->polls->results($poll->fresh(['options', 'votes']), $this->manager);
+
+        $this->assertSame(2.0, $result['eligibleWeight']);
+    }
+
+    public function test_an_owners_only_poll_excludes_tenants_from_the_denominator(): void
+    {
+        $unit = $this->unit();
+        $this->resident($unit);
+        $this->resident($unit, ResidentRelation::Tenant);
+
+        $poll = $this->createPoll(['poll_voter_scope' => PollVoterScope::Owners->value]);
+        $result = $this->polls->results($poll->fresh(['options', 'votes']), $this->manager);
+
+        // مستاجر نه رأی می‌دهد و نه در مخرجِ مشارکت می‌آید
+        $this->assertSame(1.0, $result['eligibleWeight']);
+    }
+
     public function test_a_poll_with_no_quorum_is_always_reported_as_met(): void
     {
         $poll = $this->createPoll();

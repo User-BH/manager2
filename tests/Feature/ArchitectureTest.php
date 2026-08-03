@@ -23,6 +23,52 @@ class ArchitectureTest extends TestCase
         );
     }
 
+    /**
+     * `wherePivot()` هرگز نباید درونِ `whereHas()`/`whereDoesntHave()` بیاید.
+     *
+     * ─── چرا این تست هست ───────────────────────────────────────────────────
+     * این باگ **در تولید** رخ داد: کوئریِ «واجدینِ شرایطِ نظرسنجی» با
+     * «Unknown column 'pivot'» می‌ترکید. `wherePivot` فقط روی خودِ رابطه‌ی
+     * BelongsToMany تعریف شده؛ سازنده‌ای که `whereHas` به کلوژر می‌دهد
+     * Builderِ مدلِ **مقصد** است، پس فراخوانی‌اش از راهِ `__call` بی‌صدا به
+     * `where('pivot', ...)` تبدیل می‌شود.
+     *
+     * خطرناک بودنش در همین بی‌صدا بودن است: روی MySQL خطای SQL می‌دهد ولی
+     * روی SQLiteِ تست فقط نتیجه‌ی خالی برمی‌گرداند، پس یک تستِ ساده هم
+     * ممکن است سبز بماند. راهِ درست، نامِ کاملِ ستونِ جدولِ واسط است
+     * (`unit_user.is_current`).
+     */
+    public function test_where_pivot_is_never_used_inside_where_has(): void
+    {
+        $offenders = [];
+
+        $files = array_map(
+            fn ($file) => (string) $file,
+            array_merge(File::allFiles(app_path()), []),
+        );
+
+        foreach ($files as $file) {
+            $contents = File::get($file);
+
+            /*
+             * از `whereHas(` تا انتهای همان فراخوانی را نمی‌شود با regex
+             * دقیق گرفت، ولی نیازی هم نیست: وجودِ `wherePivot` در فاصله‌ی
+             * کوتاهی پس از `whereHas`/`whereDoesntHave` به‌اندازه‌ی کافی
+             * نشانه است و خطای مثبتِ کاذبش عملاً صفر.
+             */
+            if (preg_match('/where(?:Doesnt)?Has\((?:[^;]{0,400}?)wherePivot\(/s', $contents)) {
+                $offenders[] = basename($file);
+            }
+        }
+
+        $this->assertSame(
+            [],
+            $offenders,
+            'wherePivot درون whereHas کار نمی‌کند؛ نام کامل ستون جدول واسط را بنویسید: '
+                .implode('، ', $offenders),
+        );
+    }
+
     public function test_controllers_do_not_validate_inline(): void
     {
         $offenders = [];

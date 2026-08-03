@@ -169,7 +169,9 @@ class ProfileController extends Controller
             return [];
         }
 
-        return User::whereHas('units', fn ($q) => $q->whereIn('units.id', $unitIds)->wherePivot('is_current', true))
+        // `wherePivot` داخلِ `whereHas` کار نمی‌کند؛ نامِ کاملِ ستونِ واسط لازم است
+        return User::whereHas('units', fn ($q) => $q->whereIn('units.id', $unitIds)
+            ->where('unit_user.is_current', true))
             ->where('id', '!=', $user->id)
             ->with('currentUnits')
             ->orderBy('name')

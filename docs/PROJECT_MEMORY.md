@@ -358,6 +358,28 @@ php artisan route:list       # ✅ ۱۳۲ سطر
   می‌شد درخواستی به نامِ واحدِ همسایه ثبت کرد و از راهِ `visibleTo`
   گفت‌وگویش را خواند.
 
+### ⚠️ `wherePivot()` هرگز درون `whereHas()`
+
+`wherePivot` فقط روی خودِ رابطه‌ی `BelongsToMany` تعریف شده. سازنده‌ای که
+`whereHas`/`whereDoesntHave` به کلوژر می‌دهد **Builderِ مدلِ مقصد** است، پس
+فراخوانی‌اش از راهِ `__call` بی‌صدا به `where('pivot', ...)` تبدیل می‌شود.
+
+راهِ درست، نامِ کاملِ ستونِ جدولِ واسط است:
+
+```php
+// ❌
+User::whereHas('units', fn ($q) => $q->wherePivot('is_current', true))
+// ✅
+User::whereHas('units', fn ($q) => $q->where('unit_user.is_current', true))
+```
+
+**چرا خطرناک است:** روی MySQL خطای «Unknown column 'pivot'» می‌دهد ولی روی
+SQLiteِ تست فقط نتیجه‌ی خالی برمی‌گرداند — پس تستی که جامعه‌ی آماری‌اش
+خالی است سبز می‌ماند و باگ تا تولید می‌رود. دقیقاً همین اتفاق افتاد
+(`PollService::eligibleVoters` و `ProfileController` هم‌واحدی‌ها).
+`ArchitectureTest::test_where_pivot_is_never_used_inside_where_has` حالا
+جلویش را می‌گیرد.
+
 ### داده‌ی محیط توسعه
 
 کاربران نمونه: `09120000001` (ادمین کل)، `09120000000` (مدیر مجتمع)، `0912111110x` (مالک)، `0912222220x` (مستاجر).
