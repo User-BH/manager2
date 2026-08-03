@@ -4,6 +4,7 @@ namespace App\Http\Resources;
 
 use App\Enums\MessageAudience;
 use App\Models\Message;
+use App\Models\PollOption;
 use App\Models\Unit;
 use App\Models\User;
 use App\Support\Jalali;
@@ -63,6 +64,21 @@ class MessageResource extends JsonResource
              */
             'audience' => $message->audience->value,
             'audienceLabel' => $this->audienceLabel($message),
+
+            // پیوست (R23b) — مسیرِ سرو کنترل‌شده است، نه لینکِ مستقیمِ دیسک
+            'attachment' => $message->hasAttachment() ? [
+                'name' => $message->attachment_name,
+                'kind' => $message->attachment_kind,
+                'url' => route('api.messenger.attachment', $message),
+            ] : null,
+
+            /*
+             * رسیدِ خواندن (R23b). شمارش فقط برای مدیر: ساکن نباید از روی یک
+             * پیامِ گروهی بفهمد چند همسایه‌ی دیگر آن را باز کرده‌اند.
+             */
+            'readCount' => $this->viewer->isAdmin() ? $message->readers->count() : null,
+
+            'poll' => $this->poll($message),
         ];
     }
 
@@ -73,6 +89,39 @@ class MessageResource extends JsonResource
      * که یکی از گیرنده‌هاست نباید بفهمد مدیر همین پیام را به چه کسانی دیگر
      * فرستاده.
      */
+    /**
+     * نظرسنجی با شمارشِ آرا و رأیِ خودِ بیننده (R23b).
+     *
+     * نتیجه همیشه نشان داده می‌شود — نه فقط پس از رأی‌دادن. در یک ساختمان،
+     * پنهان‌کردنِ نتیجه چیزی را منصفانه‌تر نمی‌کند و فقط باعث می‌شود کسی که
+     * رأی نداده نداند اصلاً موضوع چیست.
+     *
+     * @return array<string, mixed>|null
+     */
+    private function poll(Message $message): ?array
+    {
+        $poll = $message->poll;
+
+        if (! $poll) {
+            return null;
+        }
+
+        $votes = $poll->votes;
+
+        return [
+            'id' => $poll->id,
+            'question' => $poll->question,
+            'isClosed' => $poll->isClosed(),
+            'totalVotes' => $votes->count(),
+            'myOptionId' => $votes->firstWhere('user_id', $this->viewer->id)?->poll_option_id,
+            'options' => $poll->options->map(fn (PollOption $option) => [
+                'id' => $option->id,
+                'label' => $option->label,
+                'votes' => $votes->where('poll_option_id', $option->id)->count(),
+            ])->values()->all(),
+        ];
+    }
+
     private function audienceLabel(Message $message): string
     {
         if ($message->audience !== MessageAudience::Units) {

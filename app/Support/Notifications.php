@@ -4,6 +4,7 @@ namespace App\Support;
 
 use App\Models\Announcement;
 use App\Models\AnnouncementRead;
+use App\Models\Message;
 use App\Models\User;
 use Illuminate\Support\Collection;
 
@@ -29,10 +30,36 @@ use Illuminate\Support\Collection;
  */
 class Notifications
 {
-    /** مجموعِ نخوانده‌ها از هر دو منبع — همان عددی که روی زنگوله می‌نشیند. */
+    /** مجموعِ نخوانده‌ها از هر سه منبع — همان عددی که روی زنگوله می‌نشیند. */
     public static function unreadCount(User $user): int
     {
-        return self::unreadAnnouncementCount($user) + $user->unreadNotifications()->count();
+        return self::unreadAnnouncementCount($user)
+            + $user->unreadNotifications()->count()
+            + self::messengerUnread($user);
+    }
+
+    /**
+     * پیام‌های خوانده‌نشده‌ی پیام‌رسان (R23b).
+     *
+     * عمداً **مشتق** است و نه ردیفِ اعلان به ازای هر پیام: در یک گفت‌وگو،
+     * ساختنِ یک اعلان برای هر گیرنده هم جدول را به اندازه‌ی پیام×کاربر بزرگ
+     * می‌کند و هم زنگوله را چنان پر می‌کند که دیگر چیزی در آن دیده نشود.
+     * این‌طور کاربر یک سطر می‌بیند: «۳ پیامِ خوانده‌نشده».
+     *
+     * پیامِ خودِ فرستنده نخوانده حساب نمی‌شود.
+     */
+    public static function messengerUnread(User $user): int
+    {
+        if ($user->complex_id === null) {
+            return 0;
+        }
+
+        return Message::where('complex_id', $user->complex_id)
+            ->visibleTo($user)
+            ->where('user_id', '!=', $user->id)
+            ->where('is_hidden', false)
+            ->whereDoesntHave('readers', fn ($q) => $q->where('users.id', $user->id))
+            ->count();
     }
 
     /** فقط اطلاعیه‌های همگانیِ نخوانده. */

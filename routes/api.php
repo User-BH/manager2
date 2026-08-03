@@ -116,6 +116,19 @@ Route::middleware('auth')->group(function () {
     Route::patch('messenger/{message}/toggle-hide', [MessengerController::class, 'toggleHide'])
         ->name('messenger.toggle-hide');
 
+    /*
+     * پیوست، رسیدِ خواندن و رأیِ نظرسنجی (R23b).
+     *
+     * هر سه از همان دامنه‌ی دیدِ `visibleTo` رد می‌شوند، پس پیوست یا
+     * نظرسنجیِ گفت‌وگوی واحدِ دیگری قابل دسترسی نیست.
+     */
+    Route::get('messenger/{message}/attachment', [MessengerController::class, 'attachment'])
+        ->name('messenger.attachment');
+    Route::post('messenger/read', [MessengerController::class, 'markRead'])
+        ->name('messenger.read');
+    Route::post('messenger/polls/{poll}/vote', [MessengerController::class, 'vote'])
+        ->name('messenger.poll.vote');
+
     Route::get('announcements', [AnnouncementController::class, 'index'])->name('announcements.index');
     Route::post('announcements', [AnnouncementController::class, 'store'])->name('announcements.store');
     Route::put('announcements/{announcement}', [AnnouncementController::class, 'update'])

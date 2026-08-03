@@ -8,10 +8,14 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 /**
  * @property MessageAudience $audience
  * @property int|null $unit_id
+ * @property string|null $attachment_path
+ * @property string|null $attachment_name
+ * @property string|null $attachment_kind
  */
 class Message extends Model
 {
@@ -19,6 +23,7 @@ class Message extends Model
 
     protected $fillable = [
         'complex_id', 'user_id', 'body', 'audience', 'unit_id',
+        'attachment_path', 'attachment_name', 'attachment_kind',
         'author_name', 'author_role', 'unit_label',
         'is_hidden', 'hidden_by',
     ];
@@ -45,6 +50,31 @@ class Message extends Model
     public function unit(): BelongsTo
     {
         return $this->belongsTo(Unit::class);
+    }
+
+    /**
+     * کسانی که این پیام را خوانده‌اند (R23b).
+     *
+     * «خوانده‌نشده» با **نبودِ ردیف** نشان داده می‌شود، نه با پرچمِ false —
+     * پس جدول به اندازه‌ی خواندن‌های واقعی رشد می‌کند، نه پیام×کاربر.
+     *
+     * @return BelongsToMany<User, $this>
+     */
+    public function readers(): BelongsToMany
+    {
+        return $this->belongsToMany(User::class, 'message_reads')
+            ->withPivot('read_at');
+    }
+
+    /** @return HasOne<MessagePoll, $this> */
+    public function poll(): HasOne
+    {
+        return $this->hasOne(MessagePoll::class);
+    }
+
+    public function hasAttachment(): bool
+    {
+        return $this->attachment_path !== null;
     }
 
     /**

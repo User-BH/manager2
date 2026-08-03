@@ -49,7 +49,27 @@ class NotificationController extends Controller
          * اطلاعیه‌ها بود، حالا روی فهرستِ ادغام‌شده اعمال می‌شود تا کاربر
          * چیزی را که شمارنده می‌شمارد بالای فهرست ببیند.
          */
-        $items = collect([...$announcements, ...Notifications::personal($user, $limit)])
+        /*
+         * پیام‌رسان یک سطرِ تجمیعی می‌گیرد، نه یک سطر به ازای هر پیام (R23b).
+         * وضعیتِ خوانده‌شدنش در خودِ پیام‌رسان عوض می‌شود، پس اینجا فقط
+         * نمایش داده می‌شود.
+         */
+        $messenger = Notifications::messengerUnread($user);
+
+        $items = collect([
+            ...($messenger > 0 ? [[
+                'id' => 'm:unread',
+                'kind' => 'messenger',
+                'title' => 'پیام‌رسان',
+                'excerpt' => $messenger.' پیام خوانده‌نشده دارید.',
+                'isPinned' => false,
+                'isRead' => false,
+                'publishedAt' => null,
+                'link' => '/messenger',
+            ]] : []),
+            ...$announcements,
+            ...Notifications::personal($user, $limit),
+        ])
             ->sortBy(fn (array $item) => $item['isRead'] ? 1 : 0)
             ->take($limit)
             ->values()

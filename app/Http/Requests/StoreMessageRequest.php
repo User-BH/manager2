@@ -19,7 +19,15 @@ class StoreMessageRequest extends BaseFormRequest
     public function rules(): array
     {
         return [
-            'body' => ['required', 'string', 'max:1000'],
+            /*
+             * متن وقتی پیوست یا نظرسنجی هست اختیاری می‌شود.
+             *
+             * عمداً `required_without_all` و نه یک شرطِ PHP روی `$this`:
+             * تولیدکننده‌ی OpenAPI این FormRequest را بدونِ درخواستِ واقعی
+             * می‌سازد و هر تماسی با `hasFile()` آنجا کرش می‌کند. قاعده‌ی
+             * اعلانی هم برای اسپک خوانا می‌ماند.
+             */
+            'body' => ['required_without_all:attachment,poll_question', 'nullable', 'string', 'max:1000'],
 
             /*
              * مخاطب (R23) — فقط مدیر می‌تواند تعیینش کند و خودِ کنترلر این را
@@ -33,6 +41,17 @@ class StoreMessageRequest extends BaseFormRequest
              * بدونِ این قید، شناسه‌ی واحدِ مجتمعِ دیگری هم پذیرفته می‌شد.
              */
             'unit_ids' => ['nullable', 'array', 'max:200'],
+            /*
+             * پیوست (R23b) — همان فهرستِ مجازِ رسیدها. SVG عمداً نیست:
+             * کلاسیک‌ترین راهِ XSS از مسیر آپلود (R19).
+             */
+            'attachment' => ['nullable', 'file', 'mimes:jpg,jpeg,png,webp,pdf', 'max:4096'],
+
+            // نظرسنجی: سوال بدونِ گزینه بی‌معناست، پس با هم لازم می‌شوند
+            'poll_question' => ['nullable', 'string', 'max:255'],
+            'poll_options' => ['nullable', 'array', 'min:2', 'max:10', 'required_with:poll_question'],
+            'poll_options.*' => ['required', 'string', 'max:120'],
+
             'unit_ids.*' => [
                 Rule::exists('units', 'id')->where('complex_id', $this->currentComplexId()),
             ],
@@ -44,6 +63,10 @@ class StoreMessageRequest extends BaseFormRequest
      */
     public function messages(): array
     {
-        return ['body.required' => 'متن پیام را وارد کنید.', 'body.max' => 'پیام بیش از حد طولانی است.'];
+        return [
+            'body.required' => 'متن پیام را وارد کنید.',
+            'body.required_without_all' => 'متن پیام را وارد کنید.',
+            'body.max' => 'پیام بیش از حد طولانی است.',
+        ];
     }
 }

@@ -2,7 +2,19 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { AnimatePresence, motion } from 'framer-motion'
-import { Send, Loader2, EyeOff, Eye, MessageSquare, Lock } from 'lucide-react'
+import {
+  Send,
+  Loader2,
+  EyeOff,
+  Eye,
+  MessageSquare,
+  Lock,
+  Paperclip,
+  FileText,
+  BarChart3,
+  X,
+  CheckCheck,
+} from 'lucide-react'
 import { z } from 'zod'
 import { ErrorState, InlineSpinner } from '@/shared/ui/PageState'
 import { useDocumentTitle } from '@/shared/hooks'
@@ -11,9 +23,20 @@ import { api, ApiError } from '@/shared/lib/api'
 import { alertError, toastSuccess } from '@/shared/lib/alert'
 import { cn } from '@/shared/lib/cn'
 import { AudiencePicker, type Audience, type MessengerUnit } from './AudiencePicker'
+import { EmojiPicker } from './EmojiPicker'
+import { PollCard, type MessagePoll } from './PollCard'
+import { PollComposer, EMPTY_POLL, type PollDraft } from './PollComposer'
 
+/** همان قیدِ `StoreMessageRequest`؛ اینجا فقط تا کاربر پیش از آپلود بفهمد. */
+const MAX_ATTACHMENT_BYTES = 4 * 1024 * 1024
+const ACCEPTED_TYPES = '.jpg,.jpeg,.png,.webp,.pdf'
+
+/*
+ * `body` اینجا اختیاری است و اجبارش در `onSubmit` بررسی می‌شود، چون پیام با
+ * پیوست یا نظرسنجی می‌تواند بی‌متن باشد — همان قاعده‌ای که سرور دارد.
+ */
 const messageSchema = z.object({
-  body: z.string().min(1, 'متن پیام را وارد کنید').max(1000, 'پیام بیش از حد طولانی است'),
+  body: z.string().max(1000, 'پیام بیش از حد طولانی است'),
 })
 
 type MessageFormValues = z.infer<typeof messageSchema>
@@ -30,6 +53,12 @@ interface ChatMessage {
   /** مخاطبِ پیام (R23) — تا فرستنده ببیند پیامش کجا رفته. */
   audience?: 'management' | 'all' | 'units'
   audienceLabel?: string
+  /** پیوست (R23b)؛ `url` مسیرِ سروِ کنترل‌شده است، نه لینکِ مستقیمِ دیسک. */
+  attachment?: { name: string; kind: 'image' | 'file'; url: string } | null
+  /** نظرسنجیِ درون‌چت (R23b). */
+  poll?: MessagePoll | null
+  /** تعدادِ خواننده‌ها؛ سرور این را فقط به مدیر می‌دهد. */
+  readCount?: number | null
   /** پیامِ خوش‌بینانه که هنوز پاسخِ سرور برایش نیامده. */
   pending?: boolean
 }
@@ -45,6 +74,11 @@ interface MessengerResponse {
   isAdmin?: boolean
   /** فهرستِ واحدها برای انتخابگرِ گیرنده؛ فقط برای مدیر پر می‌شود (R23). */
   units?: MessengerUnit[]
+}
+
+/** پیامی که کاربر باید خوانده‌شده اعلامش کند: مالِ خودش نیست و پنهان نشده. */
+function isReadable(message: ChatMessage): boolean {
+  return !message.isMine && !message.pending && message.id > 0
 }
 
 const POLL_INTERVAL = 8000
@@ -64,6 +98,20 @@ export function MessengerPage() {
 
   const listRef = useRef<HTMLDivElement>(null)
   const lastIdRef = useRef(0)
+  const fileInputRef = useRef<HTMLInputElement>(null)
+  const textareaRef = useRef<HTMLTextAreaElement | null>(null)
+
+  const [attachment, setAttachment] = useState<File | null>(null)
+  const [pollDraft, setPollDraft] = useState<PollDraft | null>(null)
+
+  /*
+   * شناسه‌هایی که این نشست خوانده‌شده اعلامشان کرده‌ایم.
+   *
+   * ref است و نه state: هدفش فقط جلوگیری از ارسالِ تکراری است و تغییرش
+   * نباید رندر بیندازد. سرور هم idempotent است، پس این صرفاً صرفه‌جویی
+   * در درخواست است، نه تکیه‌گاهِ درستی.
+   */
+  const reportedRef = useRef<Set<number>>(new Set())
 
   useDocumentTitle('پیام‌رسان')
 
@@ -71,6 +119,8 @@ export function MessengerPage() {
     register,
     handleSubmit,
     reset,
+    setValue,
+    setError: setFormError,
     formState: { errors, isSubmitting },
   } = useForm<MessageFormValues>({
     resolver: zodResolver(messageSchema),
@@ -183,11 +233,77 @@ export function MessengerPage() {
   }, [messages, scrollToBottom])
 
   /*
+   * رسیدِ خوانده‌شده (R23b).
+   *
+   * وقتی کاربر صفحه‌ی پیام‌رسان را باز کرده و تب دیده می‌شود، پیام‌هایی که
+   * مالِ خودش نیستند خوانده‌شده اعلام می‌شوند. عمداً به IntersectionObserver
+   * گره نخورده: در یک گفت‌وگوی کوتاه تقریباً همه‌ی پیام‌ها در قابِ دید
+   * می‌آیند و پیچیدگی‌اش چیزی به دقت اضافه نمی‌کرد.
+   *
+   * شکستش بی‌صداست: رسیدِ خواندن یک راحتی است، نه چیزی که ارزشِ نشان‌دادنِ
+   * خطا به کاربر را داشته باشد.
+   */
+  useEffect(() => {
+    if (document.hidden) return
+
+    const unreported = messages
+      .filter((message) => isReadable(message) && !reportedRef.current.has(message.id))
+      .map((message) => message.id)
+
+    if (unreported.length === 0) return
+
+    unreported.forEach((id) => reportedRef.current.add(id))
+
+    const timer = setTimeout(() => {
+      void api('/messenger/read', { method: 'POST', body: { ids: unreported } }).catch(() => {
+        unreported.forEach((id) => reportedRef.current.delete(id))
+      })
+    }, 1200)
+
+    return () => clearTimeout(timer)
+  }, [messages])
+
+  /*
    * انتخابِ گیرنده فقط برای مدیر معنا دارد. ساکن این حالت را هم دارد ولی
    * هرگز استفاده نمی‌شود؛ سرور مخاطبِ پیامِ او را خودش تعیین می‌کند.
    */
   const [audience, setAudience] = useState<Audience>('all')
   const [selectedUnits, setSelectedUnits] = useState<number[]>([])
+
+  /** درجِ اموجی در محلِ مکان‌نما، نه چسباندن به انتهای متن. */
+  function insertEmoji(emoji: string) {
+    const field = textareaRef.current
+    if (!field) return
+
+    const start = field.selectionStart ?? field.value.length
+    const end = field.selectionEnd ?? start
+    const next = field.value.slice(0, start) + emoji + field.value.slice(end)
+
+    setValue('body', next, { shouldValidate: true })
+
+    requestAnimationFrame(() => {
+      field.focus()
+      field.setSelectionRange(start + emoji.length, start + emoji.length)
+    })
+  }
+
+  function pickAttachment(file: File | null) {
+    if (file && file.size > MAX_ATTACHMENT_BYTES) {
+      setError('حجم فایل باید کمتر از ۴ مگابایت باشد.')
+      return
+    }
+
+    setError(null)
+    setAttachment(file)
+  }
+
+  /** جایگزینیِ یک پیام در فهرست — نظرسنجی پس از رأی از این راه به‌روز می‌شود. */
+  function replaceMessage(updated: ChatMessage) {
+    setMessages((current) => current.map((m) => (m.id === updated.id ? updated : m)))
+  }
+
+  // یک‌بار صدا زده می‌شود تا هم RHF ref خودش را بگیرد و هم ما به المان برسیم
+  const bodyField = register('body')
 
   function toggleUnit(unitId: number) {
     setSelectedUnits((current) =>
@@ -196,6 +312,19 @@ export function MessengerPage() {
   }
 
   async function onSubmit(values: MessageFormValues) {
+    const hasPoll = Boolean(pollDraft?.question.trim())
+
+    // همان قاعده‌ی سرور: متن فقط وقتی اجباری است که پیوست و نظرسنجی نباشد
+    if (!values.body.trim() && !attachment && !hasPoll) {
+      setFormError('body', { message: 'متن پیام را وارد کنید' })
+      return
+    }
+
+    if (hasPoll && pollDraft!.options.filter((option) => option.trim()).length < 2) {
+      setError('نظرسنجی باید دست‌کم دو گزینه داشته باشد.')
+      return
+    }
+
     /*
      * ارسالِ خوش‌بینانه: پیام بی‌درنگ در گفت‌وگو ظاهر می‌شود (با نشانه‌ی «در حال
      * ارسال»)، فرم خالی و اسکرول پایین می‌رود. با پاسخِ سرور، نسخه‌ی موقت با
@@ -205,7 +334,7 @@ export function MessengerPage() {
     const tempId = -Date.now()
     const optimistic: ChatMessage = {
       id: tempId,
-      body: values.body,
+      body: values.body || (attachment ? attachment.name : ''),
       authorName: user?.name ?? 'شما',
       unitLabel: '',
       isMine: true,
@@ -219,12 +348,52 @@ export function MessengerPage() {
     reset()
     scrollToBottom(true)
 
+    /*
+     * وقتی پیوست هست، درخواست باید multipart برود. `api` خودش FormData را
+     * تشخیص می‌دهد و Content-Type را دست نمی‌زند، پس فقط بدنه فرق می‌کند.
+     */
+    const sentAttachment = attachment
+    const sentPoll = hasPoll ? pollDraft : null
+    setAttachment(null)
+    setPollDraft(null)
+
+    /*
+     * مقادیرِ FormData رشته‌اند، پس payload از همان اول رشته/آرایه‌ی رشته
+     * نگه داشته می‌شود — نه `unknown` که بعد کورکورانه String() شود.
+     */
+    const payload: Record<string, string | string[]> = { body: values.body }
+
+    if (meta.isAdmin) {
+      payload.audience = audience
+      payload.unit_ids = audience === 'units' ? selectedUnits.map(String) : []
+
+      if (sentPoll) {
+        payload.poll_question = sentPoll.question.trim()
+        payload.poll_options = sentPoll.options.map((o) => o.trim()).filter(Boolean)
+      }
+    }
+
+    let body: unknown = payload
+
+    if (sentAttachment) {
+      const form = new FormData()
+      form.append('attachment', sentAttachment)
+
+      for (const [key, value] of Object.entries(payload)) {
+        if (Array.isArray(value)) {
+          value.forEach((item) => form.append(`${key}[]`, item))
+        } else {
+          form.append(key, value)
+        }
+      }
+
+      body = form
+    }
+
     try {
       const { message } = await api<{ message: ChatMessage }>('/messenger', {
         method: 'POST',
-        body: meta.isAdmin
-          ? { ...values, audience, unit_ids: audience === 'units' ? selectedUnits : [] }
-          : values,
+        body,
       })
 
       lastIdRef.current = Math.max(lastIdRef.current, message.id)
@@ -232,6 +401,8 @@ export function MessengerPage() {
     } catch (err) {
       setMessages((current) => current.filter((m) => m.id !== tempId))
       reset({ body: values.body })
+      setAttachment(sentAttachment)
+      setPollDraft(sentPoll)
       setError(err instanceof ApiError ? err.message : 'ارسال پیام ناموفق بود.')
     }
   }
@@ -336,7 +507,51 @@ export function MessengerPage() {
                         این پیام توسط مدیر پنهان شده است.
                       </p>
                     ) : (
-                      <p className="whitespace-pre-line leading-6">{message.body}</p>
+                      <>
+                        {message.body && (
+                          <p className="whitespace-pre-line leading-6">{message.body}</p>
+                        )}
+
+                        {message.attachment &&
+                          (message.attachment.kind === 'image' ? (
+                            <a
+                              href={message.attachment.url}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="mt-2 block"
+                            >
+                              <img
+                                src={message.attachment.url}
+                                alt={message.attachment.name}
+                                loading="lazy"
+                                className="max-h-64 w-auto rounded-lg"
+                              />
+                            </a>
+                          ) : (
+                            <a
+                              href={message.attachment.url}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="mt-2 flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-[12px] underline"
+                              style={{
+                                backgroundColor: message.isMine
+                                  ? 'rgba(255,255,255,0.18)'
+                                  : 'var(--surface-base)',
+                              }}
+                            >
+                              <FileText size={13} />
+                              {message.attachment.name}
+                            </a>
+                          ))}
+
+                        {message.poll && (
+                          <PollCard
+                            poll={message.poll}
+                            isMine={message.isMine}
+                            onVoted={(poll) => replaceMessage({ ...message, poll })}
+                          />
+                        )}
+                      </>
                     )}
 
                     <div
@@ -346,6 +561,14 @@ export function MessengerPage() {
                       }}
                     >
                       <span className="tabular-nums">{message.sentAt}</span>
+
+                      {/* رسیدِ خواندن فقط برای مدیر؛ ساکن نباید بداند چند همسایه پیام را باز کرده‌اند */}
+                      {typeof message.readCount === 'number' && message.readCount > 0 && (
+                        <span className="flex items-center gap-0.5 tabular-nums">
+                          <CheckCheck size={11} />
+                          {message.readCount}
+                        </span>
+                      )}
 
                       {meta.isAdmin && (
                         <button
@@ -383,6 +606,32 @@ export function MessengerPage() {
             </p>
           )}
 
+          {pollDraft && meta.isAdmin && (
+            <PollComposer
+              draft={pollDraft}
+              onChange={setPollDraft}
+              onClose={() => setPollDraft(null)}
+            />
+          )}
+
+          {attachment && (
+            <div
+              className="mb-2 flex items-center gap-2 rounded-lg px-3 py-2 text-[12px]"
+              style={{ backgroundColor: 'var(--surface-sunken)', color: 'var(--text-secondary)' }}
+            >
+              <Paperclip size={13} />
+              <span className="flex-1 truncate">{attachment.name}</span>
+              <button
+                type="button"
+                onClick={() => pickAttachment(null)}
+                aria-label="حذف پیوست"
+                style={{ color: 'var(--text-tertiary)' }}
+              >
+                <X size={14} />
+              </button>
+            </div>
+          )}
+
           <form onSubmit={handleSubmit(onSubmit)} className="flex items-start gap-2">
             <div className="flex-1">
               <textarea
@@ -395,8 +644,53 @@ export function MessengerPage() {
                   color: 'var(--text-primary)',
                   ['--tw-ring-color' as string]: 'var(--ring-focus)',
                 }}
-                {...register('body')}
+                {...bodyField}
+                ref={(element) => {
+                  bodyField.ref(element)
+                  textareaRef.current = element
+                }}
               />
+
+              <div className="mt-1 flex items-center gap-1">
+                <EmojiPicker onPick={insertEmoji} />
+
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  aria-label="پیوست فایل"
+                  className="flex h-9 w-9 items-center justify-center rounded-lg"
+                  style={{ color: 'var(--text-tertiary)' }}
+                >
+                  <Paperclip size={16} />
+                </button>
+
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept={ACCEPTED_TYPES}
+                  className="hidden"
+                  onChange={(event) => {
+                    pickAttachment(event.target.files?.[0] ?? null)
+                    event.target.value = ''
+                  }}
+                />
+
+                {/* نظرسنجی تصمیمِ ساختمان است، پس فقط مدیر می‌سازدش */}
+                {meta.isAdmin && (
+                  <button
+                    type="button"
+                    onClick={() => setPollDraft((draft) => (draft ? null : { ...EMPTY_POLL }))}
+                    aria-label="ساخت نظرسنجی"
+                    aria-pressed={pollDraft !== null}
+                    className="flex h-9 w-9 items-center justify-center rounded-lg"
+                    style={{
+                      color: pollDraft ? 'var(--color-brand-500)' : 'var(--text-tertiary)',
+                    }}
+                  >
+                    <BarChart3 size={16} />
+                  </button>
+                )}
+              </div>
               {errors.body && (
                 <p className="mt-1 text-xs" style={{ color: 'var(--color-danger)' }}>
                   {errors.body.message}

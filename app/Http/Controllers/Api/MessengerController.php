@@ -3,17 +3,25 @@
 namespace App\Http\Controllers\Api;
 
 use App\Enums\MessageAudience;
+use App\Exceptions\DomainException;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreMessageRequest;
 use App\Http\Resources\MessageResource;
 use App\Models\Complex;
 use App\Models\Message;
+use App\Models\MessagePoll;
+use App\Models\MessageRead;
+use App\Models\PollVote;
 use App\Models\Unit;
 use App\Models\User;
+use App\Support\Notifications;
+use App\Support\Uploads;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 /**
  * پیام‌رسان داخلی مجتمع.
@@ -44,7 +52,7 @@ class MessengerController extends Controller
          * می‌بیند (R23). پیش از این پیام‌رسان یک کانالِ واحد بود و هر پیام
          * به همه می‌رسید.
          */
-        $base = Message::where('complex_id', $complex->id)->visibleTo($user)->with('recipientUnits:id,unit_number');
+        $base = Message::where('complex_id', $complex->id)->visibleTo($user)->with(['recipientUnits:id,unit_number', 'readers:id', 'poll.options', 'poll.votes']);
         $total = (clone $base)->count();
 
         if ($since = $request->integer('since')) {
@@ -67,6 +75,7 @@ class MessengerController extends Controller
             // آیا پیام قدیمی‌تری بیرون از این پنجره مانده؟ کلاینت با این، به‌جای
             // اینکه وانمود کند تاریخچه از اینجا شروع شده، به کاربر می‌گوید.
             'hasOlder' => $since ? false : $total > self::WINDOW,
+            'unreadCount' => Notifications::messengerUnread($user),
             /*
              * شناسه‌ی پیام‌های مخفی‌شده، مستقل از پنجره‌ی واکشی.
              *
@@ -128,17 +137,53 @@ class MessengerController extends Controller
             ? $user->units()->value('units.id')
             : null;
 
-        $message = DB::transaction(function () use ($complex, $user, $data, $audience, $senderUnitId) {
+        $attachment = $request->file('attachment');
+
+        $write = function (?string $path) use ($complex, $user, $data, $audience, $senderUnitId, $attachment, $request) {
             $message = Message::create([
                 'complex_id' => $complex->id,
                 'user_id' => $user->id,
-                'body' => $data['body'],
+                'body' => $data['body'] ?? '',
                 'audience' => $audience,
                 'unit_id' => $senderUnitId,
+                'attachment_path' => $path,
+                'attachment_name' => $attachment ? Uploads::safeOriginalName($attachment) : null,
+                'attachment_kind' => $attachment ? $this->attachmentKind($attachment) : null,
                 'author_name' => $user->name,
                 'author_role' => $user->role->value,
                 'unit_label' => $this->unitLabel($user),
             ]);
+
+            /*
+             * نظرسنجی خودش پیام است (R23b) — پس مخاطب‌دهی، مخفی‌کردن و رسیدِ
+             * خواندنش همان مسیرِ پیام را می‌رود و دوباره نوشته نمی‌شود.
+             */
+            if ($request->filled('poll_question') && $user->role->isAdmin()) {
+                $poll = $message->poll()->create([
+                    'question' => $request->string('poll_question')->trim()->value(),
+                ]);
+
+                foreach (array_values($request->input('poll_options', [])) as $index => $label) {
+                    $poll->options()->create([
+                        'label' => (string) $label,
+                        'sort_order' => $index,
+                    ]);
+                }
+            }
+
+            return $message;
+        };
+
+        $message = DB::transaction(function () use ($write, $attachment, $audience, $data, $complex) {
+            /*
+             * `keepIf` تضمین می‌کند فایلِ پیوست بدونِ پیامِ متناظر روی دیسک
+             * نماند (درسِ R19). دیسک خصوصی است و پیوست فقط از مسیرِ
+             * کنترل‌شده سرو می‌شود — پیوستِ یک گفت‌وگوی خصوصی نباید مستقیم
+             * از public خوانده شود.
+             */
+            $message = $attachment
+                ? Uploads::keepIf($attachment, 'messages/'.$complex->id, $write)
+                : $write(null);
 
             if ($audience === MessageAudience::Units) {
                 /*
@@ -151,7 +196,7 @@ class MessengerController extends Controller
             }
 
             return $message;
-        });
+        }, attempts: 3);
 
         return response()->json(['message' => $this->present($message, $user)], 201);
     }
@@ -177,6 +222,96 @@ class MessengerController extends Controller
         return $requested === MessageAudience::Units && empty($data['unit_ids'])
             ? MessageAudience::All
             : $requested;
+    }
+
+    /**
+     * علامت‌زدنِ پیام‌ها به‌عنوان خوانده‌شده (R23b).
+     *
+     * فقط پیام‌هایی که کاربر **حق دیدنشان را دارد** علامت می‌خورند؛ وگرنه
+     * می‌شد با فرستادنِ شناسه‌های دلخواه فهمید کدام شناسه‌ها پیامِ واقعی‌اند.
+     */
+    public function markRead(Request $request): JsonResponse
+    {
+        $user = Auth::user();
+
+        $ids = Message::where('complex_id', $this->requireComplex()->id)
+            ->visibleTo($user)
+            ->whereIn('id', (array) $request->input('ids', []))
+            ->pluck('id');
+
+        foreach ($ids as $id) {
+            /*
+             * `firstOrCreate` و نه `create`: رسیدِ خواندن باید idempotent
+             * باشد، چون کلاینت هنگام اسکرول ممکن است یک شناسه را چند بار
+             * بفرستد.
+             */
+            MessageRead::firstOrCreate(
+                ['message_id' => $id, 'user_id' => $user->id],
+                ['read_at' => now()],
+            );
+        }
+
+        return response()->json(['marked' => $ids->count()]);
+    }
+
+    /** ثبت یا تعویضِ رأی در نظرسنجی (R23b). */
+    public function vote(Request $request, MessagePoll $poll): JsonResponse
+    {
+        $user = Auth::user();
+
+        // نظرسنجی روی پیامی است که کاربر باید حقِ دیدنش را داشته باشد
+        $visible = Message::where('complex_id', $this->requireComplex()->id)
+            ->visibleTo($user)
+            ->whereKey($poll->message_id)
+            ->exists();
+
+        abort_unless($visible, 404);
+
+        if ($poll->isClosed()) {
+            throw DomainException::invalid('این نظرسنجی بسته شده است.', 'poll.closed');
+        }
+
+        $option = $poll->options()->whereKey($request->integer('option_id'))->first();
+
+        if (! $option) {
+            throw DomainException::invalid('گزینه‌ی انتخابی معتبر نیست.', 'poll.invalid_option');
+        }
+
+        /*
+         * `updateOrCreate` روی (نظرسنجی، کاربر): تعویضِ رأی همان ردیف را
+         * به‌روز می‌کند و کسی نمی‌تواند دو گزینه را هم‌زمان داشته باشد.
+         */
+        PollVote::updateOrCreate(
+            ['message_poll_id' => $poll->id, 'user_id' => $user->id],
+            ['poll_option_id' => $option->id],
+        );
+
+        return response()->json(['message' => 'رأی شما ثبت شد.']);
+    }
+
+    /** سروِ پیوستِ پیام از دیسکِ خصوصی. */
+    public function attachment(Message $message): StreamedResponse
+    {
+        $user = Auth::user();
+
+        /*
+         * ۴۰۴ و نه ۴۰۳: وجودِ یک پیوست هم اطلاعات است. دامنه‌ی دید همان
+         * `visibleTo` است، پس پیوستِ گفت‌وگوی واحدِ دیگری قابل دریافت نیست.
+         */
+        $visible = Message::where('complex_id', $this->requireComplex()->id)
+            ->visibleTo($user)
+            ->whereKey($message->id)
+            ->exists();
+
+        abort_unless($visible && $message->hasAttachment(), 404);
+
+        return Uploads::serve($message->attachment_path);
+    }
+
+    /** `image` درون‌خطی نشان داده می‌شود؛ بقیه دانلود می‌شوند. */
+    private function attachmentKind(UploadedFile $file): string
+    {
+        return str_starts_with((string) $file->getMimeType(), 'image/') ? 'image' : 'file';
     }
 
     /** مخفی/آشکار کردن پیام توسط مدیر. */
