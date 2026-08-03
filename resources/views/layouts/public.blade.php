@@ -119,5 +119,33 @@
 </head>
 <body>
     <div id="root"></div>
+
+    {{--
+        نشانِ اعتمادِ الکترونیکی (اینماد).
+
+        عمداً اینجا در HTMLِ سرور است و نه فقط در کامپوننتِ React: بررسیِ
+        خودکارِ اینماد صفحه را **بدونِ اجرای جاوااسکریپت** می‌خواند، پس
+        نشانی که فقط سمتِ کلاینت ساخته شود در آن بررسی دیده نمی‌شود.
+
+        کامپوننتِ `TrustSeal` هنگامِ mount همین گره را برمی‌دارد و داخلِ فوتر
+        می‌گذارد؛ یعنی یک نسخه بیشتر روی صفحه نیست و کاربر آن را سرِ جای
+        درستش می‌بیند. اگر جاوااسکریپت خاموش باشد، همین‌جا در پایینِ صفحه
+        می‌ماند — که باز هم فوتر است.
+
+        ویژگیِ `code` روی تصویر غیراستاندارد است ولی لازم؛ خودِ اینماد
+        دنبالش می‌گردد.
+    --}}
+    @if (config('brand.enamad.id'))
+        @php($enamadQuery = 'id='.config('brand.enamad.id').'&Code='.config('brand.enamad.code'))
+        <div id="enamad-seal" class="flex justify-center py-6">
+            <a referrerpolicy="origin" target="_blank" rel="noopener"
+               href="https://trustseal.enamad.ir/?{{ $enamadQuery }}">
+                <img referrerpolicy="origin" style="cursor:pointer" width="94" height="94"
+                     alt="نماد اعتماد الکترونیکی"
+                     src="https://trustseal.enamad.ir/logo.aspx?{{ $enamadQuery }}"
+                     code="{{ config('brand.enamad.code') }}">
+            </a>
+        </div>
+    @endif
 </body>
 </html>

@@ -14,6 +14,7 @@ import {
 } from '@/shared/common/SocialIcons'
 import { BRAND_NAME, contactInfo, socialHover, socialLinks } from '@/shared/config/brand'
 import { isViewerAuthenticated } from '@/shared/lib/viewer'
+import { TrustSeal } from './TrustSeal'
 
 const socialIconMap = {
   instagram: InstagramIcon,
@@ -219,13 +220,18 @@ export function HomeFooter() {
         </div>
 
         <div
-          className="mt-10 flex flex-col items-center justify-between gap-3 border-t pt-6 text-xs sm:flex-row"
+          className="mt-10 flex flex-col items-center justify-between gap-4 border-t pt-6 text-xs sm:flex-row"
           style={{ borderColor: 'var(--border-subtle)', color: 'var(--text-tertiary)' }}
         >
-          <p>
-            © {new Date().getFullYear()} {BRAND_NAME}. تمامی حقوق محفوظ است.
-          </p>
-          <p>ساخته‌شده با ❤️ برای مدیران مجتمع‌های مسکونی</p>
+          {/* نشانِ اعتماد اول می‌آید تا در موبایل بالای متنِ کپی‌رایت بنشیند */}
+          <TrustSeal />
+
+          <div className="flex flex-col items-center gap-2 sm:items-end">
+            <p>
+              © {new Date().getFullYear()} {BRAND_NAME}. تمامی حقوق محفوظ است.
+            </p>
+            <p>ساخته‌شده با ❤️ برای مدیران مجتمع‌های مسکونی</p>
+          </div>
         </div>
       </div>
     </footer>

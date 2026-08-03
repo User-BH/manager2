@@ -115,6 +115,16 @@ class SecurityHeaders
         $frameSrc[] = 'https://www.google.com';
         $frameSrc[] = 'https://maps.google.com';
 
+        /*
+         * نشانِ اعتمادِ الکترونیکی (اینماد) در فوتر.
+         *
+         * تصویرش از دامنه‌ی خودِ اینماد سرو می‌شود و قابلِ میزبانیِ محلی هم
+         * نیست: نشان باید **زنده** از سرورِ اینماد بیاید تا اعتبارِ لحظه‌ای‌اش
+         * قابلِ بررسی بماند. پس فقط همین یک دامنه به `img-src` اضافه می‌شود،
+         * نه یک اجازه‌ی کلی.
+         */
+        $imgSrc[] = 'https://trustseal.enamad.ir';
+
         if (! empty($config['ga4MeasurementId']) || ! empty($config['gtmContainerId'])) {
             $scriptSrc[] = 'https://www.googletagmanager.com';
             $connectSrc[] = 'https://www.google-analytics.com';
