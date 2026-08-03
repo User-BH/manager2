@@ -22,6 +22,7 @@ use App\Http\Controllers\Api\PaymentReviewController;
 use App\Http\Controllers\Api\ProfileController;
 use App\Http\Controllers\Api\ResidentController;
 use App\Http\Controllers\Api\SearchController;
+use App\Http\Controllers\Api\ServiceRequestController;
 use App\Http\Controllers\Api\SettingController;
 use App\Http\Controllers\Api\SiteContentController;
 use App\Http\Controllers\Api\SubscriptionController;
@@ -130,6 +131,29 @@ Route::middleware('auth')->group(function () {
         ->name('messenger.poll.vote');
     Route::post('messenger/polls/{poll}/close', [MessengerController::class, 'closePoll'])
         ->name('messenger.poll.close');
+
+    /*
+     * درخواست‌های ساکنین (R25).
+     *
+     * برای هر سه نقش یک مسیر است و دامنه‌ی دید را `visibleTo` تعیین می‌کند:
+     * ساکن پرونده‌ی واحدِ خودش، مسئول آنچه به او واگذار شده، مدیر همه.
+     */
+    Route::get('service-requests', [ServiceRequestController::class, 'index'])
+        ->name('service-requests.index');
+    Route::post('service-requests', [ServiceRequestController::class, 'store'])
+        ->name('service-requests.store');
+    Route::get('service-requests/{serviceRequest}', [ServiceRequestController::class, 'show'])
+        ->name('service-requests.show');
+    Route::get('service-requests/{serviceRequest}/attachment', [ServiceRequestController::class, 'attachment'])
+        ->name('service-requests.attachment');
+    Route::patch('service-requests/{serviceRequest}/status', [ServiceRequestController::class, 'updateStatus'])
+        ->name('service-requests.status');
+    Route::patch('service-requests/{serviceRequest}/assign', [ServiceRequestController::class, 'assign'])
+        ->name('service-requests.assign');
+    Route::patch('service-requests/{serviceRequest}/priority', [ServiceRequestController::class, 'setPriority'])
+        ->name('service-requests.priority');
+    Route::post('service-requests/{serviceRequest}/comments', [ServiceRequestController::class, 'comment'])
+        ->name('service-requests.comment');
 
     Route::get('announcements', [AnnouncementController::class, 'index'])->name('announcements.index');
     Route::post('announcements', [AnnouncementController::class, 'store'])->name('announcements.store');

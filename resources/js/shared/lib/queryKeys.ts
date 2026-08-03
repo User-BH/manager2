@@ -40,6 +40,17 @@ export const queryKeys = {
     all: () => ['managers'] as const,
   },
 
+  /*
+   * درخواست‌های ساکنین (R25). فیلترها در یک شیء‌اند تا افزودنِ فیلترِ بعدی
+   * کلیدهای قبلی را نشکند.
+   */
+  serviceRequests: {
+    all: () => ['service-requests'] as const,
+    list: (params: { status?: string; category?: string; mine?: boolean } = {}) =>
+      ['service-requests', 'list', params] as const,
+    detail: (id: number) => ['service-requests', 'detail', id] as const,
+  },
+
   // ── مالی ─────────────────────────────────────────────────────────────────
   bills: {
     all: () => ['bills'] as const,

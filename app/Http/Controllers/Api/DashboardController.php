@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Complex;
 use App\Models\Message;
 use App\Models\MessagePoll;
+use App\Models\ServiceRequest;
 use App\Services\Poll\PollService;
 use App\Services\ReportService;
 use App\Support\Jalali;
@@ -32,14 +33,20 @@ class DashboardController extends Controller
             return response()->json(['type' => 'system'] + $this->systemData());
         }
 
-        // نظرسنجیِ باز برای هر دو نقش می‌آید؛ فقط محتوایش با دامنه‌ی دید فرق دارد
-        $polls = ['openPolls' => $this->openPolls()];
+        /*
+         * نظرسنجیِ باز و شمارِ درخواست‌های باز برای هر دو نقش می‌آیند؛ فقط
+         * محتوایشان با دامنه‌ی دید فرق دارد.
+         */
+        $shared = [
+            'openPolls' => $this->openPolls(),
+            'openRequests' => $this->openRequestCount(),
+        ];
 
         if ($user->isAdmin()) {
-            return response()->json(['type' => 'admin'] + $this->adminData() + $polls);
+            return response()->json(['type' => 'admin'] + $this->adminData() + $shared);
         }
 
-        return response()->json(['type' => 'resident'] + $this->residentData() + $polls);
+        return response()->json(['type' => 'resident'] + $this->residentData() + $shared);
     }
 
     private function systemData(): array
@@ -162,6 +169,24 @@ class DashboardController extends Controller
             ->get()
             ->map(fn (MessagePoll $poll) => $service->results($poll, $user))
             ->all();
+    }
+
+    /**
+     * شمارِ درخواست‌های بازِ قابلِ دیدِ کاربر (R25).
+     *
+     * برای مدیر یعنی «چند کار روی زمین مانده» و برای ساکن یعنی «چند
+     * درخواستِ من هنوز نتیجه نگرفته». همان `visibleTo` هر دو را می‌سازد،
+     * پس عددِ داشبورد هرگز چیزی را نمی‌شمارد که کاربر در فهرست نمی‌بیند.
+     */
+    private function openRequestCount(): int
+    {
+        $user = Auth::user();
+
+        if (! $this->currentComplex()) {
+            return 0;
+        }
+
+        return ServiceRequest::query()->visibleTo($user)->open()->count();
     }
 
     /** @param array{labels: string[], income: float[], expense: float[]} $trend */

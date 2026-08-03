@@ -5,6 +5,7 @@ import {
   Building,
   Building2,
   ClipboardCheck,
+  ClipboardList,
   Crown,
   DatabaseBackup,
   LayoutDashboard,
@@ -64,6 +65,8 @@ export const navSections: NavSection[] = [
       { label: 'کیف پول', path: '/wallet', icon: Wallet },
       { label: 'اطلاعیه‌ها', path: '/announcements', icon: Megaphone },
       { label: 'پیام‌رسان', path: '/messenger', icon: MessageSquare },
+      // برای هر سه نقش: ساکن ثبت می‌کند، مسئول پیگیری، مدیر واگذار
+      { label: 'درخواست‌ها', path: '/requests', icon: ClipboardList },
       { label: 'ساکنین خوش‌حساب', path: '/top-residents', icon: Award },
     ],
   },

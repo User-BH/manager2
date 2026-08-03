@@ -46,6 +46,11 @@ const MessengerPage = lazy(() =>
     default: m.MessengerPage,
   })),
 )
+const ServiceRequestsPage = lazy(() =>
+  import('@/features/requests/ServiceRequestsPage').then((m) => ({
+    default: m.ServiceRequestsPage,
+  })),
+)
 const AnnouncementsPage = lazy(() =>
   import('@/features/messaging/announcements/AnnouncementsPage').then((m) => ({
     default: m.AnnouncementsPage,
@@ -198,6 +203,10 @@ export function AppRouter() {
             <Route path="/dashboard" element={<DashboardPage />} />
             <Route path="/announcements" element={<AnnouncementsPage />} />
             <Route path="/messenger" element={<MessengerPage />} />
+
+            {/* درخواست‌ها زیر روت مشترک است: ساکن ثبت می‌کند، مسئول پیگیری
+                می‌کند و مدیر واگذار — همه در یک صفحه با دامنه‌ی دیدِ متفاوت. */}
+            <Route path="/requests" element={<ServiceRequestsPage />} />
 
             {/* صورت‌حساب‌ها زیر روت مشترک است چون مدیر هم واحد شخصی دارد و
                 باید بتواند قبوض خودش را ببیند، نه فقط ساکنین. */}
