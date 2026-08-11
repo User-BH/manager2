@@ -139,6 +139,8 @@ export const queryKeys = {
 
   system: {
     all: () => ['system'] as const,
+    // آمارِ کلِ پلتفرم (R29)
+    stats: () => ['system', 'stats'] as const,
     ads: () => ['system', 'ads'] as const,
     auditLogs: (params: { query?: string } = {}) => ['system', 'audit-logs', params] as const,
     backups: () => ['system', 'backups'] as const,

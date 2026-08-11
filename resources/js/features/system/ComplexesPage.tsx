@@ -2,7 +2,16 @@ import { useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { motion } from 'framer-motion'
-import { Plus, Building, Check, LogOut, Loader2, Save, AlertCircle } from 'lucide-react'
+import {
+  Plus,
+  Building,
+  Check,
+  LogOut,
+  Loader2,
+  Save,
+  AlertCircle,
+  PauseCircle,
+} from 'lucide-react'
 import { z } from 'zod'
 import { Card } from '@/shared/ui/Card'
 import { Modal } from '@/shared/ui/Modal'
@@ -15,7 +24,7 @@ import { queryKeys } from '@/shared/lib/queryKeys'
 import { useDocumentTitle } from '@/shared/hooks'
 import { useAuth } from '@/shared/stores/authStore'
 import { api, ApiError } from '@/shared/lib/api'
-import { alertError } from '@/shared/lib/alert'
+import { alertError, toastSuccess } from '@/shared/lib/alert'
 import { formatNumber } from '@/shared/lib/format'
 
 const complexSchema = z.object({
@@ -38,12 +47,21 @@ interface ComplexRow {
   address: string | null
   units: number
   users: number
+  /** «مجتمعِ انتخاب‌شده‌ی من» — ربطی به تعلیق ندارد. */
   isActive: boolean
+  /** تعلیقِ دسترسیِ اعضای مجتمع (R29). */
+  isSuspended: boolean
+  suspendedAt: string | null
+  suspensionReason: string | null
 }
 
 export function ComplexesPage() {
   const [creating, setCreating] = useState(false)
   const [switching, setSwitching] = useState<number | null>(null)
+  /** مجتمعی که در حال تعلیق‌کردنش هستیم؛ مودالِ دلیل روی آن باز می‌شود. */
+  const [suspending, setSuspending] = useState<ComplexRow | null>(null)
+  const [reason, setReason] = useState('')
+  const [busy, setBusy] = useState(false)
   const { refresh } = useAuth()
 
   useDocumentTitle('مدیریت مجتمع‌ها')
@@ -64,6 +82,48 @@ export function ComplexesPage() {
         meta: { currentPage: number; lastPage: number; total: number }
       }>(`/system/complexes?page=${page}`, { signal }),
   })
+
+  /**
+   * تعلیق و بازفعال‌سازی (R29).
+   *
+   * تعلیق دلیلِ اجباری می‌خواهد چون همان متن مستقیم به اعضای مجتمع نشان
+   * داده می‌شود؛ بازفعال‌سازی دلیلی لازم ندارد.
+   */
+  async function suspend() {
+    if (!suspending) return
+
+    setBusy(true)
+
+    try {
+      await api(`/system/complexes/${suspending.id}/suspend`, {
+        method: 'POST',
+        body: { reason: reason.trim() },
+      })
+
+      toastSuccess('دسترسی این مجتمع تعلیق شد.')
+      setSuspending(null)
+      setReason('')
+      await refetch()
+    } catch (err) {
+      alertError(err, 'تعلیق مجتمع ممکن نشد.')
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  async function activate(complex: ComplexRow) {
+    setBusy(true)
+
+    try {
+      await api(`/system/complexes/${complex.id}/activate`, { method: 'POST' })
+      toastSuccess('دسترسی این مجتمع بازگردانده شد.')
+      await refetch()
+    } catch (err) {
+      alertError(err, 'بازگرداندن دسترسی ممکن نشد.')
+    } finally {
+      setBusy(false)
+    }
+  }
 
   async function select(complex: ComplexRow) {
     setSwitching(complex.id)
@@ -192,7 +252,28 @@ export function ComplexesPage() {
                             فعال
                           </span>
                         )}
+
+                        {/* تعلیق باید در یک نگاه دیده شود، نه پشتِ کلیک */}
+                        {complex.isSuspended && (
+                          <span
+                            className="flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-medium"
+                            style={{
+                              backgroundColor: 'rgba(244,63,94,0.14)',
+                              color: '#e11d48',
+                            }}
+                          >
+                            <PauseCircle size={10} />
+                            تعلیق‌شده
+                          </span>
+                        )}
                       </p>
+
+                      {complex.isSuspended && complex.suspensionReason && (
+                        <p className="mt-0.5 text-[11px]" style={{ color: '#e11d48' }}>
+                          {complex.suspensionReason}
+                          {complex.suspendedAt && ` — ${complex.suspendedAt}`}
+                        </p>
+                      )}
                       <p className="mt-0.5 text-[11px]" style={{ color: 'var(--text-tertiary)' }}>
                         {formatNumber(complex.units)} واحد · {formatNumber(complex.users)} کاربر
                         {complex.address && ` · ${complex.address}`}
@@ -200,17 +281,48 @@ export function ComplexesPage() {
                     </div>
                   </div>
 
-                  {!complex.isActive && (
-                    <button
-                      onClick={() => select(complex)}
-                      disabled={switching !== null}
-                      className="flex items-center gap-1.5 rounded-lg px-3.5 py-2 text-xs font-bold text-white disabled:opacity-60"
-                      style={{ backgroundColor: 'var(--color-brand-500)' }}
-                    >
-                      {switching === complex.id && <Loader2 size={13} className="animate-spin" />}
-                      انتخاب
-                    </button>
-                  )}
+                  <div className="flex items-center gap-2">
+                    {complex.isSuspended ? (
+                      <button
+                        onClick={() => void activate(complex)}
+                        disabled={busy}
+                        className="rounded-lg border px-3 py-2 text-xs font-bold disabled:opacity-60"
+                        style={{
+                          borderColor: 'var(--border-subtle)',
+                          color: 'var(--state-success)',
+                        }}
+                      >
+                        بازگرداندن دسترسی
+                      </button>
+                    ) : (
+                      <button
+                        onClick={() => {
+                          setSuspending(complex)
+                          setReason('')
+                        }}
+                        disabled={busy}
+                        className="rounded-lg border px-3 py-2 text-xs disabled:opacity-60"
+                        style={{
+                          borderColor: 'var(--border-subtle)',
+                          color: 'var(--color-danger)',
+                        }}
+                      >
+                        تعلیق
+                      </button>
+                    )}
+
+                    {!complex.isActive && (
+                      <button
+                        onClick={() => select(complex)}
+                        disabled={switching !== null}
+                        className="flex items-center gap-1.5 rounded-lg px-3.5 py-2 text-xs font-bold text-white disabled:opacity-60"
+                        style={{ backgroundColor: 'var(--color-brand-500)' }}
+                      >
+                        {switching === complex.id && <Loader2 size={13} className="animate-spin" />}
+                        انتخاب
+                      </button>
+                    )}
+                  </div>
                 </motion.li>
               ))}
             </ul>
@@ -257,6 +369,48 @@ export function ComplexesPage() {
           }}
           onCancel={() => setCreating(false)}
         />
+      </Modal>
+      {/*
+        مودالِ دلیلِ تعلیق (R29).
+
+        دلیل اجباری است چون همان متن مستقیم روی صفحه‌ی تعلیق به اعضای
+        مجتمع نشان داده می‌شود؛ متنِ خالی یعنی پشتیبانی هم نمی‌داند چه شده.
+      */}
+      <Modal
+        open={suspending !== null}
+        title={suspending ? `تعلیق «${suspending.name}»` : ''}
+        onClose={() => setSuspending(null)}
+      >
+        <div className="flex flex-col gap-3">
+          <p className="text-[13px] leading-7" style={{ color: 'var(--text-secondary)' }}>
+            پس از تعلیق، هیچ‌یک از اعضای این مجتمع نمی‌تواند وارد پنل شود و همین متن به آن‌ها نشان
+            داده می‌شود.
+          </p>
+
+          <textarea
+            value={reason}
+            onChange={(event) => setReason(event.target.value)}
+            rows={3}
+            maxLength={255}
+            placeholder="مثلاً: عدم تمدید اشتراک از مهر ۱۴۰۵"
+            className="resize-none rounded-xl border px-3 py-2 text-[13px] outline-none"
+            style={{
+              backgroundColor: 'var(--surface-sunken)',
+              borderColor: 'var(--border-subtle)',
+              color: 'var(--text-primary)',
+            }}
+          />
+
+          <button
+            type="button"
+            onClick={() => void suspend()}
+            disabled={reason.trim().length < 5 || busy}
+            className="rounded-xl py-2.5 text-[13px] font-bold text-white disabled:opacity-50"
+            style={{ backgroundColor: 'var(--color-danger)' }}
+          >
+            تعلیق دسترسی
+          </button>
+        </div>
       </Modal>
     </div>
   )

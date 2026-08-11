@@ -46,6 +46,9 @@ const MessengerPage = lazy(() =>
     default: m.MessengerPage,
   })),
 )
+const PlatformStatsPage = lazy(() =>
+  import('@/features/system/PlatformStatsPage').then((m) => ({ default: m.PlatformStatsPage })),
+)
 const NotificationsPage = lazy(() =>
   import('@/features/notifications/NotificationsPage').then((m) => ({
     default: m.NotificationsPage,
@@ -258,6 +261,8 @@ export function AppRouter() {
         <Route element={<ProtectedRoute roles={SUPER} />}>
           <Route element={<DashboardLayout />}>
             <Route path="/system/complexes" element={<ComplexesPage />} />
+            {/* آمارِ کلِ پلتفرم (R29) */}
+            <Route path="/system/stats" element={<PlatformStatsPage />} />
             <Route path="/system/subscriptions" element={<SystemSubscriptionsPage />} />
             <Route path="/system/ads" element={<AdvertisementsPage />} />
             <Route path="/system/site" element={<SiteSettingsPage />} />

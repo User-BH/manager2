@@ -44,6 +44,25 @@ class Jalali
         return sprintf('%04d-%02d', $now->getYear(), $now->getMonth());
     }
 
+    /**
+     * The Jalali period (`YYYY-MM`) a given date falls in.
+     *
+     * ─── چرا این متد لازم شد (R29) ─────────────────────────────────────────
+     * گروه‌بندیِ ماهانه با `GROUP BY MONTH()` در SQL برای تقویمِ شمسی غلط
+     * است: مرزِ ماهِ جلالی وسطِ ماهِ میلادی می‌افتد، پس هر نمودارِ رشدی که
+     * روی ماهِ میلادی گروه شود دو ماهِ شمسی را با هم قاطی می‌کند.
+     */
+    public static function period(Carbon|string|null $date): string
+    {
+        if ($date === null) {
+            return self::currentPeriod();
+        }
+
+        $jalali = Jalalian::fromCarbon($date instanceof Carbon ? $date : Carbon::parse($date));
+
+        return sprintf('%04d-%02d', $jalali->getYear(), $jalali->getMonth());
+    }
+
     /** Human label for a `YYYY-MM` period, e.g. «خرداد ۱۴۰۴». */
     public static function periodLabel(string $period): string
     {

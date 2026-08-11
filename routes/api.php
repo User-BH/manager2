@@ -36,6 +36,7 @@ use App\Http\Controllers\Api\System\ComplexController as SystemComplexController
 use App\Http\Controllers\Api\System\MemberController;
 use App\Http\Controllers\Api\System\ObservabilityController;
 use App\Http\Controllers\Api\System\PlanController;
+use App\Http\Controllers\Api\System\PlatformStatsController;
 use App\Http\Controllers\Api\System\SiteSettingsController;
 use App\Http\Controllers\Api\System\SmsController;
 use App\Http\Controllers\Api\System\SubscriptionReviewController;
@@ -346,6 +347,19 @@ Route::middleware('auth')->group(function () {
         Route::post('complexes/{complex}/select', [SystemComplexController::class, 'select'])
             ->name('complexes.select');
         Route::post('complexes/clear', [SystemComplexController::class, 'clear'])->name('complexes.clear');
+
+        /*
+         * تعلیق و بازفعال‌سازیِ مجتمع (R29) — «مدیریتِ کنترل‌شده‌ی Tenantها».
+         * تعلیق دلیلِ اجباری می‌خواهد چون همان متن به اعضای مجتمع نشان
+         * داده می‌شود.
+         */
+        Route::post('complexes/{complex}/suspend', [SystemComplexController::class, 'suspend'])
+            ->name('complexes.suspend');
+        Route::post('complexes/{complex}/activate', [SystemComplexController::class, 'activate'])
+            ->name('complexes.activate');
+
+        // آمارِ کلِ پلتفرم (R29)
+        Route::get('stats', [PlatformStatsController::class, 'index'])->name('stats');
 
         // پایش و تحلیل: شناسه‌ها از همین‌جا یا از .env می‌آیند (پنل مقدم است)
         Route::get('observability', [ObservabilityController::class, 'show'])->name('observability.show');

@@ -76,6 +76,25 @@ class User extends Authenticatable
         return $this->hasMany(Subscription::class);
     }
 
+    /**
+     * پرداخت‌های این کاربر (R29).
+     *
+     * تا امروز فقط از سمتِ `Payment` خوانده می‌شد؛ برای سنجشِ «کاربرِ
+     * درگیر» در آمارِ پلتفرم، جهتِ برعکس هم لازم شد.
+     *
+     * @return HasMany<Payment, $this>
+     */
+    public function payments(): HasMany
+    {
+        return $this->hasMany(Payment::class);
+    }
+
+    /** @return HasMany<ServiceRequest, $this> */
+    public function serviceRequests(): HasMany
+    {
+        return $this->hasMany(ServiceRequest::class);
+    }
+
     public function isSuperAdmin(): bool
     {
         return $this->role === UserRole::SuperAdmin;

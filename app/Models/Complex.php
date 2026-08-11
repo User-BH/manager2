@@ -20,6 +20,8 @@ class Complex extends Model
         'payment_gateway', 'gateway_config',
         'charge_due_day', 'penalty_enabled', 'penalty_type', 'penalty_value', 'penalty_grace_days',
         'fund_balance', 'settings', 'is_active',
+        // تعلیق (R29) — بدونِ اینها `update()` بی‌صدا نادیده‌شان می‌گیرد
+        'suspended_at', 'suspension_reason',
     ];
 
     protected function casts(): array
@@ -34,6 +36,7 @@ class Complex extends Model
             'penalty_value' => 'decimal:2',
             'fund_balance' => 'decimal:2',
             'is_active' => 'boolean',
+            'suspended_at' => 'datetime',
         ];
     }
 

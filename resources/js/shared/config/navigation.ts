@@ -2,6 +2,7 @@ import {
   Activity,
   Award,
   BadgePercent,
+  BarChart3,
   Building,
   Building2,
   ClipboardCheck,
@@ -87,6 +88,8 @@ export const navSections: NavSection[] = [
     id: 'system',
     title: 'سیستم',
     items: [
+      // آمارِ پلتفرم اولِ بخشِ سیستم؛ همان چیزی که ادمین اول می‌خواهد ببیند
+      { label: 'آمار پلتفرم', path: '/system/stats', icon: BarChart3, roles: SUPER },
       { label: 'مدیریت مجتمع‌ها', path: '/system/complexes', icon: Building, roles: SUPER },
       { label: 'اعضای سامانه', path: '/system/members', icon: Users, roles: SUPER },
       { label: 'پکیج‌های اشتراک', path: '/system/plans', icon: BadgePercent, roles: SUPER },

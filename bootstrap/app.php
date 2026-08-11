@@ -3,6 +3,7 @@
 use App\Exceptions\ApiExceptionRenderer;
 use App\Http\Middleware\AuthenticateTrustedDevice;
 use App\Http\Middleware\EnsureActive;
+use App\Http\Middleware\EnsureComplexActive;
 use App\Http\Middleware\EnsureRole;
 use App\Http\Middleware\LockInitialAccount;
 use App\Http\Middleware\SecurityHeaders;
@@ -139,6 +140,12 @@ return Application::configure(basePath: dirname(__DIR__))
             EnsureActive::class,
             SetCurrentComplex::class,
             /*
+             * تعلیقِ مجتمع (R29). پس از `SetCurrentComplex` می‌آید چون به
+             * مجتمعِ جاری نیاز دارد، و پیش از `LockInitialAccount` تا
+             * کاربرِ مجتمعِ معلق حتی به قفلِ حالتِ اولیه هم نرسد.
+             */
+            EnsureComplexActive::class,
+            /*
              * قفلِ فقط‌خواندنیِ «حالتِ اولیه» (R21).
              *
              * پس از `SetCurrentComplex` می‌آید چون به کاربرِ واردشده نیاز
@@ -175,6 +182,16 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->prependToPriorityList(
             before: SetCurrentComplex::class,
             prepend: EnsureActive::class,
+        );
+
+        /*
+        | تعلیقِ مجتمع باید بلافاصله پس از تعیینِ مجتمعِ جاری بررسی شود، وگرنه
+        | با ترتیبِ پیش‌فرضِ لاراول بعد از بایندینگِ مدل می‌افتاد و کاربرِ
+        | مجتمعِ معلق داده را می‌خواند و بعد ۴۰۳ می‌گرفت.
+        */
+        $middleware->prependToPriorityList(
+            before: SubstituteBindings::class,
+            prepend: EnsureComplexActive::class,
         );
 
         // ورود خودکارِ دستگاه مورداعتماد باید پیش از میدل‌ور `auth` اجرا شود،
