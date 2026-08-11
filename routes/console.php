@@ -33,6 +33,15 @@ Schedule::command('receipts:prune')->weeklyOn(5, '03:00');
 */
 Schedule::command('backups:prune --keep=10')->weeklyOn(5, '03:30');
 
+/*
+| سندهای PDFِ تولیدشده (R28)
+|
+| هر دسته‌ی قبض یک فایلِ چندصد صفحه‌ای است و همه‌شان قابلِ بازتولیدند
+| (پارامترهایشان ذخیره شده). دو هفته برای دانلود کافی است؛ رهاکردنشان همان
+| مشکلِ انباشتِ بکاپ‌ها را تکرار می‌کند.
+*/
+Schedule::command('documents:prune --days=14')->weeklyOn(5, '03:15');
+
 // دستگاه‌های مورداعتمادِ منقضی‌شده‌ی «مرا به خاطر بسپار»
 Schedule::command('trusted-devices:prune')->dailyAt('03:45');
 

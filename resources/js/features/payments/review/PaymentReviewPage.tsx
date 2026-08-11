@@ -255,6 +255,7 @@ export function PaymentReviewPage() {
                       <th className="pb-3 font-medium">مبلغ</th>
                       <th className="pb-3 font-medium">تاریخ</th>
                       <th className="pb-3 font-medium">وضعیت</th>
+                      <th className="pb-3 font-medium">رسید</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -292,6 +293,23 @@ export function PaymentReviewPage() {
                           >
                             {payment.statusLabel}
                           </span>
+                        </td>
+                        {/*
+                          رسیدِ رسمیِ PDF (R28) — سندی که ساکن هنگام تخلیه
+                          یا حساب با مالک به آن نیاز دارد. فقط برای
+                          پرداختِ موفق معنا دارد.
+                        */}
+                        <td className="py-2.5">
+                          {payment.status === 'success' && (
+                            <a
+                              href={`/payments/${payment.id}/receipt.pdf`}
+                              className="inline-flex items-center gap-1 text-[12px] underline"
+                              style={{ color: 'var(--color-brand-500)' }}
+                            >
+                              <FileText size={12} />
+                              دانلود
+                            </a>
+                          )}
                         </td>
                       </tr>
                     ))}

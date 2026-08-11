@@ -1,11 +1,11 @@
 import { useState } from 'react'
 import { motion } from 'framer-motion'
-import { Receipt, Loader2, Sparkles, FileSpreadsheet } from 'lucide-react'
+import { Receipt, Loader2, Sparkles, FileSpreadsheet, FileText } from 'lucide-react'
 import { Card } from '@/shared/ui/Card'
 import { StatCard } from '@/shared/ui/StatCard'
 import { EmptyState, ErrorState } from '@/shared/ui/PageState'
 import { TableSkeleton } from '@/shared/ui/Skeleton'
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useMutation } from '@tanstack/react-query'
 import { errorMessage } from '@/shared/lib/queryClient'
 import { queryKeys } from '@/shared/lib/queryKeys'
 import { useDocumentTitle } from '@/shared/hooks'
@@ -49,6 +49,24 @@ export function BillsPage() {
   const [generating, setGenerating] = useState(false)
 
   useDocumentTitle('قبوض و شارژ')
+
+  /*
+   * ساختِ دسته‌ی PDF در صف (R28).
+   *
+   * پاسخ ۲۰۲ است و نه فایل: کاربر پیام می‌گیرد که کار شروع شده و سند در
+   * فهرستِ اسناد ظاهر می‌شود. اگر همین‌جا منتظرِ فایل می‌ماندیم، مجتمعِ
+   * بزرگ به تایم‌اوت می‌خورد.
+   */
+  const bundle = useMutation({
+    mutationFn: (period: string) =>
+      api<{ document: { title: string } }>('/documents/bills-bundle', {
+        method: 'POST',
+        body: { period },
+      }),
+    onSuccess: ({ document }) =>
+      toastSuccess(`«${document.title}» در حال ساخت است؛ پس از آماده‌شدن قابل دانلود می‌شود.`),
+    onError: (err) => alertError(err, 'درخواست ساخت دسته‌ی PDF ممکن نشد.'),
+  })
 
   const query = period ? `/bills?period=${encodeURIComponent(period)}` : '/bills'
   const { data, error, isLoading, refetch } = useQuery({
@@ -108,6 +126,28 @@ export function BillsPage() {
                 </option>
               ))}
             </select>
+          )}
+
+          {/*
+            دسته‌ی PDFِ همه‌ی قبض‌های دوره (R28). چون برای مجتمعِ بزرگ
+            ده‌ها ثانیه طول می‌کشد، در صف ساخته می‌شود و کاربر بلافاصله
+            ردیفش را با وضعیتِ «در حال ساخت» می‌بیند.
+          */}
+          {data && data.data.length > 0 && (
+            <button
+              type="button"
+              onClick={() => bundle.mutate(data.period)}
+              disabled={bundle.isPending}
+              className="flex items-center gap-1.5 rounded-xl border px-4 py-2.5 text-[13px] font-semibold disabled:opacity-60"
+              style={{ borderColor: 'var(--border-default)', color: 'var(--text-secondary)' }}
+            >
+              {bundle.isPending ? (
+                <Loader2 size={15} className="animate-spin" />
+              ) : (
+                <FileText size={15} />
+              )}
+              دسته‌ی PDF قبض‌ها
+            </button>
           )}
 
           {data && data.data.length > 0 && (

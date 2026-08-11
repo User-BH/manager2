@@ -19,6 +19,17 @@ class PaymentPolicy
         return $user->isAdmin() && $payment->complex_id === ComplexResolver::idFor($user);
     }
 
+    /**
+     * دیدنِ **سندِ** پرداخت (R28).
+     *
+     * همان دامنه‌ی `viewReceipt` است و عمداً به آن تکیه می‌کند: اگر روزی
+     * قاعده عوض شود، رسیدِ PDF و فایلِ آپلودشده نباید از هم واگرا شوند.
+     */
+    public function view(User $user, Payment $payment): bool
+    {
+        return $this->viewReceipt($user, $payment);
+    }
+
     /** دیدنِ فایلِ رسید: یا صاحبش، یا مدیرِ همان مجتمع. */
     public function viewReceipt(User $user, Payment $payment): bool
     {

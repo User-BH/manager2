@@ -24,6 +24,7 @@ import { useQuery } from '@tanstack/react-query'
 import { errorMessage } from '@/shared/lib/queryClient'
 import { queryKeys } from '@/shared/lib/queryKeys'
 import { useDocumentTitle } from '@/shared/hooks'
+import { ExportBar } from '@/shared/ui/ExportBar'
 import { api, ApiError } from '@/shared/lib/api'
 import { alertError, confirmAction, toastSuccess } from '@/shared/lib/alert'
 import { formatMoney } from '@/shared/lib/format'
@@ -128,7 +129,7 @@ export function FinancePage() {
   }
 
   return (
-    <div className="flex flex-col gap-5">
+    <div className="print-area flex flex-col gap-5">
       <header className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="text-xl font-extrabold" style={{ color: 'var(--text-primary)' }}>
@@ -138,6 +139,18 @@ export function FinancePage() {
             {data ? data.periodLabel : 'در حال بارگذاری…'}
           </p>
         </div>
+
+        {/* خروجی PDF و چاپ (R28) — گزارش همان اعدادِ روی صفحه را دارد */}
+        {data && (
+          <ExportBar
+            links={[
+              {
+                label: 'گزارش مالی (PDF)',
+                href: `/reports/financial.pdf?period=${encodeURIComponent(data.period)}`,
+              },
+            ]}
+          />
+        )}
 
         {data && (
           <select

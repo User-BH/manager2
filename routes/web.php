@@ -68,6 +68,22 @@ Route::middleware('auth')->group(function () {
         ->name('bills.invoice');
     Route::get('units/{unit}/statement.pdf', [DownloadController::class, 'unitStatement'])
         ->name('units.statement');
+
+    /*
+     * اسنادِ تازه‌ی R28.
+     *
+     * همه اینجا و نه در API: مرورگر باید مستقیم بازشان کند و نشستِ وب
+     * احراز هویت را انجام می‌دهد. لینکِ ساده در SPA به همین مسیرها اشاره
+     * می‌کند و نیازی به دانلودِ blob و ساختِ object URL نیست.
+     */
+    Route::get('payments/{payment}/receipt.pdf', [DownloadController::class, 'paymentReceipt'])
+        ->name('payments.receipt');
+    Route::get('reports/financial.pdf', [DownloadController::class, 'financialReport'])
+        ->name('reports.financial');
+    Route::get('units/{unit}/dossier.pdf', [DownloadController::class, 'unitDossier'])
+        ->name('units.dossier');
+    Route::get('reports/bills-bundle/{document}.pdf', [DownloadController::class, 'billsBundle'])
+        ->name('reports.bills-bundle');
     Route::get('bills/export.xlsx', [DownloadController::class, 'billsExport'])
         ->name('bills.export');
 

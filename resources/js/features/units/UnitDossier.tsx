@@ -15,6 +15,7 @@ import { errorMessage } from '@/shared/lib/queryClient'
 import { queryKeys } from '@/shared/lib/queryKeys'
 import { ErrorState, InlineSpinner } from '@/shared/ui/PageState'
 import { formatNumber } from '@/shared/lib/format'
+import { ExportBar } from '@/shared/ui/ExportBar'
 import type { UnitDossier as Dossier, UnitTenure } from './types'
 
 /**
@@ -53,7 +54,10 @@ export function UnitDossier({ unitId }: { unitId: number }) {
   const past = tenures.filter((t) => !t.isCurrent)
 
   return (
-    <div className="flex flex-col gap-5">
+    <div className="print-area flex flex-col gap-5">
+      {/* پرونده‌ی چاپی؛ همان چیزی که هنگام فروش یا تخلیه لازم می‌شود (R28) */}
+      <ExportBar links={[{ label: 'پرونده واحد (PDF)', href: `/units/${unitId}/dossier.pdf` }]} />
+
       {/* ── مشخصات ─────────────────────────────────────────────────────── */}
       <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
         <Fact icon={Layers} label="طبقه" value={formatNumber(unit.floor)} />

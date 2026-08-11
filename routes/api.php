@@ -9,6 +9,7 @@ use App\Http\Controllers\Api\ChargeRuleController;
 use App\Http\Controllers\Api\ClientErrorController;
 use App\Http\Controllers\Api\DashboardController;
 use App\Http\Controllers\Api\DiscountController;
+use App\Http\Controllers\Api\DocumentController;
 use App\Http\Controllers\Api\FinanceController;
 use App\Http\Controllers\Api\GoodPayerController;
 use App\Http\Controllers\Api\InvitationController;
@@ -261,6 +262,15 @@ Route::middleware('auth')->group(function () {
          * ورود. محدودیتِ نرخ روی ارسال هست تا حتی با یک باگ در رابط، فشارِ
          * تکراری به درگاهِ پیامک نرود.
          */
+        /*
+         * سندهای سنگین در صف (R28) — دسته‌ی قبض‌های یک دوره.
+         * ساختِ سند در صف است، ولی خودِ دانلود مسیرِ web است تا مرورگر
+         * مستقیم بازش کند.
+         */
+        Route::get('documents', [DocumentController::class, 'index'])->name('documents.index');
+        Route::post('documents/bills-bundle', [DocumentController::class, 'billsBundle'])
+            ->middleware('throttle:backups')->name('documents.bills-bundle');
+
         Route::get('sms-campaign', [SmsCampaignController::class, 'show'])
             ->name('sms-campaign.show');
         Route::post('sms-campaign', [SmsCampaignController::class, 'store'])
