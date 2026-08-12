@@ -98,7 +98,7 @@ export function DemoPage() {
 
   return (
     <div style={{ backgroundColor: 'var(--surface-canvas)' }}>
-      <HomeNavbar minimal />
+      <HomeNavbar page="demo" />
 
       <main className="mx-auto max-w-5xl px-4 pb-20 pt-28 sm:px-6" dir="rtl">
         {/* ---------- سرتیتر: تابلوی چراغانی روی دستِ شخصیت ساختمانی ---------- */}

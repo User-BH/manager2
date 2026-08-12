@@ -45,7 +45,7 @@ export function SupportPage() {
 
   return (
     <div style={{ backgroundColor: 'var(--surface-canvas)' }}>
-      <HomeNavbar minimal />
+      <HomeNavbar page="support" />
 
       {/* ---------------- هدر با چرخِ چهارقسمتی ---------------- */}
       <header className="relative overflow-hidden pb-16 pt-28" dir="rtl">
