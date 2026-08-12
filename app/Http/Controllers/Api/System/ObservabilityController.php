@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api\System;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\UpdateObservabilityRequest;
 use App\Models\ErrorEvent;
+use App\Support\CursorPage;
 use App\Support\Observability;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -19,6 +20,8 @@ use Illuminate\Support\Facades\DB;
  */
 class ObservabilityController extends Controller
 {
+    private const PER_PAGE = 20;
+
     public function show(): JsonResponse
     {
         return response()->json([
@@ -51,13 +54,19 @@ class ObservabilityController extends Controller
             ->when(
                 ! $request->boolean('include_resolved'),
                 fn ($q) => $q->where('is_resolved', false)
-            )
-            ->orderByDesc('last_seen_at');
+            );
 
-        $events = $query->paginate(20);
-
-        return response()->json([
-            'data' => $events->getCollection()->map(fn (ErrorEvent $event) => [
+        /*
+         * همان دلیلِ لاگِ فعالیت (R30): جدول افزایشی است و `offset` بین دو
+         * درخواست می‌لغزد. مرتب‌سازی به `id` تغییر کرد چون نشانگر باید روی
+         * کلیدی یکتا و همیشه‌صعودی بنشیند؛ `last_seen_at` می‌تواند برای دو
+         * رویداد یکسان باشد و ردیف‌ها را جا بیندازد.
+         */
+        $page = CursorPage::descending(
+            $query,
+            $request->integer('cursor') ?: null,
+            self::PER_PAGE,
+            fn (ErrorEvent $event) => [
                 'id' => $event->id,
                 'source' => $event->source,
                 'sourceLabel' => $event->source === 'client' ? 'مرورگر' : 'سرور',
@@ -75,13 +84,10 @@ class ObservabilityController extends Controller
                 'firstSeen' => $event->first_seen_at?->diffForHumans(),
                 'lastSeen' => $event->last_seen_at?->diffForHumans(),
                 'isResolved' => $event->is_resolved,
-            ])->all(),
-            'meta' => [
-                'currentPage' => $events->currentPage(),
-                'lastPage' => $events->lastPage(),
-                'total' => $events->total(),
             ],
-        ]);
+        );
+
+        return response()->json($page);
     }
 
     /** «بررسی شد» — خطا پاک نمی‌شود، فقط از فهرستِ فعال بیرون می‌رود. */

@@ -8,7 +8,8 @@ import { TableSkeleton } from '@/shared/ui/Skeleton'
 import { useQuery, useMutation } from '@tanstack/react-query'
 import { errorMessage } from '@/shared/lib/queryClient'
 import { queryKeys } from '@/shared/lib/queryKeys'
-import { useDocumentTitle } from '@/shared/hooks'
+import { cn } from '@/shared/lib/cn'
+import { useDocumentTitle, useVirtualRows } from '@/shared/hooks'
 import { api } from '@/shared/lib/api'
 import { alertError, confirmAction, toastSuccess } from '@/shared/lib/alert'
 import { formatMoney, formatNumber } from '@/shared/lib/format'
@@ -44,6 +45,18 @@ const STATUS_COLOR: Record<BillStatus, string> = {
   unpaid: 'var(--color-danger)',
 }
 
+/**
+ * ارتفاعِ ثابتِ هر ردیف (پیکسل) — باید با CSSِ ردیف بخواند.
+ *
+ * ⚠️ اگر padding یا اندازه‌ی قلمِ ردیف عوض شد، این عدد هم باید عوض شود؛
+ * وگرنه پنجره‌ی مجازی می‌لغزد و ردیف‌ها روی هم می‌افتند. خطا نمی‌دهد، فقط
+ * بد دیده می‌شود.
+ */
+const ROW_HEIGHT = 45
+
+/** زیرِ این تعداد، مجازی‌سازی سود ندارد و فقط انیمیشن را خراب می‌کند. */
+const VIRTUAL_THRESHOLD = 150
+
 export function BillsPage() {
   const [period, setPeriod] = useState<string>('')
   const [generating, setGenerating] = useState(false)
@@ -73,6 +86,27 @@ export function BillsPage() {
     queryKey: queryKeys.bills.list({ period }),
     queryFn: ({ signal }) => api<BillsResponse>(query, { signal }),
   })
+  /*
+   * پنجره‌ی مجازی (R30).
+   *
+   * قلاب همیشه صدا زده می‌شود (قاعده‌ی قلاب‌ها)، ولی نتیجه‌اش فقط وقتی
+   * استفاده می‌شود که فهرست واقعاً بلند باشد.
+   */
+  const total = data?.data.length ?? 0
+  const isVirtual = total > VIRTUAL_THRESHOLD
+  /*
+   * خروجیِ قلاب **باز** می‌شود و به‌صورت شیء نگه داشته نمی‌شود.
+   *
+   * قاعده‌ی `react-hooks/refs` هر دسترسی به عضوِ شیئی که ref دارد را
+   * «خواندنِ ref هنگام رندر» می‌شمارد — حتی اگر آن عضو یک عددِ ساده باشد.
+   * با باز کردن، هم اخطار می‌رود و هم خواناتر است.
+   */
+  const { containerRef, start, end, totalHeight, offsetTop, isMeasured } = useVirtualRows({
+    count: total,
+    rowHeight: ROW_HEIGHT,
+  })
+
+  const rows = isVirtual && isMeasured ? (data?.data ?? []).slice(start, end) : (data?.data ?? [])
 
   async function handleGenerate() {
     if (!data) return
@@ -210,7 +244,23 @@ export function BillsPage() {
                 hint="روی «صدور قبوض دوره» بزنید."
               />
             ) : (
-              <div className="overflow-x-auto">
+              /*
+                فهرستِ بلند **مجازی** رندر می‌شود (R30).
+
+                زیرِ آستانه هیچ چیزی عوض نمی‌شود: جدول عادی با همان
+                انیمیشنِ ورودِ ردیف‌ها. بالای آستانه ظرف ارتفاعِ ثابت
+                می‌گیرد و فقط ردیف‌های داخلِ قاب رندر می‌شوند، پس مجتمعِ
+                ۵۰۰ واحدی هم ~۲۰ ردیفِ DOM دارد.
+
+                ارتفاعِ ردیف باید با CSS بخواند (`py-3` + متن ≈ ۴۵px)؛
+                اگر روزی ردیف بلندتر شد، `ROW_HEIGHT` هم باید عوض شود
+                وگرنه محاسبه می‌لغزد.
+              */
+              <div
+                ref={containerRef}
+                className={cn('overflow-x-auto', isVirtual && 'scrollbar-thin overflow-y-auto')}
+                style={isVirtual ? { maxHeight: '70vh' } : undefined}
+              >
                 <table className="w-full min-w-[760px] text-right text-[13px]">
                   <thead>
                     <tr style={{ color: 'var(--text-tertiary)' }}>
@@ -225,14 +275,26 @@ export function BillsPage() {
                     </tr>
                   </thead>
                   <tbody>
-                    {data.data.map((bill, index) => (
+                    {/* فاصله‌گذارِ بالا: جای ردیف‌های رندرنشده را نگه می‌دارد */}
+                    {isVirtual && offsetTop > 0 && <tr style={{ height: offsetTop }} aria-hidden />}
+
+                    {rows.map((bill, index) => (
                       <motion.tr
                         key={bill.id}
                         initial={{ opacity: 0, y: 6 }}
                         animate={{ opacity: 1, y: 0 }}
-                        transition={{ duration: 0.25, delay: Math.min(index * 0.02, 0.3) }}
+                        /*
+                          در حالتِ مجازی انیمیشن خاموش است: ردیف‌ها با
+                          اسکرول مدام mount/unmount می‌شوند و انیمیشنِ
+                          ورود، فهرست را در حالِ اسکرول چشمک‌زن می‌کرد.
+                        */
+                        transition={
+                          isVirtual
+                            ? { duration: 0 }
+                            : { duration: 0.25, delay: Math.min(index * 0.02, 0.3) }
+                        }
+                        style={{ borderColor: 'var(--border-subtle)', height: ROW_HEIGHT }}
                         className="border-t"
-                        style={{ borderColor: 'var(--border-subtle)' }}
                       >
                         <td className="py-3 font-semibold" style={{ color: 'var(--text-primary)' }}>
                           {bill.unitLabel}
@@ -277,6 +339,13 @@ export function BillsPage() {
                         </td>
                       </motion.tr>
                     ))}
+                    {/* فاصله‌گذارِ پایین، تا نوارِ اسکرول طولِ واقعی را نشان بدهد */}
+                    {isVirtual && (
+                      <tr
+                        style={{ height: totalHeight - offsetTop - rows.length * ROW_HEIGHT }}
+                        aria-hidden
+                      />
+                    )}
                   </tbody>
                 </table>
               </div>

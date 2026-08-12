@@ -1,13 +1,11 @@
 import { useState } from 'react'
-import { useQuery } from '@tanstack/react-query'
+import { useCursorList } from '@/shared/hooks'
 import { Check, ChevronDown, ChevronUp, Globe, Server } from 'lucide-react'
 
 import { Card } from '@/shared/ui/Card'
 import { EmptyState, ErrorState } from '@/shared/ui/PageState'
 import { TableSkeleton } from '@/shared/ui/Skeleton'
 import { useApiAction } from '@/shared/hooks/useAction'
-import { api } from '@/shared/lib/api'
-import { errorMessage } from '@/shared/lib/queryClient'
 import { queryKeys } from '@/shared/lib/queryKeys'
 import { formatNumber } from '@/shared/lib/format'
 
@@ -42,25 +40,21 @@ interface ErrorRow {
   isResolved: boolean
 }
 
-interface ErrorsResponse {
-  data: ErrorRow[]
-  meta: { currentPage: number; lastPage: number; total: number }
-}
-
 export function ErrorList() {
   const [includeResolved, setIncludeResolved] = useState(false)
   const [expanded, setExpanded] = useState<number | null>(null)
 
-  const { data, error, isLoading, refetch } = useQuery({
-    queryKey: queryKeys.system.observabilityErrors({ includeResolved }),
-    queryFn: ({ signal }) =>
-      api<ErrorsResponse>(
-        `/system/observability/errors?include_resolved=${includeResolved ? 1 : 0}`,
-        {
-          signal,
-        },
-      ),
-  })
+  /*
+   * صفحه‌بندیِ نشانگری (R30).
+   *
+   * پیش از این این فهرست **هیچ** صفحه‌بندی‌ای در رابط نداشت: سرور ۲۰ ردیفِ
+   * اول را می‌داد و بقیه اصلاً قابلِ دیدن نبودند. حالا «ادامه» هست، و
+   * نشانگر به‌جای شماره‌ی صفحه چون جدولِ خطاها افزایشی است.
+   */
+  const { items, hasMore, isLoading, isLoadingMore, error, loadMore, reload } =
+    useCursorList<ErrorRow>('/system/observability/errors', {
+      include_resolved: includeResolved ? '1' : '0',
+    })
 
   const { call, isPending } = useApiAction()
 
@@ -73,6 +67,8 @@ export function ErrorList() {
         success: 'خطا بررسی‌شده علامت خورد.',
         errorFallback: 'ثبت وضعیت ممکن نشد.',
         invalidate: [queryKeys.system.all()],
+        // فهرستِ نشانگری کش ندارد، پس خودش باید دوباره خوانده شود
+        onDone: reload,
       },
     )
   }
@@ -98,18 +94,18 @@ export function ErrorList() {
       }
     >
       {isLoading && <TableSkeleton rows={5} columns={4} />}
-      {error && <ErrorState message={errorMessage(error)} onRetry={() => void refetch()} />}
+      {error && <ErrorState message={error} onRetry={reload} />}
 
-      {data && !isLoading && data.data.length === 0 && (
+      {!isLoading && items.length === 0 && (
         <EmptyState
           message="هیچ خطایی ثبت نشده است."
           hint="این خبرِ خوبی است — یعنی از آخرین بررسی، کرشی رخ نداده."
         />
       )}
 
-      {data && data.data.length > 0 && (
+      {items.length > 0 && (
         <ul className="flex flex-col gap-2">
-          {data.data.map((row) => {
+          {items.map((row) => {
             const open = expanded === row.id
 
             return (
@@ -221,6 +217,20 @@ export function ErrorList() {
             )
           })}
         </ul>
+      )}
+      {/* «ادامه» — پیش از این هیچ راهی برای دیدنِ خطاهای بعد از ۲۰ تای اول نبود */}
+      {hasMore && (
+        <div className="mt-4 flex justify-center">
+          <button
+            type="button"
+            onClick={() => void loadMore()}
+            disabled={isLoadingMore}
+            className="rounded-lg border px-4 py-2 text-[12.5px] disabled:opacity-50"
+            style={{ borderColor: 'var(--border-subtle)', color: 'var(--text-secondary)' }}
+          >
+            {isLoadingMore ? 'در حال دریافت…' : 'خطاهای قدیمی‌تر'}
+          </button>
+        </div>
       )}
     </Card>
   )

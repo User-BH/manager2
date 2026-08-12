@@ -31,6 +31,15 @@ class SearchController extends Controller
     /** بیش از این تعداد در هر گروه نمایش داده نمی‌شود. */
     private const PER_GROUP = 8;
 
+    /**
+     * سقفِ گروهی که کاربر «همه» را زده (R30).
+     *
+     * صفحه‌بندیِ کامل اینجا لازم نشد: جست‌وجو ابزارِ **یافتن** است نه
+     * مرور. اگر کسی بیش از ۵۰ نتیجه دارد، عبارتش را باید دقیق‌تر کند —
+     * و همان پیام هم به او نشان داده می‌شود.
+     */
+    private const EXPANDED = 50;
+
     public function index(Request $request): JsonResponse
     {
         $user = Auth::user();
@@ -53,6 +62,16 @@ class SearchController extends Controller
             ]);
         }
 
+        /*
+         * حالتِ «همه‌ی نتایجِ این گروه» (R30).
+         *
+         * پیش از این هر گروه سقفِ ۸ داشت و کاربر **نمی‌دانست** نتیجه‌ی
+         * بیشتری هست یا نه — `count` هم همان ۸ را برمی‌گرداند. حالا یکی
+         * بیشتر خوانده می‌شود تا `hasMore` معنا داشته باشد، و با انتخابِ
+         * یک گروه سقفش بالا می‌رود.
+         */
+        $only = $request->string('group')->value();
+
         $groups = array_values(array_filter([
             $user->isAdmin() ? $this->units($term) : null,
             $user->isAdmin() ? $this->residents($term) : null,
@@ -63,10 +82,16 @@ class SearchController extends Controller
             $this->messages($term),
         ], fn (?array $group) => $group !== null && $group['items'] !== []));
 
+        if ($only !== '') {
+            $groups = array_values(array_filter($groups, fn (array $g) => $g['id'] === $only));
+        }
+
         return response()->json([
             'query' => $term,
             'total' => array_sum(array_column($groups, 'count')),
             'groups' => $groups,
+            'group' => $only ?: null,
+            'expandedLimit' => self::EXPANDED,
         ]);
     }
 
@@ -90,7 +115,7 @@ class SearchController extends Controller
                 ->where('unit_number', 'like', "%{$term}%")
                 ->orWhere('notes', 'like', "%{$term}%"))
             ->orderBy('unit_number')
-            ->limit(self::PER_GROUP)
+            ->limit($this->limit() + 1)
             ->get();
 
         return $this->group('units', 'واحدها', 'Building2', '/units', $units->map(fn (Unit $u) => [
@@ -117,7 +142,7 @@ class SearchController extends Controller
                 ->orWhere('national_id', 'like', "%{$term}%"))
             ->with('currentUnits')
             ->orderBy('name')
-            ->limit(self::PER_GROUP)
+            ->limit($this->limit() + 1)
             ->get();
 
         return $this->group('residents', 'ساکنین', 'Users', '/residents', $residents->map(fn (User $u) => [
@@ -136,7 +161,7 @@ class SearchController extends Controller
                 ->where('period', 'like', "%{$term}%")
                 ->orWhereHas('unit', fn ($u) => $u->where('unit_number', 'like', "%{$term}%")))
             ->orderByDesc('period')
-            ->limit(self::PER_GROUP)
+            ->limit($this->limit() + 1)
             ->get();
 
         return $this->group('bills', 'قبوض', 'Receipt', '/bills', $bills->map(fn (Bill $b) => [
@@ -154,7 +179,7 @@ class SearchController extends Controller
             ->where('title', 'like', "%{$term}%")
             ->orWhere('description', 'like', "%{$term}%"))
             ->orderByDesc('spend_date')
-            ->limit(self::PER_GROUP)
+            ->limit($this->limit() + 1)
             ->get();
 
         return $this->group('expenses', 'هزینه‌ها', 'Wallet', '/finance', $expenses->map(fn (Expense $e) => [
@@ -177,7 +202,7 @@ class SearchController extends Controller
             ->whereIn('unit_id', $unitIds)
             ->where('period', 'like', "%{$term}%")
             ->orderByDesc('period')
-            ->limit(self::PER_GROUP)
+            ->limit($this->limit() + 1)
             ->get();
 
         return $this->group('my-bills', 'صورت‌حساب‌های من', 'Receipt', '/my-bills', $bills->map(fn (Bill $b) => [
@@ -197,7 +222,7 @@ class SearchController extends Controller
                 ->where('title', 'like', "%{$term}%")
                 ->orWhere('body', 'like', "%{$term}%"))
             ->orderByDesc('published_at')
-            ->limit(self::PER_GROUP)
+            ->limit($this->limit() + 1)
             ->get();
 
         return $this->group('announcements', 'اطلاعیه‌ها', 'Megaphone', '/announcements',
@@ -218,7 +243,7 @@ class SearchController extends Controller
                 ->where('body', 'like', "%{$term}%")
                 ->orWhere('author_name', 'like', "%{$term}%"))
             ->orderByDesc('created_at')
-            ->limit(self::PER_GROUP)
+            ->limit($this->limit() + 1)
             ->get();
 
         return $this->group('messages', 'پیام‌رسان', 'MessageSquare', '/messenger',
@@ -234,16 +259,36 @@ class SearchController extends Controller
     /**
      * @param  array<int,array<string,mixed>>  $items
      */
+    /**
+     * سقفِ فعلی: عادی، یا بالاتر برای گروهی که کاربر بازش کرده.
+     *
+     * سازنده‌ها `limit() + 1` می‌خوانند تا بدانیم نتیجه‌ی بیشتری هست یا
+     * نه — بدونِ یک `count()` جدا که روی هر هفت گروه هفت کوئریِ اضافه بود.
+     */
+    private function limit(): int
+    {
+        return request()->string('group')->value() !== '' ? self::EXPANDED : self::PER_GROUP;
+    }
+
+    /**
+     * @param  array<int, array<string, mixed>>  $items
+     * @return array<string, mixed>
+     */
     private function group(string $id, string $title, string $icon, string $path, array $items): array
     {
+        $limit = $this->limit();
+        $hasMore = count($items) > $limit;
+
         return [
             'id' => $id,
             'title' => $title,
             // نام آیکون lucide؛ کلاینت آن را به کامپوننت تبدیل می‌کند
             'icon' => $icon,
             'path' => $path,
-            'count' => count($items),
-            'items' => $items,
+            'count' => min(count($items), $limit),
+            // «نتیجه‌ی بیشتری هست» — تا کاربر بداند فهرست بریده شده
+            'hasMore' => $hasMore,
+            'items' => array_slice($items, 0, $limit),
         ];
     }
 }

@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api\System;
 
 use App\Http\Controllers\Controller;
 use App\Models\AuditLog;
+use App\Support\CursorPage;
 use App\Support\Jalali;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -17,16 +18,28 @@ use Illuminate\Http\Request;
  */
 class AuditLogController extends Controller
 {
+    private const PER_PAGE = 30;
+
     public function index(Request $request): JsonResponse
     {
-        $logs = AuditLog::with('user:id,name,phone')
+        /*
+         * صفحه‌بندیِ نشانگری (R30) و نه `offset`.
+         *
+         * لاگ جدولی **افزایشی** است: تا وقتی کاربر صفحه‌ی ۲ را بزند،
+         * رویدادهای تازه بالای فهرست نشسته‌اند و `OFFSET 30` ردیف‌هایی را
+         * برمی‌گرداند که همین الان در صفحه‌ی ۱ دیده — و همان تعداد ردیفِ
+         * قدیمی‌تر برای همیشه از دیدش پنهان می‌ماند. روی لاگِ امنیتی این
+         * یعنی رویدادی که باید بررسی می‌شد هرگز دیده نشود.
+         */
+        $query = AuditLog::with('user:id,name,phone')
             ->when($request->filled('action'), fn ($q) => $q->where('action', 'like', $request->string('action').'%'))
-            ->when($request->filled('complex_id'), fn ($q) => $q->where('complex_id', $request->integer('complex_id')))
-            ->orderByDesc('id')
-            ->paginate(30);
+            ->when($request->filled('complex_id'), fn ($q) => $q->where('complex_id', $request->integer('complex_id')));
 
-        return response()->json([
-            'data' => collect($logs->items())->map(fn (AuditLog $log) => [
+        $page = CursorPage::descending(
+            $query,
+            $request->integer('cursor') ?: null,
+            self::PER_PAGE,
+            fn (AuditLog $log) => [
                 'id' => $log->id,
                 'action' => $log->action,
                 'actionLabel' => $this->label($log->action),
@@ -37,12 +50,10 @@ class AuditLogController extends Controller
                 'ip' => $log->ip_address,
                 'properties' => $log->properties,
                 'at' => Jalali::dateTime($log->created_at),
-            ])->values(),
-            'meta' => [
-                'currentPage' => $logs->currentPage(),
-                'lastPage' => $logs->lastPage(),
-                'total' => $logs->total(),
             ],
+        );
+
+        return response()->json($page + [
             'actions' => $this->availableActions(),
         ]);
     }

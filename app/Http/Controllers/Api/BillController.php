@@ -11,17 +11,55 @@ use Illuminate\Http\Request;
 
 class BillController extends Controller
 {
+    /**
+     * سقفِ ردیف در یک پاسخ.
+     *
+     * بزرگ‌ترین مجتمعی که سراغ داریم چند صد واحد است؛ این عدد جا برای رشد
+     * می‌گذارد و در عین حال جلوی پاسخِ چند مگابایتی را می‌گیرد.
+     *
+     * از پیکربندی خوانده می‌شود و نه ثابتِ کلاس، تا آزمون بتواند حالتِ
+     * بریده‌شدن را با چند ردیف بسازد. بدونِ این، تنها راهِ سنجیدنِ
+     * محافظِ «جمع‌ها از SQL می‌آید» ساختنِ هزار قبض بود — و محافظی که
+     * آزمودنش گران باشد، عملاً آزموده نمی‌شود.
+     */
+    private function maxRows(): int
+    {
+        return (int) config('app.bills_max_rows', 1000);
+    }
+
     public function index(Request $request): JsonResponse
     {
         $complex = $this->requireComplex();
         $period = $request->query('period', Jalali::currentPeriod());
 
+        /*
+         * فهرستِ قبض‌ها **صفحه‌بندی نمی‌شود** — و این عمدی است (R30).
+         *
+         * مدیر این جدول را برای اسکن‌کردن باز می‌کند («کدام واحدها هنوز
+         * نداده‌اند؟»)، نه برای خواندنِ یک ردیف. با صفحه‌بندی باید بین
+         * صفحه‌ها بپرد و جمع‌ها را در ذهنش نگه دارد.
+         *
+         * در عوض، جمع‌ها همین‌جا در SQL حساب می‌شوند و رابط ردیف‌ها را
+         * **مجازی** رندر می‌کند (`useVirtualRows`)، پس مجتمعِ ۵۰۰ واحدی هم
+         * فقط ~۲۰ ردیفِ DOM دارد. سقفِ صریح هم هست تا اگر روزی مجتمعی از
+         * این بزرگ‌تر شد، پاسخ بی‌سروصدا غول نشود.
+         */
         $bills = Bill::where('period', $period)
             ->with('unit')
             ->join('units', 'bills.unit_id', '=', 'units.id')
             ->orderBy('units.unit_number')
             ->select('bills.*')
+            ->limit($this->maxRows())
             ->get();
+
+        // جمع‌ها از کلِ دوره‌اند و نه از ردیف‌های برگشته، وگرنه با رسیدن به
+        // سقف، مبلغِ کل بی‌سروصدا کمتر از واقعیت نشان داده می‌شد.
+        $totals = Bill::where('period', $period)
+            ->selectRaw('coalesce(sum(total_amount), 0) as total, coalesce(sum(paid_amount), 0) as collected')
+            // آرایه و نه مدل: این ردیف یک قبضِ واقعی نیست و ستون‌هایش هم
+            // ستون‌های `Bill` نیستند، پس تظاهر به مدل‌بودن فقط تحلیل را گمراه می‌کند
+            ->toBase()
+            ->first();
 
         // انتخابگر دوره: چند ماه گذشته و یک ماه آینده
         $periods = collect(range(-6, 1))
@@ -34,8 +72,10 @@ class BillController extends Controller
             'periodLabel' => Jalali::periodLabel($period),
             'periods' => $periods,
             'currency' => $complex->currencyLabel(),
-            'total' => (float) $bills->sum('total_amount'),
-            'collected' => (float) $bills->sum('paid_amount'),
+            'total' => (float) ($totals->total ?? 0),
+            'collected' => (float) ($totals->collected ?? 0),
+            'count' => $bills->count(),
+            'truncated' => $bills->count() >= $this->maxRows(),
             'data' => $bills->map(fn (Bill $bill) => [
                 'id' => $bill->id,
                 'unitLabel' => 'واحد '.$bill->unit?->unit_number,

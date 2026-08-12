@@ -7,9 +7,8 @@ import { EmptyState, ErrorState } from '@/shared/ui/PageState'
 import { TableSkeleton } from '@/shared/ui/Skeleton'
 import { useQuery } from '@tanstack/react-query'
 import { api } from '@/shared/lib/api'
-import { errorMessage } from '@/shared/lib/queryClient'
 import { queryKeys } from '@/shared/lib/queryKeys'
-import { useDocumentTitle } from '@/shared/hooks'
+import { useCursorList, useDocumentTitle } from '@/shared/hooks'
 
 interface AuditEntry {
   id: number
@@ -23,9 +22,16 @@ interface AuditEntry {
   at: string
 }
 
+/**
+ * پاسخِ نشانگری (R30).
+ *
+ * `meta.total` عمداً حذف شد: شمردنِ کلِ ردیف‌های یک جدولِ افزایشی در هر
+ * درخواست گران است و برای جوابِ «دکمه‌ی ادامه را نشان بدهم؟» لازم نیست.
+ */
 interface AuditResponse {
   data: AuditEntry[]
-  meta: { currentPage: number; lastPage: number; total: number }
+  hasMore: boolean
+  nextCursor: number | null
   actions: { value: string; label: string }[]
 }
 
@@ -41,42 +47,46 @@ export function AuditLogPage() {
   useDocumentTitle('لاگ فعالیت')
 
   const [action, setAction] = useState('')
-  const [page, setPage] = useState(1)
   const [expanded, setExpanded] = useState<number | null>(null)
 
-  const query = new URLSearchParams()
-  if (action) query.set('action', action)
-  if (page > 1) query.set('page', String(page))
+  /*
+   * صفحه‌بندیِ نشانگری (R30).
+   *
+   * با شماره‌ی صفحه، رویدادهای تازه‌ای که بین دو درخواست ثبت می‌شوند فهرست
+   * را جابه‌جا می‌کردند و ادمین در صفحه‌ی ۲ همان چیزی را می‌دید که در
+   * صفحه‌ی ۱ دیده بود — و به همان تعداد، رویدادِ قدیمی‌تر را هرگز نمی‌دید.
+   * روی لاگِ امنیتی این یعنی موردی که باید بررسی می‌شد از دست برود.
+   */
+  const { items, hasMore, isLoading, isLoadingMore, error, loadMore } = useCursorList<AuditEntry>(
+    '/system/audit-logs',
+    action ? { action } : {},
+  )
 
-  const { data, error, isLoading, refetch } = useQuery({
-    queryKey: queryKeys.system.auditLogs({ query: query.toString() }),
-    // `action` و `page` دیگر آرگومانِ جدا نیستند؛ خودشان جزوِ کلیدند، پس
-    // تغییرشان به‌طور خودکار درخواستِ تازه می‌سازد و کشِ جدا می‌گیرد.
-    queryFn: ({ signal }) =>
-      api<AuditResponse>(`/system/audit-logs${query.toString() ? `?${query}` : ''}`, { signal }),
+  const { data: meta } = useQuery({
+    queryKey: queryKeys.system.auditLogs(),
+    // فقط برای فهرستِ فیلترها؛ خودِ ردیف‌ها از قلابِ نشانگری می‌آیند
+    queryFn: ({ signal }) => api<AuditResponse>('/system/audit-logs', { signal }),
   })
 
   if (isLoading) return <TableSkeleton rows={8} columns={4} />
-  if (error) return <ErrorState message={errorMessage(error)} onRetry={() => void refetch()} />
+  if (error) return <ErrorState message={error} onRetry={() => window.location.reload()} />
 
-  const entries = data?.data ?? []
+  const entries = items
 
   return (
     <div className="flex flex-col gap-5">
       <Card
         title="لاگ فعالیت"
-        subtitle={`${data?.meta.total ?? 0} رویداد ثبت‌شده — این فهرست فقط خواندنی است`}
+        subtitle="تازه‌ترین رویدادها اول — این فهرست فقط خواندنی است"
         actions={
           <div className="w-56">
             <SelectField
               label=""
-              options={data?.actions ?? []}
+              options={meta?.actions ?? []}
               placeholder="همه‌ی رویدادها"
               value={action}
-              onChange={(e) => {
-                setAction(e.target.value)
-                setPage(1)
-              }}
+              // با تغییرِ فیلتر، قلابِ نشانگری خودش از ابتدا می‌خواند
+              onChange={(e) => setAction(e.target.value)}
             />
           </div>
         }
@@ -162,28 +172,16 @@ export function AuditLogPage() {
           </ul>
         )}
 
-        {(data?.meta.lastPage ?? 1) > 1 && (
-          <div className="mt-4 flex items-center justify-center gap-3">
+        {/* «ادامه» به‌جای شماره‌ی صفحه: فهرست فقط رو به گذشته باز می‌شود */}
+        {hasMore && (
+          <div className="mt-4 flex justify-center">
             <button
-              onClick={() => setPage((p) => Math.max(1, p - 1))}
-              disabled={page <= 1}
-              className="rounded-lg border px-3 py-1.5 text-[12.5px] disabled:opacity-40"
+              onClick={() => void loadMore()}
+              disabled={isLoadingMore}
+              className="rounded-lg border px-4 py-2 text-[12.5px] disabled:opacity-50"
               style={{ borderColor: 'var(--border-subtle)', color: 'var(--text-secondary)' }}
             >
-              جدیدتر
-            </button>
-
-            <span className="text-[12px] tabular-nums" style={{ color: 'var(--text-tertiary)' }}>
-              {data?.meta.currentPage} از {data?.meta.lastPage}
-            </span>
-
-            <button
-              onClick={() => setPage((p) => p + 1)}
-              disabled={page >= (data?.meta.lastPage ?? 1)}
-              className="rounded-lg border px-3 py-1.5 text-[12.5px] disabled:opacity-40"
-              style={{ borderColor: 'var(--border-subtle)', color: 'var(--text-secondary)' }}
-            >
-              قدیمی‌تر
+              {isLoadingMore ? 'در حال دریافت…' : 'رویدادهای قدیمی‌تر'}
             </button>
           </div>
         )}
