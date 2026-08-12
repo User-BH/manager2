@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion'
-import { ShieldAlert, ArrowRight, Home } from 'lucide-react'
+import { ShieldAlert, Home } from 'lucide-react'
 import { Logo } from '@/shared/common/Logo'
 import { useDocumentTitle } from '@/shared/hooks'
 
@@ -13,12 +13,6 @@ export function ForbiddenPage() {
    */
   function goHome() {
     window.location.assign('/')
-  }
-
-  /* اگر صفحه‌ی قبلی‌ای وجود دارد به آن برمی‌گردیم، وگرنه به خانه. */
-  function goBack() {
-    if (window.history.length > 1) window.history.back()
-    else goHome()
   }
 
   return (
@@ -87,14 +81,14 @@ export function ForbiddenPage() {
         transition={{ duration: 0.5, delay: 0.42 }}
         className="mt-9 flex flex-wrap items-center justify-center gap-3"
       >
-        <button
-          onClick={goBack}
-          className="flex items-center gap-2 rounded-xl border px-5 py-3 text-sm font-semibold transition-colors hover:bg-(--surface-sunken)"
-          style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)' }}
-        >
-          <ArrowRight size={16} />
-          بازگشت به صفحه قبل
-        </button>
+        {/*
+          «بازگشت به صفحه‌ی قبل» عمداً حذف شد (R33).
+
+          کاربر معمولاً از همان صفحه‌ای به اینجا رسیده که اجازه‌اش را
+          نداشته؛ برگرداندنش به همان‌جا یعنی دوباره ۴۰۳ گرفتن — یک حلقه‌ی
+          بی‌فایده. تنها راهِ خروجِ مفید، صفحه‌ی اصلی است و حالا تنها دکمه
+          هم همان است و وسط می‌نشیند.
+        */}
         <button
           onClick={goHome}
           className="flex items-center gap-2 rounded-xl px-5 py-3 text-sm font-semibold text-white shadow-sm transition-transform duration-200 hover:scale-105"

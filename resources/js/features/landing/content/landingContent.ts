@@ -9,7 +9,7 @@ import {
   Wallet,
   type LucideIcon,
 } from 'lucide-react'
-import { featureImages, testimonialAvatars } from '@/shared/constants/images'
+import { featureImages } from '@/shared/constants/images'
 
 export interface Feature {
   icon: LucideIcon
@@ -106,7 +106,11 @@ export interface Testimonial {
   name: string
   role: string
   quote: string
-  avatar: string
+  /*
+   * ─── چرا `avatar` حذف شد (R33) ─────────────────────────────────────────
+   * آواتار حالا از روی **نام** ساخته می‌شود (`ContactAvatar`)، پس نگه‌داشتنِ
+   * مسیرِ فایل در داده فقط یک نقطه‌ی دیگر برای ناهماهنگی بود.
+   */
 }
 
 export const testimonials: Testimonial[] = [
@@ -114,19 +118,16 @@ export const testimonials: Testimonial[] = [
     name: 'مهندس رضایی',
     role: 'مدیر مجتمع آرمان',
     quote: 'پیگیری شارژها و هزینه‌ها از وقتی این پنل رو گرفتیم چند برابر شفاف‌تر شده.',
-    avatar: testimonialAvatars[0],
   },
   {
     name: 'خانم احمدی',
     role: 'مدیر مجتمع نگین',
     quote: 'ساکنین خودشون وضعیت پرداختی‌هاشون رو می‌بینن و دیگه تماس‌های تکراری نداریم.',
-    avatar: testimonialAvatars[1],
   },
   {
     name: 'آقای کریمی',
     role: 'مدیر مجتمع پردیس',
     quote: 'بخش پیام‌رسان داخلی ارتباط با ساکنین رو خیلی ساده‌تر کرده.',
-    avatar: testimonialAvatars[2],
   },
 ]
 

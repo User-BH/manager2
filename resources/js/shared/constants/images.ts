@@ -125,11 +125,13 @@ export const galleryItems: GalleryItem[] = [
 /** فقط آدرس تصاویر — جایی که به توضیح نیاز نیست. */
 export const galleryImages = galleryItems.map((item) => item.src)
 
-/** آدرسِ ثابت: قرار است با آواتارِ SVG جایگزین شوند (R33). */
-export const testimonialAvatars = [
-  '/images/avatar-1.webp',
-  '/images/avatar-2.webp',
-  '/images/avatar-3.webp',
-]
+/*
+ * آواتارهای نظرات از اینجا حذف شدند (R33).
+ *
+ * جایشان `ContactAvatar` نشست که SVGِ درون‌خطی است و از روی **نام** ساخته
+ * می‌شود. سه فایلِ `avatar-*.webp` در `public/images` دست‌نخورده مانده‌اند
+ * چون ممکن است جای دیگری (مثلاً محتوای آپلودیِ ادمین) به کار بیایند؛ ولی
+ * دیگر از کد ارجاعی به آن‌ها نیست.
+ */
 
 export const authBackgroundImage = authBackground

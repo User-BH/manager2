@@ -1,4 +1,5 @@
 import { Swiper, SwiperSlide } from 'swiper/react'
+import { ContactAvatar } from '@/shared/common/ContactAvatar'
 import { Autoplay, Pagination } from 'swiper/modules'
 import { Quote } from 'lucide-react'
 import { testimonials } from '@/features/landing/content/landingContent'
@@ -47,15 +48,14 @@ export function TestimonialsSection() {
                 </p>
 
                 <div className="mt-6 flex items-center gap-3">
-                  <img
-                    src={item.avatar}
-                    alt={item.name}
-                    width={160}
-                    height={240}
-                    loading="lazy"
-                    decoding="async"
-                    className="h-11 w-11 rounded-full object-cover"
-                  />
+                  {/*
+                    آواتارِ تصویری جای عکسِ استوک (R33).
+
+                    عکسِ آدمِ واقعی زیرِ نقلِ‌قولی که نگفته، هم از نظر
+                    اخلاقی درست نیست و هم اگر بازدیدکننده همان عکس را
+                    جای دیگری ببیند، اعتمادش به کلِ صفحه می‌ریزد.
+                  */}
+                  <ContactAvatar name={item.name} size={44} className="shrink-0" />
                   <div className="text-right">
                     <p className="text-sm font-bold" style={{ color: 'var(--text-primary)' }}>
                       {item.name}

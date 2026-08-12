@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { motion } from 'framer-motion'
 import type { SupportTopic, SupportTopicId } from './supportContent'
 
@@ -61,6 +62,9 @@ export function SupportWheel({
   // فاصله‌ی کوچک بین ربع‌ها تا مرزشان دیده شود
   const gap = 3
 
+  const [hovered, setHovered] = useState<SupportTopicId | null>(null)
+  const hoveredTopic = topics.find((topic) => topic.id === hovered) ?? null
+
   return (
     <div className="relative mx-auto" style={{ width: SIZE, height: SIZE }}>
       {/* هاله‌ی نرم پشت چرخ */}
@@ -70,6 +74,33 @@ export function SupportWheel({
         className="absolute inset-6 rounded-full blur-2xl"
         style={{ backgroundColor: 'var(--color-brand-300)' }}
       />
+
+      {/*
+        تولتیپِ سفارشی (R33).
+
+        جای `<title>`ِ SVG را می‌گیرد و چیزی بیشتر می‌گوید: خودِ عنوان روی
+        ربع نوشته شده، پس تکرارش بی‌فایده بود — اینجا **توضیحِ کوتاهِ** همان
+        بخش می‌آید.
+      */}
+      <motion.div
+        initial={false}
+        animate={{ opacity: hoveredTopic ? 1 : 0, y: hoveredTopic ? 0 : 6 }}
+        transition={{ duration: 0.18 }}
+        className="pointer-events-none absolute inset-x-0 -bottom-2 z-10 text-center"
+        aria-hidden
+      >
+        <span
+          className="inline-block rounded-lg px-3 py-1.5 text-[11.5px] font-medium shadow-lg"
+          style={{
+            backgroundColor: 'var(--surface-base)',
+            color: 'var(--text-secondary)',
+            border: '1px solid var(--border-subtle)',
+          }}
+        >
+          {/* متن نگه داشته می‌شود تا هنگامِ محوشدن نپرد */}
+          {hoveredTopic?.short ?? '\u00a0'}
+        </span>
+      </motion.div>
 
       <motion.svg
         width={SIZE}
@@ -106,11 +137,31 @@ export function SupportWheel({
                 delay: 0.15 + index * 0.12,
                 ease: [0.22, 1, 0.36, 1],
               }}
-              whileHover={{ scale: 1.05 }}
+              /*
+               * ⚠️ `transition` بالا برای **ورودِ** ربع‌هاست و پله‌پله تأخیر
+               * دارد. framer-motion همان transition را به `whileHover` هم
+               * می‌داد، پس هاورِ ربعِ چهارم `0.15 + 3×0.12 ≈ نیم ثانیه`
+               * تأخیر می‌گرفت و کاربر فکر می‌کرد صفحه گیر کرده.
+               *
+               * transitionِ اختصاصی داخلِ خودِ `whileHover` آن را بی‌اثر
+               * می‌کند: هاور آنی است، ورود همچنان پله‌پله.
+               */
+              whileHover={{ scale: 1.05, transition: { duration: 0.18, delay: 0 } }}
               onClick={() => onSelect(topic.id)}
-              style={{ cursor: 'pointer', transformOrigin: `${CENTER}px ${CENTER}px` }}
+              onHoverStart={() => setHovered(topic.id)}
+              onHoverEnd={() => setHovered(null)}
+              onFocus={() => setHovered(topic.id)}
+              onBlur={() => setHovered(null)}
+              tabIndex={0}
+              role="button"
+              /*
+               * `<title>` حذف شد: مرورگر از رویش تولتیپِ بومیِ زردِ خودش را
+               * می‌ساخت که با ظاهرِ صفحه نمی‌خواند و با تأخیرِ سیستمی ظاهر
+               * می‌شد. `aria-label` جایش را برای صفحه‌خوان می‌گیرد و تولتیپِ
+               * سفارشی زیرِ چرخ نشان داده می‌شود.
+               */
+              aria-label={`${topic.title} — ${topic.short}`}
             >
-              <title>{topic.title}</title>
               <path
                 d={quarterPath(start, end)}
                 fill={topic.color}

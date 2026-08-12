@@ -100,7 +100,25 @@ export function GalleryLightbox({
             transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
             // کلیک داخل کادر نباید لایت‌باکس را ببندد
             onClick={(event) => event.stopPropagation()}
-            className="grid max-h-full w-full max-w-5xl grid-cols-1 overflow-hidden rounded-3xl border shadow-2xl md:grid-cols-[minmax(0,1.35fr)_minmax(0,1fr)]"
+            /*
+              ─── باگِ اندازه‌گیری‌شده و رفعش (R33) ────────────────────────
+              در ۳۹۰×۵۶۰ گرید تک‌ستونه می‌شد، پس تصویر و متن **زیرِ هم**
+              می‌نشستند: تصویر `70vh` + متن `80vh` = ۱۵۰vh در ظرفی با
+              `max-h-full` و `overflow-hidden`. نتیجه این بود که پنلِ متن
+              تا `y=831` می‌رفت — ۲۷۱ پیکسل بیرون از صفحه — و چون ظرف
+              `overflow-hidden` داشت، بریده می‌شد نه اسکرول. یعنی توضیحِ
+              هر تصویر در موبایل **اصلاً قابلِ خواندن نبود**.
+
+              سه چیز با هم لازم بود:
+                • `dvh` به‌جای `vh` — در موبایل نوارِ آدرسِ مرورگر `vh` را
+                  بزرگ‌تر از فضای واقعی گزارش می‌کند.
+                • ردیفِ دومِ گرید `minmax(0,1fr)` تا فضای باقیمانده را
+                  بگیرد و **بتواند کوچک شود**؛ بدونِ `minmax(0,…)` ردیف
+                  به اندازه‌ی محتوایش باز می‌ماند.
+                • `min-h-0` روی خودِ پنل، وگرنه `overflow-y-auto` داخلِ
+                  گرید هیچ‌وقت فعال نمی‌شود.
+            */
+            className="grid max-h-[100dvh] w-full max-w-5xl grid-cols-1 grid-rows-[auto_minmax(0,1fr)] overflow-hidden rounded-3xl border shadow-2xl md:grid-rows-1 md:grid-cols-[minmax(0,1.35fr)_minmax(0,1fr)]"
             style={{
               backgroundColor: 'var(--surface-base)',
               borderColor: 'var(--border-subtle)',
@@ -111,7 +129,8 @@ export function GalleryLightbox({
               ref={frameRef}
               onMouseMove={handleMove}
               onMouseLeave={() => setLens(null)}
-              className="relative aspect-[4/5] max-h-[70vh] w-full cursor-zoom-in overflow-hidden md:aspect-auto md:max-h-[80vh]"
+              // در موبایل تصویر سهمِ کمتری می‌گیرد تا متن جا داشته باشد
+              className="relative aspect-[4/5] max-h-[42dvh] w-full cursor-zoom-in overflow-hidden md:aspect-auto md:max-h-[80dvh]"
               style={{ backgroundColor: 'var(--surface-sunken)' }}
             >
               <img
@@ -168,7 +187,7 @@ export function GalleryLightbox({
             </div>
 
             {/* ---------- پنل توضیحات ---------- */}
-            <div className="scrollbar-thin relative flex max-h-[80vh] flex-col overflow-y-auto p-6 sm:p-7">
+            <div className="scrollbar-thin relative flex min-h-0 flex-col overflow-y-auto p-6 sm:p-7 md:max-h-[80dvh]">
               <button
                 onClick={onClose}
                 aria-label="بستن"
