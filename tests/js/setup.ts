@@ -50,3 +50,31 @@ console.warn = (...args: unknown[]) => {
   if (typeof args[0] === 'string' && args[0].includes('is not an animatable value')) return
   originalWarn(...(args as Parameters<typeof console.warn>))
 }
+
+/*
+ * jsdom هیچ‌کدام از رصدگرهای چیدمان را ندارد.
+ *
+ * `whileInView` در framer-motion و قلابِ مجازی‌سازی (R30) هر دو به
+ * `IntersectionObserver` و `ResizeObserver` نیاز دارند و بدونشان کامپوننت
+ * هنگامِ mount با ReferenceError می‌ترکد — خطایی که به منطقِ خودِ کامپوننت
+ * ربطی ندارد.
+ *
+ * بدلِ حداقلی: چیزی را «در دید» گزارش نمی‌کند، پس انیمیشنِ ورود اجرا
+ * نمی‌شود و تست‌ها با محتوای نهایی کار می‌کنند — همان چیزی که می‌خواهیم.
+ */
+class NoopObserver {
+  observe() {}
+  unobserve() {}
+  disconnect() {}
+  takeRecords() {
+    return []
+  }
+}
+
+if (!('IntersectionObserver' in globalThis)) {
+  Object.defineProperty(globalThis, 'IntersectionObserver', { value: NoopObserver, writable: true })
+}
+
+if (!('ResizeObserver' in globalThis)) {
+  Object.defineProperty(globalThis, 'ResizeObserver', { value: NoopObserver, writable: true })
+}

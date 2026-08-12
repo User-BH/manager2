@@ -43,10 +43,18 @@ export function GallerySwiperSection() {
             className="text-2xl font-extrabold sm:text-3xl"
             style={{ color: 'var(--text-primary)' }}
           >
-            نگاهی به فضای مجتمع‌ها
+            مجتمع شما، بخش به بخش
           </h2>
+          {/*
+            ─── چرا عنوان و توضیح عوض شد (R32) ─────────────────────────────
+            عنوانِ قبلی «نگاهی به فضای مجتمع‌ها» بود و زیرش فقط می‌گفت
+            «برای بزرگ‌نمایی کلیک کنید» — یعنی بازدیدکننده این بخش را یک
+            آلبومِ تزئینی می‌دید و رد می‌شد، در حالی که هر قاب توضیحِ یک
+            قابلیتِ واقعی است. حالا خودِ عنوان و متن این را می‌گویند.
+          */}
           <p className="mt-3 text-[14.5px] leading-7" style={{ color: 'var(--text-secondary)' }}>
-            برای دیدن تصویر در حالت بزرگ‌نمایی، روی هر کدام کلیک کنید
+            هر بخشِ ساختمان یک سرفصلِ واقعی در پنل دارد — از کنترلِ تردد و پارکینگ تا سرویسِ آسانسور
+            و بودجه‌ی سالانه. روی هر قاب بزنید تا ببینید آنجا دقیقاً چه کاری انجام می‌شود.
           </p>
         </RevealOnScroll>
       </div>
@@ -74,12 +82,34 @@ export function GallerySwiperSection() {
                   draggable={false}
                 />
 
-                {/* پوشش هاور: آیکون ذره‌بین + عنوانِ همان تصویر */}
-                <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center gap-2 bg-black/0 opacity-0 transition-opacity duration-300 group-hover:bg-black/35 group-hover:opacity-100">
-                  <ZoomIn size={26} className="text-white drop-shadow" />
-                  <span className="px-3 text-center text-[12.5px] font-bold text-white drop-shadow">
+                {/*
+                  عنوان و سرفصل **همیشه** روی قاب دیده می‌شوند (R32).
+
+                  پیش از این فقط با هاور ظاهر می‌شدند — یعنی در موبایل که
+                  هاوری وجود ندارد، بازدیدکننده هیچ‌وقت نمی‌فهمید این
+                  تصویرها چه می‌گویند.
+                */}
+                <div
+                  className="pointer-events-none absolute inset-x-0 bottom-0 p-3 text-right"
+                  style={{
+                    background:
+                      'linear-gradient(0deg, rgba(0,0,0,0.78) 0%, rgba(0,0,0,0.35) 55%, transparent 100%)',
+                  }}
+                  dir="rtl"
+                >
+                  <span className="block text-[12.5px] font-bold text-white drop-shadow">
                     {item.title}
                   </span>
+                  {item.tags[0] && (
+                    <span className="mt-0.5 block text-[11px] text-white/85 drop-shadow">
+                      {item.tags.slice(0, 2).join(' · ')}
+                    </span>
+                  )}
+                </div>
+
+                {/* ذره‌بین فقط نشانه‌ی «قابل بازکردن» است، پس هاوری می‌ماند */}
+                <div className="pointer-events-none absolute inset-0 flex items-center justify-center bg-black/0 opacity-0 transition-opacity duration-300 group-hover:bg-black/25 group-hover:opacity-100">
+                  <ZoomIn size={26} className="text-white drop-shadow" />
                 </div>
               </button>
             ))}

@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Services\Support\KnowledgeBase;
 use App\Services\Support\SupportBot;
 use App\Support\PersianText;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -61,7 +62,61 @@ class SupportChatTest extends TestCase
             'فاکتور PDF' => ['فاکتور پی دی اف میده؟', 'export'],
 
             'قوانین' => ['قوانین چیه', 'terms'],
+
+            /*
+             * موضوع‌های تازه‌ی R32 — قابلیت‌هایی که در فاز ۵ ساخته شدند.
+             *
+             * ⚠️ این‌ها یک باگِ واقعی را گرفتند: کلیدواژه‌های اولیه با «آ» و
+             * همزه نوشته شده بودند («آسانسور»، «یادآوری»، «رأی») ولی
+             * `PersianText` ورودی را ساده می‌کند، پس آن کلیدها **هرگز**
+             * مطابقت نمی‌دادند و بی‌صدا مرده بودند.
+             */
+            'نظرسنجی' => ['چطور نظرسنجی بگذارم؟', 'poll'],
+            'رأی‌گیری محاوره‌ای' => ['میخوایم رای گیری کنیم برای نما', 'poll'],
+            'حد نصاب' => ['حد نصاب یعنی چی', 'poll'],
+
+            'کیف پول' => ['کیف پول چیه', 'wallet'],
+            'موجودی' => ['موجودی واحدم کجاست', 'wallet'],
+
+            'خرابی آسانسور' => ['آسانسور خراب شده چه کار کنم؟', 'requests'],
+            'ترکیدگی لوله' => ['لوله ترکیده به کی بگم؟', 'requests'],
+            'مسئول پیگیری' => ['مسئول پیگیری کیه', 'requests'],
+
+            'پیامک به ساکنین' => ['ساکنین پیامک می‌گیرند؟', 'reminders'],
+            'یادآوری بدهی' => ['یادآوری بدهی چطور کار میکنه', 'reminders'],
         ];
+    }
+
+    /**
+     * ⚠️ «آسانسور» عمداً در هر دو موضوع هست و این تست مرزشان را نگه می‌دارد.
+     *
+     * پرسشِ خرابی باید به درخواست‌ها برود و پرسشِ ضریب به شارژ. اگر وزنِ
+     * «اسانسور» در موضوعِ درخواست‌ها بالا برود، این تست می‌شکند — که همان
+     * هشدارِ لازم است.
+     */
+    public function test_the_same_word_can_belong_to_two_topics_without_confusing_them(): void
+    {
+        $bot = app(SupportBot::class);
+
+        $this->assertSame('requests', $bot->reply('آسانسور خراب شده چه کار کنم؟')['intent']);
+        $this->assertSame('charge', $bot->reply('ضریب آسانسور در شارژ چیست؟')['intent']);
+    }
+
+    /**
+     * هر پرسشِ پیشنهادیِ ابتدای گفت‌وگو باید پاسخِ قطعی بگیرد.
+     *
+     * دکمه‌ای که خودمان جلوی کاربر می‌گذاریم و بعد «پاسخ آماده‌ای ندارم»
+     * می‌گیرد، بدتر از نبودنش است.
+     */
+    public function test_every_suggested_starter_gets_a_confident_answer(): void
+    {
+        $bot = app(SupportBot::class);
+
+        foreach (KnowledgeBase::starters() as $starter) {
+            $reply = $bot->reply($starter);
+
+            $this->assertTrue($reply['confident'], "پرسشِ پیشنهادی «{$starter}» پاسخِ قطعی نگرفت.");
+        }
     }
 
     #[DataProvider('realQuestions')]

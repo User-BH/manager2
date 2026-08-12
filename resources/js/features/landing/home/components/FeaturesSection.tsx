@@ -50,17 +50,47 @@ export function FeaturesSection() {
                 }}
               >
                 <div className="relative h-44 overflow-hidden">
-                  <motion.img
-                    src={feature.image}
-                    alt={`${feature.title} — ${feature.description}`}
-                    width={900}
-                    height={506}
-                    loading="lazy"
-                    decoding="async"
-                    variants={{ rest: { scale: 1 }, hover: { scale: 1.08 } }}
-                    transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
-                    className="h-full w-full object-cover"
-                  />
+                  {/*
+                    کارتِ بی‌عکس (R32).
+
+                    چهار قابلیتِ تازه هنوز عکس ندارند. به‌جای تکرارِ عکسِ
+                    کارتِ دیگر یا گذاشتنِ تصویرِ نامربوط، پس‌زمینه‌ی برندی با
+                    آیکونِ بزرگِ کم‌رنگ می‌آید. هندسه‌ی کارت (ارتفاع، گوشه،
+                    هاور) دقیقاً یکی است، پس شبکه به‌هم نمی‌ریزد و نتیجه
+                    عمدی به‌نظر می‌رسد نه ناقص.
+                  */}
+                  {feature.image ? (
+                    <motion.img
+                      src={feature.image}
+                      alt={`${feature.title} — ${feature.description}`}
+                      width={900}
+                      height={506}
+                      loading="lazy"
+                      decoding="async"
+                      variants={{ rest: { scale: 1 }, hover: { scale: 1.08 } }}
+                      transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
+                      className="h-full w-full object-cover"
+                    />
+                  ) : (
+                    <motion.div
+                      variants={{ rest: { scale: 1 }, hover: { scale: 1.08 } }}
+                      transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
+                      className="flex h-full w-full items-center justify-center"
+                      style={{
+                        background:
+                          'radial-gradient(120% 100% at 80% 0%, color-mix(in srgb, var(--color-brand-500) 26%, transparent), color-mix(in srgb, var(--color-brand-600) 8%, transparent) 70%)',
+                      }}
+                      aria-hidden
+                    >
+                      <Icon
+                        size={72}
+                        strokeWidth={1.2}
+                        style={{
+                          color: 'color-mix(in srgb, var(--color-brand-600) 42%, transparent)',
+                        }}
+                      />
+                    </motion.div>
+                  )}
                   <div
                     className="absolute inset-0"
                     style={{

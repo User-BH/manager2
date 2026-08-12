@@ -11,6 +11,9 @@ import {
   ShieldCheck,
   Wallet,
   type LucideIcon,
+  BarChart3,
+  Bell,
+  ClipboardList,
 } from 'lucide-react'
 import { heroImages } from '@/shared/constants/images'
 import { HomeNavbar } from '../home/components/HomeNavbar'
@@ -76,7 +79,25 @@ const features: DemoFeature[] = [
     icon: MessageSquare,
     title: 'پیام‌رسان داخلی',
     description:
-      'ساکنین می‌توانند پیام بگذارند و مدیر پیام نامناسب را پنهان کند؛ همه‌چیز داخل همان پنل، بدون نیاز به گروه پیام‌رسان بیرونی.',
+      'ساکن فقط به مدیریت پیام می‌دهد و مدیر به همه یا به چند واحدِ انتخابی؛ با پیوستِ فایل، رسیدِ خوانده‌شدن و امکانِ پنهان‌کردنِ پیام توسط مدیر.',
+  },
+  {
+    icon: BarChart3,
+    title: 'نظرسنجی و تصمیم‌گیری',
+    description:
+      'حقِ رأی با همه‌ی ساکنین یا فقط مالکان؛ شمارش نفری، هر واحد یک رأی، یا وزنی بر اساس متراژ — همراه با حد نصاب و درصدِ مشارکت.',
+  },
+  {
+    icon: ClipboardList,
+    title: 'درخواست‌های ساکنین',
+    description:
+      'ساکن درخواستش را با عکس ثبت می‌کند، مدیر آن را به مسئولی می‌سپارد، و «انجام شد» را خودِ ساکن تایید می‌کند؛ یادداشتِ داخلیِ مدیریت هم جدا می‌ماند.',
+  },
+  {
+    icon: Bell,
+    title: 'یادآوری و اعلان',
+    description:
+      'یادآورِ سررسیدِ قبض داخلِ پنل، تنظیمِ اعلان برای هر کاربر، و ماهی یک پیامکِ یادآوری فقط برای واحدهای بدهکار.',
   },
   {
     icon: ShieldCheck,
