@@ -113,6 +113,8 @@
     @include('partials.observability')
     @include('partials.viewer')
 
+    @include('partials.resource-hints')
+
     @vite(['resources/css/app.css', $entry])
 </head>
 <body>

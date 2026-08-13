@@ -71,10 +71,20 @@ class NoopObserver {
   }
 }
 
-if (!('IntersectionObserver' in globalThis)) {
-  Object.defineProperty(globalThis, 'IntersectionObserver', { value: NoopObserver, writable: true })
-}
-
-if (!('ResizeObserver' in globalThis)) {
-  Object.defineProperty(globalThis, 'ResizeObserver', { value: NoopObserver, writable: true })
+/*
+ * ⚠️ `configurable: true` لازم است، نه فقط `writable`.
+ *
+ * `vi.stubGlobal` برای جایگزینیِ موقت `Object.defineProperty` می‌زند و روی
+ * یک ویژگیِ غیرِقابلِ‌پیکربندی با «Cannot redefine property» می‌ترکد. بدونِ
+ * این، هیچ تستی نمی‌تواند ناظرِ کنترل‌شده‌ی خودش را بگذارد — و تستِ
+ * `LazyVisible` دقیقاً به همان نیاز دارد.
+ */
+for (const name of ['IntersectionObserver', 'ResizeObserver']) {
+  if (!(name in globalThis)) {
+    Object.defineProperty(globalThis, name, {
+      value: NoopObserver,
+      writable: true,
+      configurable: true,
+    })
+  }
 }

@@ -73,3 +73,6 @@ export function TestimonialsSection() {
     </section>
   )
 }
+
+// صادراتِ پیش‌فرض برای `React.lazy`؛ صادراتِ نام‌دار برای تست‌ها می‌ماند.
+export default TestimonialsSection

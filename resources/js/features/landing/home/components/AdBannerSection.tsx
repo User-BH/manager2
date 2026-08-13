@@ -132,3 +132,6 @@ export function AdBannerSection() {
     </section>
   )
 }
+
+// صادراتِ پیش‌فرض برای `React.lazy`؛ صادراتِ نام‌دار برای تست‌ها می‌ماند.
+export default AdBannerSection

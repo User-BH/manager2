@@ -127,12 +127,14 @@ export function AdvertisementsPage() {
                   className="h-20 w-full shrink-0 overflow-hidden rounded-xl sm:w-48"
                   style={{ backgroundColor: 'var(--surface-2)' }}
                 >
+                  {/* cls-safe: بنر را کاربر آپلود می‌کند؛ ظرف `h-20` ثابت است */}
                   {ad.image && (
                     <img
                       src={ad.image}
                       alt=""
-                      className="h-full w-full object-cover"
                       loading="lazy"
+                      decoding="async"
+                      className="h-full w-full object-cover"
                     />
                   )}
                 </div>

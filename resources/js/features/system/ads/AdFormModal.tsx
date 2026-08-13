@@ -205,7 +205,14 @@ export function AdFormModal({
           >
             {shownPreview ? (
               <>
-                <img src={shownPreview} alt="" className="h-full w-full object-cover" />
+                {/* cls-safe: ابعادِ فایلِ کاربر معلوم نیست؛ ظرف `h-32` ثابت است */}
+                <img
+                  src={shownPreview}
+                  alt=""
+                  loading="lazy"
+                  decoding="async"
+                  className="h-full w-full object-cover"
+                />
                 <span className="absolute inset-0 flex items-center justify-center bg-black/45 text-xs font-semibold text-white opacity-0 transition-opacity group-hover:opacity-100">
                   تغییر تصویر
                 </span>

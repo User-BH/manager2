@@ -525,13 +525,25 @@ export function MessengerPage() {
                               href={message.attachment.url}
                               target="_blank"
                               rel="noreferrer"
-                              className="mt-2 block"
+                              /*
+                               * ارتفاعِ ثابت، نه `max-h` (R36).
+                               *
+                               * ⚠️ ابعادِ این تصویر را کاربر تعیین می‌کند، پس
+                               * `width`/`height` قابلِ نوشتن نیست. با `max-h`
+                               * تنها، ارتفاعِ تصویر تا لحظه‌ی رسیدنش صفر است و
+                               * بعد ناگهان تا ۲۵۶ پیکسل باز می‌شود — یعنی کلِ
+                               * گفت‌وگو زیرِ دستِ کاربر می‌پرد. ظرفِ ثابت همان
+                               * فضا را از اول رزرو می‌کند.
+                               */
+                              /* cls-safe: ابعاد از ظرفِ ثابت می‌آید */
+                              className="mt-2 block h-64 w-full max-w-xs"
                             >
                               <img
                                 src={message.attachment.url}
                                 alt={message.attachment.name}
                                 loading="lazy"
-                                className="max-h-64 w-auto rounded-lg"
+                                decoding="async"
+                                className="h-full w-full rounded-lg object-contain object-right"
                               />
                             </a>
                           ) : (

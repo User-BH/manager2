@@ -28,6 +28,18 @@ Route::get('/llms.txt', [SeoController::class, 'llms']);
 Route::view('/', 'public.home', [
     'seo' => config('seo.home'),
     'entry' => 'resources/js/app/entries/home.tsx',
+    /*
+    | تصویرِ بزرگِ بالای صفحه (LCP) — R36.
+    |
+    | این تصویر را React رندر می‌کند، یعنی مرورگر تا JS اجرا نشود آدرسش را
+    | نمی‌بیند و بزرگ‌ترین عنصرِ صفحه دیرترین چیزی می‌شود که شروع به آمدن
+    | می‌کند. `preload` در head آن را به اولین بایتِ HTML جلو می‌آورد.
+    |
+    | فقط همین یک صفحه این را دارد: در دمو و پشتیبانی و ورود، عنصرِ بزرگ
+    | متن است نه تصویر، و preloadِ بی‌مورد فقط پهنای باند را از منابعِ
+    | واقعی می‌گیرد.
+    */
+    'lcpImage' => Vite::asset('resources/images/hero-building.webp'),
 ])->name('home');
 
 Route::view('/demo', 'public.demo', [

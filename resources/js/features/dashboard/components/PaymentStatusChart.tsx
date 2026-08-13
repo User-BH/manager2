@@ -76,3 +76,10 @@ export function PaymentStatusChart({ counts }: { counts: Record<BillStatus, numb
     </div>
   )
 }
+
+/*
+ * ⚠️ صادراتِ پیش‌فرض فقط برای `React.lazy` است، که چیزی جز `default`
+ * نمی‌پذیرد. صادراتِ نام‌دار سرِ جایش می‌ماند تا تست‌ها و هر جای دیگری که
+ * چارت را **بدونِ** تنبلی می‌خواهد نشکند.
+ */
+export default PaymentStatusChart

@@ -26,6 +26,8 @@
 
     @include('partials.observability')
 
+    @include('partials.resource-hints')
+
     @vite(['resources/css/app.css', 'resources/js/app/main.tsx'])
 </head>
 <body>

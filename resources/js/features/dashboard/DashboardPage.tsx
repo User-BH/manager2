@@ -15,8 +15,7 @@ import { Card } from '@/shared/ui/Card'
 import { StatCard } from '@/shared/ui/StatCard'
 import { EmptyState, ErrorState } from '@/shared/ui/PageState'
 import { DashboardSkeleton } from '@/shared/ui/Skeleton'
-import { TrendChart } from './components/TrendChart'
-import { PaymentStatusChart } from './components/PaymentStatusChart'
+import { LazyVisible } from '@/shared/ui/LazyVisible'
 import { useQuery } from '@tanstack/react-query'
 import { api } from '@/shared/lib/api'
 import { errorMessage } from '@/shared/lib/queryClient'
@@ -171,11 +170,26 @@ function AdminView({ data }: { data: AdminDashboard }) {
           className="xl:col-span-2"
           delay={0.2}
         >
-          <TrendChart data={data.trend} currency={data.currency} />
+          {/*
+            ⚠️ Recharts عمداً تنبل بار می‌شود.
+            پیش از این، importِ ایستای همین دو چارت کلِ کتابخانه را داخلِ
+            چانکِ داشبورد می‌گذاشت: ‎۴۰۶KB خام / ‎۱۱۶KB فشرده. حالا فقط
+            وقتی می‌آید که کاربر تا نزدیکیِ چارت اسکرول کند.
+          */}
+          <LazyVisible
+            load={() => import('./components/TrendChart')}
+            height={288}
+            data={data.trend}
+            currency={data.currency}
+          />
         </Card>
 
         <Card title="وضعیت پرداخت" subtitle="دوره‌ی جاری" delay={0.25}>
-          <PaymentStatusChart counts={data.statusCounts} />
+          <LazyVisible
+            load={() => import('./components/PaymentStatusChart')}
+            height={256}
+            counts={data.statusCounts}
+          />
         </Card>
       </div>
 

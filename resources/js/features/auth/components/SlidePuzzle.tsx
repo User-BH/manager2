@@ -127,9 +127,12 @@ export function SlidePuzzle({
           می‌شود هم حفره و هم تکه به‌روشنی دیده شوند. پیش از این هر دو
           یک‌شکل بودند و حفره تقریباً گم می‌شد.
         */}
+        {/* عمداً eager: پازل همان لحظه‌ای که ساخته می‌شود باید دیده شود */}
         <img
           src={puzzle.image}
           alt=""
+          loading="eager"
+          decoding="async"
           className="absolute inset-0 h-full w-full select-none object-cover"
           style={{ width: WIDTH, height: HEIGHT, opacity: 0.42 }}
           draggable={false}

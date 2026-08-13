@@ -138,6 +138,8 @@ export function GalleryLightbox({
                 alt={item.title}
                 width={800}
                 height={1000}
+                loading="eager"
+                decoding="async"
                 className="h-full w-full object-cover transition-opacity duration-200"
                 style={{ opacity: lens ? 0 : 1 }}
                 draggable={false}
@@ -277,7 +279,10 @@ export function GalleryLightbox({
                     <img
                       src={thumb.src}
                       alt=""
+                      width={800}
+                      height={1000}
                       loading="lazy"
+                      decoding="async"
                       className="h-full w-full object-cover"
                     />
                   </button>

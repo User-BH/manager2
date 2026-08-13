@@ -2,13 +2,11 @@ import { ScrollProgressBar } from './components/ScrollProgressBar'
 import { HomeNavbar } from './components/HomeNavbar'
 import { HeroSection } from './components/HeroSection'
 import { StatsSection } from './components/StatsSection'
-import { AdBannerSection } from './components/AdBannerSection'
 import { FeaturesSection } from './components/FeaturesSection'
-import { GallerySwiperSection } from './components/GallerySwiperSection'
-import { TestimonialsSection } from './components/TestimonialsSection'
 import { CtaSection } from './components/CtaSection'
 import { HomeFooter } from './components/HomeFooter'
 import { FloatingActions } from './components/FloatingActions'
+import { LazyVisible } from '@/shared/ui/LazyVisible'
 
 export function HomePage() {
   // عنوان و متادیتا سمتِ سرور تنظیم می‌شوند (SEO)، پس اینجا document.title را
@@ -25,10 +23,18 @@ export function HomePage() {
       <main>
         <HeroSection />
         <StatsSection />
-        <AdBannerSection />
+        {/*
+          ⚠️ هر دو بخشِ اسلایدری تنبل‌اند (R36).
+
+          Swiper ‎۲۷٫۵KB فشرده است و پیش از این در بارگذاریِ **اولِ** صفحه‌ی
+          فرود می‌آمد — همان صفحه‌ای که سرعتش برای SEO مهم است — در حالی که
+          هر دو اسلایدر پایین‌تر از تا هستند و بازدیدکننده ممکن است اصلاً
+          تا آن‌ها نرسد.
+        */}
+        <LazyVisible load={() => import('./components/AdBannerSection')} height={224} />
         <FeaturesSection />
-        <GallerySwiperSection />
-        <TestimonialsSection />
+        <LazyVisible load={() => import('./components/GallerySwiperSection')} height={520} />
+        <LazyVisible load={() => import('./components/TestimonialsSection')} height={420} />
         <CtaSection />
       </main>
 

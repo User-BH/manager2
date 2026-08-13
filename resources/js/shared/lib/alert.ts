@@ -1,4 +1,4 @@
-import Swal, { type SweetAlertOptions } from 'sweetalert2'
+import type { SweetAlertOptions, SweetAlertResult } from 'sweetalert2'
 import { ApiError } from './api'
 
 /**
@@ -26,7 +26,41 @@ const base: SweetAlertOptions = {
   },
 }
 
-const app = Swal.mixin(base)
+/**
+ * ─── چرا SweetAlert2 تنبل بار می‌شود (R36) ─────────────────────────────────
+ * این ماژول ‎۲۱KB فشرده است و پیش از این **ایستا** وارد می‌شد، یعنی در
+ * بارگذاریِ اولِ هر صفحه — از جمله صفحه‌ی ورود و صفحه‌ی فرود — دانلود
+ * می‌شد. ولی هر ۷۴ نقطه‌ی استفاده‌اش **پس از کنشِ کاربر** است: توستِ بعد از
+ * ذخیره، تاییدِ حذف، خطای فرم. هیچ‌کدام در اولین رنگ‌آمیزی لازم نیستند.
+ *
+ * ⚠️ امضای بیرونیِ این فایل دست‌نخورده ماند تا هیچ‌کدام از ۷۴ صداکننده لازم
+ * نباشد عوض شود؛ فقط `fire` پشتِ پرده منتظرِ رسیدنِ ماژول می‌ماند.
+ */
+let swalReady: Promise<{ fire: (options: SweetAlertOptions) => Promise<SweetAlertResult> }> | null =
+  null
+
+function fire(options: SweetAlertOptions): Promise<SweetAlertResult> {
+  swalReady ??= import('sweetalert2').then((module) => module.default.mixin(base))
+
+  return swalReady.then((app) => app.fire(options))
+}
+
+/**
+ * پیش‌گرم‌کردن با اولین نشانه‌ی تعامل.
+ *
+ * بدونِ این، اولین توستِ کاربر باید منتظرِ دانلودِ ماژول بماند — دقیقاً
+ * لحظه‌ای که تازه دکمه‌ای زده و انتظارِ پاسخِ فوری دارد. `pointerdown` و
+ * `keydown` **پیش از** کاملِ‌شدنِ آن کنش رخ می‌دهند، پس ماژول معمولاً
+ * زودتر از نیاز آماده است.
+ */
+if (typeof window !== 'undefined') {
+  const warm = () => {
+    swalReady ??= import('sweetalert2').then((module) => module.default.mixin(base))
+  }
+
+  window.addEventListener('pointerdown', warm, { once: true, passive: true })
+  window.addEventListener('keydown', warm, { once: true, passive: true })
+}
 
 interface ConfirmOptions {
   title: string
@@ -51,7 +85,7 @@ export async function confirmAction({
   cancelLabel = 'انصراف',
   danger = false,
 }: ConfirmOptions): Promise<boolean> {
-  const result = await app.fire({
+  const result = await fire({
     title,
     text,
     icon: danger ? 'warning' : 'question',
@@ -91,7 +125,7 @@ export async function promptText({
   confirmLabel = 'ثبت',
   required = false,
 }: PromptOptions): Promise<string | null> {
-  const result = await app.fire({
+  const result = await fire({
     title,
     text,
     input: 'text',
@@ -117,7 +151,7 @@ function toast(
   position: ToastPosition,
   timer: number,
 ): void {
-  void app.fire({
+  void fire({
     toast: true,
     position,
     icon,
@@ -154,11 +188,11 @@ export function toastTopError(title: string): void {
 }
 
 export function alertSuccess(title: string, text?: string): Promise<unknown> {
-  return app.fire({ title, text, icon: 'success', confirmButtonText: 'باشه' })
+  return fire({ title, text, icon: 'success', confirmButtonText: 'باشه' })
 }
 
 export function alertInfo(title: string, text?: string): Promise<unknown> {
-  return app.fire({ title, text, icon: 'info', confirmButtonText: 'باشه' })
+  return fire({ title, text, icon: 'info', confirmButtonText: 'باشه' })
 }
 
 /**
@@ -173,25 +207,23 @@ export function alertError(error: unknown, fallback = 'انجام این کار 
    * با دکمه‌ی رفتن به صفحه‌ی اشتراک نشان داده می‌شود.
    */
   if (error instanceof ApiError && error.status === 402) {
-    void app
-      .fire({
-        title: 'نیازمند اشتراک پرو',
-        text: error.message,
-        icon: 'info',
-        showCancelButton: true,
-        confirmButtonText: 'مشاهده پلن‌ها',
-        cancelButtonText: 'بستن',
-      })
-      .then((result) => {
-        if (result.isConfirmed) window.location.assign('/account')
-      })
+    void fire({
+      title: 'نیازمند اشتراک پرو',
+      text: error.message,
+      icon: 'info',
+      showCancelButton: true,
+      confirmButtonText: 'مشاهده پلن‌ها',
+      cancelButtonText: 'بستن',
+    }).then((result) => {
+      if (result.isConfirmed) window.location.assign('/account')
+    })
     return
   }
 
   if (error instanceof ApiError) {
     const fields = Object.values(error.errors).flat()
 
-    void app.fire({
+    void fire({
       title: error.message || fallback,
       html:
         fields.length > 1 ? `<ul class="swal-app-list">${fields.map(li).join('')}</ul>` : undefined,
@@ -202,7 +234,7 @@ export function alertError(error: unknown, fallback = 'انجام این کار 
     return
   }
 
-  void app.fire({
+  void fire({
     title: fallback,
     text: error instanceof Error ? error.message : undefined,
     icon: 'error',
