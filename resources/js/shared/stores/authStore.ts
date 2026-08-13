@@ -1,5 +1,6 @@
 import { create } from 'zustand'
 import { api } from '@/shared/lib/api'
+import { clearApiCache } from '@/shared/pwa/registerServiceWorker'
 import type { CurrentUser } from '@/shared/types'
 
 /**
@@ -37,6 +38,17 @@ export const useAuthStore = create<AuthState>((set) => ({
       await api('/logout', { method: 'POST' })
     } finally {
       set({ user: null })
+
+      /*
+       * ⚠️ پاک‌کردنِ کشِ service worker بخشی از خروج است، نه یک بهینه‌سازی.
+       *
+       * از R35 پاسخ‌های `/api` روی دستگاه کش می‌شوند تا حالتِ آفلاین کار
+       * کند. اگر اینجا پاک نشوند، قبض و موجودی و پیام‌های همین کاربر روی
+       * دستگاه می‌مانند و نفرِ بعدی — یا خودش پس از خروج — می‌تواند در
+       * حالتِ آفلاین ببیندشان. نشستِ سرور بسته شده ولی نسخه‌ی کش‌شده
+       * سرورش را نمی‌پرسد.
+       */
+      void clearApiCache()
     }
   },
 }))

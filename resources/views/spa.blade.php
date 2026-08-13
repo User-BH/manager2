@@ -2,7 +2,7 @@
 <html lang="fa" dir="rtl">
 <head>
     <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 
     {{-- توکن CSRF: کلاینت React آن را از همین تگ می‌خواند و روی هر درخواست
          تغییردهنده به /api می‌فرستد، چون احراز هویت با نشست وب انجام می‌شود
@@ -11,9 +11,7 @@
 
     <meta name="description" content="{{ config('brand.description') }}">
     <link rel="icon" href="/favicon-48.png" type="image/png">
-    <link rel="manifest" href="/manifest.webmanifest">
-    <meta name="theme-color" content="#0f6e56">
-    <link rel="apple-touch-icon" href="/icons/icon-192.png">
+    @include('partials.pwa')
 
     <title>{{ config('brand.tagline') }} — {{ config('brand.name') }}</title>
 

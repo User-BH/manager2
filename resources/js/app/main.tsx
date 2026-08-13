@@ -6,6 +6,7 @@ import { QueryClientProvider } from '@tanstack/react-query'
 import { initObservability, reportError } from '@/shared/lib/observability'
 import { createQueryClient } from '@/shared/lib/queryClient'
 import { ErrorBoundary, RootErrorFallback } from '@/shared/ui/ErrorBoundary'
+import { PwaPrompts } from '@/shared/pwa/PwaPrompts'
 import { AppRouter } from './AppRouter'
 
 /*
@@ -60,6 +61,13 @@ createRoot(document.getElementById('root')!).render(
         <BrowserRouter>
           <AppRouter />
         </BrowserRouter>
+        {/*
+          ثبتِ service worker و دو پیامِ کوچکش.
+
+          بیرونِ `BrowserRouter` است چون به مسیر کاری ندارد، و **درونِ**
+          دیوارِ آتش چون اگر خودش بترکد نباید داشبورد را ببرد.
+        */}
+        <PwaPrompts />
         {DevTools && (
           <Suspense fallback={null}>
             <DevTools initialIsOpen={false} buttonPosition="bottom-left" />

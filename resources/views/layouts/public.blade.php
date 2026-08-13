@@ -62,7 +62,7 @@
 <html lang="fa" dir="rtl">
 <head>
     <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 
     {{-- توکن CSRF برای درخواست‌های تغییردهنده‌ی React به /api --}}
     <meta name="csrf-token" content="{{ csrf_token() }}">
@@ -95,9 +95,7 @@
     <meta name="twitter:image" content="{{ $ogImage }}">
 
     <link rel="icon" href="/favicon-48.png" type="image/png">
-    <link rel="manifest" href="/manifest.webmanifest">
-    <meta name="theme-color" content="#0f6e56">
-    <link rel="apple-touch-icon" href="/icons/icon-192.png">
+    @include('partials.pwa')
 
     {{-- داده‌ی ساخت‌یافته‌ی سطحِ سایت --}}
     <script type="application/ld+json">{!! \App\Support\Json::forScript($graph) !!}</script>
