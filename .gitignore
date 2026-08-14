@@ -3,6 +3,8 @@
 .env
 .env.backup
 .env.production
+# متغیرهای محیطیِ کانتینرها (R41) — رمزِ واقعیِ دیتابیس و APP_KEY داخلش است
+.env.docker
 .phpactor.json
 .phpunit.result.cache
 /.codex

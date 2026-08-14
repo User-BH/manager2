@@ -1,0 +1,51 @@
+# ==============================================================================
+#  آنچه هرگز وارد تصویر نمی‌شود (R41)
+# ==============================================================================
+#
+#  ⚠️ دو دلیل، و دومی مهم‌تر است:
+#
+#  ① سرعت — بدونِ این فایل، `node_modules` و `vendor` و کلِ تاریخچه‌ی git
+#     در هر بیلد به daemon فرستاده می‌شوند (صدها مگابایت) حتی اگر بعداً
+#     دور ریخته شوند.
+#  ② امنیت — `.env` و `.env.docker` رمزِ واقعی دارند. اگر وارد تصویر شوند،
+#     هر کسی که به آن تصویر دسترسی دارد رمزها را دارد، و پاک‌کردنشان در
+#     لایه‌ی بعدی **کمکی نمی‌کند** چون لایه‌ی قبلی سرِ جایش می‌ماند.
+
+# رمزها
+.env
+.env.*
+!.env.example
+!.env.docker.example
+
+# وابستگی‌ها — داخلِ تصویر از نو نصب می‌شوند
+node_modules/
+vendor/
+
+# خروجیِ بیلد — مرحله‌ی `assets` خودش می‌سازد
+public/build/
+public/hot
+
+# داده‌ی زمانِ اجرا
+storage/app/*
+!storage/app/.gitignore
+storage/framework/cache/*
+storage/framework/sessions/*
+storage/framework/views/*
+storage/logs/*
+bootstrap/cache/*
+database/*.sqlite
+
+# ابزارِ توسعه
+.git/
+.github/
+.idea/
+.vscode/
+tests/
+playwright-report/
+test-results/
+coverage/
+docs/
+*.md
+!README.md
+
+# خودِ فایل‌های کانتینر لازم‌اند، پس اینجا نیستند
