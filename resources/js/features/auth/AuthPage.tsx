@@ -172,7 +172,7 @@ export function AuthPage() {
   return (
     <div className="min-h-screen" style={{ backgroundColor: 'var(--surface-canvas)' }}>
       {/* نوار بالا */}
-      <div className="flex items-center justify-between px-5 py-4 sm:px-8" dir="rtl">
+      <header className="flex items-center justify-between px-5 py-4 sm:px-8" dir="rtl">
         <a
           href="/"
           className="flex items-center gap-1.5 text-sm font-medium"
@@ -182,45 +182,54 @@ export function AuthPage() {
           بازگشت به صفحه اصلی
         </a>
         <ThemeToggle />
-      </div>
+      </header>
 
-      {/* --- دسکتاپ: دو پنلِ کشویی --- */}
-      <div
-        className="relative mx-4 mb-6 hidden overflow-hidden rounded-3xl border lg:block"
-        style={{ height: 'calc(100vh - 6rem)', borderColor: 'var(--border-subtle)' }}
-      >
-        {/* پنل فرم — زیرِ پنل تصویر */}
-        <motion.div
-          className="scrollbar-thin absolute top-0 h-full w-1/2 overflow-y-auto"
-          style={{ left: 0, zIndex: 10, backgroundColor: 'var(--surface-canvas)' }}
-          animate={{ x: isLogin ? '100%' : '0%' }}
-          transition={SLIDE}
+      {/*
+        ⚠️ این صفحه نشانه‌ی «محتوای اصلی» نداشت.
+
+        `AuthPage` از `AuthScreen` استفاده نمی‌کند (برخلافِ صفحه‌های بازیابی
+        رمز و کدِ یک‌بارمصرف)، پس تغییرِ آن فایل اینجا اثری نداشت و پیوندِ
+        «پرش به محتوا» جایی برای رفتن نداشت — که در مرورگر هم دیده شد.
+      */}
+      <main id="main-content" tabIndex={-1}>
+        {/* --- دسکتاپ: دو پنلِ کشویی --- */}
+        <div
+          className="relative mx-4 mb-6 hidden overflow-hidden rounded-3xl border lg:block"
+          style={{ height: 'calc(100vh - 6rem)', borderColor: 'var(--border-subtle)' }}
         >
-          {/*
+          {/* پنل فرم — زیرِ پنل تصویر */}
+          <motion.div
+            className="scrollbar-thin absolute top-0 h-full w-1/2 overflow-y-auto"
+            style={{ left: 0, zIndex: 10, backgroundColor: 'var(--surface-canvas)' }}
+            animate={{ x: isLogin ? '100%' : '0%' }}
+            transition={SLIDE}
+          >
+            {/*
             مرکزچینیِ امن: اگر فرم کوتاه‌تر از پنل باشد وسط می‌نشیند، و اگر
             بلندتر شد (مثلاً با ظاهرشدن خطاهای زیر ورودی‌ها) از بالا اسکرول
             می‌شود و سرتیترش بریده نمی‌شود.
           */}
-          <div className="flex min-h-full items-center justify-center px-10 py-4">
-            {renderForm('auth-tab-pill-desktop')}
-          </div>
-        </motion.div>
+            <div className="flex min-h-full items-center justify-center px-10 py-4">
+              {renderForm('auth-tab-pill-desktop')}
+            </div>
+          </motion.div>
 
-        {/* پنل تصویر — رویِ پنل فرم می‌لغزد */}
-        <motion.div
-          className="absolute top-0 h-full w-1/2 overflow-hidden"
-          style={{ left: 0, zIndex: 20 }}
-          animate={{ x: isLogin ? '0%' : '100%' }}
-          transition={SLIDE}
-        >
-          {brandPanel}
-        </motion.div>
-      </div>
+          {/* پنل تصویر — رویِ پنل فرم می‌لغزد */}
+          <motion.div
+            className="absolute top-0 h-full w-1/2 overflow-hidden"
+            style={{ left: 0, zIndex: 20 }}
+            animate={{ x: isLogin ? '0%' : '100%' }}
+            transition={SLIDE}
+          >
+            {brandPanel}
+          </motion.div>
+        </div>
 
-      {/* --- موبایل: فقط فرم --- */}
-      <div className="flex items-start justify-center px-5 pb-12 pt-4 lg:hidden">
-        {renderForm('auth-tab-pill-mobile')}
-      </div>
+        {/* --- موبایل: فقط فرم --- */}
+        <div className="flex items-start justify-center px-5 pb-12 pt-4 lg:hidden">
+          {renderForm('auth-tab-pill-mobile')}
+        </div>
+      </main>
     </div>
   )
 }

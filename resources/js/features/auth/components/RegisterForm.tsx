@@ -25,8 +25,22 @@ import {
 } from '@/shared/lib/inputFilters'
 import { toastTopSuccess } from '@/shared/lib/alert'
 import { api, ApiError } from '@/shared/lib/api'
+import { useAutoFocus } from '@/shared/hooks'
 
 export function RegisterForm({ onRegistered }: { onRegistered?: () => void }) {
+  /*
+   * فوکوسِ خودکار روی اولین فیلد (فنی-۸۳).
+   *
+   * ⚠️ اینجا و نه پایین‌تر: این کامپوننت برای گامِ کدِ یک‌بارمصرف یک
+   * `return`ِ زودهنگام دارد. اولین بار قلاب را بعد از آن گذاشتم و در آن
+   * گام اصلاً صدا زده نمی‌شد — یعنی ترتیبِ قلاب‌ها بین دو رندر عوض می‌شد و
+   * کلِ فرم خالی رندر می‌شد. سه تستِ موجود همان لحظه شکستند.
+   *
+   * فقط روی دستگاهِ با نشانگرِ دقیق؛ روی موبایل صفحه‌کلید بالا می‌آید و
+   * نصفِ صفحه را می‌پوشاند پیش از آنکه کاربر فرم را دیده باشد.
+   */
+  const formRef = useAutoFocus<HTMLFormElement>()
+
   const [submitting, setSubmitting] = useState(false)
   const [formError, setFormError] = useState<string | null>(null)
 
@@ -213,6 +227,7 @@ export function RegisterForm({ onRegistered }: { onRegistered?: () => void }) {
 
   return (
     <motion.form
+      ref={formRef}
       onSubmit={handleSubmit(onSubmit)}
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}

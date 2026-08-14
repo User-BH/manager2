@@ -1,4 +1,5 @@
 import { StrictMode } from 'react'
+import { MotionConfig } from 'framer-motion'
 import { createRoot } from 'react-dom/client'
 import { initObservability, trackPageView } from '@/shared/lib/observability'
 import { BrowserRouter, Route, Routes } from 'react-router-dom'
@@ -23,12 +24,20 @@ trackPageView(window.location.pathname)
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <BrowserRouter>
-      <Routes>
-        <Route path="/auth" element={<AuthPage />} />
-        <Route path="/auth/verify" element={<VerifyOtpPage />} />
-        <Route path="/auth/forgot" element={<ForgotPasswordPage />} />
-      </Routes>
-    </BrowserRouter>
+    {/*
+        ⚠️ `reducedMotion="user"` تنها راهی است که انیمیشن‌های framer-motion
+        به تنظیمِ سیستمیِ «کاهش حرکت» احترام بگذارند. سه بلوکِ
+        `prefers-reduced-motion` در CSS هرکدام فقط یک انیمیشنِ خاص را
+        می‌گرفتند؛ `motion.div`ها از همه‌شان رد می‌شدند.
+      */}
+    <MotionConfig reducedMotion="user">
+      <BrowserRouter>
+        <Routes>
+          <Route path="/auth" element={<AuthPage />} />
+          <Route path="/auth/verify" element={<VerifyOtpPage />} />
+          <Route path="/auth/forgot" element={<ForgotPasswordPage />} />
+        </Routes>
+      </BrowserRouter>
+    </MotionConfig>
   </StrictMode>,
 )

@@ -118,7 +118,12 @@ export function SupportPage() {
       </header>
 
       {/* ---------------- آکاردیون‌ها ---------------- */}
-      <main className="mx-auto max-w-3xl px-4 pb-24 sm:px-6" dir="rtl">
+      <main
+        id="main-content"
+        tabIndex={-1}
+        className="mx-auto max-w-3xl px-4 pb-24 sm:px-6"
+        dir="rtl"
+      >
         {supportTopics.map((topic, topicIndex) => {
           const Icon = topic.icon
           const isActive = activeTopic === topic.id

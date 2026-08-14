@@ -2,6 +2,7 @@ import { StrictMode, Suspense, lazy } from 'react'
 import { createRoot } from 'react-dom/client'
 import { BrowserRouter } from 'react-router-dom'
 import { QueryClientProvider } from '@tanstack/react-query'
+import { MotionConfig } from 'framer-motion'
 
 import { initObservability, reportError } from '@/shared/lib/observability'
 import { createQueryClient } from '@/shared/lib/queryClient'
@@ -57,23 +58,29 @@ createRoot(document.getElementById('root')!).render(
       زنده نگه می‌دارد؛ این یکی فقط وقتی به کار می‌آید که آن هم از دست رفته باشد.
     */}
     <ErrorBoundary onError={reportError} fallback={(error) => <RootErrorFallback error={error} />}>
-      <QueryClientProvider client={queryClient}>
-        <BrowserRouter>
-          <AppRouter />
-        </BrowserRouter>
-        {/*
+      {/*
+        ⚠️ `reducedMotion="user"` تنها راهی است که انیمیشن‌های framer-motion
+        به تنظیمِ سیستمیِ «کاهش حرکت» احترام بگذارند.
+      */}
+      <MotionConfig reducedMotion="user">
+        <QueryClientProvider client={queryClient}>
+          <BrowserRouter>
+            <AppRouter />
+          </BrowserRouter>
+          {/*
           ثبتِ service worker و دو پیامِ کوچکش.
 
           بیرونِ `BrowserRouter` است چون به مسیر کاری ندارد، و **درونِ**
           دیوارِ آتش چون اگر خودش بترکد نباید داشبورد را ببرد.
         */}
-        <PwaPrompts />
-        {DevTools && (
-          <Suspense fallback={null}>
-            <DevTools initialIsOpen={false} buttonPosition="bottom-left" />
-          </Suspense>
-        )}
-      </QueryClientProvider>
+          <PwaPrompts />
+          {DevTools && (
+            <Suspense fallback={null}>
+              <DevTools initialIsOpen={false} buttonPosition="bottom-left" />
+            </Suspense>
+          )}
+        </QueryClientProvider>
+      </MotionConfig>
     </ErrorBoundary>
   </StrictMode>,
 )

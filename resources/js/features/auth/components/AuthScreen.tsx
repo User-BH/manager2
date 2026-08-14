@@ -26,7 +26,13 @@ export function AuthScreen({
   backLabel?: string
 }) {
   return (
-    <div
+    <main
+      id="main-content"
+      /*
+       * ⚠️ این ریشه پیش از این `<div>` بود، یعنی صفحه‌ی ورود اصلاً نشانه‌ی
+       * محتوای اصلی نداشت و پیوندِ «پرش به محتوا» جایی برای رفتن نداشت.
+       */
+      tabIndex={-1}
       className="relative flex min-h-screen items-center justify-center overflow-hidden px-4 py-10"
       style={{ backgroundColor: 'var(--surface-canvas)' }}
       dir="rtl"
@@ -97,6 +103,6 @@ export function AuthScreen({
 
         {children}
       </motion.div>
-    </div>
+    </main>
   )
 }

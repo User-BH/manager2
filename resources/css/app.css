@@ -923,3 +923,182 @@ html {
         content: '';
     }
 }
+
+/* ==================================================================
+   دسترس‌پذیری (R37)
+   ==================================================================
+
+   ⚠️ چرا اینجا و نه در کامپوننت‌ها:
+   پروژه کامپوننتِ مشترکِ Button ندارد — ۲۰۲ تگِ `<button>` خام در ۷۹
+   فایل. بازنویسیِ همه‌شان هم پرریسک است هم خارج از خواسته‌ی این مرحله؛
+   خواسته این است که **حالت‌ها وجود داشته باشند**. قاعده‌ی سطحِ عنصر همه را
+   با هم می‌گیرد و هیچ صداکننده‌ای عوض نمی‌شود.
+   ================================================================== */
+
+/*
+ * حلقه‌ی فوکوس — سراسری.
+ *
+ * ⚠️ پیش از این فقط یک قاعده‌ی محدود و قاعده‌ی دیالوگ‌های SweetAlert وجود
+ * داشت؛ بقیه‌ی دکمه‌ها و لینک‌ها هیچ نشانه‌ی فوکوسی نداشتند. `outline: none`
+ * در `baseInput` هم بود و با `focus:ring` جبران می‌شد — ولی فقط برای
+ * ورودی‌ها.
+ *
+ * `:focus-visible` و نه `:focus`: کاربرِ ماوس نباید بعد از هر کلیک یک
+ * حلقه ببیند؛ این تفکیک را خودِ مرورگر انجام می‌دهد.
+ */
+:where(a, button, [role='button'], input, select, textarea, summary, [tabindex]):focus-visible {
+    outline: 2px solid var(--ring-focus);
+    outline-offset: 2px;
+    border-radius: 4px;
+}
+
+/*
+ * حالتِ غیرفعال و در حالِ انجام.
+ *
+ * `aria-busy` معیارِ درست برای «در حالِ ارسال» است، نه فقط ظاهرِ اسپینر:
+ * صفحه‌خوان هم از رویش می‌فهمد که باید منتظر بماند.
+ */
+:where(button, [role='button'], a, input, select, textarea):disabled,
+:where(button, [role='button'])[aria-disabled='true'] {
+    cursor: not-allowed;
+    opacity: 0.55;
+}
+
+:where(button, [role='button'])[aria-busy='true'] {
+    cursor: progress;
+}
+
+/*
+ * ناحیه‌ی لمسی روی دستگاهِ لمسی (فنی-۸۴).
+ *
+ * ⚠️ فقط `pointer: coarse`، نه بر اساس عرضِ صفحه: تبلتِ بزرگ هم لمسی است و
+ * لپ‌تاپِ باریک هم ماوس دارد. با معیارِ عرض، دکمه‌های دسکتاپ بی‌دلیل بزرگ
+ * می‌شدند.
+ *
+ * اندازه‌گیریِ پیش از این روی صفحه‌ی فرود: **۱۸ عنصر از ۳۱** زیر ۴۴×۴۴
+ * بودند — کلیدِ تمِ ۳۶×۳۶، برگر ۴۰×۴۰، و پنج آیکونِ شبکه‌ی اجتماعی ۳۶×۳۶.
+ *
+ * `min-width` فقط به کنترل‌های آیکونی داده می‌شود (آن‌هایی که `aria-label`
+ * دارند چون متنِ دیدنی ندارند)؛ دادنش به دکمه‌ی متن‌دار کارِ اضافه است چون
+ * عرضشان از قبل کافی است.
+ */
+@media (pointer: coarse) {
+    :where(button, [role='button'], a[aria-label], summary) {
+        min-height: 44px;
+    }
+
+    :where(button[aria-label], a[aria-label], [role='button'][aria-label]) {
+        min-width: 44px;
+    }
+
+    /*
+     * لینک‌های **ناوبری**.
+     *
+     * ⚠️ اندازه‌گیری پس از قاعده‌های بالا نشان داد هنوز ۱۱ عنصر کوچک مانده و
+     * همه لینکِ فوتر و منو بودند با ارتفاعِ ۲۰ پیکسل — نصفِ حداقلِ AA.
+     *
+     * دامنه عمداً به `nav` و `footer` محدود است: لینکِ **درون‌متن** (وسطِ
+     * یک پاراگراف در صفحه‌ی قوانین) استثنای صریحِ استاندارد دارد و
+     * بزرگ‌کردنش خطوطِ متن را از هم باز می‌کند.
+     */
+    :where(nav, footer) :where(a[href], button) {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 44px;
+        /*
+         * عرض هم در ناوبری اعمال می‌شود: «گالری» با ۲۷ پیکسل عرض، حتی با
+         * ارتفاعِ درست، هدفِ باریکی است که انگشت خطا می‌زند.
+         */
+        min-width: 44px;
+    }
+
+    /*
+     * چک‌باکس و رادیو خودشان ~۱۶ پیکسل‌اند و بزرگ‌کردنشان ظاهر را خراب
+     * می‌کند؛ به‌جایش برچسبِ دربرگیرنده ناحیه را می‌سازد.
+     */
+    :where(label:has(> input[type='checkbox']), label:has(> input[type='radio'])) {
+        min-height: 44px;
+        display: flex;
+        align-items: center;
+    }
+}
+
+/*
+ * فاصله‌ی امنِ iPhone (فنی-۸۴).
+ *
+ * ⚠️ روی آیفونِ بدونِ دکمه‌ی خانه، نوارِ اشاره‌گر پایینِ صفحه می‌نشیند و هر
+ * چیزِ چسبیده به کف زیرش گیر می‌کند. `viewport-fit=cover` در R36 اضافه شد،
+ * که همین متغیرها را فعال می‌کند.
+ */
+.safe-bottom {
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+.safe-top {
+    padding-top: env(safe-area-inset-top, 0px);
+}
+
+.safe-x {
+    padding-right: env(safe-area-inset-right, 0px);
+    padding-left: env(safe-area-inset-left, 0px);
+}
+
+/*
+ * پیوندِ پرش به محتوا.
+ *
+ * تا وقتی فوکوس نگیرد دیده نمی‌شود، ولی **حذف نشده** است: `clip` به‌جای
+ * `display: none`، چون عنصرِ مخفی‌شده با `display` اصلاً فوکوس نمی‌گیرد و
+ * پیوند بی‌فایده می‌شد. برای کاربرِ کیبورد و صفحه‌خوان اولین چیزِ صفحه است
+ * و اجازه می‌دهد از کلِ منو بپرد.
+ */
+.skip-link {
+    position: absolute;
+    right: 1rem;
+    top: 0.5rem;
+    z-index: 100;
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
+    padding: 0.6rem 1rem;
+    border-radius: 0.75rem;
+    background-color: var(--surface-overlay);
+    color: var(--text-primary);
+    border: 1px solid var(--border-subtle);
+    font-size: 13px;
+    font-weight: 600;
+    box-shadow: var(--shadow-ambient);
+    transform: translateY(-200%);
+}
+
+/*
+ * ⚠️ `:focus` و نه `:focus-visible`.
+ *
+ * `:focus-visible` به اکتشافِ مرورگر وابسته است («آیا آخرین تعامل با
+ * کیبورد بود؟») و در بررسیِ زنده دیدم که فوکوسِ برنامه‌ای آن را فعال
+ * نمی‌کند. این پیوند اصلاً جز با کیبورد قابلِ‌دسترس نیست، پس هر فوکوسی
+ * روی آن باید نمایانش کند — وگرنه کاربر Tab می‌زند، فوکوس روی چیزی
+ * نامرئی می‌رود، و فکر می‌کند صفحه خراب است.
+ */
+.skip-link:focus {
+    transform: translateY(0);
+}
+
+/*
+ * کاهشِ حرکت — لایه‌ی آخر.
+ *
+ * ⚠️ سه بلوکِ `prefers-reduced-motion` از قبل بود ولی هرکدام فقط یک
+ * انیمیشنِ خاص را می‌گرفت. انیمیشن‌های framer-motion (که در کلِ پروژه‌اند)
+ * از هیچ‌کدام رد نمی‌شدند؛ آن‌ها با `MotionConfig reducedMotion="user"` در
+ * نقطه‌های ورود خاموش می‌شوند. این بلوک تورِ ایمنیِ CSSیِ همان است.
+ */
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+        scroll-behavior: auto !important;
+    }
+}

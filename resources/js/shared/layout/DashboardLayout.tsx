@@ -28,7 +28,16 @@ export function DashboardLayout() {
       <div className="flex min-w-0 flex-1 flex-col">
         <Header />
 
-        <main className="scrollbar-thin flex-1 overflow-y-auto p-4 sm:p-6">
+        <main
+          id="main-content"
+          /*
+           * `tabIndex={-1}` لازم است: بدونش پرشِ `#main-content` فقط اسکرول
+           * می‌کند و فوکوس همان بالا می‌ماند، پس Tabِ بعدی دوباره به منو
+           * برمی‌گردد و کلِ پیوند بی‌اثر می‌شود.
+           */
+          tabIndex={-1}
+          className="scrollbar-thin flex-1 overflow-y-auto p-4 sm:p-6"
+        >
           {/*
             ── چرا Suspense و ErrorBoundary اینجا و نه فقط در ریشه؟ ──────────
             پیش از این تنها یک Suspense در ریشه بود؛ یعنی رفتن به هر صفحه‌ی

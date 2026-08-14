@@ -16,6 +16,7 @@ import {
 } from '@/shared/lib/rememberMe'
 import { api, ApiError } from '@/shared/lib/api'
 import type { CurrentUser } from '@/shared/types'
+import { useAutoFocus } from '@/shared/hooks'
 
 interface LoginResponse {
   otpRequired?: boolean
@@ -121,8 +122,17 @@ export function LoginForm() {
     }
   }
 
+  /*
+   * فوکوسِ خودکار روی اولین فیلد (فنی-۸۳).
+   *
+   * فقط روی دستگاهِ با نشانگرِ دقیق؛ روی موبایل صفحه‌کلید بالا می‌آید و
+   * نصفِ صفحه را می‌پوشاند پیش از آنکه کاربر فرم را دیده باشد.
+   */
+  const formRef = useAutoFocus<HTMLFormElement>()
+
   return (
     <motion.form
+      ref={formRef}
       onSubmit={handleSubmit(onSubmit)}
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}

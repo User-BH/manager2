@@ -20,7 +20,7 @@ export function HomePage() {
       <ScrollProgressBar />
       <HomeNavbar />
 
-      <main>
+      <main id="main-content" tabIndex={-1}>
         <HeroSection />
         <StatsSection />
         {/*
