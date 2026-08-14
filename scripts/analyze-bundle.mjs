@@ -122,7 +122,12 @@ const jsFiles = Object.values(manifest)
 const tiny = jsFiles.filter((file) => statSync(join(BUILD, file)).size < 2048)
 
 if (process.argv.includes('--json')) {
-  report.push({ entry: '__session__', ...sessionTotal, fileCount: union.size, tinyChunks: tiny.length })
+  report.push({
+    entry: '__session__',
+    ...sessionTotal,
+    fileCount: union.size,
+    tinyChunks: tiny.length,
+  })
 }
 
 if (process.argv.includes('--json')) {

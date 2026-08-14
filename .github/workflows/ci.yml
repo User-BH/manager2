@@ -1,0 +1,187 @@
+# ==============================================================================
+#  دروازه‌ی یکپارچه‌سازی (R42)
+# ==============================================================================
+#
+#  ─── چرا این کارها و نه بیشتر ─────────────────────────────────────────────
+#  دقیقاً همان چیزهایی اجرا می‌شوند که در `.husky/pre-commit` هم هست. اگر CI
+#  سخت‌گیرتر از قلابِ محلی باشد، توسعه‌دهنده کامیت می‌کند و بعد در CI
+#  می‌افتد — و آن حلقه‌ی رفت‌وبرگشت خودش هزینه است. اگر شل‌تر باشد، اصلاً
+#  دروازه نیست.
+#
+#  ─── ترتیبی که اجباری است و اندازه‌گیری شد ────────────────────────────────
+#  ⚠️ تست‌های PHP **پس از** بیلدِ فرانت اجرا می‌شوند، نه موازی با آن.
+#
+#  اندازه‌گیری: با پاک‌کردنِ `public/build` و اجرای `php artisan test`، خطای
+#  `Illuminate\Foundation\Vite::asset("resources/images/hero-building.webp")`
+#  گرفته شد. صفحه‌ی فرود از R38 تصویرِ LCP را با `Vite::asset()` preload
+#  می‌کند و آن تابع بدونِ manifest می‌ترکد. پس هر تستِ Featureی که صفحه‌ای
+#  را باز می‌کند، به بیلد نیاز دارد.
+# ==============================================================================
+
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  # اجرای دستی، برای وقتی که می‌خواهید بدونِ کامیتِ تازه دوباره بسنجید
+  workflow_dispatch:
+
+# ⚠️ اجرای قبلیِ همان شاخه لغو می‌شود.
+#
+# بدونِ این، هر push روی یک PRِ فعال یک اجرای تازه می‌سازد و اجراهای کهنه
+# تا آخر می‌دوند — یعنی صفِ CI با نتیجه‌ای پر می‌شود که دیگر کسی نگاهش
+# نمی‌کند. برای `main` عمداً لغو نمی‌شود، چون تاریخچه‌ی سبز/قرمزِ آن شاخه
+# باید کامل بماند.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+
+permissions:
+  contents: read
+
+jobs:
+  # ────────────────────────────────────────────────────────────────────────
+  #  فرانت: قالب، تایپ، لینت، تست، بیلد
+  # ────────────────────────────────────────────────────────────────────────
+  frontend:
+    name: فرانت
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+
+      # `npm ci` و نه `npm install`: دقیقاً همان نسخه‌های قفل‌شده
+      - name: نصب وابستگی‌ها
+        run: npm ci
+
+      - name: قالب‌بندی
+        run: npm run format:check
+
+      - name: تایپ
+        run: npm run typecheck
+
+      # ⚠️ سقفِ هشدار در خودِ `package.json` است (`--max-warnings=15`).
+      # اینجا تکرار نمی‌شود تا دو جا از هم جدا نیفتند.
+      - name: لینت
+        run: npm run lint
+
+      - name: بیلد
+        run: npm run build
+
+      # ⚠️ تستِ بودجه‌ی باندل (R36) به `public/build` نیاز دارد، پس **پس
+      # از** بیلد اجرا می‌شود. اگر پیش از آن بیاید، `describe.skipIf`
+      # کلِ سقف‌ها را بی‌صدا رد می‌کند و دروازه پوچ می‌شود.
+      - name: تست
+        run: npm run test
+
+      - name: نگه‌داشتنِ خروجیِ بیلد برای مرحله‌ی بعد
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-build
+          path: public/build
+          retention-days: 1
+
+  # ────────────────────────────────────────────────────────────────────────
+  #  بک‌اند: Pint، PHPStan، PHPUnit
+  # ────────────────────────────────────────────────────────────────────────
+  backend:
+    name: بک‌اند
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    needs: frontend
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: نصب PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          # ⚠️ فهرست از `composer.lock` بیرون کشیده شده، نه از حدس.
+          # `gd` برای mPDF و `pwa:splash` لازم است، `zip` برای خروجیِ Excel.
+          extensions: gd, zip, intl, bcmath, pdo_sqlite, sqlite3, mbstring, exif
+          # تست‌ها روی SQLiteِ درون‌حافظه‌ای‌اند، ولی PDFِ فارسی حافظه
+          # می‌خواهد (اندازه‌گیریِ R28)
+          ini-values: memory_limit=512M
+          coverage: none
+
+      - name: کشِ Composer
+        uses: actions/cache@v4
+        with:
+          path: vendor
+          key: composer-${{ runner.os }}-${{ hashFiles('composer.lock') }}
+          restore-keys: composer-${{ runner.os }}-
+
+      - name: نصب وابستگی‌ها
+        run: composer install --prefer-dist --no-interaction --no-progress
+
+      # ⚠️ خروجیِ بیلد از مرحله‌ی قبل می‌آید، نه از بیلدِ دوباره.
+      #
+      # بیلدِ دوباره یعنی نصبِ کاملِ Node در این job — چند دقیقه برای چیزی
+      # که همین حالا ساخته شده. مهم‌تر: دو بیلدِ جدا می‌توانند نتیجه‌ی
+      # متفاوت بدهند و آن‌وقت تست چیزی را می‌سنجد که مستقر نمی‌شود.
+      - name: بازیابیِ خروجیِ بیلد
+        uses: actions/download-artifact@v4
+        with:
+          name: frontend-build
+          path: public/build
+
+      - name: آماده‌سازیِ محیط
+        run: |
+          cp .env.example .env
+          php artisan key:generate
+
+      - name: قالب‌بندیِ کد
+        run: composer lint
+
+      - name: تحلیل ایستا
+        run: composer analyse
+
+      - name: تست
+        run: php artisan test
+
+  # ────────────────────────────────────────────────────────────────────────
+  #  امنیت
+  # ────────────────────────────────────────────────────────────────────────
+  #
+  #  ⚠️ جدا از دو کارِ بالا و **موازی** با آن‌ها.
+  #
+  #  اگر داخلِ همان jobها بود، شکستِ یک لینت جلوی دیدنِ آسیب‌پذیری را
+  #  می‌گرفت — و آسیب‌پذیری چیزی نیست که بخواهی پشتِ یک خطای قالب‌بندی
+  #  پنهان بماند.
+  security:
+    name: امنیت
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: نصب PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          coverage: none
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+
+      # ⚠️ `--locked` یعنی خودِ `composer.lock` سنجیده می‌شود بدونِ نصب.
+      # سریع‌تر است و مهم‌تر: دقیقاً همان نسخه‌هایی را می‌بیند که مستقر
+      # می‌شوند، نه چیزی که ممکن است هنگامِ نصب حل شود.
+      - name: آسیب‌پذیریِ وابستگی‌های PHP
+        run: composer audit --locked --no-interaction
+
+      # `--omit=dev` چون ابزارِ توسعه در محصول اجرا نمی‌شود؛ آسیب‌پذیریِ
+      # یک پکیجِ تست، ریسکِ کاربر نیست
+      - name: آسیب‌پذیریِ وابستگی‌های Node
+        run: npm audit --omit=dev --audit-level=high

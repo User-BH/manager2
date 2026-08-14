@@ -1,0 +1,256 @@
+# ==============================================================================
+#  استقرار (R42)
+# ==============================================================================
+#
+#  ⚠️ این workflow **خودکار اجرا نمی‌شود** و تا وقتی شما رازها را تنظیم
+#  نکنید، اصلاً کاری نمی‌کند.
+#
+#  ─── چرا فقط دستی ─────────────────────────────────────────────────────────
+#  استقرار روی سرورِ زنده کاری است برگشت‌ناپذیر که به داده‌ی واقعیِ ساکنین
+#  دست می‌زند. وصل‌کردنش به `push` یعنی هر merge به `main` — حتی یک اصلاحِ
+#  تایپی — مهاجرت روی دیتابیسِ محصول اجرا می‌کند. آن تصمیم مالِ شماست، نه
+#  مالِ یک قاعده‌ی خودکار.
+#
+#  `environment: production` یک لایه‌ی دیگر است: می‌توانید در تنظیماتِ مخزن
+#  برایش «تأییدِ دستی» بگذارید تا حتی اجرای دستی هم به تأییدِ نفرِ دوم نیاز
+#  داشته باشد.
+#
+#  ─── چه چیزی لازم دارید ───────────────────────────────────────────────────
+#  رازهای زیر باید در Settings → Secrets → Actions تعریف شوند. تا آن موقع،
+#  اولین قدمِ همین workflow با پیامِ روشن متوقف می‌شود:
+#
+#    SSH_HOST         نشانیِ سرور
+#    SSH_USER         کاربری که به مسیرِ برنامه دسترسی دارد
+#    SSH_KEY          کلیدِ خصوصی (بدونِ عبارتِ عبور)
+#    SSH_PORT         اختیاری؛ پیش‌فرض ۲۲
+#    DEPLOY_PATH      مسیرِ برنامه روی سرور
+#    HEALTH_URL       نشانیِ بررسیِ سلامت، مثلاً https://sakena.ir/up
+#
+#  ⚠️ این workflow **آزموده نشده**. نه سروری در دسترس بود نه رازی؛ منطقش
+#  خوانده و بازبینی شده ولی هرگز روی ماشینِ واقعی اجرا نشده. اولین اجرا را
+#  حتماً روی سرورِ آزمایشی بگیرید.
+# ==============================================================================
+
+name: Deploy
+
+on:
+  workflow_dispatch:
+    inputs:
+      confirm:
+        description: 'برای تأیید، عبارتِ "deploy" را بنویسید'
+        required: true
+        default: ''
+
+concurrency:
+  # ⚠️ دو استقرارِ هم‌زمان یعنی دو `migrate` روی یک دیتابیس.
+  # اینجا `cancel-in-progress` عمداً خاموش است: لغوِ استقرارِ نیمه‌کاره
+  # بدتر از منتظرماندن است.
+  group: deploy-production
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    name: استقرار روی محصول
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    environment: production
+
+    steps:
+      # ────────────────────────────────────────────────────────────────────
+      #  گیتِ اول: تأییدِ صریح
+      # ────────────────────────────────────────────────────────────────────
+      - name: بررسیِ تأیید
+        run: |
+          if [ "${{ inputs.confirm }}" != "deploy" ]; then
+            echo "::error::برای اجرا باید عبارتِ «deploy» را در ورودی بنویسید."
+            exit 1
+          fi
+
+      # ────────────────────────────────────────────────────────────────────
+      #  گیتِ دوم: رازها واقعاً تنظیم شده‌اند؟
+      # ────────────────────────────────────────────────────────────────────
+      #
+      #  ⚠️ بدونِ این بررسی، `ssh` با رشته‌ی خالی تلاش می‌کند و خطایی
+      #  می‌دهد که هیچ ربطی به علتِ واقعی ندارد («Could not resolve
+      #  hostname»). این‌طور علت همان خطِ اول گفته می‌شود.
+      - name: بررسیِ رازها
+        env:
+          SSH_HOST: ${{ secrets.SSH_HOST }}
+          SSH_USER: ${{ secrets.SSH_USER }}
+          SSH_KEY: ${{ secrets.SSH_KEY }}
+          DEPLOY_PATH: ${{ secrets.DEPLOY_PATH }}
+          HEALTH_URL: ${{ secrets.HEALTH_URL }}
+        run: |
+          missing=''
+          for name in SSH_HOST SSH_USER SSH_KEY DEPLOY_PATH HEALTH_URL; do
+            eval "value=\$$name"
+            [ -z "$value" ] && missing="$missing $name"
+          done
+
+          if [ -n "$missing" ]; then
+            echo "::error::این رازها تنظیم نشده‌اند:$missing"
+            echo "::error::Settings → Secrets and variables → Actions"
+            exit 1
+          fi
+
+      - uses: actions/checkout@v4
+
+      # ────────────────────────────────────────────────────────────────────
+      #  ساختِ بسته — روی runner، نه روی سرور
+      # ────────────────────────────────────────────────────────────────────
+      #
+      #  ⚠️ چرا اینجا و نه روی سرور:
+      #  ① سرورِ محصول نباید Node و ابزارِ ساخت داشته باشد.
+      #  ② بیلد روی سرورِ زنده رم و CPU را از خودِ سایت می‌گیرد، دقیقاً در
+      #     لحظه‌ای که کاربر دارد کار می‌کند.
+      #  ③ اگر بیلد وسطِ کار بشکند، سرور با فایل‌های نیمه می‌ماند.
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+
+      - name: نصب PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          extensions: gd, zip, intl, bcmath, mbstring, exif
+          coverage: none
+
+      - name: ساختِ بسته
+        run: |
+          npm ci
+          npm run build
+          composer install --no-dev --prefer-dist --optimize-autoloader --no-interaction
+
+      - name: آماده‌سازیِ SSH
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.SSH_KEY }}" > ~/.ssh/id_deploy
+          chmod 600 ~/.ssh/id_deploy
+          # ⚠️ `ssh-keyscan` جای `StrictHostKeyChecking=no`:
+          # دومی هر میزبانی را می‌پذیرد و حمله‌ی مردِ میانی را ممکن می‌کند
+          ssh-keyscan -p "${{ secrets.SSH_PORT || 22 }}" -H "${{ secrets.SSH_HOST }}" >> ~/.ssh/known_hosts
+
+      # ────────────────────────────────────────────────────────────────────
+      #  بکاپ — پیش از هر تغییری
+      # ────────────────────────────────────────────────────────────────────
+      #
+      #  ⚠️ بدونِ این، بازگشت ممکن نیست.
+      #
+      #  مهاجرتِ لاراول `down()` دارد ولی همیشه برگشت‌پذیر نیست: ستونی که
+      #  حذف شده، داده‌اش رفته. بکاپِ پیش از استقرار تنها چیزی است که
+      #  بازگشتِ واقعی را ممکن می‌کند.
+      - name: بکاپِ پیش از استقرار
+        id: backup
+        run: |
+          STAMP=$(date +%Y%m%d-%H%M%S)
+          echo "stamp=$STAMP" >> "$GITHUB_OUTPUT"
+
+          # ⚠️ ابزارِ سیستمی، نه دستورِ artisan.
+          #
+          # نسخه‌ی اولِ همین فایل `php artisan backup:run` می‌نوشت — دستوری
+          # که **وجود ندارد**. بکاپِ برنامه از پنلِ ادمین و با
+          # `BuildBackupJob` ساخته می‌شود و رابطِ خطِ فرمان ندارد. آنچه
+          # اینجا لازم است دو چیزِ ساده است: عکسِ کد و دامپِ دیتابیس.
+          ssh -i ~/.ssh/id_deploy -p "${{ secrets.SSH_PORT || 22 }}" \
+            "${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}" \
+            "cd '${{ secrets.DEPLOY_PATH }}' && \
+             mkdir -p ../deploy-backups && \
+             tar -czf ../deploy-backups/code-$STAMP.tar.gz \
+               --exclude=./storage --exclude=./vendor --exclude=./node_modules . && \
+             mysqldump --single-transaction --quick --no-tablespaces \
+               -u \"\$(php -r \"echo env('DB_USERNAME');\")\" \
+               -p\"\$(php -r \"echo env('DB_PASSWORD');\")\" \
+               \"\$(php -r \"echo env('DB_DATABASE');\")\" \
+               | gzip > ../deploy-backups/db-$STAMP.sql.gz && \
+             echo 'بکاپ ساخته شد.'"
+
+      - name: انتقالِ فایل‌ها
+        run: |
+          # ⚠️ `--delete` عمداً **نیست**.
+          #
+          # با آن، هر چیزی که روی سرور هست و در بسته نیست پاک می‌شود —
+          # از جمله `storage/app` که رسیدها و پیوست‌های کاربران در آن است.
+          rsync -az --checksum \
+            -e "ssh -i ~/.ssh/id_deploy -p ${{ secrets.SSH_PORT || 22 }}" \
+            --exclude='.env' \
+            --exclude='storage/' \
+            --exclude='.git/' \
+            ./ "${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:${{ secrets.DEPLOY_PATH }}/"
+
+      - name: مهاجرت و کش
+        run: |
+          ssh -i ~/.ssh/id_deploy -p "${{ secrets.SSH_PORT || 22 }}" \
+            "${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}" \
+            "cd '${{ secrets.DEPLOY_PATH }}' && \
+             php artisan down --render=errors::503 --retry=30 && \
+             php artisan migrate --force --no-interaction && \
+             php artisan config:cache && \
+             php artisan route:cache && \
+             php artisan view:cache && \
+             php artisan queue:restart && \
+             php artisan up"
+
+      # ────────────────────────────────────────────────────────────────────
+      #  بررسیِ سلامت
+      # ────────────────────────────────────────────────────────────────────
+      #
+      #  ⚠️ چند تلاش با فاصله، نه یک درخواستِ تکی.
+      #
+      #  پس از `php artisan up` و پاک‌شدنِ OPcache، اولین درخواست‌ها کند و
+      #  گاهی ناموفق‌اند. یک بررسیِ تکی همان‌جا استقرارِ سالم را «شکست‌خورده»
+      #  اعلام می‌کند و بازگشتِ بی‌دلیل راه می‌اندازد.
+      - name: بررسیِ سلامت
+        id: health
+        run: |
+          for attempt in 1 2 3 4 5 6; do
+            code=$(curl -s -o /dev/null -w '%{http_code}' --max-time 15 "${{ secrets.HEALTH_URL }}" || echo 000)
+
+            if [ "$code" = "200" ]; then
+              echo "سالم است (تلاشِ $attempt)."
+              exit 0
+            fi
+
+            echo "تلاشِ $attempt: کدِ $code — پنج ثانیه صبر…"
+            sleep 5
+          done
+
+          echo "::error::سرویس پس از استقرار سالم نشد."
+          exit 1
+
+      # ────────────────────────────────────────────────────────────────────
+      #  بازگشت — فقط وقتی سلامت شکست بخورد
+      # ────────────────────────────────────────────────────────────────────
+      #
+      #  ⚠️ `if: failure()` روی کلِ job است، پس شکستِ هر مرحله‌ی بالا هم
+      #  بازگشت را راه می‌اندازد. این عمدی است: استقرارِ نیمه‌کاره از
+      #  استقرارِ شکست‌خورده بدتر است.
+      - name: بازگشت به نسخه‌ی قبل
+        if: failure() && steps.backup.outputs.stamp != ''
+        run: |
+          echo "::warning::استقرار شکست خورد؛ بازگرداندنِ کد به ${{ steps.backup.outputs.stamp }}"
+
+          # ⚠️ فقط **کد** خودکار برمی‌گردد، نه دیتابیس. این تصمیم عمدی است.
+          #
+          # بازگرداندنِ خودکارِ دامپ یعنی هر نوشتنی که در پنجره‌ی استقرار رخ
+          # داده — پرداختِ ساکن، پیامِ تازه، رسیدِ آپلودشده — بی‌صدا پاک
+          # می‌شود. آن تصمیم باید با چشمِ باز گرفته شود، نه در دلِ jobی که
+          # کسی نگاهش نمی‌کند. پس دامپ سرِ جایش می‌ماند و مسیرش چاپ می‌شود.
+          ssh -i ~/.ssh/id_deploy -p "${{ secrets.SSH_PORT || 22 }}" \
+            "${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}" \
+            "cd '${{ secrets.DEPLOY_PATH }}' && \
+             tar -xzf ../deploy-backups/code-${{ steps.backup.outputs.stamp }}.tar.gz && \
+             php artisan config:cache && \
+             php artisan route:cache && \
+             php artisan up" \
+            || echo "::error::بازگشتِ خودکار هم شکست خورد — دستی بررسی کنید."
+
+          echo "::warning::دیتابیس **برنگشت**. اگر مهاجرت اجرا شده و باید برگردد:"
+          echo "::warning::  gunzip < ../deploy-backups/db-${{ steps.backup.outputs.stamp }}.sql.gz | mysql -u USER -p DB"
+          echo "::warning::⚠️ این کار نوشته‌های پس از بکاپ را پاک می‌کند."
+      - name: پاک‌کردنِ کلید
+        if: always()
+        run: rm -f ~/.ssh/id_deploy
