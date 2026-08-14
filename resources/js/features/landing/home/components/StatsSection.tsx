@@ -25,14 +25,29 @@ function AnimatedNumber({ value }: { value: string }) {
     const startTime = performance.now()
     const targetValue = target
 
+    /*
+     * ⚠️ شناسه‌ی هر فریم نگه داشته می‌شود تا در پاک‌سازی لغو شود.
+     *
+     * پیش از این حلقه **خودتکرار و بدونِ لغو** بود و دو مشکل داشت:
+     * ① با unmount شدنِ کامپوننت وسطِ انیمیشن، حلقه ادامه می‌داد و روی
+     *    کامپوننتِ رفته `setState` می‌زد.
+     * ② وابستگی‌ها `[isInView, …]` است، پس هر بار که کاربر از این بخش
+     *    بیرون و دوباره داخلِ دید می‌آمد، حلقه‌ی **تازه‌ای** شروع می‌شد در
+     *    حالی که قبلی هنوز می‌دوید — یعنی چند حلقه هم‌زمان سرِ یک مقدار
+     *    دعوا می‌کردند و عدد می‌لرزید.
+     */
+    let frame = 0
+
     function tick(now: number) {
       const progress = Math.min((now - startTime) / duration, 1)
       const current = Math.round(progress * targetValue)
       setDisplay(current.toLocaleString('fa-IR'))
-      if (progress < 1) requestAnimationFrame(tick)
+      if (progress < 1) frame = requestAnimationFrame(tick)
     }
 
-    requestAnimationFrame(tick)
+    frame = requestAnimationFrame(tick)
+
+    return () => cancelAnimationFrame(frame)
   }, [isInView, target, value])
 
   return (

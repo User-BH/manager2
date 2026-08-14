@@ -1,9 +1,34 @@
 import { useState } from 'react'
 import { ChevronDown, Plus, Trash2, X } from 'lucide-react'
 
+/**
+ * یک گزینه‌ی نظرسنجی در حالتِ پیش‌نویس.
+ *
+ * ⚠️ چرا `id` دارد و صرفاً رشته نیست:
+ * گزینه‌ها را کاربر **اضافه و حذف** می‌کند. با کلیدِ اندیسی، حذفِ گزینه‌ی
+ * دوم از چهارتا باعث می‌شد React گرهِ DOMِ اندیسِ ۲ را برای چیزی که قبلاً
+ * اندیسِ ۳ بود بازاستفاده کند — یعنی فوکوس و مکانِ نشانگرِ کاربر روی ردیفِ
+ * اشتباه می‌ماند و اگر وسطِ تایپ بود، ادامه‌ی تایپش به گزینه‌ی دیگری
+ * می‌رفت. شناسه‌ی پایدار این را از ریشه می‌بندد.
+ *
+ * `id` فقط سمتِ کلاینت است و هرگز به سرور نمی‌رود؛ API همچنان آرایه‌ی
+ * رشته می‌گیرد.
+ */
+export interface PollOptionDraft {
+  id: number
+  text: string
+}
+
+let nextOptionId = 0
+
+/** گزینه‌ی خالیِ تازه با شناسه‌ی یکتا. */
+export function emptyOption(): PollOptionDraft {
+  return { id: nextOptionId++, text: '' }
+}
+
 export interface PollDraft {
   question: string
-  options: string[]
+  options: PollOptionDraft[]
   /** چه کسانی حقِ رأی دارند (R24). */
   voterScope: 'residents' | 'owners'
   /** رأی چطور شمرده می‌شود (R24). */
@@ -15,15 +40,23 @@ export interface PollDraft {
   closesAt: string
 }
 
-export const EMPTY_POLL: PollDraft = {
-  question: '',
-  options: ['', ''],
-  // پیش‌فرض‌ها عمداً همان نظرسنجیِ ساده‌ی R23b‌اند
-  voterScope: 'residents',
-  weightMode: 'per_person',
-  quorumPercent: '',
-  allowChange: true,
-  closesAt: '',
+/**
+ * ⚠️ تابع است نه ثابت.
+ *
+ * با ثابتِ اشتراکی، هر نظرسنجیِ تازه همان دو شناسه‌ی قبلی را می‌گرفت و
+ * React گزینه‌های نظرسنجیِ قبلی را با تازه یکی می‌دید.
+ */
+export function emptyPoll(): PollDraft {
+  return {
+    question: '',
+    options: [emptyOption(), emptyOption()],
+    // پیش‌فرض‌ها عمداً همان نظرسنجیِ ساده‌ی R23b‌اند
+    voterScope: 'residents',
+    weightMode: 'per_person',
+    quorumPercent: '',
+    allowChange: true,
+    closesAt: '',
+  }
 }
 
 /** حداقل/حداکثرِ گزینه‌ها — عمداً همان قیدِ `StoreMessageRequest`. */
@@ -98,15 +131,14 @@ export function PollComposer({
 
       <ul className="flex flex-col gap-1.5">
         {draft.options.map((option, index) => (
-          // گزینه‌ها هنوز شناسه‌ی سرور ندارند؛ کلید همان جایگاهشان است
-          <li key={index} className="flex items-center gap-1.5">
+          <li key={option.id} className="flex items-center gap-1.5">
             <input
-              value={option}
+              value={option.text}
               onChange={(event) =>
                 onChange({
                   ...draft,
-                  options: draft.options.map((current, i) =>
-                    i === index ? event.target.value : current,
+                  options: draft.options.map((current) =>
+                    current.id === option.id ? { ...current, text: event.target.value } : current,
                   ),
                 })
               }
@@ -119,7 +151,10 @@ export function PollComposer({
               <button
                 type="button"
                 onClick={() =>
-                  onChange({ ...draft, options: draft.options.filter((_, i) => i !== index) })
+                  onChange({
+                    ...draft,
+                    options: draft.options.filter((current) => current.id !== option.id),
+                  })
                 }
                 aria-label={`حذف گزینه ${index + 1}`}
                 style={{ color: 'var(--text-tertiary)' }}
@@ -135,7 +170,7 @@ export function PollComposer({
         {draft.options.length < MAX_OPTIONS ? (
           <button
             type="button"
-            onClick={() => onChange({ ...draft, options: [...draft.options, ''] })}
+            onClick={() => onChange({ ...draft, options: [...draft.options, emptyOption()] })}
             className="flex items-center gap-1 text-[12px]"
             style={{ color: 'var(--color-brand-500)' }}
           >

@@ -25,7 +25,7 @@ import { cn } from '@/shared/lib/cn'
 import { AudiencePicker, type Audience, type MessengerUnit } from './AudiencePicker'
 import { EmojiPicker } from './EmojiPicker'
 import { PollCard, type MessagePoll } from './PollCard'
-import { PollComposer, EMPTY_POLL, type PollDraft } from './PollComposer'
+import { PollComposer, emptyPoll, type PollDraft } from './PollComposer'
 
 /** همان قیدِ `StoreMessageRequest`؛ اینجا فقط تا کاربر پیش از آپلود بفهمد. */
 const MAX_ATTACHMENT_BYTES = 4 * 1024 * 1024
@@ -320,7 +320,7 @@ export function MessengerPage() {
       return
     }
 
-    if (hasPoll && pollDraft!.options.filter((option) => option.trim()).length < 2) {
+    if (hasPoll && pollDraft!.options.filter((option) => option.text.trim()).length < 2) {
       setError('نظرسنجی باید دست‌کم دو گزینه داشته باشد.')
       return
     }
@@ -369,7 +369,7 @@ export function MessengerPage() {
 
       if (sentPoll) {
         payload.poll_question = sentPoll.question.trim()
-        payload.poll_options = sentPoll.options.map((o) => o.trim()).filter(Boolean)
+        payload.poll_options = sentPoll.options.map((o) => o.text.trim()).filter(Boolean)
         payload.poll_voter_scope = sentPoll.voterScope
         payload.poll_weight_mode = sentPoll.weightMode
         payload.poll_allow_change = sentPoll.allowChange ? '1' : '0'
@@ -699,7 +699,7 @@ export function MessengerPage() {
                 {meta.isAdmin && (
                   <button
                     type="button"
-                    onClick={() => setPollDraft((draft) => (draft ? null : { ...EMPTY_POLL }))}
+                    onClick={() => setPollDraft((draft) => (draft ? null : emptyPoll()))}
                     aria-label="ساخت نظرسنجی"
                     aria-pressed={pollDraft !== null}
                     className="flex h-9 w-9 items-center justify-center rounded-lg"

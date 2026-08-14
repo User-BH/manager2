@@ -65,7 +65,19 @@ export function SupportChat() {
 
   // فوکوس روی ورودی هنگام باز شدن
   useEffect(() => {
-    if (open) setTimeout(() => inputRef.current?.focus(), 350)
+    if (!open) return
+
+    /*
+     * ⚠️ تایمر باید لغو شود.
+     *
+     * تأخیرِ ۳۵۰ میلی‌ثانیه‌ای منتظرِ پایانِ انیمیشنِ بازشدن است، ولی کاربر
+     * می‌تواند در همان فاصله پنجره را ببندد. بدونِ لغو، تایمر شلیک می‌کرد و
+     * فوکوس را به ورودیِ پنهان می‌برد — که روی موبایل یعنی صفحه‌کلید بالا
+     * می‌آمد برای پنجره‌ای که دیگر باز نبود.
+     */
+    const timer = setTimeout(() => inputRef.current?.focus(), 350)
+
+    return () => clearTimeout(timer)
   }, [open])
 
   async function send(text: string) {
