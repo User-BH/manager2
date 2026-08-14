@@ -48,7 +48,7 @@ export function SupportPage() {
       <HomeNavbar page="support" />
 
       {/* ---------------- هدر با چرخِ چهارقسمتی ---------------- */}
-      <header className="relative overflow-hidden pb-16 pt-28" dir="rtl">
+      <header className="relative overflow-hidden pb-16 pt-4" dir="rtl">
         {/* نقش‌مایه‌ی پس‌زمینه */}
         <div
           className="pointer-events-none absolute inset-0 -z-10"

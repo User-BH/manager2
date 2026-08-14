@@ -46,6 +46,13 @@ Schedule::command('documents:prune --days=14')->weeklyOn(5, '03:15');
 Schedule::command('trusted-devices:prune')->dailyAt('03:45');
 
 /*
+| سنجه‌های کارایی (R38): هر بازدید تا پنج ردیف می‌سازد و این جدول سقفِ
+| طبیعی ندارد. ۹۰ روز سه برابرِ پنجره‌ی ۲۸ روزه‌ی گوگل است، پس روند هم
+| دیده می‌شود.
+*/
+Schedule::command('web-vitals:prune')->weeklyOn(5, '03:50');
+
+/*
 | نگه‌داریِ صف (R11)
 |
 | `failed_jobs` خودش هرگز پاک نمی‌شود. اگر رهایش کنیم، جدولی که کسی نگاهش

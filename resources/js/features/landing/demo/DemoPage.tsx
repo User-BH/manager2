@@ -124,7 +124,7 @@ export function DemoPage() {
       <main
         id="main-content"
         tabIndex={-1}
-        className="mx-auto max-w-5xl px-4 pb-20 pt-28 sm:px-6"
+        className="mx-auto max-w-5xl px-4 pb-20 pt-4 sm:px-6"
         dir="rtl"
       >
         {/* ---------- سرتیتر: تابلوی چراغانی روی دستِ شخصیت ساختمانی ---------- */}

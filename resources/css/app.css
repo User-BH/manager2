@@ -1102,3 +1102,60 @@ html {
         scroll-behavior: auto !important;
     }
 }
+
+/* ==================================================================
+   مسیرِ راهنما (R38)
+   ==================================================================
+
+   ⚠️ در Blade رندر می‌شود، پس **پیش از** mountِ React روی صفحه است و
+   نباید زیرِ نوارِ ثابتِ بالا گیر کند. `padding-top` با ارتفاعِ همان نوار
+   هماهنگ است.
+
+   کلاس‌های Tailwind اینجا استفاده نشده چون این گره در HTMLِ خامِ سرور است
+   و باید مستقل از باندلِ React هم درست دیده شود.
+   ================================================================== */
+.breadcrumb-bar {
+    max-width: 72rem;
+    margin: 0 auto;
+    padding: 5.5rem 1rem 0;
+    font-size: 12.5px;
+    color: var(--text-tertiary);
+}
+
+@media (min-width: 640px) {
+    .breadcrumb-bar {
+        padding-inline: 1.5rem;
+    }
+}
+
+.breadcrumb-bar ol {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.4rem;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.breadcrumb-bar li {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+}
+
+.breadcrumb-bar a {
+    color: var(--text-secondary);
+    text-decoration: none;
+}
+
+.breadcrumb-bar a:hover {
+    color: var(--tone-brand-fg);
+    text-decoration: underline;
+}
+
+/* صفحه‌ی جاری پیوند نیست — کلیک روی جایی که هستی بی‌معناست */
+.breadcrumb-bar [aria-current='page'] {
+    color: var(--text-primary);
+    font-weight: 600;
+}

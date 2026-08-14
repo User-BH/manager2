@@ -122,6 +122,9 @@ return Application::configure(basePath: dirname(__DIR__))
             // هر دو شکلِ مسیر، چون نامِ مستعارِ بدونِ نسخه هنوز زنده است
             'api/v1/client-errors',
             'api/client-errors',
+            // سنجه‌های کارایی هم با sendBeacon می‌روند و ردیفِ تحلیلی می‌سازند
+            'api/v1/web-vitals',
+            'api/web-vitals',
         ]);
 
         $middleware->encryptCookies(except: [

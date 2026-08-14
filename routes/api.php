@@ -42,6 +42,7 @@ use App\Http\Controllers\Api\System\SmsController;
 use App\Http\Controllers\Api\System\SubscriptionReviewController;
 use App\Http\Controllers\Api\UnitController;
 use App\Http\Controllers\Api\WalletController;
+use App\Http\Controllers\Api\WebVitalsController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -93,6 +94,15 @@ Route::get('csrf-token', [AuthController::class, 'csrfToken'])->name('csrf-token
  */
 Route::post('client-errors', [ClientErrorController::class, 'store'])
     ->middleware('throttle:client-errors')->name('client-errors.store');
+
+/*
+| دادهٔ میدانیِ Core Web Vitals (R38).
+|
+| مثلِ گزارشِ خطا برای مهمان هم باز است: مهم‌ترین سنجه‌ها مالِ صفحه‌ی فرودند،
+| همان صفحه‌ای که بازدیدکننده‌ی واردنشده می‌بیند.
+*/
+Route::post('web-vitals', [WebVitalsController::class, 'store'])
+    ->middleware('throttle:web-vitals')->name('web-vitals.store');
 
 // بنرهای صفحه‌ی فرود؛ عمومی است چون صفحه پیش از ورود کاربر دیده می‌شود.
 Route::get('ads', [AdvertisementController::class, 'index'])->name('ads.index');
