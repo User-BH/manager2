@@ -1,13 +1,21 @@
 import { useEffect, useState } from 'react'
+import { useForm, useWatch } from 'react-hook-form'
+import { zodResolver } from '@hookform/resolvers/zod'
 import { KeyRound, Loader2, Lock, Phone } from 'lucide-react'
 import { AuthScreen } from './components/AuthScreen'
 import { OtpBoxes } from './components/OtpBoxes'
-import { FormField } from './components/FormField'
+import { RestrictedField } from './components/RestrictedField'
 import { PasswordStrength } from './components/PasswordStrength'
+import {
+  forgotPhoneSchema,
+  resetPasswordSchema,
+  type ForgotPhoneValues,
+  type ResetPasswordValues,
+} from './schemas/forgotSchema'
 import { filterAsciiPassword, filterMobile } from '@/shared/lib/inputFilters'
 import { api, ApiError } from '@/shared/lib/api'
 import { toastSuccess } from '@/shared/lib/alert'
-import { useDocumentTitle } from '@/shared/hooks'
+import { useAutoFocus, useDocumentTitle } from '@/shared/hooks'
 import type { CurrentUser } from '@/shared/types'
 
 type Step = 'phone' | 'code' | 'reset'
@@ -28,15 +36,43 @@ export function ForgotPasswordPage() {
 
   useDocumentTitle('بازیابی رمز عبور')
 
-  const [phone, setPhone] = useState('')
   const [code, setCode] = useState('')
   const [devCode, setDevCode] = useState<string | null>(null)
   const [cooldown, setCooldown] = useState(0)
-  const [password, setPassword] = useState('')
-  const [confirm, setConfirm] = useState('')
 
+  /*
+   * `error` فقط برای خطای **گامِ کد** مانده.
+   *
+   * دو گامِ دیگر خطاهایشان را از خودِ فرم می‌گیرند؛ گامِ کد `<form>` ندارد
+   * (شش خانه‌ی OTP که با کاملِ‌شدن خودکار بررسی می‌شوند) پس همچنان حالتِ
+   * خودش را دارد.
+   */
   const [error, setError] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
+
+  /*
+   * ⚠️ دو فرمِ جدا و نه یکی (R40).
+   *
+   * گامِ شماره و گامِ رمزِ تازه هیچ فیلدِ مشترکی ندارند و هرگز هم‌زمان روی
+   * صفحه نیستند. یک فرمِ واحد یعنی اسکیمایی که نیمی از فیلدهایش همیشه
+   * خالی‌اند و باید شرطی اعتبارسنجی شوند — پیچیدگی‌ای که هیچ چیزی
+   * نمی‌خرد.
+   */
+  const phoneForm = useForm<ForgotPhoneValues>({
+    resolver: zodResolver(forgotPhoneSchema),
+    defaultValues: { phone: '' },
+  })
+
+  const resetForm = useForm<ResetPasswordValues>({
+    resolver: zodResolver(resetPasswordSchema),
+    defaultValues: { password: '', confirmPassword: '' },
+  })
+
+  const phone = useWatch({ control: phoneForm.control, name: 'phone' })
+  const password = useWatch({ control: resetForm.control, name: 'password' })
+
+  const phoneFormRef = useAutoFocus<HTMLFormElement>(step === 'phone')
+  const resetFormRef = useAutoFocus<HTMLFormElement>(step === 'reset')
 
   useEffect(() => {
     if (cooldown <= 0) return
@@ -44,29 +80,35 @@ export function ForgotPasswordPage() {
     return () => clearTimeout(t)
   }, [cooldown])
 
-  async function sendCode(e?: React.FormEvent) {
-    e?.preventDefault()
+  async function sendCode(values: ForgotPhoneValues) {
     setBusy(true)
     setError(null)
 
     try {
       const data = await api<{ dev_code?: string | null }>('/password/forgot', {
         method: 'POST',
-        body: { phone },
+        body: { phone: values.phone },
       })
       setDevCode(data.dev_code ?? null)
       setCooldown(RESEND_SECONDS)
       setCode('')
       setStep('code')
     } catch (err) {
-      setError(
-        err instanceof ApiError
-          ? (err.fieldError('phone') ?? err.message)
-          : 'ارتباط با سرور برقرار نشد.',
-      )
+      // خطای سرور زیرِ همان فیلد می‌نشیند، نه در یک پیامِ شناور
+      phoneForm.setError('phone', {
+        message:
+          err instanceof ApiError
+            ? (err.fieldError('phone') ?? err.message)
+            : 'ارتباط با سرور برقرار نشد.',
+      })
     } finally {
       setBusy(false)
     }
+  }
+
+  /** ارسالِ دوباره از دکمه‌ی «ارسال دوباره» — همان مقدارِ فرم را می‌فرستد. */
+  function resend() {
+    void sendCode({ phone })
   }
 
   /** با کاملِ‌شدن شش رقم، خودکار صدا زده می‌شود. */
@@ -90,14 +132,7 @@ export function ForgotPasswordPage() {
     }
   }
 
-  async function reset(e: React.FormEvent) {
-    e.preventDefault()
-
-    if (password !== confirm) {
-      setError('رمز عبور و تکرار آن یکسان نیستند.')
-      return
-    }
-
+  async function reset(values: ResetPasswordValues) {
     setBusy(true)
     setError(null)
 
@@ -109,18 +144,19 @@ export function ForgotPasswordPage() {
        */
       await api<{ user: CurrentUser }>('/password/reset', {
         method: 'POST',
-        body: { password, password_confirmation: confirm },
+        body: { password: values.password, password_confirmation: values.confirmPassword },
       })
 
       toastSuccess('رمز عبور تغییر کرد. خوش آمدید!')
       // ورود خودکار انجام شده؛ به داشبورد (سندِ جدا) می‌رویم
       window.location.assign('/dashboard')
     } catch (err) {
-      setError(
-        err instanceof ApiError
-          ? (err.fieldError('password') ?? err.message)
-          : 'ارتباط با سرور برقرار نشد.',
-      )
+      resetForm.setError('password', {
+        message:
+          err instanceof ApiError
+            ? (err.fieldError('password') ?? err.message)
+            : 'ارتباط با سرور برقرار نشد.',
+      })
     } finally {
       setBusy(false)
     }
@@ -135,22 +171,35 @@ export function ForgotPasswordPage() {
   return (
     <AuthScreen title="بازیابی رمز عبور" subtitle={subtitles[step]}>
       {step === 'phone' && (
-        <form onSubmit={sendCode} className="flex flex-col gap-4">
-          <FormField
+        <form
+          ref={phoneFormRef}
+          onSubmit={phoneForm.handleSubmit(sendCode)}
+          className="flex flex-col gap-4"
+          noValidate
+        >
+          <RestrictedField
+            control={phoneForm.control}
+            name="phone"
             label="شماره موبایل"
             icon={Phone}
             placeholder="۰۹xxxxxxxxx"
             inputMode="numeric"
             dir="ltr"
             autoComplete="username"
-            value={phone}
-            onChange={(e) => setPhone(filterMobile(e.target.value).value)}
-            error={error ?? undefined}
+            filter={filterMobile}
+            hint="فقط رقم انگلیسی وارد کنید"
+            error={phoneForm.formState.errors.phone?.message}
           />
 
+          {/*
+            ⚠️ دکمه دیگر با طولِ ورودی غیرفعال نمی‌شود.
+            پیش از این `disabled={phone.length < 11}` بود؛ کاربر دکمه‌ی
+            خاموش می‌دید بی‌آنکه بداند چرا. حالا کلیک می‌کند و پیامِ روشن
+            زیرِ فیلد می‌آید.
+          */}
           <button
             type="submit"
-            disabled={busy || phone.length < 11}
+            disabled={busy}
             className="mt-1 flex items-center justify-center gap-2 rounded-xl py-3.5 text-sm font-bold text-white transition-transform hover:scale-[1.02] disabled:opacity-60 disabled:hover:scale-100"
             style={{ backgroundColor: 'var(--color-brand-500)' }}
           >
@@ -202,7 +251,7 @@ export function ForgotPasswordPage() {
             ) : (
               <button
                 type="button"
-                onClick={() => void sendCode()}
+                onClick={resend}
                 className="font-semibold underline"
                 style={{ color: 'var(--color-brand-600)' }}
               >
@@ -214,41 +263,46 @@ export function ForgotPasswordPage() {
       )}
 
       {step === 'reset' && (
-        <form onSubmit={reset} className="flex flex-col gap-4">
+        <form
+          ref={resetFormRef}
+          onSubmit={resetForm.handleSubmit(reset)}
+          className="flex flex-col gap-4"
+          noValidate
+        >
           <div>
-            <FormField
+            <RestrictedField
+              control={resetForm.control}
+              name="password"
               label="رمز عبور تازه"
               icon={Lock}
               type="password"
               placeholder="حداقل ۸ نویسه، شامل حرف و عدد"
               dir="ltr"
               autoComplete="new-password"
-              value={password}
-              onChange={(e) => setPassword(filterAsciiPassword(e.target.value).value)}
+              filter={filterAsciiPassword}
+              hint="رمز فقط با حروف انگلیسی و رقم"
+              error={resetForm.formState.errors.password?.message}
             />
             <PasswordStrength value={password} />
           </div>
 
-          <FormField
+          <RestrictedField
+            control={resetForm.control}
+            name="confirmPassword"
             label="تکرار رمز عبور"
             icon={Lock}
             type="password"
             placeholder="تکرار رمز تازه"
             dir="ltr"
             autoComplete="new-password"
-            value={confirm}
-            onChange={(e) => setConfirm(filterAsciiPassword(e.target.value).value)}
+            filter={filterAsciiPassword}
+            hint="رمز فقط با حروف انگلیسی و رقم"
+            error={resetForm.formState.errors.confirmPassword?.message}
           />
-
-          {error && (
-            <p className="text-[12.5px]" style={{ color: 'var(--color-danger)' }}>
-              {error}
-            </p>
-          )}
 
           <button
             type="submit"
-            disabled={busy || password.length < 8 || !confirm}
+            disabled={busy}
             className="mt-1 flex items-center justify-center gap-2 rounded-xl py-3.5 text-sm font-bold text-white transition-transform hover:scale-[1.02] disabled:opacity-60 disabled:hover:scale-100"
             style={{ backgroundColor: 'var(--color-brand-500)' }}
           >

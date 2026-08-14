@@ -1,14 +1,13 @@
-import { useState } from 'react'
+import { Controller, useForm, useWatch } from 'react-hook-form'
+import { zodResolver } from '@hookform/resolvers/zod'
 import { Copy, Loader2, Upload } from 'lucide-react'
 import { TextField } from '@/shared/ui/Field'
 import { JalaliDatePicker } from '@/shared/ui/JalaliDatePicker'
 import { api, ApiError } from '@/shared/lib/api'
 import { alertError, toastSuccess } from '@/shared/lib/alert'
 import { formatMoney } from '@/shared/lib/format'
+import { MAX_RECEIPT_MB, receiptSchema, type ReceiptFormValues } from './schemas/receiptSchema'
 import type { BankInfo, SubscriptionPlanOption } from './types'
-
-const MAX_SIZE_MB = 4
-const ACCEPTED = ['image/jpeg', 'image/png', 'application/pdf']
 
 /**
  * خرید اشتراک با واریز و آپلود رسید.
@@ -26,67 +25,69 @@ export function ReceiptUploadForm({
   bank: BankInfo
   onDone: () => void
 }) {
-  const [planValue, setPlanValue] = useState(plans[0]?.value ?? 'pro')
-  const [paidOn, setPaidOn] = useState('')
-  const [note, setNote] = useState('')
-  const [file, setFile] = useState<File | null>(null)
-  const [fileError, setFileError] = useState<string | null>(null)
-  const [submitting, setSubmitting] = useState(false)
+  /*
+   * ⚠️ شش `useState` جای خود را به یک فرمِ RHF داد (R40).
+   *
+   * نکته‌ی مهم‌تر از یکسان‌سازی: قاعده‌های اعتبارسنجی حالا در
+   * `receiptSchema` هستند و بدونِ رندرکردنِ فرم قابلِ آزمون‌اند. ترتیبشان
+   * هم دیگر تصادفی نیست — پیش از این «فایل انتخاب نشده» **بعد از** «نوعِ
+   * فایل نامعتبر» بررسی می‌شد.
+   */
+  const {
+    control,
+    handleSubmit,
+    setValue,
+    setError,
+    formState: { errors, isSubmitting },
+  } = useForm<ReceiptFormValues>({
+    resolver: zodResolver(receiptSchema),
+    defaultValues: {
+      plan: plans[0]?.value ?? 'pro',
+      paidOn: '',
+      note: '',
+      receipt: undefined as unknown as File,
+    },
+  })
 
+  /*
+   * ⚠️ `useWatch` و نه `watch()`.
+   *
+   * `watch()` بیرون از مدلِ رندرِ React اشتراک می‌گیرد و کامپایلرِ React
+   * نمی‌تواند کامپوننت را بهینه کند — لینتر همان‌جا
+   * `react-hooks/incompatible-library` می‌دهد. `useWatch` همان کار را با
+   * اشتراکِ درست انجام می‌دهد.
+   */
+  const planValue = useWatch({ control, name: 'plan' })
+  const file = useWatch({ control, name: 'receipt' })
   const plan = plans.find((p) => p.value === planValue)
 
-  function pickFile(selected: File | null) {
-    setFileError(null)
-
-    if (!selected) {
-      setFile(null)
-      return
-    }
-
-    // بررسی سمت کلاینت فقط برای بازخورد سریع است؛ سرور دوباره خودش
-    // نوع و حجم را بررسی می‌کند.
-    if (!ACCEPTED.includes(selected.type)) {
-      setFileError('فقط تصویر (JPG/PNG) یا فایل PDF پذیرفته می‌شود.')
-      setFile(null)
-      return
-    }
-    if (selected.size > MAX_SIZE_MB * 1024 * 1024) {
-      setFileError(`حجم فایل نباید از ${MAX_SIZE_MB} مگابایت بیشتر باشد.`)
-      setFile(null)
-      return
-    }
-
-    setFile(selected)
-  }
-
-  async function submit(event: React.FormEvent) {
-    event.preventDefault()
-
-    if (!file) {
-      setFileError('تصویر یا فایل رسید را انتخاب کنید.')
-      return
-    }
-
-    setSubmitting(true)
+  async function submit(values: ReceiptFormValues) {
     try {
       const form = new FormData()
-      form.append('plan', planValue)
-      if (paidOn) form.append('paid_on', paidOn)
-      if (note) form.append('note', note)
-      form.append('receipt', file)
+      form.append('plan', values.plan)
+      if (values.paidOn) form.append('paid_on', values.paidOn)
+      if (values.note) form.append('note', values.note)
+      form.append('receipt', values.receipt)
 
       await api('/subscription/receipt', { method: 'POST', body: form })
 
       toastSuccess('رسید ثبت شد و در انتظار بررسی است.')
       onDone()
     } catch (error) {
-      // خطای فیلد فایل زیر همان فیلد بنشیند
-      if (error instanceof ApiError && error.fieldError('receipt')) {
-        setFileError(error.fieldError('receipt') ?? null)
+      /*
+       * خطای فیلدِ سرور زیر همان فیلد می‌نشیند.
+       *
+       * ⚠️ سرور همه‌ی این قاعده‌ها را **دوباره** می‌سنجد؛ اسکیما جایگزینش
+       * نیست، فقط بازخوردِ فوری می‌دهد پیش از آنکه کاربر چهار مگابایت
+       * آپلود کند و بعد رد شود.
+       */
+      if (error instanceof ApiError) {
+        const fieldError = error.fieldError('receipt')
+
+        if (fieldError) setError('receipt', { message: fieldError })
       }
+
       alertError(error, 'ثبت رسید ممکن نشد.')
-    } finally {
-      setSubmitting(false)
     }
   }
 
@@ -98,7 +99,7 @@ export function ReceiptUploadForm({
   }
 
   return (
-    <form onSubmit={submit} className="flex flex-col gap-4">
+    <form onSubmit={handleSubmit(submit)} className="flex flex-col gap-4" noValidate>
       {/* اطلاعات حساب مقصد */}
       <div
         className="rounded-2xl border p-4"
@@ -146,7 +147,7 @@ export function ReceiptUploadForm({
             <button
               key={option.value}
               type="button"
-              onClick={() => setPlanValue(option.value)}
+              onClick={() => setValue('plan', option.value, { shouldValidate: true })}
               className="rounded-xl border px-3.5 py-3 text-right transition-all duration-200"
               style={{
                 borderColor:
@@ -174,13 +175,31 @@ export function ReceiptUploadForm({
         </div>
       </div>
 
-      <JalaliDatePicker label="تاریخ واریز" value={paidOn} onChange={setPaidOn} maxToday />
+      <Controller
+        control={control}
+        name="paidOn"
+        render={({ field }) => (
+          <JalaliDatePicker
+            label="تاریخ واریز"
+            value={field.value}
+            onChange={field.onChange}
+            maxToday
+          />
+        )}
+      />
 
-      <TextField
-        label="توضیح (اختیاری)"
-        value={note}
-        onChange={(event) => setNote(event.target.value)}
-        placeholder="مثلاً شماره پیگیری تراکنش"
+      <Controller
+        control={control}
+        name="note"
+        render={({ field }) => (
+          <TextField
+            label="توضیح (اختیاری)"
+            value={field.value}
+            onChange={field.onChange}
+            error={errors.note?.message}
+            placeholder="مثلاً شماره پیگیری تراکنش"
+          />
+        )}
       />
 
       {/*
@@ -194,34 +213,41 @@ export function ReceiptUploadForm({
 
         <label
           className="flex cursor-pointer items-center gap-2.5 rounded-xl border border-dashed px-4 py-4 transition-colors hover:bg-(--surface-sunken)"
-          style={{ borderColor: fileError ? 'var(--color-danger)' : 'var(--border-default)' }}
+          style={{ borderColor: errors.receipt ? 'var(--color-danger)' : 'var(--border-default)' }}
         >
           <Upload size={17} style={{ color: 'var(--color-brand-500)' }} />
           <span className="text-[12.5px]" style={{ color: 'var(--text-secondary)' }}>
-            {file ? file.name : 'انتخاب فایل — JPG، PNG یا PDF تا ۴ مگابایت'}
+            {file ? file.name : `انتخاب فایل — JPG، PNG یا PDF تا ${MAX_RECEIPT_MB} مگابایت`}
           </span>
-          <input
-            type="file"
-            accept=".jpg,.jpeg,.png,.pdf"
-            className="hidden"
-            onChange={(event) => pickFile(event.target.files?.[0] ?? null)}
+          <Controller
+            control={control}
+            name="receipt"
+            render={({ field }) => (
+              <input
+                type="file"
+                accept=".jpg,.jpeg,.png,.pdf"
+                className="hidden"
+                onChange={(event) => field.onChange(event.target.files?.[0])}
+              />
+            )}
           />
         </label>
 
-        {fileError && (
-          <p className="text-xs" style={{ color: 'var(--color-danger)' }}>
-            {fileError}
+        {errors.receipt && (
+          // `role="alert"` تا صفحه‌خوان همان لحظه بخواند (قاعده‌ی R37)
+          <p role="alert" className="text-xs" style={{ color: 'var(--color-danger)' }}>
+            {errors.receipt.message}
           </p>
         )}
       </div>
 
       <button
         type="submit"
-        disabled={submitting}
+        disabled={isSubmitting}
         className="flex items-center justify-center gap-2 rounded-xl py-3 text-[13px] font-bold text-white disabled:opacity-60"
         style={{ backgroundColor: 'var(--color-brand-500)' }}
       >
-        {submitting ? <Loader2 size={16} className="animate-spin" /> : <Upload size={16} />}
+        {isSubmitting ? <Loader2 size={16} className="animate-spin" /> : <Upload size={16} />}
         ثبت رسید و درخواست فعال‌سازی
       </button>
 

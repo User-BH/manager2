@@ -61,6 +61,7 @@ export function ComplexesPage() {
   /** مجتمعی که در حال تعلیق‌کردنش هستیم؛ مودالِ دلیل روی آن باز می‌شود. */
   const [suspending, setSuspending] = useState<ComplexRow | null>(null)
   const [reason, setReason] = useState('')
+  const [reasonError, setReasonError] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
   const { refresh } = useAuth()
 
@@ -92,6 +93,23 @@ export function ComplexesPage() {
   async function suspend() {
     if (!suspending) return
 
+    /*
+     * ⚠️ قاعده اینجا بررسی می‌شود، نه با خاموش‌کردنِ دکمه (R40).
+     *
+     * پیش از این `disabled={reason.trim().length < 5}` بود: ادمین دلیل را
+     * کوتاه می‌نوشت، دکمه خاکستری می‌ماند، و **هیچ پیامی** نمی‌دید — چون
+     * پیام فقط پس از ارسال می‌آید و ارسالی در کار نبود. صفحه‌خوان هم فقط
+     * «دکمه، غیرفعال» می‌گفت.
+     */
+    if (reason.trim().length < 5) {
+      setReasonError(
+        'دلیل تعلیق را دست‌کم با ۵ نویسه بنویسید؛ همین متن به اعضای مجتمع نشان داده می‌شود.',
+      )
+
+      return
+    }
+
+    setReasonError(null)
     setBusy(true)
 
     try {
@@ -389,22 +407,38 @@ export function ComplexesPage() {
 
           <textarea
             value={reason}
-            onChange={(event) => setReason(event.target.value)}
+            onChange={(event) => {
+              setReason(event.target.value)
+              setReasonError(null)
+            }}
+            aria-invalid={reasonError ? true : undefined}
+            aria-describedby={reasonError ? 'suspend-reason-error' : undefined}
             rows={3}
             maxLength={255}
             placeholder="مثلاً: عدم تمدید اشتراک از مهر ۱۴۰۵"
             className="resize-none rounded-xl border px-3 py-2 text-[13px] outline-none"
             style={{
               backgroundColor: 'var(--surface-sunken)',
-              borderColor: 'var(--border-subtle)',
+              borderColor: reasonError ? 'var(--color-danger)' : 'var(--border-subtle)',
               color: 'var(--text-primary)',
             }}
           />
 
+          {reasonError && (
+            <p
+              id="suspend-reason-error"
+              role="alert"
+              className="text-xs"
+              style={{ color: 'var(--color-danger)' }}
+            >
+              {reasonError}
+            </p>
+          )}
+
           <button
             type="button"
             onClick={() => void suspend()}
-            disabled={reason.trim().length < 5 || busy}
+            disabled={busy}
             className="rounded-xl py-2.5 text-[13px] font-bold text-white disabled:opacity-50"
             style={{ backgroundColor: 'var(--color-danger)' }}
           >
