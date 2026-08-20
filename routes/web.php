@@ -3,6 +3,7 @@
 use App\Http\Controllers\AdvertisementImageController;
 use App\Http\Controllers\DownloadController;
 use App\Http\Controllers\GatewayController;
+use App\Http\Controllers\HealthController;
 use App\Http\Controllers\SeoController;
 use App\Http\Controllers\SubscriptionCheckoutController;
 use Illuminate\Foundation\Http\Middleware\PreventRequestForgery;
@@ -138,6 +139,19 @@ Route::match(['get', 'post'], 'subscription/callback/{subscription}', [Subscript
     ->middleware('throttle:gateway-callback')
     ->name('subscription.callback')
     ->withoutMiddleware([PreventRequestForgery::class]);
+
+/*
+| بررسیِ سلامت (R43).
+|
+| ⚠️ باید **پیش از** روتِ فراگیرِ پایین بیاید، وگرنه `/up` هم به همان
+| `view('spa')` می‌رسد و همیشه ۲۰۰ می‌گیرد — یعنی دقیقاً همان دروغی که این
+| مرحله برای رفعش بود.
+|
+| بدونِ احراز هویت است چون متعادل‌کننده‌ی بار و اسکریپتِ استقرار باید بتوانند
+| بزنندش؛ به همین دلیل پاسخِ پیش‌فرضش هم فقط یک کلمه است و جزئیات پشتِ
+| هدرِ `X-Health-Secret` می‌ماند.
+*/
+Route::get('/up', HealthController::class)->name('health');
 
 /*
 | catch-all: داشبوردِ SPA.

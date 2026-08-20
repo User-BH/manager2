@@ -52,6 +52,24 @@ return [
 
     'channels' => [
 
+        /*
+        | کانالِ هشدار (R43).
+        |
+        | ⚠️ جدا از `laravel.log` است و این تفکیک عمدی است: هشدارِ سلامت باید
+        | قابلِ خواندن بماند، نه اینکه لای هزاران خطِ debugِ یک روزِ شلوغ گم
+        | شود. یک فایلِ جدا یعنی `tail -f storage/logs/alerts.log` همه‌ی
+        | چیزی است که در لحظه‌ی بحران لازم داری.
+        |
+        | چرخشش هم مثلِ بقیه است تا خودش تبدیل به فایلِ بی‌مرزِ بعدی نشود.
+        */
+        'alerts' => [
+            'driver' => 'daily',
+            'path' => storage_path('logs/alerts.log'),
+            'level' => 'warning',
+            'days' => (int) env('LOG_ALERT_DAYS', 60),
+            'replace_placeholders' => true,
+        ],
+
         'stack' => [
             'driver' => 'stack',
             'channels' => explode(',', (string) env('LOG_STACK', 'single')),
