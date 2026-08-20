@@ -4,8 +4,8 @@ namespace App\Console\Commands;
 
 use App\Models\Payment;
 use App\Models\Subscription;
+use App\Support\PrivateFiles;
 use Illuminate\Console\Command;
-use Illuminate\Support\Facades\Storage;
 
 /**
  * پاک‌کردن فایل‌های رسیدِ یتیم.
@@ -28,7 +28,7 @@ class PruneReceipts extends Command
 
     public function handle(): int
     {
-        $disk = Storage::disk('local');
+        $disk = PrivateFiles::disk();
         $dryRun = (bool) $this->option('dry-run');
 
         // مسیرهای زنده را یک‌بار می‌خوانیم تا برای هر فایل کوئری نزنیم

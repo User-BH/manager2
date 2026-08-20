@@ -4,9 +4,9 @@ namespace App\Services\Backup;
 
 use App\Models\Backup;
 use App\Models\Complex;
+use App\Support\PrivateFiles;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
-use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 
 /**
@@ -59,13 +59,13 @@ class BackupBuilder
          * پیامک را به‌صورتِ متنِ ساده در خود دارد؛ یعنی یک فایلِ بکاپ که از
          * سرور بیرون برود، عملاً کلِ سامانه است.
          */
-        Storage::disk('local')->put($path, BackupCipher::seal($snapshot));
+        PrivateFiles::disk()->put($path, BackupCipher::seal($snapshot));
 
         $backup->update([
             'status' => 'completed',
-            'disk' => 'local',
+            'disk' => PrivateFiles::name(),
             'path' => $path,
-            'size' => Storage::disk('local')->size($path),
+            'size' => PrivateFiles::disk()->size($path),
         ]);
 
         return $backup->refresh();

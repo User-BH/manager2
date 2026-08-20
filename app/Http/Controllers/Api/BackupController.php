@@ -7,9 +7,9 @@ use App\Http\Resources\BackupResource;
 use App\Jobs\BuildBackupJob;
 use App\Models\Backup;
 use App\Support\Audit;
+use App\Support\PrivateFiles;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Storage;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 /**
@@ -45,7 +45,7 @@ class BackupController extends Controller
             'complex_id' => $complex->id,
             'type' => 'complex',
             'status' => 'pending',
-            'disk' => 'local',
+            'disk' => PrivateFiles::name(),
             'note' => 'بکاپ دستی مجتمع',
             'created_by' => Auth::id(),
         ]);
@@ -65,9 +65,9 @@ class BackupController extends Controller
     {
         // بکاپ یک مجتمع نباید از مجتمع دیگری قابل دانلود باشد.
         $this->authorize('download', $backup);
-        abort_if(! $backup->path || ! Storage::disk('local')->exists($backup->path), 404);
+        abort_if(! $backup->path || ! PrivateFiles::disk()->exists($backup->path), 404);
 
-        return Storage::disk('local')->download($backup->path);
+        return PrivateFiles::disk()->download($backup->path);
     }
 
     /**

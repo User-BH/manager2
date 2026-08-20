@@ -9,10 +9,10 @@ use App\Http\Requests\RejectPaymentRequest;
 use App\Http\Resources\PaymentResource;
 use App\Models\Payment;
 use App\Services\Payment\PaymentService;
+use App\Support\PrivateFiles;
 use App\Support\Uploads;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Storage;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class PaymentReviewController extends Controller
@@ -48,7 +48,7 @@ class PaymentReviewController extends Controller
         $this->authorize('viewReceipt', $payment);
 
         abort_if(
-            ! $payment->receipt_path || ! Storage::disk('local')->exists($payment->receipt_path),
+            ! $payment->receipt_path || ! PrivateFiles::disk()->exists($payment->receipt_path),
             404,
         );
 

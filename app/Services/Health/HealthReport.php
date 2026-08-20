@@ -3,9 +3,9 @@
 namespace App\Services\Health;
 
 use App\Support\EnvironmentGuard;
+use App\Support\PrivateFiles;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Throwable;
 
@@ -143,6 +143,11 @@ class HealthReport
     /**
      * دیسکِ فایل‌های کاربر: رسیدها، پیوست‌ها و بکاپ‌ها.
      *
+     * ⚠️ عمداً `PrivateFiles::disk()` است و نه دیسکِ محلی (R45). اگر
+     * ذخیره‌ساز اشتراکی باشد و اینجا دیسکِ محلی سنجیده شود، سنجه
+     * «سالم» می‌گوید در حالی که آپلودِ کاربر شکست می‌خورد — یعنی بررسیِ
+     * سلامت دقیقاً درباره‌ی چیزی حرف می‌زند که خراب نیست.
+     *
      * نانوشتنی‌بودنش یعنی ساکن نمی‌تواند رسیدِ پرداخت را بفرستد و بکاپ هم
      * ساخته نمی‌شود — هر دو چیزهایی که دیرتر و بدتر فهمیده می‌شوند.
      *
@@ -151,7 +156,7 @@ class HealthReport
     private function storage(): array
     {
         return $this->timed(function (): array {
-            $disk = Storage::disk('local');
+            $disk = PrivateFiles::disk();
             $path = 'health/probe-'.Str::random(8).'.txt';
 
             $disk->put($path, 'ok');

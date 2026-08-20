@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Advertisement;
+use App\Support\PrivateFiles;
 use App\Support\Uploads;
 use Illuminate\Support\Facades\Storage;
 use Symfony\Component\HttpFoundation\StreamedResponse;
@@ -22,7 +23,7 @@ class AdvertisementImageController extends Controller
     {
         abort_if(
             ! $advertisement->image_path
-                || ! Storage::disk('local')->exists($advertisement->image_path),
+                || ! PrivateFiles::disk()->exists($advertisement->image_path),
             404,
         );
 

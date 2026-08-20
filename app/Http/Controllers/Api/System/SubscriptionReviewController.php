@@ -8,10 +8,10 @@ use App\Http\Requests\RejectSubscriptionRequest;
 use App\Http\Resources\SubscriptionReviewResource;
 use App\Models\Subscription;
 use App\Support\Audit;
+use App\Support\PrivateFiles;
 use App\Support\Uploads;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
@@ -56,7 +56,7 @@ class SubscriptionReviewController extends Controller
     {
         abort_if(
             ! $subscription->receipt_path
-                || ! Storage::disk('local')->exists($subscription->receipt_path),
+                || ! PrivateFiles::disk()->exists($subscription->receipt_path),
             404,
         );
 

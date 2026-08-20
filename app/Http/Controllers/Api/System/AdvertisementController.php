@@ -6,9 +6,9 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreAdvertisementRequest;
 use App\Http\Resources\AdvertisementResource;
 use App\Models\Advertisement;
+use App\Support\PrivateFiles;
 use App\Support\Uploads;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Support\Facades\Storage;
 
 /**
  * مدیریت بنرهای تبلیغاتی صفحه‌ی فرود (ویژه‌ی ادمین کل).
@@ -67,7 +67,7 @@ class AdvertisementController extends Controller
             });
 
             if ($previous) {
-                Storage::disk('local')->delete($previous);
+                PrivateFiles::disk()->delete($previous);
             }
         } else {
             $advertisement->fill($data)->save();

@@ -5,7 +5,7 @@ namespace App\Jobs;
 use App\Models\Bill;
 use App\Models\GeneratedDocument;
 use App\Support\Pdf;
-use Illuminate\Support\Facades\Storage;
+use App\Support\PrivateFiles;
 use Mpdf\Output\Destination;
 use Throwable;
 
@@ -63,12 +63,12 @@ class BuildBillsBundleJob extends BaseJob
 
         $path = 'documents/'.$document->complex_id.'/bills-'.$period.'-'.$document->id.'.pdf';
 
-        Storage::disk('local')->put($path, $pdf->Output('', Destination::STRING_RETURN));
+        PrivateFiles::disk()->put($path, $pdf->Output('', Destination::STRING_RETURN));
 
         $document->update([
             'status' => GeneratedDocument::READY,
             'path' => $path,
-            'size_bytes' => Storage::disk('local')->size($path),
+            'size_bytes' => PrivateFiles::disk()->size($path),
         ]);
     }
 

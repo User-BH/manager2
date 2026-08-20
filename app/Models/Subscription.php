@@ -5,9 +5,9 @@ namespace App\Models;
 use App\Contracts\PlanCapabilities;
 use App\Enums\SubscriptionPlan;
 use App\Services\Payment\GatewayOrder;
+use App\Support\PrivateFiles;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Support\Facades\Storage;
 
 /**
  * یک خرید اشتراک. عمداً از BelongsToComplex استفاده نمی‌کند چون ادمین کل
@@ -111,7 +111,7 @@ class Subscription extends Model implements GatewayOrder
     {
         static::deleting(function (Subscription $subscription) {
             if ($subscription->receipt_path) {
-                Storage::disk('local')->delete($subscription->receipt_path);
+                PrivateFiles::disk()->delete($subscription->receipt_path);
             }
         });
     }

@@ -6,9 +6,9 @@ use App\Enums\PaymentMethod;
 use App\Enums\PaymentStatus;
 use App\Models\Concerns\BelongsToComplex;
 use App\Services\Payment\GatewayOrder;
+use App\Support\PrivateFiles;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Support\Facades\Storage;
 
 /**
  * @property int $id
@@ -50,7 +50,7 @@ class Payment extends Model implements GatewayOrder
     {
         static::deleting(function (Payment $payment) {
             if ($payment->receipt_path) {
-                Storage::disk('local')->delete($payment->receipt_path);
+                PrivateFiles::disk()->delete($payment->receipt_path);
             }
         });
     }

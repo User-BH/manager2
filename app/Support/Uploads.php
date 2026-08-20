@@ -50,8 +50,10 @@ class Uploads
      * @param  Closure(string): T  $then  کاری که باید موفق شود تا فایل بماند
      * @return T
      */
-    public static function keepIf(UploadedFile $file, string $directory, Closure $then, string $disk = 'local'): mixed
+    public static function keepIf(UploadedFile $file, string $directory, Closure $then, ?string $disk = null): mixed
     {
+        $disk ??= PrivateFiles::name();
+
         $path = $file->store($directory, $disk);
 
         try {
@@ -98,10 +100,12 @@ class Uploads
      * همراه با `X-Content-Type-Options: nosniff` (R16) این یعنی فایلی که
      * کاربر آپلود کرده، هر چه باشد، در مرورگر به‌عنوان HTML اجرا نمی‌شود.
      */
-    public static function serve(string $path, array $headers = [], string $disk = 'local'): StreamedResponse
+    public static function serve(string $path, array $headers = [], ?string $disk = null): StreamedResponse
     {
         $extension = Str::lower(pathinfo($path, PATHINFO_EXTENSION));
         $contentType = self::SERVABLE[$extension] ?? 'application/octet-stream';
+
+        $disk ??= PrivateFiles::name();
 
         return Storage::disk($disk)->response($path, null, array_merge([
             'Content-Type' => $contentType,

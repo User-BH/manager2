@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Support\PrivateFiles;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Carbon;
@@ -36,7 +37,7 @@ class Advertisement extends Model
         // فایل آپلودشده نباید پس از حذف رکورد روی دیسک بماند
         static::deleting(function (self $ad) {
             if ($ad->image_path) {
-                Storage::disk('local')->delete($ad->image_path);
+                PrivateFiles::disk()->delete($ad->image_path);
             }
         });
     }

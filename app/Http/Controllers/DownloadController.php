@@ -14,9 +14,9 @@ use App\Services\Subscription\PlanGate;
 use App\Services\Units\TenureService;
 use App\Support\Jalali;
 use App\Support\Pdf;
+use App\Support\PrivateFiles;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Storage;
 use Maatwebsite\Excel\Facades\Excel;
 
 /**
@@ -163,7 +163,7 @@ class DownloadController extends Controller
         abort_unless($document->isReady(), 404);
 
         return $this->pdf(
-            Storage::disk('local')->get($document->path),
+            PrivateFiles::disk()->get($document->path),
             'bills-'.($document->params['period'] ?? 'bundle').'.pdf',
         );
     }

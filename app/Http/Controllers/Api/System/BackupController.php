@@ -10,11 +10,11 @@ use App\Models\AuditLog;
 use App\Models\Backup;
 use App\Models\User;
 use App\Services\Backup\BackupCipher;
+use App\Support\PrivateFiles;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
-use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
@@ -67,7 +67,7 @@ class BackupController extends Controller
             'complex_id' => null,
             'type' => 'full',
             'status' => 'pending',
-            'disk' => 'local',
+            'disk' => PrivateFiles::name(),
             'note' => 'بکاپ کامل سیستم',
             'created_by' => Auth::id(),
         ]);
@@ -99,15 +99,15 @@ class BackupController extends Controller
 
         // بکاپِ ایمنی هم مثل بقیه رمزگذاری می‌شود (R20) — همان داده‌ی حساس را
         // دارد و اینکه خودکار ساخته می‌شود دلیل نمی‌شود ساده بماند.
-        Storage::disk('local')->put($path, BackupCipher::seal($snapshot));
+        PrivateFiles::disk()->put($path, BackupCipher::seal($snapshot));
 
         return Backup::create([
             'complex_id' => null,
             'type' => 'full',
             'status' => 'completed',
-            'disk' => 'local',
+            'disk' => PrivateFiles::name(),
             'path' => $path,
-            'size' => Storage::disk('local')->size($path),
+            'size' => PrivateFiles::disk()->size($path),
             'note' => $note,
             'created_by' => Auth::id(),
         ]);
@@ -118,9 +118,9 @@ class BackupController extends Controller
         // این مسیر فقط بکاپ‌های سیستمی را می‌دهد؛ بکاپ مجتمع مسیر خودش را دارد
         // که مالکیت را بررسی می‌کند. یکی‌کردنشان دو سطح دسترسی را قاتی می‌کرد.
         abort_unless($backup->type === 'full', 404);
-        abort_if(! $backup->path || ! Storage::disk('local')->exists($backup->path), 404);
+        abort_if(! $backup->path || ! PrivateFiles::disk()->exists($backup->path), 404);
 
-        return Storage::disk('local')->download($backup->path);
+        return PrivateFiles::disk()->download($backup->path);
     }
 
     /**

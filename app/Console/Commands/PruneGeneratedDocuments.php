@@ -3,8 +3,8 @@
 namespace App\Console\Commands;
 
 use App\Models\GeneratedDocument;
+use App\Support\PrivateFiles;
 use Illuminate\Console\Command;
-use Illuminate\Support\Facades\Storage;
 
 /**
  * پاک‌کردنِ سندهای تولیدشده‌ی قدیمی (R28).
@@ -38,8 +38,8 @@ class PruneGeneratedDocuments extends Command
 
         foreach ($documents as $document) {
             // فایل ممکن است پیش‌تر دستی پاک شده باشد؛ نبودنش خطا نیست
-            if ($document->path && Storage::disk('local')->exists($document->path)) {
-                Storage::disk('local')->delete($document->path);
+            if ($document->path && PrivateFiles::disk()->exists($document->path)) {
+                PrivateFiles::disk()->delete($document->path);
                 $files++;
             }
 

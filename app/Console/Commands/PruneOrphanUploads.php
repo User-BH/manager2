@@ -5,8 +5,8 @@ namespace App\Console\Commands;
 use App\Models\Advertisement;
 use App\Models\Payment;
 use App\Models\Subscription;
+use App\Support\PrivateFiles;
 use Illuminate\Console\Command;
-use Illuminate\Support\Facades\Storage;
 
 /**
  * پاک‌کردنِ فایل‌هایی که هیچ ردیفی در دیتابیس به آن‌ها اشاره نمی‌کند (R19).
@@ -28,7 +28,7 @@ class PruneOrphanUploads extends Command
 
     public function handle(): int
     {
-        $disk = Storage::disk('local');
+        $disk = PrivateFiles::disk();
 
         /*
          * مسیرهایی که دیتابیس می‌شناسد. `withoutGlobalScopes` لازم است وگرنه

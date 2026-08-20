@@ -4,6 +4,7 @@ namespace App\Console\Commands;
 
 use App\Jobs\BuildBackupJob;
 use App\Models\Backup;
+use App\Support\PrivateFiles;
 use Illuminate\Console\Command;
 
 /**
@@ -37,7 +38,7 @@ class RunScheduledBackup extends Command
             'complex_id' => null,
             'type' => 'full',
             'status' => 'pending',
-            'disk' => 'local',
+            'disk' => PrivateFiles::name(),
             'note' => $this->option('note') ?: 'بکاپ خودکار روزانه',
             // ⚠️ عمداً خالی: هیچ کاربری این را نساخته و نسبت‌دادنش به
             // سوپرادمین یعنی در سیاهه‌ی ممیزی کاری به نامِ کسی بخورد که
