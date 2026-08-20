@@ -75,8 +75,8 @@ resources/
 | `context/*Context.tsx`                                       | `shared/stores/*Store.ts`                                      |
 | `data/images.ts`                                             | `shared/constants/images.ts`                                   |
 | `data/landingContent.ts`                                     | `features/landing/content/landingContent.ts`                   |
-| `entries/`                                                   | `app/entries/`                                                 |
-| `main.tsx`                                                   | `app/main.tsx`                                                 |
+| `entries/`                                                   | `resources/js/app/entries/`                                    |
+| `main.tsx`                                                   | `resources/js/app/main.tsx`                                    |
 | `App.tsx`                                                    | **حذف شد** (فقط `<AppRouter/>` را برمی‌گرداند — لایه‌ی بی‌اثر) |
 | `pages/auth`                                                 | `features/auth`                                                |
 | `pages/home` \| `demo` \| `support`                          | `features/landing/{home,demo,support}`                         |
@@ -103,10 +103,10 @@ resources/
 ## تست‌ها (پس از R3)
 
 ```bash
-npm test              # ۵۴ تست Vitest (واحد + کامپوننت + یکپارچگی)
+npm test              # Vitest (واحد + کامپوننت + یکپارچگی)
 npm run test:watch    # حالت تماشا
 npm run test:coverage # گزارش پوشش
-npm run test:e2e      # ۱۱ تست Playwright روی سرور واقعی
+npm run test:e2e      # Playwright روی سرور واقعی
 npm run check         # format + typecheck + lint + test
 ```
 
@@ -195,7 +195,7 @@ tests/js/helpers/renderWithQuery.tsx
 
 - **`refetchOnWindowFocus: false`** + `staleTime: 30s`. مدیرِ ساختمان چند تب باز
   دارد؛ پیش‌فرضِ روشن یعنی رگبارِ درخواست با هر بار برگشتن به تب.
-- **`QueryClientProvider` فقط در `app/main.tsx`.** راستی‌آزمایی شد: کدِ TanStack
+- **`QueryClientProvider` فقط در `resources/js/app/main.tsx`.** راستی‌آزمایی شد: کدِ TanStack
   فقط در چانکِ `main-*.js` است و در `home/demo/support/auth` نیست.
 - **هوکِ ما `useAction` نام گرفت** (پیش‌تر `useMutation`) چون `useMutation` نامِ
   هوکِ خودِ TanStack است و دو چیزِ متفاوت با یک نام برای تازه‌واردها تله است.
@@ -227,10 +227,10 @@ shared/ui/PageState.tsx       ErrorState / EmptyState / InlineSpinner
 
 ### جای دیوارهای آتش (چرا دو تا)
 
-| جا                                | نقش                                                   |
-| --------------------------------- | ----------------------------------------------------- |
-| `app/main.tsx` (ریشه)             | تورِ آخر؛ اگر حتی پوسته بالا نیامد، صفحه‌ی سفید ندهیم |
-| `DashboardLayout` (دورِ `Outlet`) | کرشِ یک صفحه، سایدبار و هدر را نکشد                   |
+| جا                                 | نقش                                                   |
+| ---------------------------------- | ----------------------------------------------------- |
+| `resources/js/app/main.tsx` (ریشه) | تورِ آخر؛ اگر حتی پوسته بالا نیامد، صفحه‌ی سفید ندهیم |
+| `DashboardLayout` (دورِ `Outlet`)  | کرشِ یک صفحه، سایدبار و هدر را نکشد                   |
 
 **`resetKey={pathname}` اجباری است، نه تزئینی.** بدونش boundary در حالتِ خطا
 گیر می‌کند و کاربر هر صفحه‌ای برود همان خطا را می‌بیند. در مرورگرِ واقعی آزموده
