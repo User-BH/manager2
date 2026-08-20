@@ -13,6 +13,7 @@ use App\Models\Income;
 use App\Models\Plan;
 use App\Models\Unit;
 use App\Observers\AuditObserver;
+use App\Support\EnvironmentGuard;
 use App\Support\Jalali;
 use App\Support\Phone;
 use App\Support\TenantContext;
@@ -35,6 +36,17 @@ class AppServiceProvider extends ServiceProvider
 
     public function boot(): void
     {
+        /*
+         * ⚠️ اولین کارِ بوت، و عمداً.
+         *
+         * اندازه‌گیری شد که با `APP_ENV=production` و `APP_DEBUG=true` یک
+         * استثنای مهارنشده پاسخی ۱٫۴ مگابایتی می‌دهد که **مقدارِ واقعیِ
+         * متغیرهای محیطی** (رمزِ دیتابیس، APP_KEY، کلیدِ درگاه) در آن است.
+         * هر چیزی که پس از این خط اجرا شود می‌تواند استثنا بدهد، پس محافظ
+         * باید پیش از همه‌ی آن‌ها بنشیند.
+         */
+        (new EnvironmentGuard)->enforce();
+
         Paginator::useTailwind();
         Date::macro('jalali', fn () => Jalali::date($this));
 

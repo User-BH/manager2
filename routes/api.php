@@ -10,6 +10,7 @@ use App\Http\Controllers\Api\ClientErrorController;
 use App\Http\Controllers\Api\DashboardController;
 use App\Http\Controllers\Api\DiscountController;
 use App\Http\Controllers\Api\DocumentController;
+use App\Http\Controllers\Api\FeatureFlagController;
 use App\Http\Controllers\Api\FinanceController;
 use App\Http\Controllers\Api\GoodPayerController;
 use App\Http\Controllers\Api\InvitationController;
@@ -77,10 +78,15 @@ Route::post('password/forgot/verify', [AuthController::class, 'forgotVerify'])
 Route::post('password/reset', [AuthController::class, 'resetPassword'])
     ->middleware('throttle:otp-verify')->name('password.reset');
 
+/*
+| ⚠️ پرچمِ `public_registration` سمتِ سرور اعمال می‌شود، نه فقط با پنهان‌کردنِ
+| دکمه. تبِ بازِ کاربر، اسکریپت، و نسخه‌ی کش‌شده‌ی فرانت هر سه بدونِ دیدنِ
+| دکمه به همین مسیر می‌رسند.
+*/
 Route::post('register', [AuthController::class, 'register'])
-    ->middleware('throttle:register')->name('register');
+    ->middleware(['throttle:register', 'feature:public_registration'])->name('register');
 Route::post('register/verify', [AuthController::class, 'registerVerify'])
-    ->middleware('throttle:otp-verify')->name('register.verify');
+    ->middleware(['throttle:otp-verify', 'feature:public_registration'])->name('register.verify');
 
 // وضعیت کاربر برای مهمان هم قابل فراخوانی است و null برمی‌گرداند؛ کلاینت
 // هنگام بالا آمدن یک‌بار صدایش می‌زند تا بفهمد نشست فعالی هست یا نه.
@@ -104,6 +110,18 @@ Route::post('client-errors', [ClientErrorController::class, 'store'])
 Route::post('web-vitals', [WebVitalsController::class, 'store'])
     ->middleware('throttle:web-vitals')->name('web-vitals.store');
 
+/*
+| پرچم‌های قابلیت (R44).
+|
+| ⚠️ عمومی است و عمداً. صفحه‌ی ثبت‌نام و صفحه‌ی فرود پیش از ورودِ کاربر رندر
+| می‌شوند و باید بدانند `public_registration` روشن است یا نه. اگر پشتِ
+| احراز هویت بود، دقیقاً همان صفحه‌هایی که به پرچم نیاز دارند نمی‌توانستند
+| بخوانندش.
+|
+| فقط `{کلید: بولین}` برمی‌گردد؛ شرحِ داخلی در مسیرِ سوپرادمین است.
+*/
+Route::get('features', [FeatureFlagController::class, 'index'])->name('features.index');
+
 // بنرهای صفحه‌ی فرود؛ عمومی است چون صفحه پیش از ورود کاربر دیده می‌شود.
 Route::get('ads', [AdvertisementController::class, 'index'])->name('ads.index');
 
@@ -116,7 +134,7 @@ Route::get('site-settings', [SiteContentController::class, 'footer'])->name('sit
 */
 Route::get('support/starters', [SupportChatController::class, 'starters'])->name('support.starters');
 Route::post('support/chat', [SupportChatController::class, 'reply'])
-    ->middleware('throttle:support-chat')->name('support.chat');
+    ->middleware(['throttle:support-chat', 'feature:support_bot'])->name('support.chat');
 
 // --- واردشده ---
 Route::middleware('auth')->group(function () {
@@ -125,8 +143,9 @@ Route::middleware('auth')->group(function () {
 
     // --- مشترک بین همه‌ی نقش‌ها ---
     Route::get('messenger', [MessengerController::class, 'index'])
-        ->middleware('throttle:messenger')->name('messenger.index');
-    Route::post('messenger', [MessengerController::class, 'store'])->name('messenger.store');
+        ->middleware(['throttle:messenger', 'feature:messenger'])->name('messenger.index');
+    Route::post('messenger', [MessengerController::class, 'store'])
+        ->middleware('feature:messenger')->name('messenger.store');
     Route::patch('messenger/{message}/toggle-hide', [MessengerController::class, 'toggleHide'])
         ->name('messenger.toggle-hide');
 
@@ -141,6 +160,7 @@ Route::middleware('auth')->group(function () {
     Route::post('messenger/read', [MessengerController::class, 'markRead'])
         ->name('messenger.read');
     Route::post('messenger/polls/{poll}/vote', [MessengerController::class, 'vote'])
+        ->middleware('feature:polls')
         ->name('messenger.poll.vote');
     Route::post('messenger/polls/{poll}/close', [MessengerController::class, 'closePoll'])
         ->name('messenger.poll.close');
@@ -434,5 +454,14 @@ Route::middleware('auth')->group(function () {
         // مخرب‌ترین عملیات سامانه؛ حتی برای ادمین کل هم سقف داشته باشد
         Route::post('backups/restore', [SystemBackupController::class, 'restore'])
             ->middleware('throttle:system-restore')->name('backups.restore');
+
+        /*
+         * ⚠️ تغییرِ پرچم فقط از این مسیر ممکن است و کلید باید در
+         * `config/features.php` تعریف شده باشد. بدونِ آن، یک غلطِ تایپی
+         * بی‌صدا در `settings` ذخیره می‌شد و کسی نمی‌فهمید چرا پرچم اثر
+         * ندارد.
+         */
+        Route::get('features', [FeatureFlagController::class, 'catalogue'])->name('features.index');
+        Route::put('features/{flag}', [FeatureFlagController::class, 'update'])->name('features.update');
     });
 });

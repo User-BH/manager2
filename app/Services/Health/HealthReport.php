@@ -2,6 +2,7 @@
 
 namespace App\Services\Health;
 
+use App\Support\EnvironmentGuard;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
@@ -71,6 +72,7 @@ class HealthReport
             'disk' => $this->disk(),
             'queue' => $this->queue(),
             'scheduler' => $this->scheduler(),
+            'config' => $this->configuration(),
         ];
 
         return [
@@ -247,6 +249,30 @@ class HealthReport
                 'detail' => 'آخرین اجرا '.$minutes.' دقیقه پیش',
                 'minutes_ago' => $minutes,
             ];
+        }, self::DEGRADED);
+    }
+
+    /**
+     * پیکربندیِ ناامن در محصول (R44).
+     *
+     * ⚠️ `EnvironmentGuard` در بوتِ هر درخواست `app.debug` را در محصول
+     * خاموش می‌کند، ولی خاموش‌کردنِ بی‌صدا یعنی اشتباه برای همیشه بماند.
+     * این سنجه همان تخلف را بیرون می‌آورد تا کسی ببیندش.
+     *
+     * `degraded` است نه `down`: سامانه با debugِ خاموش‌شده کاملاً سالم
+     * سرویس می‌دهد و ۵۰۳‌دادن یعنی یک اشتباهِ پیکربندی، سایتِ ساکنین را
+     * پایین بیاورد.
+     *
+     * @return array<string, mixed>
+     */
+    private function configuration(): array
+    {
+        return $this->timed(function (): array {
+            $violations = EnvironmentGuard::violations();
+
+            return $violations === []
+                ? ['status' => self::OK, 'detail' => 'سالم است']
+                : ['status' => self::DEGRADED, 'detail' => implode('؛ ', $violations)];
         }, self::DEGRADED);
     }
 

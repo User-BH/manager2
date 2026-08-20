@@ -181,12 +181,19 @@ jobs:
             --exclude='.git/' \
             ./ "${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:${{ secrets.DEPLOY_PATH }}/"
 
+      # ⚠️ `env:check` **پیش از** مهاجرت اجرا می‌شود و عمداً.
+      #
+      # اندازه‌گیری شد که با `APP_DEBUG=true` در محصول، یک استثنای
+      # مهارنشده مقدارِ واقعیِ رمزها را در پاسخ چاپ می‌کند. اگر پیکربندی
+      # ناامن باشد باید همین‌جا بایستیم — پیش از اینکه مهاجرت به
+      # دیتابیس دست بزند و بازگشت گران شود.
       - name: مهاجرت و کش
         run: |
           ssh -i ~/.ssh/id_deploy -p "${{ secrets.SSH_PORT || 22 }}" \
             "${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}" \
             "cd '${{ secrets.DEPLOY_PATH }}' && \
              php artisan down --render=errors::503 --retry=30 && \
+             php artisan env:check --env=production && \
              php artisan migrate --force --no-interaction && \
              php artisan config:cache && \
              php artisan route:cache && \
