@@ -12,6 +12,7 @@
 | ---------------------------------------------------------- | ------------------------------------------------------------------------------------ |
 | [docs/DEVELOPER_GUIDE.md](docs/DEVELOPER_GUIDE.md)         | **از اینجا شروع کنید.** راه‌اندازی، دستورهای روزمره، قراردادهای کد، افزودن یک قابلیت |
 | [docs/TECHNICAL_REPORT.md](docs/TECHNICAL_REPORT.md)       | **گزارش فنی نهایی** — چه چیزی سنجیده شده، با چه عددی، و چه چیزی سنجیده نشده          |
+| [docs/FINAL_REVIEW.md](docs/FINAL_REVIEW.md)               | **بازبینی نهایی ۹ نقشه** — یافته‌ها، رفع‌ها، و مواردی که آگاهانه تغییر نکردند        |
 | [docs/BACKEND_STRUCTURE.md](docs/BACKEND_STRUCTURE.md)     | لایه‌بندی بک‌اند، چندمستأجری، مدل‌ها و سرویس‌ها                                      |
 | [docs/FRONTEND_STRUCTURE.md](docs/FRONTEND_STRUCTURE.md)   | ساختار `resources/js`، مرزِ MPA/SPA، مدیریت حالت                                     |
 | [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md)                   | استقرار روی سرور                                                                     |

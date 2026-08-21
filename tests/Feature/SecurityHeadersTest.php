@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Support\Observability;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Schema;
 use Tests\TestCase;
 
@@ -111,6 +112,83 @@ class SecurityHeadersTest extends TestCase
          * که پاک‌کردنش سخت است.
          */
         $this->assertNull($this->get('/')->headers->get('Strict-Transport-Security'));
+    }
+
+    /**
+     * ⚠️ نسخه‌ی نرم‌افزار نباید در هدرها اعلام شود (R48).
+     *
+     * ─── چه چیزی در بازبینیِ نهایی دیده شد ──────────────────────────────────
+     * پاسخ‌ها روی سرورِ زنده `X-Powered-By: PHP/8.4.23` داشتند — یعنی
+     * **شماره‌ی دقیقِ نسخه** به هر بازدیدکننده‌ای اعلام می‌شد.
+     *
+     * این به‌تنهایی آسیب‌پذیری نیست، ولی کارِ مهاجم را از «امتحان‌کردنِ
+     * صدها اکسپلویت» به «جستجوی CVEهای همین نسخه» تقلیل می‌دهد. روزی که
+     * یک آسیب‌پذیریِ PHP منتشر شود، اسکنرهای خودکار دقیقاً همین هدر را
+     * می‌خوانند تا هدف‌های آماده را پیدا کنند.
+     *
+     * ⚠️ عمداً در کد پاک می‌شود و نه در `php.ini`: تنظیماتِ سرور طبقِ قیدِ
+     * پروژه دست‌نخورده می‌ماند، و این‌طور محافظت همراهِ خودِ کد روی هر
+     * سروری می‌رود.
+     */
+    public function test_the_response_does_not_announce_the_software_version(): void
+    {
+        /*
+         * ⚠️ هدر عمداً **اول گذاشته می‌شود** و بعد نبودنش سنجیده می‌شود.
+         *
+         * ─── چرا نسخه‌ی سرراست پوچ بود ──────────────────────────────────────
+         * اولین نسخه‌ی این تست فقط `$this->get('/')` می‌زد و نبودنِ
+         * `X-Powered-By` را ادعا می‌کرد. سبز بود — ولی خرابکاریِ عمدی
+         * («پاک‌کردن را بردار») از دستش در رفت.
+         *
+         * علتش این است که آن هدر را **خودِ SAPI روی HTTP واقعی** می‌گذارد،
+         * نه چرخه‌ی درخواستِ تست. یعنی در تست از اول وجود نداشت که
+         * پاک‌کردنش سنجیده شود؛ تست چیزی را ادعا می‌کرد که به‌هرحال درست
+         * بود.
+         *
+         * حالا خودِ منطقِ پاک‌کردن سنجیده می‌شود: مسیری که هدر را می‌گذارد،
+         * و ادعای اینکه میان‌افزار برش می‌دارد.
+         *
+         * ⚠️ مسیر زیرِ `api/` است تا در دامِ روتِ فراگیرِ SPA نیفتد — همان
+         * تله‌ای که در R44 تستِ پرچمِ قابلیت را بی‌اثر کرده بود.
+         */
+        /*
+         * ⚠️ و باید صریح در گروهِ `web` ثبت شود.
+         *
+         * مسیری که با `Route::get()` در تست ساخته می‌شود **هیچ گروهی
+         * ندارد**؛ اولین تلاشم بدونِ `middleware('web')` بود و هدر پاک
+         * نشد — نه چون کد خراب بود، بلکه چون میان‌افزار اصلاً اجرا نشد.
+         * `SecurityHeaders` در `bootstrap/app.php` روی همان گروه سوار است.
+         */
+        Route::middleware('web')->get('/api/probe-fingerprint', function () {
+            return response('ok')
+                ->header('X-Powered-By', 'PHP/8.4.23')
+                ->header('Server', 'nginx/1.24.0');
+        });
+
+        $headers = $this->get('/api/probe-fingerprint')->assertOk()->headers;
+
+        foreach (['X-Powered-By', 'Server'] as $fingerprint) {
+            $this->assertNull(
+                $headers->get($fingerprint),
+                "هدرِ «{$fingerprint}» پاک نمی‌شود و نسخه‌ی نرم‌افزار را لو می‌دهد.",
+            );
+        }
+    }
+
+    /**
+     * ⚠️ جداسازیِ زمینه‌ی مرورگر (R48).
+     *
+     * بدونِ `Cross-Origin-Opener-Policy`، صفحه‌ای که سایتِ ما را با
+     * `window.open` باز کند به `window.opener` دسترسی دارد و می‌تواند تبِ
+     * ما را به آدرسِ دلخواه ببرد — حمله‌ی «tabnabbing»: کاربر برمی‌گردد و
+     * صفحه‌ی ورودِ جعلی می‌بیند که از نظرِ او همان سامانه است.
+     */
+    public function test_the_browsing_context_is_isolated(): void
+    {
+        $this->assertSame(
+            'same-origin',
+            $this->get('/')->headers->get('Cross-Origin-Opener-Policy'),
+        );
     }
 
     /* ── کوکیِ نشست ─────────────────────────────────────────────────────── */
