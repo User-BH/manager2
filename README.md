@@ -20,6 +20,7 @@
 | [docs/SECURITY_AUDIT.md](docs/SECURITY_AUDIT.md)           | ممیزی امنیتی و یافته‌های باز                                                         |
 | [docs/AUDIT_REPORT.md](docs/AUDIT_REPORT.md)               | ممیزی فنیِ اولیه                                                                     |
 | [docs/WORK_PLAN.md](docs/WORK_PLAN.md)                     | نقشهٔ ۴۸ مرحله‌ای و شرحِ هر مرحله                                                    |
+| [docs/STAGE2_AUDIT_MAP.md](docs/STAGE2_AUDIT_MAP.md)       | **نقشهٔ ایرادات مرحلهٔ دوم** — هر ۳۲۵ بند با وضعیتِ اندازه‌گیری‌شده و مرحلهٔ متناظر  |
 | [docs/PROJECT_MEMORY.md](docs/PROJECT_MEMORY.md)           | درس‌های آموخته‌شده و دام‌های تکرارشونده                                              |
 | [docs/COMPLETED_WORK.md](docs/COMPLETED_WORK.md)           | کارهای انجام‌شده                                                                     |
 | [docs/REMAINING_WORK.md](docs/REMAINING_WORK.md)           | کارهای باقی‌مانده                                                                    |
