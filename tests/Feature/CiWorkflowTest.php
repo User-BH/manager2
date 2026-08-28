@@ -242,6 +242,66 @@ class CiWorkflowTest extends TestCase
      * اگر پشتِ لینت یا تست بود، یک خطای قالب‌بندی جلوی دیدنِ آسیب‌پذیری را
      * می‌گرفت.
      */
+    /**
+     * ⚠️ فایلِ مسیرها نباید به بیلدِ فرانت وابسته باشد.
+     *
+     * ─── این را CIِ واقعی پیدا کرد، نه حدس ──────────────────────────────
+     * در R42 نوشته شد که `ci.yml` هرگز روی GitHub اجرا نشده. اولین اجرای
+     * واقعی‌اش قرمز شد، در جایی که هیچ‌کدام از تست‌ها نگاه نمی‌کردند:
+     *
+     *     نصب وابستگی‌ها › composer install
+     *     > @php artisan package:discover --ansi
+     *     Illuminate\Foundation\ViteManifestNotFoundException
+     *     Vite manifest not found at: .../public/build/manifest.json
+     *     at routes/web.php:43
+     *
+     * ─── چرا این فقط مشکلِ CI نبود ───────────────────────────────────────
+     * فایلِ مسیرها هنگامِ **بوت** اجرا می‌شود، یعنی در هر دستورِ artisan —
+     * و `composer install` خودش `package:discover` را صدا می‌زند. پس روی
+     * هر سرورِ تازه ترتیب اجباراً این است:
+     *
+     *     composer install  →  npm ci  →  npm run build
+     *
+     * و اولین قدم می‌شکست، چون به خروجیِ قدمِ سوم نیاز داشت. یعنی نه
+     * `key:generate` اجرا می‌شد، نه `migrate`، نه `config:cache`. استقرارِ
+     * تازه **از پایه** ممکن نبود و هیچ تستی این را نمی‌دید، چون در محیطِ
+     * توسعه `public/build` همیشه از قبل وجود دارد.
+     *
+     * ─── چرا ساختاری و نه رفتاری ────────────────────────────────────────
+     * سنجشِ واقعی یعنی جابه‌جا کردنِ `public/build` وسطِ اجرای تست — که
+     * هم روی تست‌های موازی اثر می‌گذارد و هم اگر تست وسطش بشکند، پروژه را
+     * خراب رها می‌کند. خودِ ناوردایی ساختاری است: در فایلِ مسیرها نباید
+     * `Vite::` باشد.
+     */
+    public function test_no_route_file_needs_the_frontend_build(): void
+    {
+        $files = glob(base_path('routes/*.php'));
+
+        $this->assertNotEmpty($files, 'هیچ فایلِ مسیری پیدا نشد.');
+
+        foreach ($files as $file) {
+            /*
+             * ⚠️ کامنت‌ها با **دو الگوی جدا** پاک می‌شوند.
+             *
+             * یکی‌کردنشان با پرچمِ `s` باعث می‌شود `//.*` تا آخرِ فایل را
+             * ببلعد. و همین فایلِ مسیرها در توضیحش دقیقاً از
+             * `Vite::asset()` نام می‌برد، پس بدونِ پاک‌سازی تست روی کدِ
+             * درست قرمز می‌شود — همان تله‌ای که از R37 بارها تکرار شده.
+             */
+            $code = (string) file_get_contents($file);
+            $code = (string) preg_replace('#/\*.*?\*/#s', '', $code);
+            $code = (string) preg_replace('#^\s*//.*$#m', '', $code);
+
+            $this->assertStringNotContainsString(
+                'Vite::',
+                $code,
+                basename($file).' هنگامِ بوت به manifestِ Vite نیاز پیدا می‌کند؛ '
+                .'این یعنی `composer install` روی سرورِ تازه — پیش از بیلد — می‌شکند. '
+                .'مسیرِ منبع را به view بدهید و تبدیلش را هنگامِ رندر انجام دهید.',
+            );
+        }
+    }
+
     public function test_the_security_scan_does_not_hide_behind_other_jobs(): void
     {
         $this->assertDoesNotMatchRegularExpression(

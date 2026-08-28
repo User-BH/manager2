@@ -39,8 +39,20 @@ Route::view('/', 'public.home', [
     | فقط همین یک صفحه این را دارد: در دمو و پشتیبانی و ورود، عنصرِ بزرگ
     | متن است نه تصویر، و preloadِ بی‌مورد فقط پهنای باند را از منابعِ
     | واقعی می‌گیرد.
+    |
+    | ⚠️ اینجا **مسیرِ منبع** می‌آید، نه خروجیِ `Vite::asset()`.
+    |
+    | فایلِ مسیرها هنگامِ **بوت** اجرا می‌شود — یعنی در هر دستورِ artisan، از
+    | جمله `package:discover` که خودِ `composer install` صدایش می‌زند. و
+    | `Vite::asset()` بدونِ `public/build/manifest.json` استثنا می‌اندازد.
+    | نتیجه‌اش این بود که روی سرورِ تازه، `composer install` **پیش از** آنکه
+    | فرصتِ بیلد برسد می‌شکست و هیچ دستورِ artisanی اجرا نمی‌شد.
+    |
+    | حل: تبدیلِ مسیر به URL در `partials/resource-hints` انجام می‌شود، یعنی
+    | هنگامِ رندرِ صفحه — جایی که manifest قطعاً وجود دارد. دادهٔ مسیر هم
+    | رشته‌ی ساده می‌ماند و `route:cache` را نمی‌شکند.
     */
-    'lcpImage' => Vite::asset('resources/images/hero-building.webp'),
+    'lcpImage' => 'resources/images/hero-building.webp',
 ])->name('home');
 
 Route::view('/demo', 'public.demo', [

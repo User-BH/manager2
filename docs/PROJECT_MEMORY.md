@@ -817,6 +817,29 @@ document.hidden
   الگوهای خط‌محور (`^on:$`) روی CRLF نمی‌خورند چون `$` پیش از `\r`
   نمی‌ایستد.
 
+### اولین اجرای واقعیِ CI — دو نقصی که فقط GitHub پیدا کرد
+
+- ⚠️ **فایلِ مسیرها هنگامِ بوت اجرا می‌شود، پس در هر دستورِ artisan.**
+  `composer install` خودش `package:discover` را صدا می‌زند. اگر
+  `routes/*.php` به `Vite::asset()` (یا هر چیزِ وابسته به
+  `public/build/manifest.json`) نیاز داشته باشد، **`composer install`
+  روی سرورِ تازه می‌شکند** — پیش از آنکه فرصتِ `npm run build` برسد.
+  مسیرِ منبع را به view بده و تبدیلش را هنگامِ رندر انجام بده.
+- **برای حلش در فایلِ مسیرها از closure استفاده نکن:** `route:cache`
+  می‌شکند («Unable to prepare route for serialization»). دادهٔ
+  `Route::view` باید رشته‌ی ساده بماند.
+- `CiWorkflowTest::test_no_route_file_needs_the_frontend_build` این را
+  قفل کرده است.
+- ⚠️ **`composer audit` پایگاهِ آنلاین می‌خواند، پس بدونِ هیچ تغییری در
+  کد هم می‌تواند قرمز شود.** `league/commonmark` — وابستگیِ غیرمستقیمِ
+  `laravel/framework` — شش advisory گرفت و `composer update
+league/commonmark` (۲٫۸٫۳ ← ۲٫۱۰٫۰) حلش کرد. **سقفِ audit را پایین
+  نیاور و پکیجِ تازه اضافه نکن.**
+- ⚠️ **پیش از commit، خطِ پایانِ فایل‌های دست‌کاری‌شده را LF کن.**
+  `.gitattributes` روی `eol=lf` است ولی اسکریپت‌های ویندوزی CRLF
+  می‌نویسند؛ `pint --test` با `line_ending` قرمز می‌شود و **خطاهای
+  جعلیِ `unary_operator_spaces` هم با آن می‌آیند** که آدرسِ غلط می‌دهند.
+
 ### سلامت، پایش و بکاپ (R43)
 
 - ⚠️ **`/up` دیگر مسیرِ پیش‌فرضِ لاراول نیست.** آن مسیر فقط می‌گفت

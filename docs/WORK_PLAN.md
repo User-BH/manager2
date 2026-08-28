@@ -2015,6 +2015,115 @@ enum، و بازبینیِ کاملِ Nullable / Delete / Update Behavior هر �
 
 ---
 
+## 🔴 رفعِ CI — اولین اجرای واقعیِ `ci.yml` روی GitHub
+
+**وضعیت:** ✅ · **منشأ:** نه از برنامه، از **قرمز شدنِ واقعیِ GitHub**
+
+در R42 صریح نوشته شد که `ci.yml` **هرگز روی GitHub اجرا نشده** و وضعیتش
+NOT VERIFIED است. اولین اجرای واقعی‌اش دو job را قرمز کرد.
+
+### ۱) بک‌اند — `composer install` می‌شکست
+
+```
+نصب وابستگی‌ها › composer install
+> @php artisan package:discover --ansi
+Illuminate\Foundation\ViteManifestNotFoundException
+Vite manifest not found at: .../public/build/manifest.json
+at routes/web.php:43
+```
+
+⚠️ **این فقط مشکلِ CI نبود.** فایلِ مسیرها هنگامِ **بوت** اجرا می‌شود،
+یعنی در هر دستورِ artisan — و `composer install` خودش
+`package:discover` را صدا می‌زند. `routes/web.php:43` تصویرِ LCP را با
+`Vite::asset()` می‌ساخت، و آن تابع بدونِ manifest استثنا می‌اندازد.
+
+نتیجه: روی **هر سرورِ تازه**، ترتیبِ اجباریِ استقرار این است
+
+```
+composer install  →  npm ci  →  npm run build
+```
+
+و قدمِ اول به خروجیِ قدمِ سوم نیاز داشت. یعنی نه `key:generate` اجرا
+می‌شد، نه `migrate`، نه `config:cache`. **استقرارِ از پایه ممکن نبود** —
+و همین ترتیب در `composer.json › scripts.setup` خودِ پروژه نوشته شده
+است. هیچ تستی این را نمی‌دید، چون در محیطِ توسعه `public/build` همیشه از
+قبل وجود دارد.
+
+سنجشِ محلی، پیش از هر تغییر:
+
+```
+$ mv public/build public/build.bak && php artisan package:discover
+  Illuminate\Foundation\ViteManifestNotFoundException
+```
+
+**رفع:** فایلِ مسیرها حالا **مسیرِ منبع** را می‌دهد
+(`'resources/images/hero-building.webp'`) و تبدیلش به URL در
+`partials/resource-hints` هنگامِ **رندر** انجام می‌شود — جایی که manifest
+قطعاً هست. دادهٔ مسیر رشته‌ی ساده می‌ماند، پس `route:cache` هم نمی‌شکند
+(بستنِ مسیر در closure این را می‌شکست).
+
+پس از رفع، با `public/build` جابه‌جا شده:
+
+```
+$ php artisan package:discover     → INFO Discovering packages. ... DONE
+$ php artisan key:generate --show  → base64:n7K2W4FS...
+```
+
+### ۲) امنیت — ۶ آسیب‌پذیری در `league/commonmark`
+
+`composer audit --locked` شش advisory روی یک پکیج پیدا کرد (دو DoS با
+شدتِ high، یک DoS درجه‌دوی زمانی، و یک دور زدنِ فیلترِ لینکِ ناامن).
+`league/commonmark` وابستگیِ **غیرمستقیم** است؛ `laravel/framework` آن را
+با `^2.8.1` می‌خواهد و نسخهٔ قفل‌شده `2.8.3` بود.
+
+```
+$ composer update league/commonmark
+  - Upgrading league/commonmark (2.8.3 => 2.10.0)
+$ composer audit --locked  → No security vulnerability advisories found.
+$ npm audit --omit=dev --audit-level=high  → found 0 vulnerabilities
+```
+
+⚠️ **سقفِ audit پایین آورده نشد و پکیجی اضافه نشد** — فقط همان یک
+وابستگی به‌روز شد.
+
+### محافظی که این را دیگر نمی‌گذارد برگردد
+
+`CiWorkflowTest::test_no_route_file_needs_the_frontend_build` — هیچ
+فایلی در `routes/` نباید `Vite::` داشته باشد. ساختاری است چون سنجشِ
+رفتاری یعنی جابه‌جا کردنِ `public/build` وسطِ اجرای تست، که هم روی
+تست‌های موازی اثر می‌گذارد و هم اگر تست بشکند پروژه را خراب رها می‌کند.
+
+و تستِ موجودِ `test_the_landing_hero_is_preloaded_but_other_pages_are_not`
+**پوچ** بود: فقط ادعا می‌کرد `as="image"` در صفحه هست. حالا که تبدیلِ
+مسیر به view منتقل شده، اگر آن `Vite::asset()` روزی حذف شود تگ همچنان
+رندر می‌شود ولی `href`اش مسیرِ منبع است — یعنی ۴۰۴ و preloadِ بی‌اثر. تست
+اصلاح شد تا بسنجد آدرس واقعاً به داراییِ ساخته‌شده اشاره می‌کند.
+
+**۲ خرابکاری، هر دو گرفته شدند:**
+
+| خرابکاری                                                      | نتیجه      |
+| ------------------------------------------------------------- | ---------- |
+| بازگرداندنِ `Vite::asset()` به `routes/web.php`               | ❌ قرمز شد |
+| حذفِ `Vite::asset()` از partial (تگ می‌ماند، آدرس خام می‌شود) | ❌ قرمز شد |
+
+```
+$ php artisan test   → 921 passed, 7090 assertions
+$ composer lint      → pint passed
+$ composer analyse   → phpstan 0 errors
+```
+
+> ⚠️ **درسِ روشِ کار:** R42 خودش نوشته بود «این workflow هرگز اجرا نشده».
+> آن NOT VERIFIED واقعی بود و دو نقص پشتش پنهان بود که **هیچ تستِ محلی
+> نمی‌توانست پیدایشان کند** — یکی به نبودِ `public/build` نیاز داشت و
+> دیگری به پایگاهِ advisoryهای آنلاین. اجرا کردنِ دروازه جایگزین ندارد.
+
+> **آنچه عمداً انجام نشد:** ترتیبِ مراحلِ `ci.yml` عوض نشد. جابه‌جا کردنِ
+> `download-artifact` به پیش از `composer install` هم CI را سبز می‌کرد،
+> ولی نقصِ استقرارِ سرورِ تازه سرِ جایش می‌ماند — یعنی CI را سبز می‌کرد
+> بی‌آنکه مشکل حل شود.
+
+---
+
 # فاز ۱۳ — امنیتِ تهاجمی
 
 ### R53 — تستِ حمله به Authorization (IDOR / BOLA / Cross-Tenant)

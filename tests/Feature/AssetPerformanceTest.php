@@ -213,10 +213,30 @@ class AssetPerformanceTest extends TestCase
 
     /**
      * تصویرِ LCPِ صفحه‌ی فرود باید preload شود — و فقط همان صفحه.
+     *
+     * ⚠️ ادعای «تگ هست» به‌تنهایی **پوچ** است.
+     *
+     * از این پس مسیر (`resources/images/...`) از فایلِ مسیرها می‌آید و
+     * تبدیلش به URL در `partials/resource-hints` انجام می‌شود. اگر آن
+     * `Vite::asset()` روزی حذف شود، تگ همچنان رندر می‌شود — ولی `href`اش
+     * مسیرِ منبع است، یعنی **۴۰۴**، و preload کاملاً بی‌اثر. پس اینجا
+     * سنجیده می‌شود که آدرس واقعاً به داراییِ ساخته‌شده اشاره کند.
      */
     public function test_the_landing_hero_is_preloaded_but_other_pages_are_not(): void
     {
-        $this->get('/')->assertSee('as="image"', false);
+        $html = (string) $this->get('/')->assertSee('as="image"', false)->getContent();
+
+        $this->assertSame(
+            1,
+            preg_match('/<link[^>]+rel="preload"[^>]+as="image"[^>]+href="([^"]+)"/', $html, $match),
+            'تگِ preloadِ تصویر با href پیدا نشد.',
+        );
+
+        $this->assertStringContainsString(
+            '/build/assets/',
+            $match[1],
+            'آدرسِ تصویرِ LCP باید از manifestِ Vite بیاید، نه مسیرِ خامِ منبع.',
+        );
 
         foreach (['/demo', '/support', '/auth'] as $url) {
             $this->get($url)->assertDontSee('as="image"', false);
