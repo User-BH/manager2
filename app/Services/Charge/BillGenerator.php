@@ -6,6 +6,8 @@ use App\Enums\BillStatus;
 use App\Models\Bill;
 use App\Models\Complex;
 use App\Models\Discount;
+use App\Models\Unit;
+use App\Services\Wallet\WalletService;
 use App\Support\Jalali;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
@@ -21,6 +23,13 @@ class BillGenerator
         protected ChargeCalculator $calculator,
         protected PenaltyCalculator $penalty,
     ) {}
+
+    /**
+     * مازادهایی که هنگامِ کاهشِ مبلغِ قبض پیدا می‌شوند.
+     *
+     * @var array<int, array{unit_id: int, amount: float, period: string}>
+     */
+    private array $surpluses = [];
 
     /**
      * @param  array<int,float>  $discounts  map of unit_id => discount amount
@@ -93,6 +102,35 @@ class BillGenerator
                 $bill->due_date = $dueDate;
                 $bill->issued_at = now();
                 $bill->breakdown = $items;
+                /*
+                 * ⚠️ قبض هرگز نباید به مبلغی کمتر از آنچه پرداخت شده برود.
+                 *
+                 * ─── نقصی که با تلاش برای افزودنِ قید پیدا شد (R52) ──────────
+                 * می‌خواستیم قیدِ `paid_amount <= total_amount` را به دیتابیس
+                 * اضافه کنیم. سنجش نشان داد همین جریان نقضش می‌کند: قبضِ
+                 * ۱۵۰٬۰۰۰ که ۱۰۰٬۰۰۰ آن پرداخت شده بود، پس از تولیدِ دوباره
+                 * `total = 0` گرفت در حالی که `paid = 100000` ماند.
+                 *
+                 * یعنی ساکن صد هزار تومان بیشتر از بدهی‌اش پرداخت کرده بود و
+                 * سامانه نه آن را جایی ثبت می‌کرد نه به او برمی‌گرداند —
+                 * **همان دسته‌ی گم‌شدنِ پول که در R51 رفع شد**، از راهی دیگر.
+                 *
+                 * حالا مابه‌التفاوت به کیفِ پول اعتبار داده می‌شود و
+                 * `paid_amount` روی مبلغِ تازه می‌نشیند، پس قبض تسویه‌شده
+                 * می‌ماند و هیچ ریالی گم نمی‌شود.
+                 */
+                $alreadyPaid = (float) $bill->paid_amount;
+
+                if ($alreadyPaid > $total) {
+                    $this->surpluses[] = [
+                        'unit_id' => $unit->id,
+                        'amount' => round($alreadyPaid - $total, 2),
+                        'period' => $period,
+                    ];
+
+                    $bill->paid_amount = $total;
+                }
+
                 $bill->save();
                 $bill->syncStatus();
 
@@ -101,7 +139,39 @@ class BillGenerator
             }
         });
 
+        $this->creditSurpluses();
+
         return ['bills' => $count, 'total' => $grandTotal];
+    }
+
+    /**
+     * مازادِ ناشی از کاهشِ مبلغِ قبض را به کیفِ واحد اعتبار می‌دهد.
+     *
+     * ⚠️ عمداً **پس از** تراکنشِ تولید. `WalletService` روی `Unit` قفل
+     * می‌گیرد و این تراکنش ده‌ها ردیفِ قبض را می‌نویسد؛ گرفتنِ قفلِ تازه
+     * وسطِ آن، هم پنجره‌ی بن‌بست را باز می‌کند هم تراکنشِ سنگین را
+     * سنگین‌تر. همان الگویی که در `PaymentService` هم به کار رفت.
+     */
+    private function creditSurpluses(): void
+    {
+        $surpluses = $this->surpluses;
+        $this->surpluses = [];
+
+        foreach ($surpluses as $surplus) {
+            $unit = Unit::withoutGlobalScopes()->find($surplus['unit_id']);
+
+            if (! $unit) {
+                continue;
+            }
+
+            app(WalletService::class)->credit(
+                $unit,
+                $surplus['amount'],
+                'manual',
+                null,
+                'مازادِ کاهشِ قبضِ دوره‌ی '.$surplus['period'],
+            );
+        }
     }
 
     /** Penalty on this unit's still-unpaid bills from earlier periods. */
