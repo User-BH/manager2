@@ -19,11 +19,30 @@ return [
     |
     | این کلید هم درگاه شارژِ مجتمع‌ها را پوشش می‌دهد و هم درگاه اشتراک را.
     |
+    | ─── ⚠️ مقدارِ خالی «تنظیم‌نشده» نیست ───────────────────────────────────
+    | `.env.example` این کلید را `PAYMENT_SANDBOX_ENABLED=` (خالی) دارد، به
+    | این نیت که «پیش‌فرض را نگه دار». ولی `env()` برای مقدارِ خالی **رشته‌ی
+    | تهی** برمی‌گرداند نه `null` — پس پیش‌فرضِ پارامتر دوم اصلاً اجرا
+    | نمی‌شد و `(bool) ''` می‌شد `false`.
+    |
+    | نتیجه‌اش در CI دیده شد: `composer install` روی `.env.example` اجرا
+    | می‌شود، سندباکس خاموش می‌ماند، درگاهِ `fake` با ۴۲۲ رد می‌شود و ۱۲
+    | تستِ مسیرِ پرداخت می‌شکنند — در حالی که همان‌ها روی ماشینِ محلی سبز
+    | بودند، چون `.env` محلی اصلاً این کلید را ندارد.
+    |
+    | پس خالی صراحتاً همان‌قدر «تنظیم‌نشده» حساب می‌شود که نبودنِ کلید.
+    | مقدارِ صریح — از جمله `false` — همچنان محترم است.
+    |
     */
 
-    'sandbox_enabled' => (bool) env(
-        'PAYMENT_SANDBOX_ENABLED',
-        env('APP_ENV', 'production') !== 'production',
-    ),
+    'sandbox_enabled' => (function (): bool {
+        $flag = env('PAYMENT_SANDBOX_ENABLED');
+
+        if ($flag === null || $flag === '') {
+            return env('APP_ENV', 'production') !== 'production';
+        }
+
+        return filter_var($flag, FILTER_VALIDATE_BOOLEAN);
+    })(),
 
 ];

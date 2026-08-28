@@ -599,6 +599,126 @@ class EnvironmentTest extends TestCase
         $this->assertDatabaseMissing('settings', ['key' => FeatureFlags::PREFIX.'not_a_real_flag']);
     }
 
+    // ─────────────────────────────────────────────────────────────────────
+    //  ⚠️ مقدارِ خالی در .env «تنظیم‌نشده» نیست
+    // ─────────────────────────────────────────────────────────────────────
+
+    /**
+     * `config/payment.php` را با یک مقدارِ مشخص برای پرچمِ سندباکس
+     * دوباره ارزیابی می‌کند.
+     *
+     * ⚠️ هر سه منبعِ `env()` ست می‌شوند: `$_SERVER`، `$_ENV` و `putenv`.
+     * مخزنِ Env لاراول از هر سه می‌خواند و ست‌کردنِ یکی به‌تنهایی می‌تواند
+     * بی‌اثر بماند — تستی که این را نداند، بی‌آنکه بفهمی همیشه سبز است.
+     */
+    private function sandboxFlagFor(?string $value): bool
+    {
+        $key = 'PAYMENT_SANDBOX_ENABLED';
+        $had = array_key_exists($key, $_SERVER);
+        $previous = $_SERVER[$key] ?? null;
+
+        if ($value === null) {
+            unset($_SERVER[$key], $_ENV[$key]);
+            putenv($key);
+        } else {
+            $_SERVER[$key] = $value;
+            $_ENV[$key] = $value;
+            putenv("{$key}={$value}");
+        }
+
+        try {
+            return (bool) (require base_path('config/payment.php'))['sandbox_enabled'];
+        } finally {
+            if ($had) {
+                $_SERVER[$key] = $previous;
+                $_ENV[$key] = $previous;
+                putenv("{$key}={$previous}");
+            } else {
+                unset($_SERVER[$key], $_ENV[$key]);
+                putenv($key);
+            }
+        }
+    }
+
+    /**
+     * ⚠️ `KEY=` خالی باید مثلِ «نبودنِ کلید» رفتار کند.
+     *
+     * ─── این را CIِ واقعی پیدا کرد ──────────────────────────────────────
+     * `.env.example` این کلید را خالی دارد، به نیتِ «پیش‌فرض را نگه دار».
+     * ولی `env()` برای مقدارِ خالی **رشته‌ی تهی** برمی‌گرداند نه `null`،
+     * پس پیش‌فرضِ پارامتر دوم اجرا نمی‌شد و `(bool) ''` می‌شد `false`.
+     *
+     * در CI که `.env` از روی `.env.example` ساخته می‌شود، سندباکس خاموش
+     * می‌ماند، درگاهِ `fake` با ۴۲۲ رد می‌شود و **۱۲ تستِ مسیرِ پرداخت**
+     * می‌شکنند — همان‌ها که روی ماشینِ محلی سبزند، چون `.env` محلی این
+     * کلید را اصلاً ندارد.
+     */
+    public function test_a_blank_flag_behaves_like_an_unset_one(): void
+    {
+        $this->assertSame(
+            $this->sandboxFlagFor(null),
+            $this->sandboxFlagFor(''),
+            'مقدارِ خالی باید دقیقاً مثلِ نبودنِ کلید رفتار کند.',
+        );
+    }
+
+    /** و مقدارِ صریح باید محترم بماند — وگرنه رفعِ بالا خودش یک باگ است. */
+    public function test_an_explicit_flag_still_wins(): void
+    {
+        $this->assertTrue($this->sandboxFlagFor('true'));
+        $this->assertFalse($this->sandboxFlagFor('false'));
+    }
+
+    /**
+     * ⚠️ هیچ کلیدِ خالی در `.env.example` نباید در config پیش‌فرضِ معناداری
+     * داشته باشد.
+     *
+     * این تعمیمِ همان تله است: هر جفتِ «کلیدِ خالی در env.example» و
+     * «`env('KEY', <پیش‌فرض>)` در config» یعنی پیش‌فرض هرگز اجرا نمی‌شود و
+     * محیطی که از روی `.env.example` ساخته شده رفتارِ دیگری دارد.
+     */
+    public function test_no_blank_example_key_relies_on_a_config_default(): void
+    {
+        preg_match_all(
+            '/^([A-Z0-9_]+)=[ 	]*$/m',
+            (string) file_get_contents(base_path('.env.example')),
+            $blanks,
+        );
+
+        $blank = array_flip($blanks[1]);
+
+        $this->assertNotEmpty($blank, 'هیچ کلیدِ خالی پیدا نشد؛ الگو خراب است.');
+
+        foreach (glob(config_path('*.php')) as $file) {
+            /*
+             * ⚠️ کامنت‌ها با دو الگوی جدا پاک می‌شوند؛ یکی‌کردنشان با
+             * پرچمِ `s` باعث می‌شود `//.*` تا آخرِ فایل را ببلعد. همین
+             * فایل‌ها در توضیحشان نمونه‌ی `.env` می‌نویسند.
+             */
+            $code = (string) file_get_contents($file);
+            $code = (string) preg_replace('#/\*.*?\*/#s', '', $code);
+            $code = (string) preg_replace('#^\s*//.*$#m', '', $code);
+
+            preg_match_all("/env\(\s*'([A-Z0-9_]+)'\s*,\s*(.*?)\)/s", $code, $calls, PREG_SET_ORDER);
+
+            foreach ($calls as [, $key, $default]) {
+                $default = trim((string) preg_replace('/\s+/', ' ', $default));
+
+                if (! isset($blank[$key]) || in_array($default, ["''", '""', 'null'], true)) {
+                    continue;
+                }
+
+                $this->fail(
+                    "«{$key}» در `.env.example` خالی است ولی "
+                    .basename($file)." با پیش‌فرضِ «{$default}» می‌خواندش. "
+                    .'مقدارِ خالی رشته‌ی تهی است نه null، پس آن پیش‌فرض هرگز '
+                    .'اجرا نمی‌شود و محیطی که از .env.example ساخته شود رفتارِ '
+                    .'دیگری دارد.',
+                );
+            }
+        }
+    }
+
     protected function tearDown(): void
     {
         Cache::flush();

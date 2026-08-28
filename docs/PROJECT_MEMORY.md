@@ -839,6 +839,20 @@ league/commonmark` (۲٫۸٫۳ ← ۲٫۱۰٫۰) حلش کرد. **سقفِ audit
   `.gitattributes` روی `eol=lf` است ولی اسکریپت‌های ویندوزی CRLF
   می‌نویسند؛ `pint --test` با `line_ending` قرمز می‌شود و **خطاهای
   جعلیِ `unary_operator_spaces` هم با آن می‌آیند** که آدرسِ غلط می‌دهند.
+- 🔴 **`KEY=` خالی در `.env` «تنظیم‌نشده» نیست — رشته‌ی تهی است.** پس
+  پارامترِ دومِ `env('KEY', $default)` هرگز اجرا نمی‌شود و `(bool) ''`
+  می‌شود `false`. این دقیقاً `PAYMENT_SANDBOX_ENABLED=` در
+  `.env.example` بود و در CI ۱۲ تستِ پرداخت را با ۴۲۲ می‌شکست، در حالی
+  که محلی سبز بودند چون `.env` محلی آن کلید را ندارد.
+  `EnvironmentTest::test_no_blank_example_key_relies_on_a_config_default`
+  تعمیمش را قفل کرده است.
+- ⚠️ **برای شبیه‌سازیِ محیطِ CI به‌صورت محلی:** `cp .env.example
+.env.testing` (لاراول با `APP_ENV=testing` خودش برش می‌دارد)، بعد
+  `php artisan key:generate --env=testing`، و **حتماً پاکش کن** —
+  `.env.testing` در `.gitignore` نیست.
+- ⚠️ **در تستی که `env()` را دستکاری می‌کند، هر سه منبع را ست کن**
+  (`$_SERVER`، `$_ENV`، `putenv`). مخزنِ Env از هر سه می‌خواند و
+  ست‌کردنِ یکی می‌تواند تست را بی‌سروصدا همیشه‌سبز کند.
 
 ### سلامت، پایش و بکاپ (R43)
 
