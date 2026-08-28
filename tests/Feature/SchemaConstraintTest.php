@@ -55,6 +55,69 @@ class SchemaConstraintTest extends TestCase
         ]);
     }
 
+    /**
+     * آیا قیدها روی این موتور واقعاً نصب شده‌اند؟
+     *
+     * ⚠️ این را **از خودِ دیتابیس** می‌پرسیم، نه از نامِ موتور. مهاجرت
+     * وقتی `ALTER TABLE ... ADD CONSTRAINT` را نداشته باشد از خیرِ قیدها
+     * می‌گذرد، و تنها راهِ مطمئن این است که ببینیم قید سرِ جایش هست یا نه.
+     */
+    private function constraintsAreInstalled(): bool
+    {
+        $connection = DB::connection();
+
+        if ($connection->getDriverName() === 'sqlite') {
+            $table = $connection->selectOne(
+                "select sql from sqlite_master where type = 'table' and name = 'payments'",
+            );
+
+            return $table !== null
+                && str_contains((string) $table->sql, 'chk_payments_amount_positive');
+        }
+
+        return $connection->table('information_schema.check_constraints')
+            ->where('constraint_name', 'chk_payments_amount_positive')
+            ->exists();
+    }
+
+    /**
+     * ⚠️ دروازه‌ای که نمی‌گذارد نبودِ قید به «تستِ سبز» تبدیل شود.
+     *
+     * ─── چرا skip و نه pass ─────────────────────────────────────────────
+     * روی SQLiteِ قدیمی (رانرِ CI) قیدها اصلاً نصب نمی‌شوند. اگر این
+     * تست‌ها همان‌جا سبز می‌شدند، سبزیِ CI معنایش این می‌شد که «قیدها کار
+     * می‌کنند» — در حالی که هیچ قیدی وجود ندارد. skip در گزارش دیده
+     * می‌شود؛ pass دیده نمی‌شود.
+     *
+     * ─── چرا skip هم کافی نیست ──────────────────────────────────────────
+     * skipِ همیشگی یعنی این محافظت **هرگز** سنجیده نمی‌شود. پس jobِ
+     * «قیدهای دیتابیس روی MySQL» با `REQUIRE_DB_CONSTRAINTS=1` اجرا
+     * می‌شود و در آن حالت نبودِ قید **شکست** است، نه skip — یعنی روی
+     * موتورِ واقعیِ محصول این تست‌ها حتماً اجرا می‌شوند.
+     */
+    private function requireConstraints(): void
+    {
+        if ($this->constraintsAreInstalled()) {
+            return;
+        }
+
+        $engine = DB::connection()->getDriverName();
+
+        if (getenv('REQUIRE_DB_CONSTRAINTS') === '1') {
+            $this->fail(
+                "قیدهای CHECK روی «{$engine}» نصب نشده‌اند، ولی "
+                .'REQUIRE_DB_CONSTRAINTS=1 است. مهاجرتِ قیدها اجرا نشده '
+                .'یا موتور ALTER TABLE ... ADD CONSTRAINT را نپذیرفته.',
+            );
+        }
+
+        $this->markTestSkipped(
+            "موتورِ «{$engine}» دستورِ ALTER TABLE ... ADD CONSTRAINT را "
+            .'نپذیرفت، پس قیدی نصب نشده و این تست چیزی برای سنجیدن ندارد. '
+            .'سنجشِ واقعی در jobِ «قیدهای دیتابیس روی MySQL» انجام می‌شود.',
+        );
+    }
+
     // ─────────────────────────────────────────────────────────────────────
     //  قیدها واقعاً اعمال می‌شوند
     // ─────────────────────────────────────────────────────────────────────
@@ -73,6 +136,8 @@ class SchemaConstraintTest extends TestCase
     #[DataProvider('forbiddenRows')]
     public function test_the_database_rejects_invalid_values(string $table, array $row, string $why): void
     {
+        $this->requireConstraints();
+
         $row = $this->withKeys($table, $row);
 
         try {
@@ -170,6 +235,8 @@ class SchemaConstraintTest extends TestCase
      */
     public function test_the_ownership_share_stays_within_range(): void
     {
+        $this->requireConstraints();
+
         $user = User::factory()->create([
             'complex_id' => $this->complex->id,
             'role' => UserRole::Owner->value,
@@ -198,6 +265,8 @@ class SchemaConstraintTest extends TestCase
      */
     public function test_a_unit_cannot_have_negative_area(): void
     {
+        $this->requireConstraints();
+
         $this->expectException(QueryException::class);
 
         DB::table('units')->insert([
@@ -354,22 +423,44 @@ class SchemaConstraintTest extends TestCase
      */
     public function test_every_financial_table_carries_at_least_one_constraint(): void
     {
+        $this->requireConstraints();
+
         $expected = [
             'payments', 'bills', 'wallet_transactions',
             'expenses', 'incomes', 'units', 'unit_user',
         ];
 
+        $connection = DB::connection();
+        $isSqlite = $connection->getDriverName() === 'sqlite';
+
         foreach ($expected as $table) {
-            $sql = DB::selectOne(
-                "select sql from sqlite_master where type = 'table' and name = ?",
-                [$table],
-            );
+            if ($isSqlite) {
+                /*
+                 * ⚠️ SQLite جدولِ `information_schema` ندارد؛ تنها منبعِ
+                 * حقیقت، متنِ `CREATE TABLE` در `sqlite_master` است.
+                 */
+                $definition = $connection->selectOne(
+                    "select sql from sqlite_master where type = 'table' and name = ?",
+                    [$table],
+                );
 
-            $this->assertNotNull($sql, "جدولِ «{$table}» پیدا نشد.");
+                $this->assertNotNull($definition, "جدولِ «{$table}» پیدا نشد.");
 
-            $this->assertStringContainsStringIgnoringCase(
-                'check',
-                $sql->sql,
+                $this->assertStringContainsStringIgnoringCase(
+                    'check',
+                    (string) $definition->sql,
+                    "جدولِ «{$table}» هیچ قیدِ CHECK ندارد.",
+                );
+
+                continue;
+            }
+
+            $this->assertTrue(
+                $connection->table('information_schema.table_constraints')
+                    ->where('table_schema', $connection->getDatabaseName())
+                    ->where('table_name', $table)
+                    ->where('constraint_type', 'CHECK')
+                    ->exists(),
                 "جدولِ «{$table}» هیچ قیدِ CHECK ندارد.",
             );
         }

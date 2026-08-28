@@ -17,14 +17,32 @@ use Illuminate\Support\Facades\Schema;
  * دستورهای کنسولی و بازیابیِ بکاپ همه از کنارش رد می‌شوند. قید در
  * دیتابیس **آخرین** خطِ دفاع است و تنها خطی که هیچ مسیری دورش نمی‌زند.
  *
- * ─── سنجشِ پشتیبانی، نه فرض ────────────────────────────────────────────────
- * ⚠️ فرضِ اولیه این بود که SQLite افزودنِ CHECK به جدولِ موجود را
- * پشتیبانی نمی‌کند. **اندازه‌گیری خلافش را نشان داد:** دستور پذیرفته
- * می‌شود، قید در `sqlite_master` می‌نشیند و **واقعاً اعمال می‌شود**.
+ * ─── سنجشِ پشتیبانی، نه فرض — و بارِ دوم هم فرض غلط بود ──────────────────
+ * ⚠️ فرضِ اول این بود که SQLite افزودنِ CHECK به جدولِ موجود را پشتیبانی
+ * نمی‌کند. اندازه‌گیریِ محلی خلافش را نشان داد و نتیجه گرفته شد که
+ * «SQLite پشتیبانی می‌کند».
  *
- * پس برخلافِ `lockForUpdate` (که SQLite بی‌صدا حذفش می‌کند)، این محافظت
- * در CI هم **قابلِ اثبات** است — و تست‌های `SchemaConstraintTest` دقیقاً
- * همان را می‌سنجند.
+ * ⚠️ **آن نتیجه‌گیری هم غلط بود، و CIِ واقعی ردش کرد:**
+ *
+ *     SQLSTATE[HY000]: General error: 1 near "CONSTRAINT": syntax error
+ *     (SQL: ALTER TABLE payments ADD CONSTRAINT chk_payments_amount_positive ...)
+ *     → ۷۸۲ تست شکست
+ *
+ * دلیلش **نسخه** بود: `ALTER TABLE ... ADD CONSTRAINT` در SQLiteهای تازه
+ * (محلی: ۳٫۵۳٫۲) کار می‌کند و در نسخه‌ی رانرِ اوبونتو نه. یعنی سنجشِ
+ * محلی درست بود ولی **تعمیمش** غلط: «روی ماشینِ من کار کرد» با «SQLite
+ * پشتیبانی می‌کند» یکی نیست.
+ *
+ * پس پشتیبانی دیگر فرض نمی‌شود — **هر بار روی خودِ همان اتصال سنجیده
+ * می‌شود** (`supportsAddConstraint()`), و اگر نبود، قیدها بی‌سروصدا رد
+ * می‌شوند تا مهاجرت‌ها ادامه پیدا کنند.
+ *
+ * ⚠️ و رد شدن یعنی **آن محافظت روی آن موتور وجود ندارد**. برای اینکه این
+ * به «تستِ سبزِ پوچ» تبدیل نشود، `SchemaConstraintTest` وقتی قیدها نصب
+ * نشده‌اند تست را **skip** می‌کند نه pass — و jobِ «قیدهای دیتابیس روی
+ * MySQL» در CI با `REQUIRE_DB_CONSTRAINTS=1` اجرا می‌شود، که در آن حالت
+ * skip هم ممنوع است و تست شکست می‌خورد. یعنی این قیدها روی **موتورِ
+ * واقعیِ محصول** سنجیده می‌شوند.
  */
 return new class extends Migration
 {
@@ -127,6 +145,20 @@ return new class extends Migration
 
     public function up(): void
     {
+        if (! $this->supportsAddConstraint()) {
+            /*
+             * ⚠️ موتور این دستور را ندارد؛ مهاجرت **بی‌صدا رد می‌شود** تا
+             * بقیه‌ی مهاجرت‌ها اجرا شوند.
+             *
+             * «بی‌صدا» اینجا خطرناک نیست، چون تنها جایی که این اتفاق
+             * می‌افتد SQLiteِ قدیمیِ محیطِ تست است — و آنجا
+             * `SchemaConstraintTest` تست را skip می‌کند و skip در گزارش
+             * دیده می‌شود. محصول روی MySQL است و آنجا این شرط همیشه
+             * برقرار است.
+             */
+            return;
+        }
+
         $violations = $this->violations();
 
         if ($violations !== []) {
@@ -152,6 +184,35 @@ return new class extends Migration
 
             foreach ($rules as [$name, $condition]) {
                 DB::statement("ALTER TABLE {$table} ADD CONSTRAINT {$name} CHECK ({$condition})");
+            }
+        }
+    }
+
+    /**
+     * آیا این اتصال `ALTER TABLE ... ADD CONSTRAINT ... CHECK` را می‌پذیرد؟
+     *
+     * ⚠️ عمداً **رفتار** سنجیده می‌شود نه نامِ موتور یا شماره‌ی نسخه.
+     * مقایسه‌ی نسخه یعنی دوباره حدس‌زدنِ اینکه کدام نسخه چه چیزی دارد —
+     * همان کاری که دو بار اشتباه از آب درآمد. اجرای خودِ دستور روی یک
+     * جدولِ یک‌بارمصرف، جوابِ قطعی می‌دهد.
+     */
+    private function supportsAddConstraint(): bool
+    {
+        $probe = 'probe_constraint_support';
+
+        try {
+            DB::statement("DROP TABLE IF EXISTS {$probe}");
+            DB::statement("CREATE TABLE {$probe} (n integer)");
+            DB::statement("ALTER TABLE {$probe} ADD CONSTRAINT chk_probe CHECK (n > 0)");
+
+            return true;
+        } catch (Throwable) {
+            return false;
+        } finally {
+            try {
+                DB::statement("DROP TABLE IF EXISTS {$probe}");
+            } catch (Throwable) {
+                // جدولِ یک‌بارمصرف؛ نماندنش مهم‌تر از خطای پاک‌سازی نیست
             }
         }
     }

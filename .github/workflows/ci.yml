@@ -148,6 +148,89 @@ jobs:
         run: php artisan test
 
   # ────────────────────────────────────────────────────────────────────────
+  #  قیدهای دیتابیس روی موتورِ واقعیِ محصول
+  # ────────────────────────────────────────────────────────────────────────
+  #
+  #  ⚠️ این job از یک شکستِ واقعی زاده شد، نه از برنامه‌ریزی.
+  #
+  #  مهاجرتِ قیدهای مالی (R52) با `ALTER TABLE ... ADD CONSTRAINT ... CHECK`
+  #  اضافه می‌شود. اندازه‌گیریِ محلی نشان داده بود SQLite می‌پذیردش — و
+  #  درست هم بود، **برای SQLite ۳٫۵۳٫۲ که روی آن ماشین بود**. SQLiteِ رانرِ
+  #  اوبونتو قدیمی‌تر است و همان دستور را با
+  #  `near "CONSTRAINT": syntax error` رد کرد؛ ۷۸۲ تست شکست.
+  #
+  #  مهاجرت حالا پشتیبانی را می‌سنجد و اگر نبود رد می‌شود. ولی آن‌وقت روی
+  #  SQLite هیچ قیدی نصب نمی‌شود، یعنی تست‌های `SchemaConstraintTest`
+  #  چیزی برای سنجیدن ندارند و skip می‌شوند.
+  #
+  #  ⚠️ **skipِ همیشگی یعنی محافظت هرگز سنجیده نمی‌شود.** پس همان تست‌ها
+  #  اینجا روی MySQL — موتورِ واقعیِ محصول — اجرا می‌شوند، با
+  #  `REQUIRE_DB_CONSTRAINTS=1` که skip را هم ممنوع می‌کند: اگر قیدی نصب
+  #  نشده باشد، تست **شکست** می‌خورد.
+  #
+  #  ─── چرا فقط همین تست‌ها ─────────────────────────────────────────────
+  #  اجرای کلِ ۹۲۱ تست روی MySQL چند برابر کندتر است و بعضی تست‌ها عمداً
+  #  رفتارِ SQLite را می‌سنجند (`test_sqlite_silently_drops_the_row_lock`
+  #  در R50) و روی MySQL باید شکست بخورند. این job فقط همان چیزی را
+  #  می‌سنجد که SQLite نمی‌تواند بسنجد.
+  #
+  #  ⚠️ به `needs: frontend` نیاز ندارد: از وقتی فایلِ مسیرها دیگر هنگامِ
+  #  بوت `Vite::asset()` صدا نمی‌زند، این تست‌ها بدونِ `public/build` هم
+  #  بالا می‌آیند — و هیچ‌کدامشان صفحه‌ای رندر نمی‌کنند.
+  database-constraints:
+    name: قیدهای دیتابیس روی MySQL
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    services:
+      mysql:
+        image: mysql:8.4
+        env:
+          MYSQL_ROOT_PASSWORD: root
+          MYSQL_DATABASE: testing
+        ports:
+          - 3306:3306
+        # بدونِ health check، مرحله‌ی بعد پیش از بالا آمدنِ دیتابیس
+        # می‌دود و با «connection refused» می‌افتد
+        options: >-
+          --health-cmd="mysqladmin ping -h 127.0.0.1 -uroot -proot"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=15
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: نصب PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          extensions: gd, zip, intl, bcmath, pdo_mysql, mbstring, exif
+          coverage: none
+
+      - name: نصب وابستگی‌ها
+        run: composer install --prefer-dist --no-interaction --no-progress
+
+      - name: آماده‌سازیِ محیط
+        run: |
+          cp .env.example .env
+          php artisan key:generate
+
+      # ⚠️ متغیرهای محیطیِ jobـسطح بر `<env>`های `phpunit.xml` **غلبه
+      # می‌کنند** (PHPUnit بدونِ `force="true"` متغیرِ موجود را بازنویسی
+      # نمی‌کند). این رفتار پیش از نوشتنِ این job سنجیده شد.
+      - name: تستِ قیدها روی MySQL
+        env:
+          DB_CONNECTION: mysql
+          DB_HOST: 127.0.0.1
+          DB_PORT: '3306'
+          DB_DATABASE: testing
+          DB_USERNAME: root
+          DB_PASSWORD: root
+          REQUIRE_DB_CONSTRAINTS: '1'
+        run: php artisan test --filter=SchemaConstraintTest
+
+  # ────────────────────────────────────────────────────────────────────────
   #  امنیت
   # ────────────────────────────────────────────────────────────────────────
   #
