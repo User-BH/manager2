@@ -8,6 +8,7 @@ use App\Enums\PaymentMethod;
 use App\Enums\PaymentStatus;
 use App\Enums\SubscriptionPlan;
 use App\Enums\UserRole;
+use App\Exceptions\DomainException;
 use App\Models\Bill;
 use App\Models\Complex;
 use App\Models\Payment;
@@ -118,7 +119,28 @@ class MaintenanceAndLimitsTest extends TestCase
 
     /* --------------------- پاکسازی فایل رسید --------------------- */
 
-    public function test_deleting_a_payment_removes_its_receipt_file(): void
+    /**
+     * ⚠️ قرارداد در R51 عوض شد: پرداخت دیگر **اصلاً حذف نمی‌شود**.
+     *
+     * ─── چه چیزی تغییر کرد و چرا ────────────────────────────────────────────
+     * این تست پیش از این `$payment->delete()` می‌زد و انتظار داشت فایلِ رسید
+     * هم پاک شود. آن رفتار حالا ممکن نیست: `Payment` صفتِ `NeverDeleted`
+     * دارد و حذف استثنا می‌دهد.
+     *
+     * دلیلِ تغییر: پرداخت یک رکوردِ مالی است و هیچ عملیاتِ کاربریِ مشروعی
+     * به‌نامِ «حذفِ پرداخت» وجود ندارد — رسیدِ نادرست با وضعیتِ «ردشده»
+     * اصلاح می‌شود، نه با پاک‌شدن. اندازه‌گیری هم نشان داد **هیچ کدِ
+     * برنامه‌ای** پرداخت را حذف نمی‌کند؛ این مسیر فقط یک درِ باز بود.
+     *
+     * ─── بهداشتِ فایل از دست نرفت ───────────────────────────────────────────
+     * ناظرِ پاک‌سازیِ فایل سرِ جایش مانده (اگر روزی از راهی حذف رخ دهد کار
+     * می‌کند)، و مسیرِ اصلیِ جمع‌کردنِ فایل‌های یتیم همان
+     * `test_prune_command_removes_orphaned_receipt_files` است که بلافاصله
+     * پایین می‌آید و **بازیابیِ بکاپ** را هم پوشش می‌دهد — جایی که
+     * جدول‌ها با `DB::table()->delete()` خالی می‌شوند و هیچ ناظری صدا زده
+     * نمی‌شود.
+     */
+    public function test_a_payment_cannot_be_deleted_and_its_receipt_stays(): void
     {
         Storage::fake('local');
         $path = UploadedFile::fake()->image('r.jpg')->store('receipts/'.$this->complex->id, 'local');
@@ -131,8 +153,17 @@ class MaintenanceAndLimitsTest extends TestCase
         ]);
 
         Storage::disk('local')->assertExists($path);
-        $payment->delete();
-        Storage::disk('local')->assertMissing($path);
+
+        try {
+            $payment->delete();
+            $this->fail('پرداخت حذف شد؛ رکوردِ مالی باید غیرقابلِ حذف باشد.');
+        } catch (DomainException) {
+            // همین انتظار است
+        }
+
+        // رکورد و فایلش هر دو سرِ جایشان هستند
+        $this->assertNotNull($payment->fresh());
+        Storage::disk('local')->assertExists($path);
     }
 
     public function test_prune_command_removes_orphaned_receipt_files(): void

@@ -6,10 +6,22 @@ use App\Enums\ChargeRuleType;
 use App\Enums\ExpenseCategory;
 use App\Models\Concerns\BelongsToComplex;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Expense extends Model
 {
-    use BelongsToComplex;
+    /*
+     * ⚠️ `SoftDeletes` و نه بستنِ کاملِ حذف (R51).
+     *
+     * برخلافِ قبض و پرداخت، حذفِ هزینه یک عملیاتِ **مشروع** است: مدیر
+     * مبلغی را اشتباه وارد کرده و می‌خواهد پاکش کند. آنچه نباید ممکن
+     * باشد، برگشت‌ناپذیر بودنش است.
+     *
+     * پیش از این `$expense->delete()` رکورد را برای همیشه می‌برد؛
+     * سیاهه‌ی ممیزی می‌گفت چه کسی حذف کرده، ولی خودِ مبلغ و شرح رفته
+     * بود و فقط با بازیابیِ کلِ بکاپ برمی‌گشت.
+     */
+    use BelongsToComplex, SoftDeletes;
 
     protected $fillable = [
         'complex_id', 'title', 'amount', 'category', 'period', 'spend_date',

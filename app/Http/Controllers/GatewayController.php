@@ -30,16 +30,66 @@ class GatewayController extends Controller
     {
         $this->authorizeBill($bill);
 
-        $payment = Payment::create([
-            'complex_id' => $bill->complex_id,
-            'unit_id' => $bill->unit_id,
-            'bill_id' => $bill->id,
-            'user_id' => Auth::id(),
-            'amount' => $bill->remaining(),
-            'method' => PaymentMethod::Online,
-            'status' => PaymentStatus::Pending,
-            'period' => $bill->period,
-        ]);
+        /*
+         * ⚠️ پرداختِ در انتظارِ موجود **دوباره استفاده می‌شود** (R51).
+         *
+         * ─── نقصی که اندازه‌گیری شد ────────────────────────────────────────
+         * پیش از این، هر فراخوانیِ این متد یک ردیفِ `Payment` تازه می‌ساخت.
+         * کاربری که دوبار روی «پرداخت آنلاین» می‌زد — یا دکمه‌ی بازگشت
+         * مرورگر را می‌زد و دوباره کلیک می‌کرد — دو تراکنشِ بانکیِ مستقل
+         * می‌ساخت.
+         *
+         * قفلِ ردیفیِ R50 اینجا **هیچ محافظتی نمی‌کند**، چون آن دو پرداخت
+         * دو ردیفِ متفاوت‌اند و هر callback قفلِ ردیفِ خودش را می‌گیرد.
+         *
+         * سنجشِ واقعی روی قبضِ ۱۰۰٬۰۰۰ تومانی:
+         *
+         *     پرداختِ موفق در بانک : ۲۰۰٬۰۰۰
+         *     ثبت‌شده روی قبض      : ۱۰۰٬۰۰۰
+         *     رفته به کیف پول      : ۰
+         *
+         * یعنی صد هزار تومان از حسابِ ساکن کم می‌شد و **در هیچ‌جای سامانه
+         * ثبت نمی‌شد**.
+         *
+         * ─── چرا قفل روی قبض ───────────────────────────────────────────────
+         * دو کلیکِ هم‌زمان هر دو «پرداختِ در انتظاری نیست» می‌دیدند. قفل روی
+         * ردیفِ قبض — که قطعاً وجود دارد — آن‌ها را پشتِ سرِ هم می‌کند؛
+         * روی چیزی که هنوز ساخته نشده نمی‌شود قفل گرفت.
+         */
+        $payment = DB::transaction(function () use ($bill): Payment {
+            Bill::withoutGlobalScopes()->lockForUpdate()->find($bill->id);
+
+            $pending = Payment::withoutGlobalScopes()
+                ->where('bill_id', $bill->id)
+                ->where('method', PaymentMethod::Online)
+                ->where('status', PaymentStatus::Pending)
+                ->latest('id')
+                ->first();
+
+            /*
+             * ⚠️ مبلغ دوباره از قبض خوانده می‌شود، نه از پرداختِ قدیمی.
+             *
+             * بینِ کلیکِ اول و دوم ممکن است بخشی از بدهی از راهِ دیگری
+             * (کیف پول، رسیدِ دستی) تسویه شده باشد. استفاده از مبلغِ کهنه
+             * یعنی کاربر بیش از بدهیِ واقعی‌اش پرداخت کند.
+             */
+            if ($pending) {
+                $pending->update(['amount' => $bill->remaining()]);
+
+                return $pending;
+            }
+
+            return Payment::create([
+                'complex_id' => $bill->complex_id,
+                'unit_id' => $bill->unit_id,
+                'bill_id' => $bill->id,
+                'user_id' => Auth::id(),
+                'amount' => $bill->remaining(),
+                'method' => PaymentMethod::Online,
+                'status' => PaymentStatus::Pending,
+                'period' => $bill->period,
+            ]);
+        }, attempts: 3);
 
         try {
             $redirect = $this->gateways->for($bill->complex)->request($payment);

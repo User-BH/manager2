@@ -4,10 +4,12 @@ namespace App\Models;
 
 use App\Models\Concerns\BelongsToComplex;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Income extends Model
 {
-    use BelongsToComplex;
+    // ⚠️ مثلِ هزینه: حذف مشروع است، برگشت‌ناپذیری نه (R51)
+    use BelongsToComplex, SoftDeletes;
 
     protected $fillable = [
         'complex_id', 'title', 'amount', 'source', 'period',

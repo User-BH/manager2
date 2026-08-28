@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Enums\BillStatus;
 use App\Models\Concerns\BelongsToComplex;
+use App\Models\Concerns\NeverDeleted;
 use Carbon\CarbonInterface;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -16,7 +17,15 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  */
 class Bill extends Model
 {
-    use BelongsToComplex;
+    /*
+     * ⚠️ `NeverDeleted`: این رکورد ویرایش می‌شود ولی هرگز حذف نه (R51).
+     *
+     * هیچ عملیاتِ کاربریِ مشروعی به‌نامِ «حذفِ قبض» یا «حذفِ پرداخت»
+     * وجود ندارد — اصلاح با تغییرِ مبلغ یا وضعیت انجام می‌شود. تا
+     * پیش از این هیچ سدی نبود و یک `->delete()` در کدِ آینده
+     * می‌توانست تاریخچه‌ی مالی را ببرد.
+     */
+    use BelongsToComplex, NeverDeleted;
 
     protected $fillable = [
         'complex_id', 'unit_id', 'period', 'owner_amount', 'tenant_amount',

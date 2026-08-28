@@ -5,6 +5,7 @@ namespace App\Models;
 use App\Enums\PaymentMethod;
 use App\Enums\PaymentStatus;
 use App\Models\Concerns\BelongsToComplex;
+use App\Models\Concerns\NeverDeleted;
 use App\Services\Payment\GatewayOrder;
 use App\Support\PrivateFiles;
 use Illuminate\Database\Eloquent\Model;
@@ -19,7 +20,15 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  */
 class Payment extends Model implements GatewayOrder
 {
-    use BelongsToComplex;
+    /*
+     * ⚠️ `NeverDeleted`: این رکورد ویرایش می‌شود ولی هرگز حذف نه (R51).
+     *
+     * هیچ عملیاتِ کاربریِ مشروعی به‌نامِ «حذفِ قبض» یا «حذفِ پرداخت»
+     * وجود ندارد — اصلاح با تغییرِ مبلغ یا وضعیت انجام می‌شود. تا
+     * پیش از این هیچ سدی نبود و یک `->delete()` در کدِ آینده
+     * می‌توانست تاریخچه‌ی مالی را ببرد.
+     */
+    use BelongsToComplex, NeverDeleted;
 
     protected $fillable = [
         'complex_id', 'unit_id', 'bill_id', 'user_id', 'amount', 'method',

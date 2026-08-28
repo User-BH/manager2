@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Models\Concerns\BelongsToComplex;
+use App\Models\Concerns\Immutable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Support\Carbon;
@@ -29,7 +30,16 @@ use Illuminate\Support\Carbon;
  */
 class WalletTransaction extends Model
 {
-    use BelongsToComplex;
+    /*
+     * ⚠️ `Immutable` قاعده‌ی «فقط افزودنی» را از یک **قرارداد** به یک
+     * **اجبار** تبدیل می‌کند (R51).
+     *
+     * پیش از این، تنها محافظ `WalletLedgerTest` بود که سورس را
+     * می‌خواند. آن تست جلوی کدِ تازه را می‌گیرد ولی جلوی
+     * `$row->update(...)` در یک tinker یا دستورِ موقت را نه. حالا خودِ
+     * مدل استثنا می‌دهد.
+     */
+    use BelongsToComplex, Immutable;
 
     public const CREDIT = 'credit';
 

@@ -11,10 +11,24 @@ use App\Models\Payment;
 use App\Models\PaymentAllocation;
 use App\Models\Unit;
 use App\Models\User;
+use App\Services\Wallet\WalletService;
 use Illuminate\Support\Facades\DB;
 
 class PaymentService
 {
+    /**
+     * مازادِ پرداختی که در تخصیص جا نشد، تا **پس از** تراکنش به کیف برود.
+     *
+     * ⚠️ عمداً بیرون از تراکنشِ تخصیص ثبت می‌شود. `WalletService` روی
+     * `Unit` قفل می‌گیرد و تخصیص روی `Bill`؛ نوشتنش داخلِ همان تراکنش
+     * زنجیره‌ی `Payment → Bill → Unit` می‌ساخت که با `Unit → Bill` در
+     * `WalletService::payBill` **چرخهٔ بن‌بست** درست می‌کرد. تستِ
+     * ترتیبِ قفل در `ConcurrencyTest` دقیقاً همین را می‌گیرد.
+     *
+     * @var array{unit_id: int, amount: float}|null
+     */
+    private ?array $surplus = null;
+
     /**
      * Mark a payment successful and allocate its amount to the unit's bills,
      * starting with the linked bill (if any) then oldest unpaid bills.
@@ -69,6 +83,8 @@ class PaymentService
             return;
         }
 
+        $this->creditSurplus($payment);
+
         /*
          * بعد از تراکنش و نه داخلش: اگر اعلان داخلِ تراکنش می‌رفت و تراکنش
          * برمی‌گشت، کاربر اعلانِ «تایید شد» می‌گرفت برای پرداختی که ثبت نشده.
@@ -97,6 +113,36 @@ class PaymentService
     }
 
     /** Spread a successful payment across the unit's outstanding bills. */
+    /**
+     * مازادِ پرداخت را به کیفِ واحد اعتبار می‌دهد.
+     *
+     * ⚠️ اگر این نبود، مبلغ **گم می‌شد**: نه روی قبضی می‌نشست، نه در
+     * دفتری ثبت می‌شد، در حالی که از حسابِ ساکن کم شده بود.
+     */
+    private function creditSurplus(Payment $payment): void
+    {
+        $surplus = $this->surplus;
+        $this->surplus = null;
+
+        if ($surplus === null) {
+            return;
+        }
+
+        $unit = Unit::withoutGlobalScopes()->find($surplus['unit_id']);
+
+        if (! $unit) {
+            return;
+        }
+
+        app(WalletService::class)->credit(
+            $unit,
+            $surplus['amount'],
+            'payment',
+            $payment,
+            'مازادِ پرداخت #'.$payment->id,
+        );
+    }
+
     protected function allocate(Payment $payment): void
     {
         $remaining = (float) $payment->amount;
@@ -155,8 +201,37 @@ class PaymentService
             );
         }
 
-        // Any overpayment reduces the unit's cached balance as a credit.
+        /*
+         * ⚠️ مازاد به کیف پول می‌رود، نه به هیچ‌جا (R51).
+         *
+         * ─── پولی که گم می‌شد ──────────────────────────────────────────────
+         * پیش از این، وقتی حلقه‌ی بالا تمام می‌شد و `$remaining > 0` می‌ماند،
+         * آن مبلغ **دور ریخته می‌شد**. کامنتِ قبلی می‌گفت «مازاد از مانده‌ی
+         * کش‌شده کم می‌شود» ولی `recalculateBalance()` فقط بدهیِ واحد را از
+         * روی قبض‌ها بازمی‌شمارد — هیچ ربطی به کیفِ پول ندارد.
+         *
+         * سنجشِ واقعی: دو پرداختِ ۱۰۰٬۰۰۰ روی قبضِ ۱۰۰٬۰۰۰ → قبض درست
+         * ۱۰۰٬۰۰۰ ثبت شد، ولی موجودیِ کیف **صفر** ماند. یعنی صد هزار تومان
+         * از حسابِ ساکن رفته بود و در هیچ دفتری نبود.
+         *
+         * ─── چرا اعتبار به کیف و نه بازگشتِ خودکار ──────────────────────────
+         * بازگرداندنِ پول به کارت نیازمندِ تماس با درگاه و تصمیمِ انسانی
+         * است. اعتبارِ کیف بی‌درنگ، قابلِ‌ردیابی و قابلِ‌استفاده برای قبضِ
+         * بعدی است — و مهم‌تر، **در دفتر ثبت می‌شود**، پس دیگر گم نمی‌شود.
+         *
+         * ⚠️ ترتیبِ قفل عمداً حفظ شده. `WalletService::record()` روی
+         * `Unit` قفل می‌گیرد و ما اینجا از قبل `Bill` را قفل کرده‌ایم؛
+         * اگر این فراخوانی **پیش از** حلقه بود، زنجیره `Unit → Bill`
+         * می‌شد و با `payBill` که همان ترتیب را دارد سازگار می‌ماند — ولی
+         * `settle` زنجیره‌ی `Payment → Bill` دارد و افزودنِ `Unit` پس از
+         * `Bill` چرخه می‌ساخت. پس اعتبار **بیرون از تراکنشِ تخصیص** و پس
+         * از آزادشدنِ قفل‌ها ثبت می‌شود.
+         */
         Unit::withoutGlobalScopes()->find($payment->unit_id)?->recalculateBalance();
+
+        if ($remaining > 0.009) {
+            $this->surplus = ['unit_id' => $payment->unit_id, 'amount' => round($remaining, 2)];
+        }
     }
 
     protected function log(Payment $payment, string $action, ?User $actor, string $description): void
