@@ -39,3 +39,4 @@ playwright-report/
 
 # پایگاهِ موقتِ آزمونِ همزمانی (R50) — با `race:check` ساخته می‌شود
 /storage/race
+/storage/probe
