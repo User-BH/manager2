@@ -121,13 +121,13 @@
 
 ## ۱‑۹) Authorization — تست حمله
 
-| #   | سناریو                    | وضعیت                                    | مرحله       |
-| --- | ------------------------- | ---------------------------------------- | ----------- |
-| 55  | User A → User B data      | 🟡 (اسکوپ هست، تستِ حمله نه)             | **R53**     |
-| 56  | Tenant A → Tenant B data  | 🟡 (`ComplexScope` هست، تستِ حمله محدود) | **R53**     |
-| 57  | Tenant user → Admin API   | ✅ (R48 برای سه مسیر تست کرد)            | R53 (تعمیم) |
-| 58  | Resident → Manager API    | 🟡                                       | **R53**     |
-| 59  | Manager → Super Admin API | ✅ (R48)                                 | R53 (تعمیم) |
+| #   | سناریو                    | وضعیت                                             | مرحله       |
+| --- | ------------------------- | ------------------------------------------------- | ----------- |
+| 55  | User A → User B data      | ✅ ۲۴ مسیر، حمله‌ی هم‌مجتمعی (R53)                | **R53**     |
+| 56  | Tenant A → Tenant B data  | ✅ `TenantIsolationTest` + مهمان روی همه‌ی مسیرها | **R53**     |
+| 57  | Tenant user → Admin API   | ✅ (R48 برای سه مسیر تست کرد)                     | R53 (تعمیم) |
+| 58  | Resident → Manager API    | ✅ ۷ مسیر + یافتنِ یک حفره‌ی واقعی (R53)          | **R53**     |
+| 59  | Manager → Super Admin API | ✅ (R48)                                          | R53 (تعمیم) |
 
 ## ۱‑۱۰) Privilege Escalation
 
@@ -336,15 +336,15 @@
 | 172 | XSS                                      | ✅ (CSP + nonce)                                            | R16      |
 | 173 | CSRF                                     | ✅                                                          | R8       |
 | 174 | ⭐ SSRF                                  | ❓                                                          | **R56**  |
-| 175 | IDOR / BOLA                              | 🟡                                                          | **R53**  |
+| 175 | IDOR / BOLA                              | ✅ ۲۴ مسیر با شناسه‌ی همسایه سنجیده شد (R53)                | **R53**  |
 | 176 | Broken Authentication                    | 🟡                                                          | R53      |
-| 177 | Broken Authorization                     | 🟡                                                          | R53      |
+| 177 | Broken Authorization                     | ✅ حفره‌ی `join-requests` پیدا و رفع شد (R53)               | R53      |
 | 178 | Privilege Escalation                     | ❓                                                          | R54      |
 | 179 | Mass Assignment                          | 🟡                                                          | R54      |
 | 180 | ⭐ Session Hijacking                     | 🟡 (کوکیِ HttpOnly/Secure/SameSite ✅)                      | R53      |
-| 181 | ⭐ Session Fixation                      | ❓                                                          | **R53**  |
+| 181 | ⭐ Session Fixation                      | 🟡 فراخوانیِ `regenerate` قفل شد؛ رفتار NOT VERIFIED (R53)  | **R53**  |
 | 182 | Brute Force                              | ✅ (سقفِ نرخ)                                               | R17      |
-| 183 | ⭐ Credential Stuffing                   | ❓                                                          | R53      |
+| 183 | ⭐ Credential Stuffing                   | ✅ `AuthThrottleTest` (۵ تلاش، هم شماره هم IP)              | R53      |
 | 184 | Rate Limiting                            | ✅                                                          | R17، R48 |
 | 185 | ⭐ Open Redirect                         | ✅ (`safeRedirect` + تست)                                   | R17      |
 | 186 | ⭐ Path Traversal                        | ❓                                                          | **R56**  |
@@ -369,7 +369,7 @@
 | 200 | (۲) Rate Limit برای Login و Password Reset                                                | ✅                   | R17     |
 | 201 | (۲) کاربر نتواند Role خود را عوض کند                                                      | ❓                   | R54     |
 | 202 | (۲) دسترسی Server-side بررسی شود                                                          | ✅                   | R44     |
-| 203 | (۲) IDOR/BOLA در تمام APIها                                                               | ❌                   | **R53** |
+| 203 | (۲) IDOR/BOLA در تمام APIها                                                               | ✅ ۴۵ تستِ حمله      | **R53** |
 | 204 | (۳) FK / Unique / Check / Index / Nullable / Delete / Update Behavior                     | 🟡                   | R52     |
 | 205 | (۳) داده‌ی مالی Hard Delete نشود                                                          | ❌                   | **R51** |
 | 206 | (۳) عملیات حساس Transactional و Atomic                                                    | 🟡                   | R50     |
@@ -404,7 +404,7 @@
 | 228 | (۳) React Component Test                                 | 🟡    | چند کامپوننتِ کلیدی                    | **R69**  |
 | 229 | (۴) Form Testing (همهٔ فرم‌ها)                           | 🟡    | ورود/ثبت‌نام تست شده؛ بقیه نه          | **R69**  |
 | 230 | (۵) API Testing برای **هر** Endpoint                     | 🟡    | ۴۱ از ۴۶ کنترلر پوشش دارد              | **R68**  |
-| 231 | (۶) Authorization Testing                                | 🟡    | **R53**                                |
+| 231 | (۶) Authorization Testing                                | ✅    | **R53**                                |
 | 232 | (۷) Authentication Testing                               | ✅    | R17                                    |
 | 233 | (۸) Payment Testing (۱۰ سناریو)                          | 🟡    | **R50**                                |
 | 234 | (۹) Wallet Testing (۱۰ سناریو)                           | 🟡    | **R50**                                |

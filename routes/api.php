@@ -250,12 +250,29 @@ Route::middleware('auth')->group(function () {
     Route::post('join-requests', [JoinRequestController::class, 'store'])
         ->middleware('throttle:search')->name('join-requests.store');
 
-    // سمتِ مدیر: صندوقِ درخواست‌ها
-    Route::get('join-requests', [JoinRequestController::class, 'index'])->name('join-requests.index');
-    Route::post('join-requests/{invitation}/approve', [JoinRequestController::class, 'approve'])
-        ->name('join-requests.approve');
-    Route::post('join-requests/{invitation}/reject', [JoinRequestController::class, 'reject'])
-        ->name('join-requests.reject');
+    /*
+     * سمتِ مدیر: صندوقِ درخواست‌ها.
+     *
+     * ⚠️ این سه مسیر تا R53 **هیچ قیدِ نقشی نداشتند** و تستِ حمله نشان داد
+     * چه چیزی از آن درمی‌آید:
+     *
+     *   POST join-requests/{invitation}/approve  → ۲۰۰ برای یک ساکنِ ساده
+     *   POST join-requests/{invitation}/reject   → ۲۰۰ برای یک ساکنِ ساده
+     *
+     * یعنی هر ساکن می‌توانست کاربرِ دلخواهی را **عضوِ مجتمع کند و نقشش را
+     * تعیین کند**، یا درخواستِ همسایه را رد کند. `index` هم نام و
+     * **شماره‌ی موبایلِ** همه‌ی متقاضیان را به هر ساکنی می‌داد.
+     *
+     * تنها چیزی که کنترلر می‌سنجید این بود که درخواست به «مجتمعِ فعال»
+     * تعلق دارد — و مجتمعِ فعالِ یک ساکن، همان مجتمعِ خودش است.
+     */
+    Route::middleware('role:super_admin,complex_admin')->group(function () {
+        Route::get('join-requests', [JoinRequestController::class, 'index'])->name('join-requests.index');
+        Route::post('join-requests/{invitation}/approve', [JoinRequestController::class, 'approve'])
+            ->name('join-requests.approve');
+        Route::post('join-requests/{invitation}/reject', [JoinRequestController::class, 'reject'])
+            ->name('join-requests.reject');
+    });
 
     Route::get('invitations', [InvitationController::class, 'index'])->name('invitations.index');
     Route::post('invitations/{invitation}/accept', [InvitationController::class, 'accept'])

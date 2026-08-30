@@ -147,8 +147,6 @@ class PaymentController extends Controller
 
     private function authorizeBill(Bill $bill): void
     {
-        $unitIds = Auth::user()->currentUnits()->pluck('units.id');
-
         $this->authorize('pay', $bill);
     }
 }

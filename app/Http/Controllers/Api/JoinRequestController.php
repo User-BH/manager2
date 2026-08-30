@@ -217,10 +217,28 @@ class JoinRequestController extends Controller
      *
      * ۴۰۴ و نه ۴۰۳: وجودِ یک درخواست هم اطلاعات است.
      */
+    /**
+     * فقط مدیرِ همان مجتمع می‌تواند به این درخواست دست بزند.
+     *
+     * ⚠️ شرطِ نقش اینجا **تکرارِ** قیدِ `role:` روی مسیر است، و عمدی.
+     *
+     * تا R53 این متد فقط می‌سنجید که درخواست به «مجتمعِ فعال» تعلق دارد.
+     * ولی مجتمعِ فعالِ یک ساکن، همان مجتمعِ خودش است — پس آن شرط برای او
+     * هم برقرار بود و تستِ حمله ۲۰۰ گرفت: یک ساکنِ ساده می‌توانست کاربرِ
+     * دلخواهی را عضوِ مجتمع کند و نقشش را تعیین کند.
+     *
+     * قیدِ نقش به فایلِ مسیرها اضافه شد، ولی اینجا هم می‌ماند: مجوزی که
+     * فقط در یک فایلِ پیکربندی زندگی کند، با یک بازآراییِ مسیرها بی‌صدا
+     * می‌افتد. این متد تنها دروازه‌ی ورودِ هر دو عملِ حساس است.
+     */
     private function authorizeManagerOf(ComplexInvitation $invitation): void
     {
+        $user = Auth::user();
+
         abort_unless(
-            $invitation->direction === ComplexInvitation::REQUEST
+            $user !== null
+                && in_array($user->role, [UserRole::SuperAdmin, UserRole::ComplexAdmin], true)
+                && $invitation->direction === ComplexInvitation::REQUEST
                 && $invitation->complex_id === ComplexResolver::activeId(),
             404,
         );

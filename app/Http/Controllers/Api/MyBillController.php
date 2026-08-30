@@ -83,8 +83,6 @@ class MyBillController extends Controller
     /** قبض باید متعلق به یکی از واحدهای کاربر باشد. */
     private function authorizeBill(Bill $bill): void
     {
-        $unitIds = Auth::user()->currentUnits()->pluck('units.id');
-
         $this->authorize('view', $bill);
     }
 }
