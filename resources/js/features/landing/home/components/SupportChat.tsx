@@ -47,16 +47,32 @@ export function SupportChat() {
   const scrollRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
 
-  // سوال‌های پیشنهادی یک‌بار، وقتی چت اولین بار باز می‌شود
-  useEffect(() => {
-    if (!open || messages.length > 0) return
+  /*
+   * ⚠️ آماده‌سازیِ گفت‌وگو در **همان رویدادِ کلیک** انجام می‌شود، نه در افکت.
+   *
+   * پیش از این افکتی با وابستگیِ `[open, messages.length]` این کار را
+   * می‌کرد: باز شدنِ چت یک رندر می‌داد، افکت `setMessages` می‌زد و رندرِ
+   * دومی لازم می‌شد — یعنی کاربر یک فریم پنجره‌ی **خالی** می‌دید.
+   *
+   * علتِ باز شدن یک رویدادِ کاربر است، نه همگام‌سازی با سیستمِ بیرونی؛
+   * پس جایش همین‌جاست. شرطِ «فقط بارِ اول» هم مثلِ قبل سرِ جایش است.
+   */
+  function toggle() {
+    if (open) {
+      setOpen(false)
+      return
+    }
+
+    setOpen(true)
+
+    if (messages.length > 0) return
 
     setMessages([{ id: messageId++, role: 'bot', text: WELCOME }])
 
     api<{ starters: string[] }>('/support/starters')
       .then((data) => setStarters(data.starters))
       .catch(() => setStarters([]))
-  }, [open, messages.length])
+  }
 
   // هر پیام تازه، گفت‌وگو را به پایین می‌کشد
   useEffect(() => {
@@ -241,7 +257,7 @@ export function SupportChat() {
       )}
 
       {/* دکمه‌ی شناورِ باز/بسته */}
-      <ChatToggle key="toggle" open={open} onToggle={() => setOpen((o) => !o)} />
+      <ChatToggle key="toggle" open={open} onToggle={toggle} />
     </AnimatePresence>
   )
 }

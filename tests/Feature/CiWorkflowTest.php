@@ -24,7 +24,7 @@ class CiWorkflowTest extends TestCase
      *
      * ⚠️ پاک‌سازیِ کامنت اجباری است، نه احتیاط. خودِ همین فایل‌ها در
      * توضیحشان می‌نویسند «`php artisan backup:run` وجود ندارد» و «سقفِ
-     * هشدار `--max-warnings=15` است» — و بدونِ حذفِ کامنت، تست روی کدِ
+     * هشدار `--max-warnings=0` است» — و بدونِ حذفِ کامنت، تست روی کدِ
      * کاملاً درست قرمز می‌شود. این تله از R37 تا R41 شش بار تکرار شده.
      */
     private function source(string $name): string
@@ -234,6 +234,21 @@ class CiWorkflowTest extends TestCase
         $package = json_decode((string) file_get_contents(base_path('package.json')), true);
 
         $this->assertStringContainsString('--max-warnings', $package['scripts']['lint']);
+
+        /*
+         * ⚠️ و سقف باید **صفر** باشد (R49).
+         *
+         * سقفِ پیشین ۱۵ بود، دقیقاً به‌اندازه‌ی هشدارهای موجود — یعنی
+         * دروازه‌ای که هیچ‌چیز را جلو نمی‌گرفت و فقط وضعِ موجود را
+         * تثبیت می‌کرد. حالا که آن ۱۵ تا رفع شده‌اند، هر هشدارِ تازه
+         * باید همان‌جا بایستد، وگرنه بدهی دوباره جمع می‌شود و نفرِ بعدی
+         * سقف را کمی بالاتر می‌برد.
+         */
+        $this->assertStringContainsString(
+            '--max-warnings=0',
+            $package['scripts']['lint'],
+            'سقفِ هشدارِ لینت باید صفر بماند؛ بالا بردنش یعنی بازکردنِ درِ بدهیِ تازه.',
+        );
     }
 
     /**

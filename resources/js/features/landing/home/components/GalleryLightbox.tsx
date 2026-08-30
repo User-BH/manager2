@@ -32,7 +32,16 @@ export function GalleryLightbox({
   const item = isOpen ? items[index] : null
 
   const frameRef = useRef<HTMLDivElement>(null)
-  const [lens, setLens] = useState<{ x: number; y: number } | null>(null)
+  /*
+   * ⚠️ شماره‌ی تصویر **داخلِ خودِ حالت** نگه داشته می‌شود.
+   *
+   * پیش از این با `useEffect(() => setLens(null), [index])` ریست می‌شد —
+   * یعنی پس از عوض‌شدنِ تصویر یک رندر با ذره‌بینِ **تصویرِ قبلی** روی
+   * صفحه می‌نشست و بعد رندرِ دوم پاکش می‌کرد. حالا ناهمخوانی اصلاً
+   * ساخته نمی‌شود.
+   */
+  const [lens, setLens] = useState<{ x: number; y: number; index: number | null } | null>(null)
+  const activeLens = lens?.index === index ? lens : null
 
   const goNext = useCallback(() => {
     if (index === null) return
@@ -65,9 +74,6 @@ export function GalleryLightbox({
     }
   }, [isOpen, onClose, goNext, goPrev])
 
-  // با عوض شدن تصویر، ذره‌بین باید ریست شود
-  useEffect(() => setLens(null), [index])
-
   function handleMove(event: React.MouseEvent<HTMLDivElement>) {
     const frame = frameRef.current
     if (!frame) return
@@ -77,7 +83,7 @@ export function GalleryLightbox({
     const x = ((event.clientX - rect.left) / rect.width) * 100
     const y = ((event.clientY - rect.top) / rect.height) * 100
 
-    setLens({ x: Math.min(100, Math.max(0, x)), y: Math.min(100, Math.max(0, y)) })
+    setLens({ x: Math.min(100, Math.max(0, x)), y: Math.min(100, Math.max(0, y)), index })
   }
 
   return (
@@ -141,25 +147,25 @@ export function GalleryLightbox({
                 loading="eager"
                 decoding="async"
                 className="h-full w-full object-cover transition-opacity duration-200"
-                style={{ opacity: lens ? 0 : 1 }}
+                style={{ opacity: activeLens ? 0 : 1 }}
                 draggable={false}
               />
 
               {/* لایه‌ی بزرگ‌نمایی: همان تصویر، ولی چند برابر و مرکزشده روی
                   نقطه‌ای که ماوس رویش است. */}
-              {lens && (
+              {activeLens && (
                 <div
                   className="absolute inset-0"
                   style={{
                     backgroundImage: `url(${item.src})`,
                     backgroundSize: `${ZOOM_FACTOR * 100}%`,
-                    backgroundPosition: `${lens.x}% ${lens.y}%`,
+                    backgroundPosition: `${activeLens.x}% ${activeLens.y}%`,
                     backgroundRepeat: 'no-repeat',
                   }}
                 />
               )}
 
-              {!lens && (
+              {!activeLens && (
                 <div
                   className="pointer-events-none absolute bottom-3 right-3 flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-semibold text-white backdrop-blur-sm"
                   style={{ backgroundColor: 'color-mix(in srgb, #05100c 55%, transparent)' }}

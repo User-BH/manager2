@@ -141,19 +141,30 @@ export function CalculatorPage() {
    * با عوض شدن درجه/رادیان، نتیجه‌ای که روی صفحه هست باید در حالت تازه
    * دوباره حساب شود. بدون این، کاربر sin(30) را در درجه می‌دید (۰.۵)، حالت
    * را رادیان می‌کرد ولی همان ۰.۵ می‌ماند و فکر می‌کرد سوییچ کار نمی‌کند.
+   *
+   * ⚠️ این کار در **همان رویدادِ کلیک** انجام می‌شود، نه در افکت.
+   *
+   * علتش یک کنشِ کاربر است، نه همگام‌سازی با سیستمِ بیرونی. با افکت،
+   * کلیک یک رندر با نتیجه‌ی **حالتِ قبلی** می‌داد و رندرِ دوم اصلاحش
+   * می‌کرد — یعنی همان عددی که کاربر شک داشت درست است، یک فریم بیشتر
+   * روی صفحه می‌ماند.
+   *
+   * و مهم‌تر: اینجا `next` استفاده می‌شود نه `angleMode`. افکت به
+   * وابستگیِ دست‌چین‌شده تکیه داشت (با `eslint-disable`) و اگر روزی
+   * چیزِ دیگری هم به آن آرایه اضافه می‌شد، بی‌صدا اشتباه حساب می‌کرد.
    */
-  useEffect(() => {
+  function changeAngleMode(next: AngleMode) {
+    setAngleMode(next)
+
     setResult((current) => {
       if (!current) return current
       try {
-        return formatResult(evaluate(expression, angleMode))
+        return formatResult(evaluate(expression, next))
       } catch {
         return ''
       }
     })
-    // فقط با تغییر حالت زاویه، نه با هر تایپ
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [angleMode])
+  }
 
   // صفحه‌کلید فیزیکی: ماشین حساب بدون آن روی دسکتاپ کند است
   useEffect(() => {
@@ -230,7 +241,7 @@ export function CalculatorPage() {
           {(['deg', 'rad'] as const).map((mode) => (
             <button
               key={mode}
-              onClick={() => setAngleMode(mode)}
+              onClick={() => changeAngleMode(mode)}
               className="rounded-lg px-3 py-1.5 text-[12px] font-bold transition-colors"
               style={{
                 backgroundColor: angleMode === mode ? 'var(--color-brand-500)' : 'transparent',

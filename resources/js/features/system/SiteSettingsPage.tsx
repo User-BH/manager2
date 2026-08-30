@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { Loader2, Save } from 'lucide-react'
 import { Card } from '@/shared/ui/Card'
 import { TextField } from '@/shared/ui/Field'
@@ -60,16 +60,23 @@ export function SiteSettingsPage() {
       }>('/system/site-settings', { signal }),
   })
 
-  const [contact, setContact] = useState<Contact | null>(null)
-  const [social, setSocial] = useState<Social[] | null>(null)
+  /*
+   * ⚠️ فقط **دست‌نوشته‌ی کاربر** حالت است، نه کپی‌ای از پاسخِ سرور.
+   *
+   * پیش از این دو `useState` بودند که یک افکت با رسیدنِ `data` پُرشان
+   * می‌کرد. سه ایراد داشت: ① یک رندرِ کاملِ اضافه با فرمِ خالی،
+   * ② همان داده در دو جا (کشِ react-query و حالتِ محلی) و ③ هر بار که
+   * react-query دوباره می‌گرفت — تمرکز روی پنجره، اتصالِ دوباره —
+   * ویرایشِ نیمه‌کاره‌ی کاربر بی‌صدا پاک می‌شد.
+   *
+   * حالا تا وقتی کاربر چیزی عوض نکرده `draft` تهی است و مقدارها مستقیم
+   * از سرور خوانده می‌شوند؛ با اولین ویرایش، دست‌نوشته رویش می‌نشیند.
+   */
+  const [draft, setDraft] = useState<{ contact: Contact; social: Social[] } | null>(null)
   const [saving, setSaving] = useState(false)
 
-  useEffect(() => {
-    if (data) {
-      setContact(data.footer.contact)
-      setSocial(data.footer.social)
-    }
-  }, [data])
+  const contact = draft?.contact ?? data?.footer.contact ?? null
+  const social = draft?.social ?? data?.footer.social ?? null
 
   async function save() {
     if (!contact || !social) return
@@ -77,6 +84,12 @@ export function SiteSettingsPage() {
     try {
       await api('/system/site-settings', { method: 'PUT', body: { contact, social } })
       toastSuccess('تنظیمات فوتر ذخیره شد.')
+      /*
+       * ⚠️ دست‌نوشته پس از ذخیره کنار می‌رود تا آنچه دیده می‌شود همان
+       * چیزی باشد که سرور واقعاً نگه داشته — اگر سرور مقداری را
+       * عادی‌سازی کند، کاربر نتیجه‌ی واقعی را می‌بیند نه ورودیِ خودش.
+       */
+      setDraft(null)
       void refetch()
     } catch (err) {
       alertError(err, 'ذخیره‌ی تنظیمات ممکن نشد.')
@@ -90,10 +103,13 @@ export function SiteSettingsPage() {
   if (!contact || !social) return null
 
   const setC = <K extends keyof Contact>(key: K, value: Contact[K]) =>
-    setContact((c) => (c ? { ...c, [key]: value } : c))
+    setDraft({ contact: { ...contact, [key]: value }, social })
 
   const setS = (id: string, patch: Partial<Social>) =>
-    setSocial((list) => list?.map((s) => (s.id === id ? { ...s, ...patch } : s)) ?? list)
+    setDraft({
+      contact,
+      social: social.map((s) => (s.id === id ? { ...s, ...patch } : s)),
+    })
 
   return (
     <div className="flex flex-col gap-5">

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { useForm } from 'react-hook-form'
+import { useForm, useWatch } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { Loader2, Save, Send, AlertCircle, CheckCircle2 } from 'lucide-react'
 import { z } from 'zod'
@@ -49,7 +49,7 @@ export function SmsPage() {
     register,
     handleSubmit,
     reset,
-    watch,
+    control,
     setError,
     formState: { errors, isSubmitting },
   } = useForm<SmsFormValues>({ resolver: zodResolver(smsSchema) })
@@ -58,7 +58,11 @@ export function SmsPage() {
     if (data) reset({ ...data.settings, password: '' })
   }, [data, reset])
 
-  const driver = watch('sms_driver')
+  /*
+   * ⚠️ `useWatch` و نه `watch()` — صورتِ تابعیِ `watch` هنگامِ رندر به حالتِ
+   * درونیِ فرم دست می‌زند و از دیدِ کامپایلرِ React ناخالص است.
+   */
+  const driver = useWatch({ control, name: 'sms_driver' })
 
   async function onSubmit(values: SmsFormValues) {
     setFormError(null)

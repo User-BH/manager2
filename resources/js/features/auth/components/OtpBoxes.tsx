@@ -35,9 +35,23 @@ export function OtpBoxes({
 
   // آخرین نسخه‌ی کال‌بک‌ها، تا افکتِ WebOTP که یک‌بار اجرا می‌شود بسته‌ی کهنه نگیرد
   const onChangeRef = useRef(onChange)
-  onChangeRef.current = onChange
   const onCompleteRef = useRef(onComplete)
-  onCompleteRef.current = onComplete
+
+  /*
+   * ⚠️ همگام‌سازی در افکت انجام می‌شود، نه در بدنه‌ی رندر.
+   *
+   * نوشتن در ref وسطِ رندر یعنی رندر اثرِ جانبی دارد. با رندرِ همزمانِ
+   * React ممکن است رندری شروع و رها شود؛ آن‌وقت ref مقداری را نگه داشته
+   * که هرگز روی صفحه ننشسته.
+   *
+   * افکت **بدونِ آرایه‌ی وابستگی** است تا پس از هر رندرِ متعهدشده اجرا
+   * شود. افکت‌ها به ترتیبِ تعریف اجرا می‌شوند، پس این پیش از افکتِ
+   * WebOTP می‌دود و آن یکی هرگز refِ خالی نمی‌بیند.
+   */
+  useEffect(() => {
+    onChangeRef.current = onChange
+    onCompleteRef.current = onComplete
+  })
 
   useEffect(() => {
     if (autoFocus) refs.current[0]?.focus()

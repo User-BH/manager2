@@ -75,6 +75,21 @@ export function PayBillPage() {
     formState: { errors, isSubmitting },
   } = useForm<ReceiptInput, unknown, ReceiptValues>({ resolver: zodResolver(receiptSchema) })
 
+  /*
+   * ⚠️ `handleSubmit(onSubmit)` اینجا **بسته** می‌شود، نه در JSX.
+   *
+   * صورتِ مستقیمِ `onSubmit={handleSubmit(onSubmit)}` هنگامِ **رندر**
+   * فراخوانی می‌شود. و چون `onSubmit` یک ref می‌خواند
+   * (`fileRef.current`), کامپایلرِ React آن را خواندنِ زمانِ رندر
+   * می‌بیند — که ناخالص است و کامپوننت را از حافظه‌سپاری بیرون می‌گذارد.
+   *
+   * با این پوشش، فراخوانی به لحظه‌ی ارسالِ فرم موکول می‌شود؛ همان‌جا که
+   * ref واقعاً مقدار دارد.
+   */
+  function submitForm(event: React.FormEvent<HTMLFormElement>) {
+    void handleSubmit(onSubmit)(event)
+  }
+
   async function onSubmit(values: ReceiptValues) {
     const file = fileRef.current?.files?.[0]
 
@@ -294,7 +309,7 @@ export function PayBillPage() {
             </Link>
           </div>
         ) : (
-          <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4">
+          <form onSubmit={submitForm} className="flex flex-col gap-4">
             {formError && (
               <div
                 className="flex items-center gap-2 rounded-xl px-3.5 py-2.5 text-xs"

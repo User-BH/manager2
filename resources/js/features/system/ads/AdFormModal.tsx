@@ -42,13 +42,36 @@ export function AdFormModal({
     formState: { errors, isSubmitting },
   } = useForm<AdFormValues>({ resolver: zodResolver(adSchema), defaultValues: emptyAd })
 
+  /*
+   * ⚠️ ریستِ حالتِ محلی هنگامِ **رندر** انجام می‌شود، نه در افکت.
+   *
+   * این همان الگویی است که خودِ React برای «تنظیمِ حالت با تغییرِ prop»
+   * پیشنهاد می‌کند: مقدارِ قبلیِ prop در حالت نگه داشته می‌شود و به‌محضِ
+   * تفاوت، همان‌جا در رندر اصلاح می‌شود. React این رندر را پیش از
+   * نشستن روی صفحه دور می‌ریزد و دوباره می‌سازد.
+   *
+   * با افکت، مودال یک فریم با **فایلِ بنرِ قبلی** باز می‌شد و بعد پاک
+   * می‌شد — همان چشمکی که کاربر می‌دید.
+   *
+   * `reset()` فرم پایین‌تر و در افکت می‌ماند: آن حالتِ React نیست، به
+   * کتابخانه‌ی فرم دست می‌زند و جایش افکت است.
+   */
+  const [wasOpen, setWasOpen] = useState(open)
+
+  if (open !== wasOpen) {
+    setWasOpen(open)
+
+    if (open) {
+      setFile(null)
+      setPreview(null)
+      setImageError(null)
+      setFormError(null)
+    }
+  }
+
   // هر بار باز شدن مودال، فرم را با داده‌ی بنرِ در دست ویرایش پر می‌کند
   useEffect(() => {
     if (!open) return
-
-    setFile(null)
-    setImageError(null)
-    setFormError(null)
 
     reset(
       editing
@@ -65,18 +88,33 @@ export function AdFormModal({
     )
   }, [open, editing, reset])
 
-  // آدرس شیء (blob) باید بعد از استفاده آزاد شود وگرنه نشت حافظه دارد
-  useEffect(() => {
-    if (!file) {
-      setPreview(null)
-      return
-    }
+  /*
+   * ⚠️ آدرسِ blob همان‌جا که فایل انتخاب می‌شود ساخته می‌شود، نه در افکت.
+   *
+   * ساختنِ آن یک اثرِ جانبی است که علتش **رویدادِ کاربر** است، نه
+   * همگام‌سازی با سیستمِ بیرونی. با افکت، هر انتخاب دو رندر می‌خواست:
+   * یکی برای نشستنِ `file` و یکی برای رسیدنِ آدرس — یعنی یک فریم با
+   * قابِ خالی.
+   *
+   * آدرسِ زنده در یک ref هم نگه داشته می‌شود تا ① با انتخابِ فایلِ
+   * بعدی آزاد شود و ② با بسته‌شدنِ کامپوننت هم آزاد شود. بدونِ این،
+   * هر انتخاب یک blob در حافظه‌ی مرورگر جا می‌گذارد.
+   */
+  const previewUrl = useRef<string | null>(null)
 
-    const url = URL.createObjectURL(file)
-    setPreview(url)
+  function showPreview(selected: File | null) {
+    if (previewUrl.current) URL.revokeObjectURL(previewUrl.current)
 
-    return () => URL.revokeObjectURL(url)
-  }, [file])
+    previewUrl.current = selected ? URL.createObjectURL(selected) : null
+    setPreview(previewUrl.current)
+  }
+
+  useEffect(
+    () => () => {
+      if (previewUrl.current) URL.revokeObjectURL(previewUrl.current)
+    },
+    [],
+  )
 
   function pickFile(selected: File | undefined) {
     if (!selected) return
@@ -92,6 +130,7 @@ export function AdFormModal({
 
     setImageError(null)
     setFile(selected)
+    showPreview(selected)
   }
 
   async function onSubmit(values: AdFormValues) {
@@ -145,7 +184,11 @@ export function AdFormModal({
     }
   }
 
-  const shownPreview = preview ?? editing?.image ?? null
+  /*
+   * ⚠️ `preview` فقط وقتی معتبر است که فایلی در دست باشد؛ پس از پاک‌شدنِ
+   * فایل، آن blob باطل شده و باید نادیده گرفته شود.
+   */
+  const shownPreview = (file ? preview : null) ?? editing?.image ?? null
 
   return (
     <Modal

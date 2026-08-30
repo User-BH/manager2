@@ -311,6 +311,21 @@ export function MessengerPage() {
     )
   }
 
+  /*
+   * ⚠️ `handleSubmit(onSubmit)` اینجا **بسته** می‌شود، نه در JSX.
+   *
+   * صورتِ مستقیمِ `onSubmit={handleSubmit(onSubmit)}` هنگامِ **رندر**
+   * فراخوانی می‌شود. و چون `onSubmit` یک ref می‌خواند
+   * (`fileRef.current`), کامپایلرِ React آن را خواندنِ زمانِ رندر
+   * می‌بیند — که ناخالص است و کامپوننت را از حافظه‌سپاری بیرون می‌گذارد.
+   *
+   * با این پوشش، فراخوانی به لحظه‌ی ارسالِ فرم موکول می‌شود؛ همان‌جا که
+   * ref واقعاً مقدار دارد.
+   */
+  function submitForm(event: React.FormEvent<HTMLFormElement>) {
+    void handleSubmit(onSubmit)(event)
+  }
+
   async function onSubmit(values: MessageFormValues) {
     const hasPoll = Boolean(pollDraft?.question.trim())
 
@@ -652,7 +667,7 @@ export function MessengerPage() {
             </div>
           )}
 
-          <form onSubmit={handleSubmit(onSubmit)} className="flex items-start gap-2">
+          <form onSubmit={submitForm} className="flex items-start gap-2">
             <div className="flex-1">
               <textarea
                 rows={1}

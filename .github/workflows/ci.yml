@@ -67,7 +67,7 @@ jobs:
       - name: تایپ
         run: npm run typecheck
 
-      # ⚠️ سقفِ هشدار در خودِ `package.json` است (`--max-warnings=15`).
+      # ⚠️ سقفِ هشدار در خودِ `package.json` است (`--max-warnings=0`).
       # اینجا تکرار نمی‌شود تا دو جا از هم جدا نیفتند.
       - name: لینت
         run: npm run lint

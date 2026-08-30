@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useForm } from 'react-hook-form'
+import { useForm, useWatch } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { motion } from 'framer-motion'
 import {
@@ -264,7 +264,7 @@ function RuleForm({
   const {
     register,
     handleSubmit,
-    watch,
+    control,
     setError,
     formState: { errors, isSubmitting },
   } = useForm<RuleInput, unknown, RuleValues>({
@@ -277,9 +277,18 @@ function RuleForm({
     },
   })
 
-  // هر نوع قانون پارامترهای خودش را دارد؛ فقط همان‌ها نمایش داده می‌شوند تا
-  // کاربر فیلدی پر نکند که در محاسبه اصلاً استفاده نمی‌شود.
-  const selectedType = types.find((t) => t.value === watch('type'))
+  /*
+   * هر نوع قانون پارامترهای خودش را دارد؛ فقط همان‌ها نمایش داده می‌شوند تا
+   * کاربر فیلدی پر نکند که در محاسبه اصلاً استفاده نمی‌شود.
+   *
+   * ⚠️ `useWatch` و نه `watch()`: صورتِ تابعیِ `watch` هنگامِ رندر به حالتِ
+   * درونیِ فرم دست می‌زند و کامپایلرِ React نمی‌تواند تضمین کند خروجی با
+   * ورودی می‌خواند — یعنی مجازِ حافظه‌سپاری‌اش نمی‌کند و ممکن است رندرِ
+   * کهنه ببیند. `useWatch` یک هوکِ واقعی است که اشتراک می‌گیرد و رندرِ
+   * دوباره را خودش راه می‌اندازد.
+   */
+  const selectedTypeValue = useWatch({ control, name: 'type' })
+  const selectedType = types.find((t) => t.value === selectedTypeValue)
   const fields = selectedType?.fields ?? []
 
   async function onSubmit(values: RuleValues) {

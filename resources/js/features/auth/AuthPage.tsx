@@ -1,4 +1,3 @@
-import { useEffect, useState } from 'react'
 import { useLocation, useSearchParams } from 'react-router-dom'
 import { AnimatePresence, motion } from 'framer-motion'
 import { ArrowRight, ShieldCheck } from 'lucide-react'
@@ -26,17 +25,34 @@ const SLIDE = { type: 'spring', stiffness: 260, damping: 30 } as const
  * نشان داده می‌شود.
  */
 export function AuthPage() {
-  const [searchParams] = useSearchParams()
-  const initialTab: AuthTab = searchParams.get('tab') === 'register' ? 'register' : 'login'
-  const [tab, setTab] = useState<AuthTab>(initialTab)
+  const [searchParams, setSearchParams] = useSearchParams()
   const { isAuthenticated, isLoading } = useAuth()
   const location = useLocation()
 
-  useDocumentTitle(tab === 'login' ? 'ورود به پنل' : 'ثبت‌نام')
+  /*
+   * ⚠️ زبانه‌ی فعال از **آدرس** خوانده می‌شود، نه از یک حالتِ موازی.
+   *
+   * پیش از این هم `useState` بود و هم افکتی که با هر تغییرِ آدرس
+   * دوباره رویش می‌نوشت — یعنی دو منبعِ حقیقت برای یک چیز، و یک رندرِ
+   * اضافه با زبانه‌ی **قبلی** هر بار که آدرس عوض می‌شد.
+   *
+   * حالا آدرس تنها منبع است. `replace` عمدی است: عوض‌کردنِ زبانه یک
+   * گامِ تازه در تاریخچه نمی‌سازد، پس دکمه‌ی بازگشتِ مرورگر کاربر را به
+   * صفحه‌ی قبلی می‌برد نه به زبانه‌ی قبلی — همان رفتارِ پیشین.
+   */
+  const tab: AuthTab = searchParams.get('tab') === 'register' ? 'register' : 'login'
 
-  useEffect(() => {
-    setTab(searchParams.get('tab') === 'register' ? 'register' : 'login')
-  }, [searchParams])
+  function setTab(next: AuthTab) {
+    setSearchParams(
+      (params) => {
+        params.set('tab', next)
+        return params
+      },
+      { replace: true },
+    )
+  }
+
+  useDocumentTitle(tab === 'login' ? 'ورود به پنل' : 'ثبت‌نام')
 
   if (!isLoading && isAuthenticated) {
     // داشبورد یک سندِ SPAِ جداست؛ پس رفتن به آن ناوبریِ واقعیِ مرورگر است نه

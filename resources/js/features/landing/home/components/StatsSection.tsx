@@ -15,11 +15,18 @@ function AnimatedNumber({ value }: { value: string }) {
     ? Number(numericPart.replace(/[۰-۹]/g, (d) => String('۰۱۲۳۴۵۶۷۸۹'.indexOf(d))))
     : null
 
+  /*
+   * ⚠️ مقدارِ غیرعددی (مثلِ «۲۴/۷») **مشتق** است نه حالت.
+   *
+   * پیش از این با یک `setState` داخلِ افکت در `display` نوشته می‌شد —
+   * یعنی یک رندرِ اضافه فقط برای رساندنِ چیزی که همان لحظه در دست بود.
+   * حالا مستقیم خوانده می‌شود و افکت فقط کارِ واقعیِ خودش را دارد:
+   * انیمیشنِ شمارش.
+   */
+  const shown = target === null ? value : display
+
   useEffect(() => {
-    if (!isInView || target === null) {
-      if (target === null) setDisplay(value)
-      return
-    }
+    if (!isInView || target === null) return
 
     const duration = 1200
     const startTime = performance.now()
@@ -48,12 +55,12 @@ function AnimatedNumber({ value }: { value: string }) {
     frame = requestAnimationFrame(tick)
 
     return () => cancelAnimationFrame(frame)
-  }, [isInView, target, value])
+  }, [isInView, target])
 
   return (
     <span ref={ref}>
       {prefix}
-      {display}
+      {shown}
       {suffix}
     </span>
   )
