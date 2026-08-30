@@ -173,18 +173,18 @@
 
 | #   | بند                                                         | وضعیت                                                                               | مرحله     |
 | --- | ----------------------------------------------------------- | ----------------------------------------------------------------------------------- | --------- |
-| 80  | SSH Hardening                                               | 🔒                                                                                  | R56 (سند) |
-| 81  | Firewall                                                    | 🔒                                                                                  | R56       |
+| 80  | SSH Hardening                                               | 🔒 چک‌لیست نوشته شد؛ اجرا با ادمینِ سرور (R56)                                      | R56 (سند) |
+| 81  | Firewall                                                    | 🔒 چک‌لیست (R56)                                                                    | R56       |
 | 82  | عدم اجرای سرویس غیرضروری                                    | 🔒                                                                                  | R56       |
-| 83  | Permission فایل‌ها                                          | 🔒                                                                                  | R56       |
-| 84  | PHP Configuration                                           | 🔒                                                                                  | R56       |
+| 83  | Permission فایل‌ها                                          | 🔒 چک‌لیست (R56)                                                                    | R56       |
+| 84  | PHP Configuration                                           | 🔒 چک‌لیست، شاملِ `disable_functions` (R56)                                         | R56       |
 | 85  | Nginx Configuration                                         | 🔒 ⚠️ **طبق قید دست‌نخورده می‌ماند**                                                | R56       |
-| 86  | Database Access                                             | 🔒                                                                                  | R56       |
-| 87  | Redis Access                                                | 🔒                                                                                  | R56       |
-| 88  | TLS                                                         | 🔒                                                                                  | R56       |
+| 86  | Database Access                                             | 🔒 چک‌لیست (R56)                                                                    | R56       |
+| 87  | Redis Access                                                | 🔒 چک‌لیست (R56)                                                                    | R56       |
+| 88  | TLS                                                         | 🔒 چک‌لیست (R56)                                                                    | R56       |
 | 89  | Security Headers                                            | ✅                                                                                  | R16، R48  |
-| 90  | Log Protection                                              | 🟡                                                                                  | R56       |
-| 91  | Automatic Security Updates                                  | 🔒                                                                                  | R56       |
+| 90  | Log Protection                                              | 🔒 چک‌لیست (R56)                                                                    | R56       |
+| 91  | Automatic Security Updates                                  | 🔒 چک‌لیست (R56)                                                                    | R56       |
 | 92  | Database نباید Public باشد (Redis/MySQL/Adminer/phpMyAdmin) | 🔒 ⚠️ **قیدِ شما: به تنظیماتِ MySQL و phpMyAdmin دست نمی‌زنم** — فقط چک‌لیست می‌دهم | R56       |
 
 ## ۱‑۱۵) PWA — Cache Strategy
@@ -330,34 +330,34 @@
 
 ## ۲‑۱) OWASP Top 10 و API Security Top 10
 
-| #   | بردار                                    | وضعیت                                                       | مرحله    |
-| --- | ---------------------------------------- | ----------------------------------------------------------- | -------- |
-| 171 | SQL Injection                            | ✅ (۱۲ موردِ SQL خام سنجیده شد، همه امن)                    | R48      |
-| 172 | XSS                                      | ✅ (CSP + nonce)                                            | R16      |
-| 173 | CSRF                                     | ✅                                                          | R8       |
-| 174 | ⭐ SSRF                                  | ❓                                                          | **R56**  |
-| 175 | IDOR / BOLA                              | ✅ ۲۴ مسیر با شناسه‌ی همسایه سنجیده شد (R53)                | **R53**  |
-| 176 | Broken Authentication                    | 🟡                                                          | R53      |
-| 177 | Broken Authorization                     | ✅ حفره‌ی `join-requests` پیدا و رفع شد (R53)               | R53      |
-| 178 | Privilege Escalation                     | ✅ (R54)                                                    | R54      |
-| 179 | Mass Assignment                          | ✅ (R54)                                                    | R54      |
-| 180 | ⭐ Session Hijacking                     | 🟡 (کوکیِ HttpOnly/Secure/SameSite ✅)                      | R53      |
-| 181 | ⭐ Session Fixation                      | 🟡 فراخوانیِ `regenerate` قفل شد؛ رفتار NOT VERIFIED (R53)  | **R53**  |
-| 182 | Brute Force                              | ✅ (سقفِ نرخ)                                               | R17      |
-| 183 | ⭐ Credential Stuffing                   | ✅ `AuthThrottleTest` (۵ تلاش، هم شماره هم IP)              | R53      |
-| 184 | Rate Limiting                            | ✅                                                          | R17، R48 |
-| 185 | ⭐ Open Redirect                         | ✅ (`safeRedirect` + تست)                                   | R17      |
-| 186 | ⭐ Path Traversal                        | ❓                                                          | **R56**  |
-| 187 | File Upload Vulnerabilities              | 🟡 (`mimes` + `max` هست؛ محتوای واقعیِ فایل سنجیده نمی‌شود) | **R56**  |
-| 188 | ⭐ Command Injection                     | ❓                                                          | R56      |
-| 189 | Sensitive Data Exposure                  | 🟡 (M-01 باز است)                                           | **R55**  |
-| 190 | Security Misconfiguration                | ✅                                                          | R44      |
-| 191 | ⭐ Replay Attack                         | 🟡                                                          | R51      |
-| 192 | Race Condition                           | ❌                                                          | **R50**  |
-| 193 | ⭐ Cache Poisoning                       | ❓                                                          | R60      |
-| 194 | ⭐ Webhook Abuse                         | 🟡                                                          | R51      |
-| 195 | هیچ داده‌ای از Client قابلِ اعتماد نیست  | ✅ (R54)                                                    | R54      |
-| 196 | مخفی‌کردنِ UI هرگز Security Control نیست | ✅ (میان‌افزارِ `feature:` سمتِ سرور)                       | R44      |
+| #   | بردار                                    | وضعیت                                                          | مرحله    |
+| --- | ---------------------------------------- | -------------------------------------------------------------- | -------- |
+| 171 | SQL Injection                            | ✅ (۱۲ موردِ SQL خام سنجیده شد، همه امن)                       | R48      |
+| 172 | XSS                                      | ✅ (CSP + nonce)                                               | R16      |
+| 173 | CSRF                                     | ✅                                                             | R8       |
+| 174 | ⭐ SSRF                                  | ✅ هفت نقطه سنجیده شد؛ همه آدرسِ ثابت یا config (R56)          | **R56**  |
+| 175 | IDOR / BOLA                              | ✅ ۲۴ مسیر با شناسه‌ی همسایه سنجیده شد (R53)                   | **R53**  |
+| 176 | Broken Authentication                    | 🟡                                                             | R53      |
+| 177 | Broken Authorization                     | ✅ حفره‌ی `join-requests` پیدا و رفع شد (R53)                  | R53      |
+| 178 | Privilege Escalation                     | ✅ (R54)                                                       | R54      |
+| 179 | Mass Assignment                          | ✅ (R54)                                                       | R54      |
+| 180 | ⭐ Session Hijacking                     | 🟡 (کوکیِ HttpOnly/Secure/SameSite ✅)                         | R53      |
+| 181 | ⭐ Session Fixation                      | 🟡 فراخوانیِ `regenerate` قفل شد؛ رفتار NOT VERIFIED (R53)     | **R53**  |
+| 182 | Brute Force                              | ✅ (سقفِ نرخ)                                                  | R17      |
+| 183 | ⭐ Credential Stuffing                   | ✅ `AuthThrottleTest` (۵ تلاش، هم شماره هم IP)                 | R53      |
+| 184 | Rate Limiting                            | ✅                                                             | R17، R48 |
+| 185 | ⭐ Open Redirect                         | ✅ (`safeRedirect` + تست)                                      | R17      |
+| 186 | ⭐ Path Traversal                        | ✅ مسیرِ storage امضا می‌خواهد و آداپتور هم استثنا می‌اندازد   | **R56**  |
+| 187 | File Upload Vulnerabilities              | ✅ `mimes` محتوا را می‌خواند؛ polyglot مستند و سه‌لایه مهار شد | **R56**  |
+| 188 | ⭐ Command Injection                     | ✅ صفر فراخوانیِ پوسته، و تستِ ساختاری نگهش می‌دارد            | R56      |
+| 189 | Sensitive Data Exposure                  | 🟡 (M-01 باز است)                                              | **R55**  |
+| 190 | Security Misconfiguration                | ✅                                                             | R44      |
+| 191 | ⭐ Replay Attack                         | 🟡                                                             | R51      |
+| 192 | Race Condition                           | ❌                                                             | **R50**  |
+| 193 | ⭐ Cache Poisoning                       | ❓                                                             | R60      |
+| 194 | ⭐ Webhook Abuse                         | 🟡                                                             | R51      |
+| 195 | هیچ داده‌ای از Client قابلِ اعتماد نیست  | ✅ (R54)                                                       | R54      |
+| 196 | مخفی‌کردنِ UI هرگز Security Control نیست | ✅ (میان‌افزارِ `feature:` سمتِ سرور)                          | R44      |
 
 ## ۲‑۲) بندهای ۲ تا ۱۶ فایل
 
@@ -411,7 +411,7 @@
 | 235 | (۱۰) Database Testing                                    | 🟡    | R52                                    |
 | 236 | (۱۱) Business Logic Testing                              | 🟡    | استخراجِ صریحِ قواعد انجام نشده        | **R68**  |
 | 237 | (۱۲) Notification Testing (In-App/Push/SMS/Email)        | 🟡    | ⚠️ ایمیل عمداً وجود ندارد؛ Push هم نه  | R62، R68 |
-| 238 | (۱۳) File Upload Testing                                 | 🟡    | **R56**                                |
+| 238 | (۱۳) File Upload Testing                                 | ✅    | **R56**                                |
 | 239 | (۱۴) PWA Testing                                         | ❌    | **R60–R62**                            |
 | 240 | (۱۵) E2E برای ۱۱ سفرِ کاربر                              | 🟡    | ۱۱ تست هست ولی سفرهای مالی نه          | **R70**  |
 | 241 | (۱۶) Cross-Browser (Chrome/Firefox/Safari/Edge + موبایل) | ❌    | فقط Chromium                           | **R70**  |
