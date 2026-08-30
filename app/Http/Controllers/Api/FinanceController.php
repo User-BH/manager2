@@ -77,14 +77,29 @@ class FinanceController extends Controller
 
         $data = $request->validated();
 
+        /*
+         * ⚠️ `split_method` در قواعد `nullable` است، پس وقتی کلاینت
+         * نفرستدش **اصلاً در `validated()` نیست**.
+         *
+         * پیش از این `$data['split_method']` مستقیم خوانده می‌شد و همان
+         * درخواست با خطای «Undefined array key» به **۵۰۰** می‌رسید — در
+         * حالی که خطِ بعدی (`is_distributed`) همان کلید را با `?? null`
+         * می‌خواند. یعنی نویسنده یک خط پایین‌تر می‌دانست کلید ممکن است
+         * نباشد، ولی یک خط بالاتر نه.
+         *
+         * حالا یک بار خوانده می‌شود و هر دو جا از همان یک مقدار استفاده
+         * می‌کنند.
+         */
+        $splitMethod = $data['split_method'] ?? null;
+
         Expense::create([
             'title' => $data['title'],
             'amount' => $data['amount'],
             'category' => ExpenseCategory::from($data['category']),
             'period' => $data['period'],
             'spend_date' => now(),
-            'split_method' => $data['split_method'] ?: null,
-            'is_distributed' => filled($data['split_method'] ?? null),
+            'split_method' => $splitMethod ?: null,
+            'is_distributed' => filled($splitMethod),
             'split_config' => ['exempt_ground_floor' => true],
             'description' => $data['description'] ?? null,
             'created_by' => Auth::id(),
