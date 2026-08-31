@@ -187,6 +187,14 @@ jobs:
       # مهارنشده مقدارِ واقعیِ رمزها را در پاسخ چاپ می‌کند. اگر پیکربندی
       # ناامن باشد باید همین‌جا بایستیم — پیش از اینکه مهاجرت به
       # دیتابیس دست بزند و بازگشت گران شود.
+      #
+      # ⚠️ `migrate:check` هم **پیش از** `migrate` می‌آید و عمدی (R57).
+      #
+      # دو کار می‌کند: فهرستِ مهاجرت‌های در انتظار را در لاگِ استقرار
+      # می‌گذارد (تا اگر بعداً چیزی خراب شد، بدانیم آن روز چه اجرا شد)، و
+      # اگر مهاجرتی داده را از بین می‌برد بی‌آنکه نویسنده‌اش صریحاً پذیرفته
+      # باشد، همین‌جا می‌ایستد. ایستادن پیش از `migrate` یعنی دیتابیس هنوز
+      # دست‌نخورده است و بازگشت فقط برگرداندنِ کد است.
       - name: مهاجرت و کش
         run: |
           ssh -i ~/.ssh/id_deploy -p "${{ secrets.SSH_PORT || 22 }}" \
@@ -194,6 +202,7 @@ jobs:
             "cd '${{ secrets.DEPLOY_PATH }}' && \
              php artisan down --render=errors::503 --retry=30 && \
              php artisan env:check --env=production && \
+             php artisan migrate:check && \
              php artisan migrate --force --no-interaction && \
              php artisan config:cache && \
              php artisan route:cache && \

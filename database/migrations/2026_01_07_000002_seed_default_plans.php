@@ -9,6 +9,14 @@ use Illuminate\Support\Facades\DB;
  */
 return new class extends Migration
 {
+    /**
+     * اسلاگِ پکیج‌هایی که این مهاجرت می‌سازد.
+     *
+     * یک‌جا تعریف می‌شود تا `up()` و `down()` نتوانند از هم واگرا شوند —
+     * دقیقاً همان چیزی که یک بار اتفاق افتاد.
+     */
+    private const SLUGS = ['basic', 'plus', 'business'];
+
     public function up(): void
     {
         if (DB::table('plans')->exists()) {
@@ -79,8 +87,18 @@ return new class extends Migration
         ]);
     }
 
+    /**
+     * ⚠️ اسلاگ‌ها باید **دقیقاً** همان‌هایی باشند که `up()` درج می‌کند.
+     *
+     * پیش از این `pro` نوشته شده بود در حالی که `up()` پکیجِ حرفه‌ای را با
+     * اسلاگِ `plus` درج می‌کند. یعنی برگشتِ این مهاجرت یک ردیفِ یتیم جا
+     * می‌گذاشت — و مهاجرتِ دوباره هم به‌خاطرِ `if (DB::table('plans')->exists())`
+     * از خیرِ درج می‌گذشت، پس دیتابیس با **یک پکیج** می‌ماند نه سه‌تا.
+     *
+     * R57 با مقایسه‌ی وضعیتِ پیش و پسِ رفت‌وبرگشت پیدایش کرد.
+     */
     public function down(): void
     {
-        DB::table('plans')->whereIn('slug', ['basic', 'pro', 'business'])->delete();
+        DB::table('plans')->whereIn('slug', self::SLUGS)->delete();
     }
 };

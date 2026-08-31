@@ -17,6 +17,7 @@
 | [docs/FRONTEND_STRUCTURE.md](docs/FRONTEND_STRUCTURE.md)   | ساختار `resources/js`، مرزِ MPA/SPA، مدیریت حالت                                     |
 | [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md)                   | استقرار روی سرور                                                                     |
 | [docs/DEPLOYMENT_SECURITY.md](docs/DEPLOYMENT_SECURITY.md) | سخت‌سازیِ سرور و رازها                                                               |
+| [docs/MIGRATIONS.md](docs/MIGRATIONS.md)                   | **مهاجرتِ امن** — Expand→Migrate→Contract، مهاجرتِ مخرب، رویهٔ برگشت                 |
 | [docs/SERVER_HARDENING.md](docs/SERVER_HARDENING.md)       | **چک‌لیستِ سخت‌سازیِ سرور** — آنچه کد نمی‌تواند تضمین کند                            |
 | [docs/SECURITY_AUDIT.md](docs/SECURITY_AUDIT.md)           | ممیزی امنیتی و یافته‌های باز                                                         |
 | [docs/AUDIT_REPORT.md](docs/AUDIT_REPORT.md)               | ممیزی فنیِ اولیه                                                                     |

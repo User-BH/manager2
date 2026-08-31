@@ -40,8 +40,8 @@
 | 9   | Check Constraint برای مقادیر غیرمجاز                  | ✅    | ۱۴ قید روی ۹ جدول؛ ⚠️ SQLiteِ رانرِ CI این دستور را ندارد، پس سنجشش در jobِ جداگانه روی **MySQL** انجام می‌شود                                                                     | **R52** |
 | 10  | Race Condition در پرداخت/کیف‌پول/شارژ/ثبت‌نام         | ✅    | ⚠️ پنج سناریو با چند پردازه سنجیده شد؛ داده در همه سالم ماند                                                                                                                       | **R50** |
 | 11  | Concurrent Requestها تست شوند                         | ✅    | `race:check` + ۱۱ تستِ `ConcurrencyTest`                                                                                                                                           | **R50** |
-| 12  | Migrationها قابل Rollback باشند                       | ❓    | باید `down()` هر ۴۷ مهاجرت اجرا و سنجیده شود                                                                                                                                       | R57     |
-| 13  | هیچ Migration خطرناک بدونِ بررسیِ داده اجرا نشود      | ❌    | هیچ محافظی نیست                                                                                                                                                                    | **R57** |
+| 12  | Migrationها قابل Rollback باشند                       | ✅    | برگشت‌پذیریِ **تک‌به‌تکِ** هر ۴۹ مهاجرت سنجیده شد؛ دو نقصِ واقعی پیدا و رفع شد                                                                                                     | R57     |
+| 13  | هیچ Migration خطرناک بدونِ بررسیِ داده اجرا نشود      | ✅    | `migrate:check` + قاعده‌ی `@destructive`، و ایستادن پیش از `migrate` در `deploy.yml`                                                                                               | **R57** |
 
 ## ۱‑۲) Backup و Restore Test
 
@@ -68,20 +68,20 @@
 | 27  | Queue متوقف شد                 | ✅    | تست شده                                                     | R47     |
 | 28  | Storage از کار افتاد           | 🟡    | سنجهٔ سلامت می‌گیردش؛ رفتارِ برنامه تست نشده                | **R59** |
 | 29  | یک Deploy خراب شد              | 🟡    | بازگشت در `deploy.yml` هست ولی **هرگز اجرا نشده**           | R58     |
-| 30  | Migration اشتباه اجرا شد       | ❌    | رویه‌ای نیست                                                | **R57** |
+| 30  | Migration اشتباه اجرا شد       | ✅    | رویه‌ی دوحالته در `docs/MIGRATIONS.md`                      | **R57** |
 | 31  | اطلاعات کاربر اشتباهی حذف شد   | ✅    | هزینه و درآمد برگشت‌پذیرند؛ قبض و پرداخت اصلاً حذف نمی‌شوند | **R51** |
 | 32  | برای هرکدام Recovery Procedure | ❌    | مکتوب نیست                                                  | **R58** |
 
 ## ۱‑۴) Database Migration Safety
 
-| #   | بند                                          | وضعیت | توضیح                     | مرحله   |
-| --- | -------------------------------------------- | ----- | ------------------------- | ------- |
-| 33  | آیا Deploy نسخهٔ جدید داده را از بین می‌برد؟ | ❌    | بررسی نشده                | **R57** |
-| 34  | `ALTER TABLE` امن                            | ❌    | —                         | R57     |
-| 35  | `DROP COLUMN` امن                            | ❌    | —                         | R57     |
-| 36  | `CHANGE COLUMN` امن                          | ❌    | —                         | R57     |
-| 37  | `DATA MIGRATION` امن                         | ❌    | —                         | R57     |
-| 38  | الگوی Expand → Migrate → Contract            | ❌    | استفاده نشده و مستند نشده | **R57** |
+| #   | بند                                          | وضعیت | توضیح                                                            | مرحله   |
+| --- | -------------------------------------------- | ----- | ---------------------------------------------------------------- | ------- |
+| 33  | آیا Deploy نسخهٔ جدید داده را از بین می‌برد؟ | ✅    | `migrate:check` جلویش را می‌گیرد                                 | **R57** |
+| 34  | `ALTER TABLE` امن                            | ✅    | افزودنِ ستون مخرب نیست؛ تغییر و حذف پذیرشِ صریح می‌خواهند        | R57     |
+| 35  | `DROP COLUMN` امن                            | ✅    | تشخیص + `@destructive` اجباری                                    | R57     |
+| 36  | `CHANGE COLUMN` امن                          | ✅    | `->change()` و `MODIFY COLUMN` هم تشخیص داده می‌شوند             | R57     |
+| 37  | `DATA MIGRATION` امن                         | ✅    | حذفِ ردیف مخرب حساب می‌شود؛ عکسِ تعدادِ ردیف‌ها هم سنجیده می‌شود | R57     |
+| 38  | الگوی Expand → Migrate → Contract            | ✅    | مستند در `docs/MIGRATIONS.md` با نمونهٔ عینی                     | **R57** |
 
 ## ۱‑۵) Data Integrity Testing
 
@@ -379,7 +379,7 @@
 | 210 | (۴) Audit Trail                                                                           | ✅ (`audit_logs`)    | R20     |
 | 211 | (۴) مبلغ از Frontend نباید Trusted باشد                                                   | ✅                   | **R54** |
 | 212 | (۵) Backup Monitoring                                                                     | ❌                   | **R64** |
-| 213 | (۶) Migration Safety                                                                      | ❌                   | **R57** |
+| 213 | (۶) Migration Safety                                                                      | ✅                   | **R57** |
 | 214 | (۷) Production Infrastructure                                                             | 🔒                   | R56     |
 | 215 | (۸) Observability + Correlation ID                                                        | ❌                   | **R63** |
 | 216 | (۹) PWA Audit کامل                                                                        | 🟡                   | R60–R62 |
@@ -474,28 +474,28 @@
 
 # بخش ۵ — Deployment و Release Engineering
 
-| #   | گام                                         | وضعیت                | مرحله   |
-| --- | ------------------------------------------- | -------------------- | ------- |
-| 289 | ۱. Type Check                               | ✅                   | R42     |
-| 290 | ۲. Lint                                     | ✅                   | R42     |
-| 291 | ۳. Unit Test                                | ✅                   | R42     |
-| 292 | ۴. Component Test                           | ✅                   | R42     |
-| 293 | ۵. Integration Test                         | ✅                   | R42     |
-| 294 | ۶. API Test                                 | ✅                   | R42     |
-| 295 | ۷. E2E Test                                 | ❌                   | **R71** |
-| 296 | ۸. Security Scan                            | 🟡                   | **R71** |
-| 297 | ۹. Dependency Audit                         | ✅                   | R42     |
-| 298 | ۱۰. Build                                   | ✅                   | R42     |
-| 299 | ۱۱. Performance Check                       | ❌                   | **R71** |
-| 300 | ۱۲. Database Migration Check                | ❌                   | **R57** |
-| 301 | ۱۳. Backup Verification                     | 🟡                   | **R71** |
-| 302 | ۱۴. Deployment                              | 🟡 (نوشته، اجرانشده) | R71     |
-| 303 | ۱۵. Health Check                            | ✅                   | R43     |
-| 304 | ۱۶. Smoke Test                              | ❌                   | **R71** |
-| 305 | توقفِ Release در صورتِ شکستِ Critical Check | ✅                   | R42     |
-| 306 | قابلیت Rollback                             | 🟡                   | R71     |
-| 307 | سازگاریِ Migration با Deployment            | ❌                   | **R57** |
-| 308 | Blue-Green یا Rolling Deployment            | 🔒                   | R71     |
+| #   | گام                                         | وضعیت                                     | مرحله   |
+| --- | ------------------------------------------- | ----------------------------------------- | ------- |
+| 289 | ۱. Type Check                               | ✅                                        | R42     |
+| 290 | ۲. Lint                                     | ✅                                        | R42     |
+| 291 | ۳. Unit Test                                | ✅                                        | R42     |
+| 292 | ۴. Component Test                           | ✅                                        | R42     |
+| 293 | ۵. Integration Test                         | ✅                                        | R42     |
+| 294 | ۶. API Test                                 | ✅                                        | R42     |
+| 295 | ۷. E2E Test                                 | ❌                                        | **R71** |
+| 296 | ۸. Security Scan                            | 🟡                                        | **R71** |
+| 297 | ۹. Dependency Audit                         | ✅                                        | R42     |
+| 298 | ۱۰. Build                                   | ✅                                        | R42     |
+| 299 | ۱۱. Performance Check                       | ❌                                        | **R71** |
+| 300 | ۱۲. Database Migration Check                | ✅ گامِ `migrate:check` در `deploy.yml`   | **R57** |
+| 301 | ۱۳. Backup Verification                     | 🟡                                        | **R71** |
+| 302 | ۱۴. Deployment                              | 🟡 (نوشته، اجرانشده)                      | R71     |
+| 303 | ۱۵. Health Check                            | ✅                                        | R43     |
+| 304 | ۱۶. Smoke Test                              | ❌                                        | **R71** |
+| 305 | توقفِ Release در صورتِ شکستِ Critical Check | ✅                                        | R42     |
+| 306 | قابلیت Rollback                             | 🟡                                        | R71     |
+| 307 | سازگاریِ Migration با Deployment            | ✅ Expand→Migrate→Contract مستند و اجباری | **R57** |
+| 308 | Blue-Green یا Rolling Deployment            | 🔒                                        | R71     |
 
 ---
 
