@@ -14,20 +14,39 @@ use Illuminate\Database\Eloquent\Model;
  * استثنا می‌دهد. این پروژه ردیف‌های موجود دارد و مهاجرتشان نمی‌تواند
  * لحظه‌ای باشد.
  *
- * `SecretValue` هر دو شکل را می‌خواند و **همیشه** رمزشده می‌نویسد، پس
- * مهاجرت می‌تواند تدریجی و حتی نیمه‌کاره باشد بی‌آنکه چیزی بشکند.
+ * ─── 🔴 چرا متنِ رمزشده داخلِ یک «پاکتِ JSON» می‌نشیند ──────────────────────
+ * ⚠️ این را **اجرای واقعی روی MySQL** نشان داد، نه حدس. نسخه‌ی اول
+ * رمزنگاشت را خام در ستون می‌نوشت و روی سرور شکست:
  *
- * ⚠️ نوعِ ورودیِ `set` عمداً `array<mixed>|string` است.
+ *     SQLSTATE[22032]: 3140 Invalid JSON text: "Invalid value." at position 0
+ *     in value for column 'complexes.gateway_config'
  *
- * Eloquent اجازه می‌دهد همان صفت با رشته‌ی JSON هم مقداردهی شود، و
- * مهاجرت‌ها گاهی همین کار را می‌کنند. باریک‌کردنِ نوع به آرایه، تحلیلِ
- * ایستا را به این نتیجه می‌رساند که شاخه‌ی رشته‌ای مرده است — در حالی که
- * نیست.
+ * ستون با `$table->json(...)` ساخته شده. در MySQL این یک **نوعِ واقعی**
+ * است و موتور محتوایش را اعتبارسنجی می‌کند؛ رشته‌ی base64ِ رمزنگاشت JSON
+ * نیست، پس رد می‌شود. روی SQLite همان ستون فقط TEXT است و هر چیزی را
+ * می‌پذیرد — برای همین همه‌ی تست‌های محلی سبز بودند.
+ *
+ * راه‌حل **بدونِ تغییرِ schema**: رمزنگاشت داخلِ یک شیءِ JSON قرار می‌گیرد.
+ *
+ *     {"__enc":"eyJpdiI6..."}
+ *
+ * ستون JSONِ معتبر می‌ماند، MySQL راضی است، و هیچ مهاجرتِ ساختاری —
+ * که روی جدولِ زنده گران و برگشت‌ناپذیر است — لازم نمی‌شود.
+ *
+ * ─── سه شکلی که خوانده می‌شوند ─────────────────────────────────────────────
+ * ① پاکتِ `{"__enc":"..."}` — شکلِ امروز
+ * ② رمزنگاشتِ خام — اگر ردیفی پیش از این رفع نوشته شده باشد
+ * ③ JSONِ سادهٔ قدیمی — ردیف‌هایی که هنوز مهاجرت نکرده‌اند
+ *
+ * نوشتن **همیشه** شکلِ ① است.
  *
  * @implements CastsAttributes<array<mixed>, array<mixed>|string>
  */
 class EncryptedJson implements CastsAttributes
 {
+    /** کلیدِ پاکت. با دو زیرخط شروع می‌شود تا با هیچ کلیدِ واقعی اشتباه نشود. */
+    public const ENVELOPE_KEY = '__enc';
+
     /**
      * @param  array<string, mixed>  $attributes
      * @return array<mixed>
@@ -38,9 +57,7 @@ class EncryptedJson implements CastsAttributes
             return [];
         }
 
-        $plain = SecretValue::reveal((string) $value, $model::class.'::'.$key);
-
-        $decoded = json_decode($plain, true);
+        $decoded = self::decode((string) $value, $model::class.'::'.$key);
 
         return is_array($decoded) ? $decoded : [];
     }
@@ -57,6 +74,59 @@ class EncryptedJson implements CastsAttributes
 
         $json = is_string($value) ? $value : json_encode($value, JSON_UNESCAPED_UNICODE);
 
-        return [$key => SecretValue::protect((string) $json)];
+        return [$key => self::wrap((string) $json)];
+    }
+
+    /**
+     * متنِ ساده را در پاکتِ JSON می‌گذارد.
+     *
+     * ⚠️ مهاجرتِ داده هم همین را صدا می‌زند، تا شکلِ نوشتن **یک جا**
+     * تعریف شده باشد و کست و مهاجرت نتوانند از هم واگرا شوند.
+     */
+    public static function wrap(string $plainJson): string
+    {
+        return (string) json_encode(
+            [self::ENVELOPE_KEY => SecretValue::protect($plainJson)],
+            JSON_UNESCAPED_UNICODE,
+        );
+    }
+
+    /** آیا این مقدار از قبل در پاکت است؟ (مهاجرت برای تکرارپذیری لازمش دارد) */
+    public static function isWrapped(string $stored): bool
+    {
+        $decoded = json_decode($stored, true);
+
+        return is_array($decoded)
+            && array_key_exists(self::ENVELOPE_KEY, $decoded)
+            && is_string($decoded[self::ENVELOPE_KEY]);
+    }
+
+    /**
+     * هر سه شکل را به آرایه‌ی متنِ ساده برمی‌گرداند.
+     *
+     * @return array<mixed>|null
+     */
+    public static function decode(string $stored, string $context): ?array
+    {
+        $decoded = json_decode($stored, true);
+
+        // ① پاکت
+        if (is_array($decoded) && is_string($decoded[self::ENVELOPE_KEY] ?? null)) {
+            $plain = SecretValue::reveal($decoded[self::ENVELOPE_KEY], $context);
+
+            $inner = json_decode($plain, true);
+
+            return is_array($inner) ? $inner : null;
+        }
+
+        // ③ JSONِ سادهٔ قدیمی
+        if (is_array($decoded)) {
+            return $decoded;
+        }
+
+        // ② رمزنگاشتِ خام — یا چیزی که هیچ‌کدام نیست، که `reveal` صدایش را درمی‌آورد
+        $inner = json_decode(SecretValue::reveal($stored, $context), true);
+
+        return is_array($inner) ? $inner : null;
     }
 }

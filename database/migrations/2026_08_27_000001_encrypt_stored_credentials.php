@@ -1,5 +1,6 @@
 <?php
 
+use App\Casts\EncryptedJson;
 use App\Support\SecretValue;
 use App\Support\SystemSettings;
 use Illuminate\Database\Migrations\Migration;
@@ -38,9 +39,28 @@ return new class extends Migration
 {
     public function up(): void
     {
-        $this->mapComplexes(fn (string $value) => SecretValue::isProtected($value)
+        /*
+         * ⚠️ ستونِ `gateway_config` با `$table->json(...)` ساخته شده.
+         *
+         * در MySQL این یک **نوعِ واقعی** است و موتور محتوایش را
+         * اعتبارسنجی می‌کند. نسخه‌ی اولِ همین مهاجرت رمزنگاشت را خام
+         * می‌نوشت و روی سرورِ واقعی شکست:
+         *
+         *     SQLSTATE[22032]: 3140 Invalid JSON text: "Invalid value."
+         *     at position 0 in value for column 'complexes.gateway_config'
+         *
+         * روی SQLite همان ستون فقط TEXT است و هر چیزی را می‌پذیرد — پس
+         * تست‌های محلی همه سبز بودند و نقص تا اجرای روی MySQL دیده نشد.
+         *
+         * حالا رمزنگاشت داخلِ پاکتِ `{"__enc":"..."}` می‌نشیند، پس ستون
+         * JSONِ معتبر می‌ماند و **هیچ تغییرِ schemaیی** لازم نیست.
+         *
+         * ⚠️ `settings.value` از نوعِ `text` است، پس آنجا رمزنگاشتِ خام
+         * مشکلی ندارد و شکلش عوض نشد.
+         */
+        $this->mapComplexes(fn (string $value) => EncryptedJson::isWrapped($value)
             ? null
-            : SecretValue::protect($value));
+            : EncryptedJson::wrap($value));
 
         $this->mapSetting(fn (string $value) => SecretValue::isProtected($value)
             ? null
@@ -57,9 +77,15 @@ return new class extends Migration
      */
     public function down(): void
     {
-        $this->mapComplexes(fn (string $value) => SecretValue::isProtected($value)
-            ? SecretValue::reveal($value, 'complexes.gateway_config')
-            : null);
+        $this->mapComplexes(function (string $value): ?string {
+            if (! EncryptedJson::isWrapped($value)) {
+                return null;
+            }
+
+            $plain = EncryptedJson::decode($value, 'complexes.gateway_config');
+
+            return json_encode($plain ?? [], JSON_UNESCAPED_UNICODE);
+        });
 
         $this->mapSetting(fn (string $value) => SecretValue::isProtected($value)
             ? SecretValue::reveal($value, 'settings.sms_config')

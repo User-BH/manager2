@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Casts\EncryptedJson;
 use App\Logging\SecretScrubber;
 use App\Models\Complex;
 use App\Support\SecretValue;
@@ -99,7 +100,20 @@ class SecretHandlingTest extends TestCase
         $this->assertStringNotContainsString('S3cretBankPass', $raw, 'رمزِ درگاه خام در دیتابیس است.');
         $this->assertStringNotContainsString('bank-user', $raw);
         $this->assertStringNotContainsString('9876543', $raw);
-        $this->assertTrue(SecretValue::isProtected($raw), 'مقدارِ ذخیره‌شده رمز نشده است.');
+        /*
+         * ⚠️ شکلِ ذخیره **پاکتِ JSON** است، نه رمزنگاشتِ خام.
+         *
+         * ستون با `$table->json(...)` ساخته شده و MySQL محتوایش را
+         * اعتبارسنجی می‌کند؛ رمزنگاشتِ خام آنجا رد می‌شود. این را اجرای
+         * واقعی روی سرور نشان داد، نه تستِ محلی — چون روی SQLite همان
+         * ستون فقط TEXT است.
+         */
+        $this->assertTrue(EncryptedJson::isWrapped($raw), 'مقدارِ ذخیره‌شده در پاکتِ رمزشده نیست.');
+
+        $this->assertNotNull(
+            json_decode($raw, true),
+            'مقدارِ ذخیره‌شده JSONِ معتبر نیست؛ روی MySQL ستونِ json ردش می‌کند.',
+        );
     }
 
     /**
@@ -132,7 +146,7 @@ class SecretHandlingTest extends TestCase
         $model->gateway_config = self::GATEWAY;
         $model->save();
 
-        $this->assertTrue(SecretValue::isProtected($this->rawGatewayConfig($complex->id)));
+        $this->assertTrue(EncryptedJson::isWrapped($this->rawGatewayConfig($complex->id)));
     }
 
     // ─────────────────────────────────────────────────────────────────────
@@ -234,7 +248,7 @@ class SecretHandlingTest extends TestCase
 
         $this->assertSame(self::GATEWAY, Complex::find($complex->id)->gateway_config, 'دو بار اجرا مقدار را خراب کرد.');
         $this->assertSame(self::SMS, SystemSettings::getJson('sms_config'));
-        $this->assertTrue(SecretValue::isProtected($this->rawGatewayConfig($complex->id)));
+        $this->assertTrue(EncryptedJson::isWrapped($this->rawGatewayConfig($complex->id)));
         $this->assertTrue(SecretValue::isProtected($this->rawSmsConfig()));
     }
 
@@ -258,7 +272,7 @@ class SecretHandlingTest extends TestCase
             'برگشت، مقدارِ خام را به JSONِ سادهٔ پیشین نرساند.',
         );
 
-        $this->assertFalse(SecretValue::isProtected($this->rawGatewayConfig($complex->id)));
+        $this->assertFalse(EncryptedJson::isWrapped($this->rawGatewayConfig($complex->id)));
     }
 
     // ─────────────────────────────────────────────────────────────────────
@@ -453,5 +467,29 @@ class SecretHandlingTest extends TestCase
                 "سندِ رازها «php artisan {$command}» را توصیه می‌کند ولی چنین دستوری وجود ندارد.",
             );
         }
+    }
+
+    /**
+     * ⚠️ این تست‌ها باید روی **MySQL** هم بدوند، نه فقط SQLite.
+     *
+     * ─── چرا این ادعا وجود دارد ─────────────────────────────────────────
+     * نسخه‌ی اولِ رمزگذاری همه‌ی ۱۴ تست را سبز کرد و بعد **روی سرور
+     * شکست**: ستونِ `gateway_config` با `$table->json(...)` ساخته شده و
+     * MySQL محتوایش را اعتبارسنجی می‌کند، در حالی که همان ستون روی
+     * SQLite فقط TEXT است.
+     *
+     * تنها چیزی که این را می‌گرفت، اجرای همین تست‌ها روی موتورِ واقعی
+     * بود. این ادعا نمی‌گذارد کسی روزی آن را از jobِ MySQL بیرون بیاورد.
+     */
+    public function test_these_tests_also_run_against_mysql_in_ci(): void
+    {
+        $workflow = (string) file_get_contents(base_path('.github/workflows/ci.yml'));
+        $workflow = (string) preg_replace('/^\s*#.*$/m', '', $workflow);
+
+        $this->assertStringContainsString(
+            'SecretHandlingTest',
+            $workflow,
+            'jobِ MySQL دیگر این تست‌ها را نمی‌دواند؛ نقصِ نوعِ ستون دوباره نامرئی می‌شود.',
+        );
     }
 }

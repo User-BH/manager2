@@ -169,10 +169,22 @@ jobs:
   #  نشده باشد، تست **شکست** می‌خورد.
   #
   #  ─── چرا فقط همین تست‌ها ─────────────────────────────────────────────
-  #  اجرای کلِ ۹۲۱ تست روی MySQL چند برابر کندتر است و بعضی تست‌ها عمداً
+  #  اجرای کلِ سوییت روی MySQL چند برابر کندتر است و بعضی تست‌ها عمداً
   #  رفتارِ SQLite را می‌سنجند (`test_sqlite_silently_drops_the_row_lock`
   #  در R50) و روی MySQL باید شکست بخورند. این job فقط همان چیزی را
   #  می‌سنجد که SQLite نمی‌تواند بسنجد.
+  #
+  #  🔴 `SecretHandlingTest` پس از یک شکستِ **واقعی روی سرور** اضافه شد.
+  #
+  #  ستونِ `complexes.gateway_config` با `$table->json(...)` ساخته شده. در
+  #  MySQL این یک نوعِ واقعی است و محتوایش اعتبارسنجی می‌شود؛ روی SQLite
+  #  همان ستون فقط TEXT است. مهاجرتِ رمزگذاریِ R55 رمزنگاشت را خام
+  #  می‌نوشت — روی SQLite بی‌ایراد، روی MySQL:
+  #
+  #      SQLSTATE[22032]: 3140 Invalid JSON text: "Invalid value."
+  #
+  #  همه‌ی ۱۴ تستِ محلی سبز بودند. تنها چیزی که این را می‌گرفت، اجرای
+  #  همان تست‌ها روی موتورِ واقعی بود.
   #
   #  ⚠️ به `needs: frontend` نیاز ندارد: از وقتی فایلِ مسیرها دیگر هنگامِ
   #  بوت `Vite::asset()` صدا نمی‌زند، این تست‌ها بدونِ `public/build` هم
@@ -228,7 +240,7 @@ jobs:
           DB_USERNAME: root
           DB_PASSWORD: root
           REQUIRE_DB_CONSTRAINTS: '1'
-        run: php artisan test --filter=SchemaConstraintTest
+        run: php artisan test --filter="SchemaConstraintTest|SecretHandlingTest"
 
   # ────────────────────────────────────────────────────────────────────────
   #  امنیت
