@@ -28,6 +28,22 @@ class SystemSettings
     private const CACHE_KEY = 'settings:global';
 
     /**
+     * کلیدهایی که **رمزشده** ذخیره می‌شوند (R55 / رفعِ M-01).
+     *
+     * ⚠️ `sms_config` کلید و رمزِ پنلِ پیامک را دارد و تا پیش از این متنِ
+     * ساده بود. هر نشتِ دیتابیس یعنی کسی می‌تواند با سهمیه‌ی شما پیامک
+     * بفرستد — و پیامکِ این سامانه فقط کدِ ورود است، پس نشتش مسیرِ
+     * تصاحبِ حساب را باز می‌کند.
+     *
+     * ⚠️ رمزگذاری در `get`/`set` انجام می‌شود، نه در `all()`. یعنی کش
+     * **متنِ رمزشده** را نگه می‌دارد — که هم بهتر است (رازی در کش نیست)
+     * و هم لازم، چون `all()` را جاهای دیگری هم می‌خوانند.
+     *
+     * @var array<int, string>
+     */
+    private const SECRET_KEYS = ['sms_config'];
+
+    /**
      * حافظه‌ی درون‌درخواستی.
      *
      * حتی با کشِ سریع، هر `Cache::get` یک بار سریال‌زدایی دارد؛ نگه‌داشتنِ
@@ -59,7 +75,23 @@ class SystemSettings
 
     public static function get(string $key, mixed $default = null): mixed
     {
-        return self::all()[$key] ?? $default;
+        $value = self::all()[$key] ?? null;
+
+        if ($value === null) {
+            return $default;
+        }
+
+        if (in_array($key, self::SECRET_KEYS, true)) {
+            return SecretValue::reveal((string) $value, "settings.{$key}");
+        }
+
+        return $value;
+    }
+
+    /** آیا این کلید رمزشده ذخیره می‌شود؟ (مهاجرت و تست به آن نیاز دارند) */
+    public static function isSecret(string $key): bool
+    {
+        return in_array($key, self::SECRET_KEYS, true);
     }
 
     /**
@@ -77,6 +109,10 @@ class SystemSettings
     {
         if (is_array($value)) {
             $value = json_encode($value, JSON_UNESCAPED_UNICODE);
+        }
+
+        if ($value !== null && in_array($key, self::SECRET_KEYS, true)) {
+            $value = SecretValue::protect((string) $value);
         }
 
         Setting::updateOrCreate(['complex_id' => null, 'key' => $key], ['value' => $value]);

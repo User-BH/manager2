@@ -216,7 +216,24 @@ class MigrationSafetyTest extends TestCase
             $checked++;
         }
 
-        $this->assertSame(49, $checked, 'تعدادِ مهاجرت‌های سنجیده‌شده با فهرستِ واقعی نمی‌خواند.');
+        /*
+         * ⚠️ عدد از فهرستِ واقعی می‌آید، ولی کفِ سخت هم دارد.
+         *
+         * عددِ ثابت با هر مهاجرتِ تازه قرمز می‌شد (و شد). ولی فقط
+         * `count($files)` هم بی‌معنا بود: اگر روزی `glob` چیزی برنگرداند،
+         * حلقه صفر بار می‌دوید و تست سبز می‌ماند.
+         */
+        $this->assertSame(
+            count($this->migrationFiles()),
+            $checked,
+            'همه‌ی مهاجرت‌ها سنجیده نشدند.',
+        );
+
+        $this->assertGreaterThanOrEqual(
+            49,
+            $checked,
+            'تعدادِ مهاجرت‌ها کمتر از انتظار است؛ احتمالاً فهرست خالی مانده و تست پوچ است.',
+        );
 
         $this->assertSame(
             [],

@@ -1,5 +1,6 @@
 <?php
 
+use App\Logging\RedactSecrets;
 use Monolog\Handler\NullHandler;
 use Monolog\Handler\StreamHandler;
 use Monolog\Handler\SyslogUdpHandler;
@@ -68,6 +69,7 @@ return [
             'level' => 'warning',
             'days' => (int) env('LOG_ALERT_DAYS', 60),
             'replace_placeholders' => true,
+            'tap' => [RedactSecrets::class],
         ],
 
         'stack' => [
@@ -76,11 +78,24 @@ return [
             'ignore_exceptions' => false,
         ],
 
+        /*
+        | ⚠️ `tap` روی هر کانالِ فایل‌محور، و عمدی (R55).
+        |
+        | `SecretScrubber` رازهای شناخته‌شده را از پیام و از `context`
+        | پاک می‌کند. لازم شد چون `KavenegarSms` کلیدِ API را داخلِ مسیرِ
+        | URL می‌گذارد (طراحیِ خودِ سرویس) و پیامِ استثنای HTTP آدرسِ کامل
+        | را در خود دارد — یعنی اولین قطعیِ شبکه کلیدِ زنده را در
+        | `storage/logs` می‌نوشت.
+        |
+        | رفعِ همان یک خط امروز کافی بود و فردا نه؛ این روی هر خطِ لاگ
+        | اجرا می‌شود.
+        */
         'single' => [
             'driver' => 'single',
             'path' => storage_path('logs/laravel.log'),
             'level' => env('LOG_LEVEL', 'debug'),
             'replace_placeholders' => true,
+            'tap' => [RedactSecrets::class],
         ],
 
         'daily' => [
@@ -89,6 +104,7 @@ return [
             'level' => env('LOG_LEVEL', 'debug'),
             'days' => env('LOG_DAILY_DAYS', 14),
             'replace_placeholders' => true,
+            'tap' => [RedactSecrets::class],
         ],
 
         'slack' => [

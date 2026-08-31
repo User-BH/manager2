@@ -159,15 +159,15 @@
 
 ## ۱‑۱۳) Secrets
 
-| #   | بند                                    | وضعیت                               | مرحله   |
-| --- | -------------------------------------- | ----------------------------------- | ------- |
-| 73  | Secret Rotation                        | ❌                                  | **R55** |
-| 74  | API Key Rotation                       | ❌                                  | R55     |
-| 75  | Encryption Key Management              | 🟡 (`APP_KEY` هست؛ رویهٔ چرخش نیست) | R55     |
-| 76  | Production Secrets جدا                 | ✅ (R44: سه فایل + `env:check`)     | R44     |
-| 77  | عدم نمایش Secret در Log                | ❓                                  | **R55** |
-| 78  | عدم نمایش Secret در Error              | ✅ (R44: `EnvironmentGuard` + تست)  | R44     |
-| 79  | عدم قرارگیری Secret در Frontend Bundle | ❓                                  | **R55** |
+| #   | بند                                    | وضعیت                                          | مرحله   |
+| --- | -------------------------------------- | ---------------------------------------------- | ------- |
+| 73  | Secret Rotation                        | ✅ رویهٔ کامل در `docs/SECRETS.md`             | **R55** |
+| 74  | API Key Rotation                       | ✅ بخشِ ۳ سند (بی‌خطر، با ترتیبِ صحیح)         | R55     |
+| 75  | Encryption Key Management              | ✅ چرخشِ `APP_KEY` هفت‌گامی، با هشدارِ بکاپ    | R55     |
+| 76  | Production Secrets جدا                 | ✅ (R44: سه فایل + `env:check`)                | R44     |
+| 77  | عدم نمایش Secret در Log                | ✅ `SecretScrubber` — یک نقصِ واقعی رفع شد     | **R55** |
+| 78  | عدم نمایش Secret در Error              | ✅ (R44: `EnvironmentGuard` + تست)             | R44     |
+| 79  | عدم قرارگیری Secret در Frontend Bundle | ✅ فهرستِ `VITE_` قفل شد (فقط `VITE_APP_NAME`) | **R55** |
 
 ## ۱‑۱۴) Production Hardening 🔒
 
@@ -311,7 +311,7 @@
 | 160 | Chaos: Queue Down                                              | ✅    | R47                                                               |
 | 161 | Chaos: Storage Failure                                         | 🟡    | R59                                                               |
 | 162 | `composer audit`                                               | ✅    | R42 (در CI)                                                       |
-| 163 | حذفِ پکیج‌های بلااستفاده                                       | ❓    | یک کاندید (`vazirmatn`) که باید بررسی شود                         | R55        |
+| 163 | حذفِ پکیج‌های بلااستفاده                                       | ✅    | `vazirmatn` حذف شد؛ فونت‌ها فایلِ محلی‌اند نه پکیج                | R55        |
 | 164 | PHPStan                                                        | ✅    | R42                                                               |
 | 165 | Laravel Pint                                                   | ✅    | R42                                                               |
 | 166 | TypeScript                                                     | ✅    | R42                                                               |
@@ -350,7 +350,7 @@
 | 186 | ⭐ Path Traversal                        | ✅ مسیرِ storage امضا می‌خواهد و آداپتور هم استثنا می‌اندازد   | **R56**  |
 | 187 | File Upload Vulnerabilities              | ✅ `mimes` محتوا را می‌خواند؛ polyglot مستند و سه‌لایه مهار شد | **R56**  |
 | 188 | ⭐ Command Injection                     | ✅ صفر فراخوانیِ پوسته، و تستِ ساختاری نگهش می‌دارد            | R56      |
-| 189 | Sensitive Data Exposure                  | 🟡 (M-01 باز است)                                              | **R55**  |
+| 189 | Sensitive Data Exposure                  | ✅ M-01 بسته شد                                                | **R55**  |
 | 190 | Security Misconfiguration                | ✅                                                             | R44      |
 | 191 | ⭐ Replay Attack                         | 🟡                                                             | R51      |
 | 192 | Race Condition                           | ❌                                                             | **R50**  |
@@ -364,7 +364,7 @@
 | #   | بند                                                                                       | وضعیت                | مرحله   |
 | --- | ----------------------------------------------------------------------------------------- | -------------------- | ------- |
 | 197 | (۲) Token امن                                                                             | ✅ (توکن نداریم)     | R8      |
-| 198 | (۲) اطلاعات حساس در localStorage نباشد                                                    | ❓                   | **R55** |
+| 198 | (۲) اطلاعات حساس در localStorage نباشد                                                    | ✅ سنجیده و قفل شد   | **R55** |
 | 199 | (۲) کوکی HttpOnly / Secure / SameSite                                                     | ✅                   | R16     |
 | 200 | (۲) Rate Limit برای Login و Password Reset                                                | ✅                   | R17     |
 | 201 | (۲) کاربر نتواند Role خود را عوض کند                                                      | ✅                   | R54     |

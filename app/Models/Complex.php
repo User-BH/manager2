@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Casts\EncryptedJson;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -30,7 +31,17 @@ class Complex extends Model
             'messenger_enabled' => 'boolean',
             'good_payer_enabled' => 'boolean',
             'good_payer_config' => 'array',
-            'gateway_config' => 'array',
+            /*
+             * ⚠️ رمزشده روی دیسک (R55 / رفعِ M-01).
+             *
+             * این ستون رمز و شناسه‌ی درگاهِ بانکی را نگه می‌دارد. تا پیش
+             * از این `'array'` بود، یعنی متنِ ساده — و هر نشتِ دیتابیس
+             * مستقیماً به اعتبارنامه‌ی زنده‌ی بانکی تبدیل می‌شد.
+             *
+             * `EncryptedJson` عمداً **تحمل‌پذیر** است: ردیف‌های سادهٔ
+             * قدیمی را هم می‌خواند و همیشه رمزشده می‌نویسد.
+             */
+            'gateway_config' => EncryptedJson::class,
             'settings' => 'array',
             'penalty_enabled' => 'boolean',
             'penalty_value' => 'decimal:2',
