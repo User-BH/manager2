@@ -93,7 +93,17 @@ class SecretHandlingTest extends TestCase
     {
         $complex = $this->complex();
 
-        $this->assertSame(self::GATEWAY, $complex->fresh()->gateway_config);
+        /*
+         * ⚠️ `assertEquals` و نه `assertSame` — و این را MySQL نشان داد.
+         *
+         * نوعِ `json` در MySQL کلیدهای شیء را **بازمرتب می‌کند** (بر پایه‌ی
+         * طول و سپس مقدار). محتوا یکی است ولی ترتیب فرق می‌کند، و
+         * `assertSame` روی آرایه‌ی انجمنی به ترتیب حساس است.
+         *
+         * محصول به ترتیب وابسته نیست (همه‌جا با نامِ کلید خوانده می‌شود)،
+         * پس ادعا هم نباید باشد.
+         */
+        $this->assertEquals(self::GATEWAY, $complex->fresh()->gateway_config);
 
         $raw = $this->rawGatewayConfig($complex->id);
 
@@ -130,7 +140,7 @@ class SecretHandlingTest extends TestCase
             'gateway_config' => json_encode(self::GATEWAY, JSON_UNESCAPED_UNICODE),
         ]);
 
-        $this->assertSame(self::GATEWAY, Complex::find($complex->id)->gateway_config);
+        $this->assertEquals(self::GATEWAY, Complex::find($complex->id)->gateway_config);
     }
 
     /** و اولین ذخیره‌ی بعدی باید همان ردیف را رمز کند. */
@@ -196,9 +206,20 @@ class SecretHandlingTest extends TestCase
     {
         $complex = $this->complex();
 
-        // شبیه‌سازیِ کلیدِ عوض‌شده: متنی که نه رمزگشایی می‌شود نه JSON است
+        /*
+         * ⚠️ شبیه‌سازی باید **پاکتِ JSONِ معتبر** باشد، با محتوای خرابِ داخلش.
+         *
+         * شکلِ اولِ این تست یک رشته‌ی غیرِ JSON مستقیم در ستون می‌نوشت.
+         * روی SQLite کار می‌کرد و روی MySQL خودِ **درج** با
+         * `3140 Invalid JSON text` رد می‌شد — یعنی تست هرگز به چیزی که
+         * می‌خواست بسنجد نمی‌رسید.
+         *
+         * و این خودش خبرِ خوبی است: روی MySQL چنین مقداری اصلاً نمی‌تواند
+         * در ستون بنشیند. حالتی که واقعاً ممکن است، پاکتی است که
+         * محتوایش با کلیدِ دیگری رمز شده باشد.
+         */
         DB::table('complexes')->where('id', $complex->id)->update([
-            'gateway_config' => 'eyJpdiI6IlRISVNJU05PVFZBTElEIiwidmFsdWUiOiJ4In0-broken',
+            'gateway_config' => json_encode(['__enc' => 'not-a-valid-ciphertext']),
         ]);
 
         $this->expectException(RuntimeException::class);
@@ -246,7 +267,7 @@ class SecretHandlingTest extends TestCase
 
         SystemSettings::forget();
 
-        $this->assertSame(self::GATEWAY, Complex::find($complex->id)->gateway_config, 'دو بار اجرا مقدار را خراب کرد.');
+        $this->assertEquals(self::GATEWAY, Complex::find($complex->id)->gateway_config, 'دو بار اجرا مقدار را خراب کرد.');
         $this->assertSame(self::SMS, SystemSettings::getJson('sms_config'));
         $this->assertTrue(EncryptedJson::isWrapped($this->rawGatewayConfig($complex->id)));
         $this->assertTrue(SecretValue::isProtected($this->rawSmsConfig()));
@@ -266,9 +287,9 @@ class SecretHandlingTest extends TestCase
 
         SystemSettings::forget();
 
-        $this->assertSame(
-            json_decode($this->rawGatewayConfig($complex->id), true),
+        $this->assertEquals(
             self::GATEWAY,
+            json_decode($this->rawGatewayConfig($complex->id), true),
             'برگشت، مقدارِ خام را به JSONِ سادهٔ پیشین نرساند.',
         );
 
