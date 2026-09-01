@@ -20,7 +20,7 @@ class KavenegarSms implements SmsGateway
         $apikey = $this->config['apikey'] ?? '';
 
         try {
-            $response = Http::asForm()->timeout(15)->post(
+            $response = Http::asForm()->connectTimeout(5)->timeout(15)->post(
                 "https://api.kavenegar.com/v1/{$apikey}/sms/send.json",
                 [
                     'receptor' => $phone,

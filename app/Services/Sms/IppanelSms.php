@@ -93,7 +93,7 @@ class IppanelSms implements SmsGateway
                 'Authorization' => (string) ($this->config['apikey'] ?? ''),
                 'Content-Type' => 'application/json',
                 'Accept' => 'application/json',
-            ])->timeout(15)->post(self::ENDPOINT, $body);
+            ])->connectTimeout(5)->timeout(15)->post(self::ENDPOINT, $body);
 
             // بعضی خطاها با HTTP 200 ولی meta.status=false برمی‌گردند.
             if ($response->successful() && $response->json('meta.status') !== false) {

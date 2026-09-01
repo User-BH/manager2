@@ -2,6 +2,7 @@
 
 namespace App\Console\Commands;
 
+use App\Models\AuditLog;
 use App\Models\Subscription;
 use Illuminate\Console\Command;
 
@@ -37,9 +38,32 @@ class MaintainSubscriptions extends Command
             ->where('ends_at', '<=', now())
             ->update(['status' => 'expired']);
 
+        /*
+         * 🔴 تراکنشی که سرنوشتش **دانسته نشده** رهاشده نیست (R59).
+         *
+         * ─── چه چیزی بی‌صدا می‌شکست ────────────────────────────────────────
+         * R59 کاری کرد که وقتی درگاه پاسخ نمی‌دهد، اشتراک `pending` بماند —
+         * چون نمی‌دانیم پول کسر شده یا نه.
+         *
+         * ولی همین دستور، سه ساعت بعد، **همان ردیف را `failed` می‌کرد** و
+         * یادداشتی می‌گذاشت که می‌گفت «پرداخت آنلاین نیمه‌تمام رها شد» —
+         * جمله‌ای که ممکن است دروغ باشد و ردِ ممیزی خلافش را می‌گوید.
+         *
+         * یعنی رفعِ R59 ظرفِ سه ساعت خنثی می‌شد، و چون این دستور شبانه و
+         * خودکار است، هیچ‌کس نمی‌دید.
+         *
+         * ⚠️ ردیف‌هایی که ردِ «نامشخص» دارند کنار گذاشته می‌شوند و
+         * `payments:stale` نشانشان می‌دهد تا آدم تعیینِ تکلیفشان کند.
+         */
+        $indeterminate = AuditLog::query()
+            ->where('action', 'subscription.indeterminate')
+            ->pluck('subject_id')
+            ->unique();
+
         $abandoned = Subscription::where('status', 'pending')
             ->where('method', 'online')
             ->where('created_at', '<', now()->subHours(self::ABANDONED_AFTER_HOURS))
+            ->whereNotIn('id', $indeterminate)
             ->update([
                 'status' => 'failed',
                 'review_note' => 'پرداخت آنلاین نیمه‌تمام رها شد.',

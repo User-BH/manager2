@@ -25,7 +25,7 @@ class SamanGateway implements PaymentGateway
     public function request(GatewayOrder $order): array
     {
         try {
-            $response = Http::timeout(30)->post(self::TOKEN_URL, [
+            $response = Http::connectTimeout(5)->timeout(30)->post(self::TOKEN_URL, [
                 'action' => 'token',
                 'TerminalId' => $this->config['terminal_id'] ?? '',
                 'Amount' => $this->toRial($order->gatewayAmount()),
@@ -64,20 +64,37 @@ class SamanGateway implements PaymentGateway
         $refNum = $callback['RefNum'] ?? null;
 
         try {
-            $response = Http::timeout(30)->post(self::VERIFY_URL, [
+            $response = Http::connectTimeout(5)->timeout(30)->post(self::VERIFY_URL, [
                 'RefNum' => $refNum,
                 'TerminalNumber' => $this->config['terminal_id'] ?? '',
             ]);
-
-            // ResultCode 0 (or 2 already-verified) means success.
-            if (in_array((int) $response->json('ResultCode'), [0, 2], true)) {
-                return (string) $refNum;
-            }
-
-            Log::warning('[Saman] verify failed', ['body' => $response->body()]);
         } catch (\Throwable $e) {
+            /*
+             * ⚠️ **نرسیدن به بانک، «نه» گفتنِ بانک نیست** (R59).
+             *
+             * نسخه‌ی قبلی اینجا `null` برمی‌گرداند و کنترلر پرداخت را برای
+             * همیشه `Failed` می‌کرد — برای تراکنشی که وضعیتش را اصلاً
+             * نپرسیده بودیم. کاربر پیامِ «اگر مبلغی کسر شده برمی‌گردد»
+             * می‌گرفت، که تضمینی بود درباره‌ی چیزی که نمی‌دانستیم.
+             */
             Log::error('[Saman] verify exception: '.$e->getMessage());
+
+            throw GatewayUnreachable::transport('saman', 'verify', $e->getMessage());
         }
+
+        if ($response->serverError()) {
+            Log::error('[Saman] verify server error: '.$response->status());
+
+            throw GatewayUnreachable::transport('saman', 'verify', 'HTTP '.$response->status());
+        }
+
+        // ResultCode 0 (or 2 already-verified) means success.
+        if (in_array((int) $response->json('ResultCode'), [0, 2], true)) {
+            return (string) $refNum;
+        }
+
+        // اینجا بانک واقعاً پاسخ داده و پاسخش «نه» است
+        Log::warning('[Saman] verify failed', ['body' => $response->body()]);
 
         return null;
     }

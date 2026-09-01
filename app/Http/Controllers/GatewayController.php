@@ -4,9 +4,11 @@ namespace App\Http\Controllers;
 
 use App\Enums\PaymentMethod;
 use App\Enums\PaymentStatus;
+use App\Models\AuditLog;
 use App\Models\Bill;
 use App\Models\Payment;
 use App\Services\Payment\GatewayManager;
+use App\Services\Payment\GatewayUnreachable;
 use App\Services\Payment\PaymentService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -127,7 +129,29 @@ class GatewayController extends Controller
             return $this->resultRedirect($payment);
         }
 
-        $tracking = $this->gateways->for($payment->complex)->verify($payment, $request->all());
+        /*
+         * 🔴 «نمی‌دانم» حالتِ سومی است، نه مترادفِ «ناموفق» (R59).
+         *
+         * ─── چه چیزی بی‌صدا می‌شکست ────────────────────────────────────────
+         * درایورها هر شکستِ شبکه‌ای را به `null` تبدیل می‌کردند و همین چند
+         * خطِ پایین، `null` را برای همیشه `Failed` می‌نوشت. یعنی یک timeoutِ
+         * سی‌ثانیه‌ایِ گذرا می‌توانست پرداختی را که پولش **واقعاً کسر شده**
+         * ناموفق ثبت کند — و پیامِ «اگر مبلغی کسر شده طی ۷۲ ساعت برمی‌گردد»
+         * تضمینی بود درباره‌ی چیزی که هرگز نپرسیده بودیم.
+         *
+         * ─── چرا `pending` می‌ماند و نه `Failed` ────────────────────────────
+         * چون هر دو تصمیم ممکن است غلط باشند و **بی‌تصمیمی تنها حالتِ صادق
+         * است**. ردیفِ `pending` را `payments:stale` به اپراتور نشان می‌دهد
+         * تا در پنلِ بانک تعیینِ تکلیف شود؛ ردیفِ `Failed` را هیچ‌کس دیگر
+         * نگاه نمی‌کند.
+         */
+        try {
+            $tracking = $this->gateways->for($payment->complex)->verify($payment, $request->all());
+        } catch (GatewayUnreachable $e) {
+            $this->recordIndeterminate($payment, $e);
+
+            return redirect('/my-bills?payment=unknown');
+        }
 
         if (! $tracking) {
             // فقط تراکنشِ هنوز-در-انتظار را ناموفق کن؛ اگر درخواست موازی
@@ -189,6 +213,37 @@ class GatewayController extends Controller
         return redirect('/my-bills?payment=success&tracking='.urlencode(
             $settled ? $tracking : (string) $payment->fresh()?->tracking_code,
         ));
+    }
+
+    /**
+     * ثبتِ اینکه سرنوشتِ این تراکنش **دانسته نشد**.
+     *
+     * ⚠️ وضعیتِ پرداخت عمداً دست‌نخورده می‌ماند. تنها کاری که اینجا انجام
+     * می‌شود گذاشتنِ ردی است که اپراتور بتواند از رویش در پنلِ بانک
+     * جست‌وجو کند — شناسه‌ی مرجع، گامی که شکست، و متنِ خطا.
+     *
+     * بدونِ این رد، پرداختِ `pending` از پرداختِ رهاشده‌ای که کاربر وسطِ
+     * راه منصرف شده قابلِ تشخیص نبود.
+     */
+    private function recordIndeterminate(Payment $payment, GatewayUnreachable $error): void
+    {
+        AuditLog::create([
+            'complex_id' => $payment->complex_id,
+            'user_id' => Auth::id(),
+            'action' => 'payment.indeterminate',
+            'subject_type' => Payment::class,
+            'subject_id' => $payment->id,
+            'description' => 'نتیجه‌ی پرداخت آنلاین از درگاه دریافت نشد',
+            'ip_address' => request()->ip(),
+            'properties' => [
+                'gateway' => $error->gateway,
+                'stage' => $error->stage,
+                'ref_id' => $payment->ref_id,
+                'amount' => $payment->amount,
+                'reason' => $error->getMessage(),
+            ],
+            'created_at' => now(),
+        ]);
     }
 
     /** نتیجه‌ی از پیش ثبت‌شده‌ی یک تراکنش، بدون تماس دوباره با درگاه. */

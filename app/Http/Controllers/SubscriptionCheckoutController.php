@@ -5,8 +5,10 @@ namespace App\Http\Controllers;
 use App\Enums\SubscriptionPlan;
 use App\Exceptions\DomainException;
 use App\Http\Requests\StartCheckoutRequest;
+use App\Models\AuditLog;
 use App\Models\Plan;
 use App\Models\Subscription;
+use App\Services\Payment\GatewayUnreachable;
 use App\Services\Subscription\SubscriptionGatewayManager;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -110,7 +112,35 @@ class SubscriptionCheckoutController extends Controller
                 : redirect('/account?checkout=failed');
         }
 
-        $tracking = $this->gateways->driver()->verify($subscription, $request->all());
+        /*
+         * 🔴 همان شکافِ مسیرِ قبض، اینجا هم بود (R59).
+         *
+         * شکستِ شبکه‌ای `null` می‌شد و اشتراک برای همیشه `failed` — برای
+         * خریدی که وضعیتش را اصلاً نپرسیده بودیم. `pending` ماندن تنها
+         * پاسخِ صادق است؛ `payments:stale` همین ردیف را نشان می‌دهد.
+         */
+        try {
+            $tracking = $this->gateways->driver()->verify($subscription, $request->all());
+        } catch (GatewayUnreachable $e) {
+            AuditLog::create([
+                'complex_id' => $subscription->complex_id,
+                'user_id' => Auth::id(),
+                'action' => 'subscription.indeterminate',
+                'subject_type' => Subscription::class,
+                'subject_id' => $subscription->id,
+                'description' => 'نتیجه‌ی پرداختِ اشتراک از درگاه دریافت نشد',
+                'ip_address' => $request->ip(),
+                'properties' => [
+                    'gateway' => $e->gateway,
+                    'stage' => $e->stage,
+                    'ref_id' => $subscription->ref_id,
+                    'reason' => $e->getMessage(),
+                ],
+                'created_at' => now(),
+            ]);
+
+            return redirect('/account?checkout=unknown');
+        }
 
         if (! $tracking) {
             $subscription->update(['status' => 'failed']);

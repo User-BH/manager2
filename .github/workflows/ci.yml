@@ -240,7 +240,7 @@ jobs:
           DB_USERNAME: root
           DB_PASSWORD: root
           REQUIRE_DB_CONSTRAINTS: '1'
-        run: php artisan test --filter="SchemaConstraintTest|SecretHandlingTest"
+        run: php artisan test --filter="SchemaConstraintTest|SecretHandlingTest|ChaosTest"
 
   # ────────────────────────────────────────────────────────────────────────
   #  امنیت

@@ -18,7 +18,7 @@ class MelipayamakSms implements SmsGateway
     public function send(string $phone, string $message): bool
     {
         try {
-            $response = Http::asForm()->timeout(15)->post(
+            $response = Http::asForm()->connectTimeout(5)->timeout(15)->post(
                 'https://rest.payamak-panel.com/api/SendSMS/SendSMS',
                 [
                     'username' => $this->config['username'] ?? '',

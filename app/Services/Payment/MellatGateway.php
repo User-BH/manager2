@@ -78,28 +78,82 @@ class MellatGateway implements PaymentGateway
         ];
 
         if ((string) $this->call($this->soapBody('bpVerifyRequest', $args), 'bpVerifyRequest') !== '0') {
+            // بانک صریح «نه» گفت. اگر نرسیده بودیم، `call` استثنا داده بود.
             return null;
         }
 
-        // Settle so the funds are actually captured.
-        $this->call($this->soapBody('bpSettleRequest', $args), 'bpSettleRequest');
+        /*
+         * 🔴 نتیجه‌ی تسویه دیگر نادیده گرفته نمی‌شود (R59).
+         *
+         * ─── چه چیزی بی‌صدا می‌شکست ────────────────────────────────────────
+         * پیش از این این خط بود و بس:
+         *
+         *     $this->call($this->soapBody('bpSettleRequest', $args), ...);
+         *
+         * خروجی دور ریخته می‌شد. یعنی اگر `bpVerifyRequest` موفق بود ولی
+         * `bpSettleRequest` به timeout می‌خورد، این متد **کدِ رهگیری
+         * برمی‌گرداند** و سامانه پرداخت را «موفق» ثبت می‌کرد: قبض تسویه،
+         * کیفِ پول شارژ، و پولی که هرگز capture نشده بود.
+         *
+         * در پروتکلِ ملت، تراکنشی که verify شده ولی settle نشده پس از
+         * پنجره‌ی تسویه **برگشت می‌خورد**. یعنی مجتمع پولی را که در دفترش
+         * ثبت کرده بود، هرگز دریافت نمی‌کرد.
+         *
+         * ─── چرا «هر کدِ ناشناخته = نامشخص» و نه «ناموفق» ──────────────────
+         * ⚠️ جدولِ کدهای ملت را نمی‌توانم روی ترمینالِ واقعی بسنجم. پس
+         * به‌جای حدس‌زدن، فقط دو کدی که مطمئنم موفقیت‌اند پذیرفته می‌شوند و
+         * **هر چیز دیگری به «نامشخص» می‌رود**، نه به «ناموفق».
+         *
+         * جهتِ خطا عمدی است: بدترین نتیجه‌ی این انتخاب، ردیفی است که
+         * اپراتور باید دستی بررسی کند. بدترین نتیجه‌ی انتخابِ دیگر، پولِ
+         * از دست رفته است.
+         */
+        $settle = (string) $this->call($this->soapBody('bpSettleRequest', $args), 'bpSettleRequest');
+
+        // ۰ = تسویه شد · ۴۵ = از قبل تسویه شده بود (مستندِ ملت؛ روی ترمینالِ واقعی سنجیده نشده)
+        if (! in_array($settle, ['0', '45'], true)) {
+            throw GatewayUnreachable::settleUnconfirmed('mellat', 'کدِ تسویه: '.($settle === '' ? 'خالی' : $settle));
+        }
 
         return (string) $saleReferenceId;
     }
 
+    /**
+     * یک فراخوانیِ SOAP.
+     *
+     * ⚠️ **نرسیدن به بانک، «نه» گفتنِ بانک نیست** (R59).
+     *
+     * نسخه‌ی قبلی هر استثنا را می‌بلعید و `''` برمی‌گرداند — و `''` در
+     * مقایسه با `'0'` نابرابر است، پس timeoutِ شبکه دقیقاً مثلِ ردِ بانک
+     * دیده می‌شد. نتیجه‌اش این بود که یک قطعیِ گذرای شبکه، پرداختی را
+     * **برای همیشه** ناموفق علامت می‌زد، در حالی که ممکن بود پولِ کاربر
+     * واقعاً کسر شده باشد.
+     *
+     * حالا این دو حالت از هم جدا شده‌اند: پاسخِ نامفهومِ بانک `''` است
+     * (یعنی «نه»)، ولی نرسیدن به بانک استثنا می‌دهد.
+     */
     private function call(string $body, string $action): string
     {
         try {
             $response = Http::withHeaders([
                 'Content-Type' => 'text/xml; charset=utf-8',
                 'SOAPAction' => $action,
-            ])->timeout(30)->withBody($body, 'text/xml')->post(self::WSDL);
-
-            if (preg_match('/<return[^>]*>(.*?)<\/return>/s', $response->body(), $m)) {
-                return trim($m[1]);
-            }
+            ])->connectTimeout(5)->timeout(30)->withBody($body, 'text/xml')->post(self::WSDL);
         } catch (\Throwable $e) {
             Log::error('[Mellat] '.$action.' exception: '.$e->getMessage());
+
+            throw GatewayUnreachable::transport('mellat', $action, $e->getMessage());
+        }
+
+        if ($response->serverError()) {
+            // ۵xx یعنی «الان نمی‌توانم»، نه «این تراکنش باطل است»
+            Log::error('[Mellat] '.$action.' server error: '.$response->status());
+
+            throw GatewayUnreachable::transport('mellat', $action, 'HTTP '.$response->status());
+        }
+
+        if (preg_match('/<return[^>]*>(.*?)<\/return>/s', $response->body(), $m)) {
+            return trim($m[1]);
         }
 
         return '';
