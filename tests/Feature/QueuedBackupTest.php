@@ -9,6 +9,7 @@ use App\Models\Complex;
 use App\Models\User;
 use App\Services\Backup\BackupBuilder;
 use App\Services\Backup\BackupCipher;
+use App\Services\Backup\BackupManifest;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Facades\Storage;
@@ -103,7 +104,7 @@ class QueuedBackupTest extends TestCase
         $contents = BackupCipher::open(Storage::disk('local')->get($backup->refresh()->path));
 
         // اگر جدولی از فهرست بیفتد، بازیابی ناقص می‌شود و کسی نمی‌فهمد
-        foreach (BackupBuilder::SYSTEM_TABLES as $table) {
+        foreach (BackupManifest::TABLES as $table) {
             $this->assertArrayHasKey($table, $contents['tables'], "جدول {$table} در بکاپ نیست");
         }
     }

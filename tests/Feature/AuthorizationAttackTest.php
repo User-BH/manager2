@@ -595,7 +595,7 @@ class AuthorizationAttackTest extends TestCase
         // ── دستور و صف: نه کاربرِ HTTPی هست، نه زمینه‌ی مستأجری ──
         'app/Console/Commands/CheckRaceConditions.php' => [7, 'ابزارِ سنجشِ همزمانی؛ عمداً کلِ داده را می‌بیند'],
         'app/Console/Commands/PruneGeneratedDocuments.php' => [1, 'پاک‌سازیِ زمان‌بندی‌شده روی همه‌ی مجتمع‌ها'],
-        'app/Console/Commands/PruneOrphanUploads.php' => [3, 'فایل‌های یتیم در همه‌ی مجتمع‌ها'],
+        'app/Console/Commands/PruneOrphanUploads.php' => [5, 'فایل‌های یتیم در همه‌ی مجتمع‌ها — پنج نوع پیوست از R58'],
         'app/Console/Commands/ResetUserPassword.php' => [2, 'بازیابیِ رمز از کنسول، پیش از هر نشستی'],
         'app/Console/Commands/SendBillReminders.php' => [1, 'یادآوریِ زمان‌بندی‌شده برای همه‌ی مجتمع‌ها'],
         'app/Jobs/BuildBillsBundleJob.php' => [3, 'صف؛ زمینه‌ی مستأجری در worker وجود ندارد'],

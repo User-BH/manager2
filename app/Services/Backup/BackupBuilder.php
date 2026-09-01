@@ -18,21 +18,13 @@ use Illuminate\Support\Str;
  * ماندنش در کنترلر یعنی سه نسخه.
  *
  * ─── نکته‌ی حافظه ──────────────────────────────────────────────────────────
- * بکاپِ سیستم همه‌ی ردیف‌های ~۱۸ جدول را می‌خواند. روی داده‌ی واقعی این
+ * بکاپِ سیستم همه‌ی ردیف‌های ۳۲ جدول را می‌خواند. روی داده‌ی واقعی این
  * می‌تواند صدها مگابایت حافظه بگیرد، و دقیقاً به همین دلیل باید در صف اجرا
  * شود نه در چرخه‌ی درخواست: آنجا `max_execution_time` و حافظه‌ی PHP-FPM
  * محدودند و شکستش به‌صورتِ ۵۰۰ به کاربر می‌رسد.
  */
 class BackupBuilder
 {
-    /** جدول‌هایی که در بکاپِ کاملِ سیستم ذخیره می‌شوند. */
-    public const SYSTEM_TABLES = [
-        'complexes', 'users', 'buildings', 'units', 'unit_user',
-        'charge_rules', 'expenses', 'incomes', 'bills', 'payments',
-        'discounts', 'announcements', 'announcement_reads', 'messages',
-        'settings', 'subscriptions', 'advertisements', 'audit_logs',
-    ];
-
     /**
      * پرکردنِ یک رکوردِ `pending` با فایلِ ساخته‌شده.
      *
@@ -78,7 +70,7 @@ class BackupBuilder
     {
         $data = [];
 
-        foreach (self::SYSTEM_TABLES as $table) {
+        foreach (BackupManifest::TABLES as $table) {
             if (Schema::hasTable($table)) {
                 $data[$table] = DB::table($table)->get()->map(fn ($row) => (array) $row)->all();
             }

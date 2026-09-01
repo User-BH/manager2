@@ -10,6 +10,8 @@ use App\Models\AuditLog;
 use App\Models\Backup;
 use App\Models\User;
 use App\Services\Backup\BackupCipher;
+use App\Services\Backup\BackupManifest;
+use App\Services\Backup\SnapshotValidator;
 use App\Support\PrivateFiles;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Auth;
@@ -20,35 +22,6 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class BackupController extends Controller
 {
-    /**
-     * جدول‌هایی که در بکاپ کامل ذخیره می‌شوند، به ترتیبی که کلید خارجی نشکند.
-     *
-     * جدول‌های گذرا (`sessions`, `cache`, `jobs`, `otp_codes`,
-     * `password_reset_tokens`) عمداً نیستند؛ بازگرداندنشان بی‌معنی است و فقط
-     * حجم فایل را بالا می‌برد. خودِ `backups` هم نیست چون فهرست فایل‌هاست، نه
-     * داده‌ی کسب‌وکار.
-     */
-    private const BACKUP_TABLES = [
-        'complexes', 'users', 'buildings', 'units', 'unit_user',
-        'charge_rules', 'expenses', 'incomes', 'bills', 'payments',
-        'discounts', 'announcements', 'announcement_reads', 'messages',
-        'settings', 'subscriptions', 'advertisements', 'audit_logs',
-    ];
-
-    /**
-     * جدول‌هایی که هنگام بازیابی خالی و دوباره پر می‌شوند.
-     *
-     * `audit_logs` عمداً بیرون است: اگر بازیابی لاگ فعالیت را هم پاک کند، هرکس
-     * می‌تواند با یک بازیابی رد پای خودش را بشوید. لاگ باید از بازیابی جان
-     * سالم به در ببرد، هرچند در فایل بکاپ ذخیره می‌شود.
-     */
-    private const RESTORE_TABLES = [
-        'complexes', 'users', 'buildings', 'units', 'unit_user',
-        'charge_rules', 'expenses', 'incomes', 'bills', 'payments',
-        'discounts', 'announcements', 'announcement_reads', 'messages',
-        'settings', 'subscriptions', 'advertisements',
-    ];
-
     /** عبارتی که ادمین باید دقیقاً تایپ کند تا بازیابی انجام شود. */
     private const CONFIRM_PHRASE = 'بازیابی';
 
@@ -84,7 +57,7 @@ class BackupController extends Controller
     private function snapshot(string $note): Backup
     {
         $data = [];
-        foreach (self::BACKUP_TABLES as $table) {
+        foreach (BackupManifest::TABLES as $table) {
             if (Schema::hasTable($table)) {
                 $data[$table] = DB::table($table)->get()->map(fn ($r) => (array) $r)->all();
             }
@@ -153,7 +126,7 @@ class BackupController extends Controller
             return response()->json(['message' => $e->getMessage()], 422);
         }
 
-        $error = $this->validateSnapshot($payload);
+        $error = SnapshotValidator::validate($payload);
         if ($error !== null) {
             return response()->json(['message' => $error], 422);
         }
@@ -197,13 +170,13 @@ class BackupController extends Controller
             DB::transaction(function () use ($payload) {
                 // پاک‌کردن از فرزند به والد. از DELETE استفاده می‌شود نه
                 // TRUNCATE، چون TRUNCATE در MySQL ترنزاکشن را commit می‌کند.
-                foreach (array_reverse(self::RESTORE_TABLES) as $table) {
+                foreach (array_reverse(BackupManifest::restoreTables()) as $table) {
                     if (Schema::hasTable($table)) {
                         DB::table($table)->delete();
                     }
                 }
 
-                foreach (self::RESTORE_TABLES as $table) {
+                foreach (BackupManifest::restoreTables() as $table) {
                     if (! Schema::hasTable($table) || ! isset($payload['tables'][$table])) {
                         continue;
                     }
@@ -254,58 +227,12 @@ class BackupController extends Controller
     }
 
     /**
-     * بررسی سلامت فایل بکاپ، پیش از آنکه چیزی پاک شود.
-     *
-     * تکیه بر rollback کافی نیست: خطای وسط کار پیام گنگ دیتابیس می‌دهد و ادمین
-     * نمی‌فهمد فایلش مشکل داشته یا سرور.
-     *
-     * @return string|null پیام خطا، یا null اگر فایل سالم باشد
-     */
-    private function validateSnapshot(mixed $payload): ?string
-    {
-        if (! is_array($payload) || ! isset($payload['tables']) || ! is_array($payload['tables'])) {
-            return 'فایل بکاپ معتبر نیست یا ساختار درستی ندارد.';
-        }
-
-        if (($payload['meta']['type'] ?? null) !== 'full') {
-            return 'این فایل بکاپ کامل سیستم نیست. بکاپ یک مجتمع را نمی‌توان اینجا بازیابی کرد.';
-        }
-
-        foreach ($payload['tables'] as $table => $rows) {
-            // جدولی که نمی‌شناسیم نباید بی‌سروصدا نادیده گرفته شود؛ یعنی فایل
-            // از نسخه‌ی دیگری از برنامه آمده و بازیابی‌اش داده را ناقص می‌کند.
-            if (! in_array($table, self::BACKUP_TABLES, true)) {
-                return "فایل بکاپ شامل جدول ناشناخته‌ی «{$table}» است.";
-            }
-
-            if (! is_array($rows)) {
-                return "داده‌ی جدول «{$table}» در فایل بکاپ معتبر نیست.";
-            }
-
-            if (! Schema::hasTable($table) || $rows === []) {
-                continue;
-            }
-
-            // ستون‌های ناشناخته هنگام insert خطای SQL می‌دهند؛ بهتر است همین
-            // حالا با پیام روشن رد شوند.
-            $columns = Schema::getColumnListing($table);
-            $unknown = array_diff(array_keys((array) $rows[0]), $columns);
-
-            if ($unknown !== []) {
-                return "جدول «{$table}» ستون ناشناخته دارد: ".implode('، ', $unknown);
-            }
-        }
-
-        return null;
-    }
-
-    /**
      * @param  array<string,array<int,mixed>>  $tables
      * @return array<string,int>
      */
     private function rowCounts(array $tables): array
     {
-        return collect(self::RESTORE_TABLES)
+        return collect(BackupManifest::restoreTables())
             ->mapWithKeys(fn (string $t) => [$t => count($tables[$t] ?? [])])
             ->all();
     }
@@ -313,7 +240,7 @@ class BackupController extends Controller
     /** @return array<string,int> */
     private function currentRowCounts(): array
     {
-        return collect(self::RESTORE_TABLES)
+        return collect(BackupManifest::restoreTables())
             ->mapWithKeys(fn (string $t) => [$t => Schema::hasTable($t) ? DB::table($t)->count() : 0])
             ->all();
     }

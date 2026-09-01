@@ -28,11 +28,21 @@ class PruneBackups extends Command
          * گروه‌بندی بر اساس مجتمع: بکاپ‌های سیستمی (complex_id = null) یک گروه
          * و هر مجتمع گروه خودش. وگرنه یک مجتمعِ پرکار می‌توانست سهمیه‌ی بقیه
          * را مصرف کند و بکاپ آن‌ها حذف شود.
+         *
+         * ⚠️ **و نوع هم بخشی از گروه است** (R58). با آمدنِ آرشیوِ فایل‌ها،
+         * گروه‌بندیِ فقط-بر-اساسِ-مجتمع یعنی دو نوعِ کاملاً متفاوت در یک
+         * سهمیه‌ی ده‌تایی بیفتند: چند آرشیوِ فایلِ پشتِ‌هم می‌توانست همه‌ی
+         * بکاپ‌های دیتابیس را از سهمیه بیرون کند — دقیقاً همان چیزی که این
+         * دستور برای جلوگیری‌اش نوشته شده بود.
          */
         $removed = 0;
         $freed = 0;
 
-        foreach (Backup::get()->groupBy(fn (Backup $b) => $b->complex_id ?? 'system') as $group => $backups) {
+        $grouped = Backup::get()->groupBy(
+            fn (Backup $b) => ($b->complex_id ?? 'system').':'.($b->type ?: 'full'),
+        );
+
+        foreach ($grouped as $group => $backups) {
             $stale = $backups->sortByDesc('id')->slice($keep);
 
             foreach ($stale as $backup) {

@@ -3,8 +3,11 @@
 namespace App\Console\Commands;
 
 use App\Models\Advertisement;
+use App\Models\Message;
 use App\Models\Payment;
+use App\Models\ServiceRequest;
 use App\Models\Subscription;
+use App\Services\Backup\BackupManifest;
 use App\Support\PrivateFiles;
 use Illuminate\Console\Command;
 
@@ -40,13 +43,24 @@ class PruneOrphanUploads extends Command
             ->merge(Payment::withoutGlobalScopes()->whereNotNull('receipt_path')->pluck('receipt_path'))
             ->merge(Subscription::withoutGlobalScopes()->whereNotNull('receipt_path')->pluck('receipt_path'))
             ->merge(Advertisement::withoutGlobalScopes()->whereNotNull('image_path')->pluck('image_path'))
+            ->merge(Message::withoutGlobalScopes()->whereNotNull('attachment_path')->pluck('attachment_path'))
+            ->merge(ServiceRequest::withoutGlobalScopes()->whereNotNull('attachment_path')->pluck('attachment_path'))
             ->filter()
             ->flip();
 
         $orphans = [];
         $bytes = 0;
 
-        foreach (['receipts', 'subscription-receipts', 'ads'] as $directory) {
+        /*
+         * ⚠️ این فهرست تا R58 دستی بود و **دو پوشه را جا انداخته بود**:
+         * `messages/` و `requests/`. یعنی پیوستِ پیام‌ها و درخواست‌های خدمات
+         * هرگز جمع نمی‌شدند و برای همیشه روی دیسک می‌ماندند.
+         *
+         * حالا از `BackupManifest::FILE_ROOTS` می‌آید — همان فهرستی که
+         * آرشیوِ بکاپ از آن می‌خواند. پس اگر روزی پوشه‌ی تازه‌ای اضافه شود،
+         * هم بکاپ می‌شود و هم هرس؛ نه اینکه یکی یادش بماند و دیگری نه.
+         */
+        foreach (array_keys(BackupManifest::FILE_ROOTS) as $directory) {
             foreach ($disk->allFiles($directory) as $file) {
                 if ($known->has($file)) {
                     continue;

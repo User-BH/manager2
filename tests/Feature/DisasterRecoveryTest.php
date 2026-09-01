@@ -3,13 +3,13 @@
 namespace Tests\Feature;
 
 use App\Enums\UserRole;
-use App\Http\Controllers\Api\System\BackupController;
 use App\Models\Backup;
 use App\Models\Bill;
 use App\Models\Complex;
 use App\Models\Unit;
 use App\Models\User;
 use App\Services\Backup\BackupBuilder;
+use App\Services\Backup\BackupManifest;
 use App\Support\Jalali;
 use App\Support\PrivateFiles;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -19,7 +19,6 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Testing\TestResponse;
-use ReflectionClass;
 use Tests\TestCase;
 
 /**
@@ -346,51 +345,48 @@ class DisasterRecoveryTest extends TestCase
     }
 
     // ─────────────────────────────────────────────────────────────────────
-    //  واگراییِ دو فهرستِ جدول
+    //  یگانگیِ فهرستِ جدول‌ها
     // ─────────────────────────────────────────────────────────────────────
 
     /**
-     * ⚠️ دو نسخه‌ی مستقل از فهرستِ جدول‌ها وجود دارد و باید یکی بمانند.
+     * ⚠️ فهرستِ جدول‌ها باید **یک** جا تعریف شده باشد.
      *
-     * ─── خطری که این می‌گیرد ────────────────────────────────────────────────
-     * `BackupBuilder::SYSTEM_TABLES` بکاپ‌های عادی و زمان‌بندی‌شده را
-     * می‌سازد؛ `BackupController::BACKUP_TABLES` بکاپِ **ایمنیِ پیش از
-     * بازیابی** را.
+     * ─── تاریخچه ────────────────────────────────────────────────────────────
+     * تا R58 دو نسخه‌ی مستقل وجود داشت: یکی در `BackupBuilder` برای
+     * بکاپ‌های عادی، یکی در `System\BackupController` برای بکاپِ **ایمنیِ
+     * پیش از بازیابی**. این تست فقط می‌سنجید که با هم برابر بمانند.
      *
-     * اگر کسی جدولی به یکی اضافه کند و دیگری را فراموش، همه‌چیز سالم به
-     * نظر می‌رسد — تا روزی که بازیابیِ اشتباهی انجام شود و معلوم شود
-     * بکاپِ ایمنی، که تنها راهِ برگشت است، آن جدول را ندارد.
+     * ⚠️ ولی برابری کافی نبود: **هر دو** ناقص بودند. `wallet_transactions`
+     * در هیچ‌کدام نبود و تستِ برابری با کمالِ آرامش سبز می‌ماند.
+     *
+     * حالا هر دو از `BackupManifest` می‌خوانند و این تست جای دیگری را
+     * می‌گیرد: مطمئن می‌شود کسی دوباره فهرستِ محلیِ خودش را ننویسد.
      */
-    public function test_the_two_table_lists_do_not_drift_apart(): void
+    public function test_the_table_list_is_declared_in_exactly_one_place(): void
     {
-        $controller = new ReflectionClass(BackupController::class);
+        $files = [
+            'app/Services/Backup/BackupBuilder.php',
+            'app/Http/Controllers/Api/System/BackupController.php',
+            'app/Console/Commands/VerifyBackups.php',
+        ];
 
-        $backupTables = $controller->getConstant('BACKUP_TABLES');
-        $restoreTables = $controller->getConstant('RESTORE_TABLES');
+        foreach ($files as $file) {
+            $code = (string) file_get_contents(base_path($file));
 
-        $this->assertSame(
-            BackupBuilder::SYSTEM_TABLES,
-            $backupTables,
-            'فهرستِ جدول‌های بکاپِ ایمنی با فهرستِ بکاپِ عادی فرق دارد؛ '
-            .'یکی از دو مسیر جدولی را از دست می‌دهد.',
-        );
+            $this->assertDoesNotMatchRegularExpression(
+                "/'(complexes|users|bills|payments|wallet_transactions)'\s*,\s*'/",
+                $code,
+                "«{$file}» فهرستِ جدولِ محلیِ خودش را دارد. "
+                .'نقطه‌ی حقیقت باید فقط BackupManifest باشد، وگرنه دوباره '
+                .'واگرا می‌شوند — و بارِ قبل نتیجه‌اش گم‌شدنِ دفترِ کیفِ پول بود.',
+            );
+        }
 
-        /*
-         * ⚠️ `audit_logs` عمداً بازیابی نمی‌شود و این **باگ نیست**: اگر
-         * بازیابی سیاهه‌ی ممیزی را هم پاک کند، هرکس می‌تواند با یک
-         * بازیابی ردِ پای خودش را بشوید. پس تنها اختلافِ مجاز همین است و
-         * صریح سنجیده می‌شود تا اختلافِ تازه‌ای پنهان نشود.
-         */
+        // تنها اختلافِ مجازِ بکاپ و بازیابی، و صریح
         $this->assertSame(
             ['audit_logs'],
-            array_values(array_diff($backupTables, $restoreTables)),
+            array_values(array_diff(BackupManifest::TABLES, BackupManifest::restoreTables())),
             'اختلافِ فهرستِ بکاپ و بازیابی چیزی جز audit_logs است.',
-        );
-
-        $this->assertSame(
-            [],
-            array_values(array_diff($restoreTables, $backupTables)),
-            'بازیابی جدولی را انتظار دارد که هرگز بکاپ نمی‌شود.',
         );
     }
 
@@ -403,7 +399,7 @@ class DisasterRecoveryTest extends TestCase
      */
     public function test_every_backed_up_table_exists(): void
     {
-        foreach (BackupBuilder::SYSTEM_TABLES as $table) {
+        foreach (BackupManifest::TABLES as $table) {
             $this->assertTrue(
                 Schema::hasTable($table),
                 "جدولِ «{$table}» در فهرستِ بکاپ هست ولی در دیتابیس نیست.",
