@@ -2,6 +2,7 @@
 
 namespace App\Services\Sms;
 
+use App\Support\SmsOutcome;
 use App\Support\SystemSettings;
 
 /**
@@ -40,7 +41,7 @@ class SmsManager
 
     public function send(string $phone, string $message): bool
     {
-        return $this->driver()->send($phone, $message);
+        return $this->record($this->driver()->send($phone, $message));
     }
 
     /** جزئیاتِ خطای آخرین ارسال (اگر درایور آن را نگه دارد)، برای «ارسال آزمایشی». */
@@ -54,11 +55,30 @@ class SmsManager
     /** ارسالِ کدِ یک‌بارمصرف (تنها پیامکِ سامانه) — با پترن اگر درایور پشتیبانی کند. */
     public function sendOtp(string $phone, string $code): bool
     {
-        return $this->driver()->sendOtp($phone, $code);
+        return $this->record($this->driver()->sendOtp($phone, $code));
     }
 
     public function isLogDriver(): bool
     {
         return SystemSettings::get('sms_driver', 'log') === 'log';
+    }
+
+    /**
+     * شمارشِ نتیجه، برای هشدارِ «پیامک کار نمی‌کند» (R64).
+     *
+     * ⚠️ **اینجا** و نه در محلِ فراخوانی — دقیقاً همان استدلالِ قلاب‌های صف
+     * در R63: چهار جای مختلف پیامک می‌فرستند و اولین جای پنجم که کسی
+     * اضافه کند، از قلم می‌افتد. تستِ ساختاری هم می‌سنجد که هیچ‌کس درایور
+     * را مستقیم نسازد و این لایه را دور نزند.
+     *
+     * 🔴 چرا این مهم‌ترین هشدارِ R64 است: پیامکِ این سامانه فقط کدِ ورود
+     * است. قطعیِ کاملش یعنی هیچ‌کس نمی‌تواند وارد شود، در حالی که `/up`
+     * سبز می‌ماند و هیچ استثنایی هیچ‌جا ثبت نمی‌شود.
+     */
+    private function record(bool $delivered): bool
+    {
+        SmsOutcome::record($delivered, $delivered ? null : $this->lastError());
+
+        return $delivered;
     }
 }

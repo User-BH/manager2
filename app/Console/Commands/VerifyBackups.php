@@ -8,6 +8,8 @@ use App\Services\Backup\BackupManifest;
 use App\Services\Backup\FileArchive;
 use App\Services\Backup\OffsiteTarget;
 use App\Services\Backup\SnapshotValidator;
+use App\Services\Health\HealthAlerter;
+use App\Services\Health\HealthReport;
 use App\Support\PrivateFiles;
 use Illuminate\Console\Command;
 use Throwable;
@@ -50,7 +52,7 @@ class VerifyBackups extends Command
     /** @var list<string> */
     private array $warnings = [];
 
-    public function handle(): int
+    public function handle(HealthAlerter $alerter): int
     {
         $this->checkDatabaseBackup();
         $this->checkFileArchive();
@@ -69,6 +71,29 @@ class VerifyBackups extends Command
         foreach ($this->problems as $problem) {
             $this->error('✗ '.$problem);
         }
+
+        /*
+         * 🔴 اعلامِ نتیجه از مسیرِ هشدار (R64).
+         *
+         * ─── نقصی که اندازه‌گیری شد ────────────────────────────────────────
+         * این دستور از R58 وجود داشت و درست هم کار می‌کرد، ولی خروجی‌اش
+         * فقط به **stdoutِ cron** می‌رفت. یعنی «بکاپِ شما قابلِ بازیابی
+         * نیست» — بدترین خبرِ ممکنِ این سامانه — در جایی نوشته می‌شد که
+         * هیچ‌کس نمی‌خواندش.
+         *
+         * ⚠️ حالا از همان `HealthAlerter` رد می‌شود: کانالِ `alerts`، زنگوله‌ی
+         * سوپرادمین، و وب‌هوک. مسیرِ تحویل یکی است تا خفه‌کن و پاک‌کننده‌ی
+         * راز هم شاملش شوند.
+         */
+        $alerter->dispatch([
+            'status' => HealthReport::DEGRADED,
+            'checks' => [
+                'backup-verify' => [
+                    'status' => HealthReport::DEGRADED,
+                    'detail' => implode('؛ ', $this->problems),
+                ],
+            ],
+        ]);
 
         return self::FAILURE;
     }

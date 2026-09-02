@@ -19,6 +19,7 @@
 | [docs/DEPLOYMENT_SECURITY.md](docs/DEPLOYMENT_SECURITY.md) | سخت‌سازیِ سرور و رازها                                                               |
 | [docs/OFFLINE.md](docs/OFFLINE.md)                         | **معماریِ آفلاین** — چه کاری آفلاین ممکن است، و چرا صفِ آفلاین ساخته نشد             |
 | [docs/API_COMPATIBILITY.md](docs/API_COMPATIBILITY.md)     | **قراردادِ سازگاری** — Mixed App Versions، چرخهٔ به‌روزرسانیِ SW، و بازگشت           |
+| [docs/ALERTING.md](docs/ALERTING.md)                       | **دفترچهٔ هشدار** — چه چیزی زنگ می‌زند، چرا آن عدد، و اپراتور چه کند                 |
 | [docs/DISASTER_RECOVERY.md](docs/DISASTER_RECOVERY.md)     | **بازیابی از فاجعه** — RPO و RTO، مقصدِ خارج از سرور، و رویهٔ هشت سناریو             |
 | [docs/MIGRATIONS.md](docs/MIGRATIONS.md)                   | **مهاجرتِ امن** — Expand→Migrate→Contract، مهاجرتِ مخرب، رویهٔ برگشت                 |
 | [docs/SECRETS.md](docs/SECRETS.md)                         | **رازها و چرخشِ کلید** — فهرست، رویهٔ چرخش، و کارِ لحظهٔ نشت                         |

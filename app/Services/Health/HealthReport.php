@@ -7,7 +7,6 @@ use App\Support\PrivateFiles;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
-use Throwable;
 
 /**
  * سنجشِ واقعیِ سلامتِ سرویس (R43).
@@ -33,6 +32,8 @@ use Throwable;
  */
 class HealthReport
 {
+    use MeasuresProbes;
+
     public const OK = 'ok';
 
     public const DEGRADED = 'degraded';
@@ -80,22 +81,6 @@ class HealthReport
             'checks' => $checks,
             'checked_at' => now()->toIso8601String(),
         ];
-    }
-
-    /**
-     * بدترین وضعیتِ میانِ همه‌ی سنجه‌ها — یک `down` کلِ گزارش را `down` می‌کند.
-     *
-     * @param  array<string, array<string, mixed>>  $checks
-     */
-    public function worst(array $checks): string
-    {
-        $states = array_column($checks, 'status');
-
-        if (in_array(self::DOWN, $states, true)) {
-            return self::DOWN;
-        }
-
-        return in_array(self::DEGRADED, $states, true) ? self::DEGRADED : self::OK;
     }
 
     /**
@@ -279,36 +264,5 @@ class HealthReport
                 ? ['status' => self::OK, 'detail' => 'سالم است']
                 : ['status' => self::DEGRADED, 'detail' => implode('؛ ', $violations)];
         }, self::DEGRADED);
-    }
-
-    /**
-     * اجرای یک سنجه با زمان‌گیری و مهارِ استثنا.
-     *
-     * ⚠️ هیچ سنجه‌ای حق ندارد خودِ بررسیِ سلامت را بترکاند. اگر یکی خطای
-     * غیرمنتظره بدهد و اینجا گرفته نشود، کلِ endpoint پانصد می‌شود و آن‌وقت
-     * پنج سنجه‌ی دیگر هم دیده نمی‌شوند — یعنی درست وقتی که بیشترین نیاز را
-     * به گزارش داریم، گزارشی نداریم.
-     *
-     * @param  callable(): array<string, mixed>  $probe
-     * @return array<string, mixed>
-     */
-    private function timed(callable $probe, string $onFailure): array
-    {
-        $started = microtime(true);
-
-        try {
-            $result = $probe();
-        } catch (Throwable $e) {
-            $result = [
-                'status' => $onFailure,
-                // ⚠️ پیام کوتاه و یک‌خطی می‌شود: استثناهای PDO رشته‌ی اتصال،
-                // نامِ کاربر و گاهی مسیرِ سرور را در خود دارند
-                'detail' => Str::limit(str_replace(["\n", "\r"], ' ', $e->getMessage()), 120),
-            ];
-        }
-
-        $result['ms'] = (int) round((microtime(true) - $started) * 1000);
-
-        return $result;
     }
 }

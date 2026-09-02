@@ -284,18 +284,18 @@
 
 ## ۱‑۲۴) Alerting
 
-| #   | رویداد                | وضعیت | مرحله   |
-| --- | --------------------- | ----- | ------- |
-| 143 | Error Spike           | ❌    | **R64** |
-| 144 | Database Failure      | ✅    | R43     |
-| 145 | Queue Failure         | ✅    | R43     |
-| 146 | Disk Full             | ✅    | R43     |
-| 147 | CPU بالا              | ❌    | R64 🔒  |
-| 148 | Memory بالا           | ❌    | R64 🔒  |
-| 149 | Payment Failure Spike | ❌    | **R64** |
-| 150 | SMS Failure           | ❌    | R64     |
-| 151 | Backup Failure        | ❌    | **R64** |
-| 152 | SSL Expiration        | ❌    | R64 🔒  |
+| #   | رویداد                | وضعیت                                                                           | مرحله   |
+| --- | --------------------- | ------------------------------------------------------------------------------- | ------- |
+| 143 | Error Spike           | ✅ اختلافِ مجموعِ رخدادها، نه تعدادِ ردیف                                       | **R64** |
+| 144 | Database Failure      | ✅                                                                              | R43     |
+| 145 | Queue Failure         | ✅                                                                              | R43     |
+| 146 | Disk Full             | ✅                                                                              | R43     |
+| 147 | CPU بالا              | 🔒 بارِ کلِ ماشین است، نه این برنامه؛ رویهٔ بیرونی در `docs/ALERTING.md`        | R64 🔒  |
+| 148 | Memory بالا           | 🔒 PHP-FPM همان پردازه‌ای را می‌کشد که باید گزارش بدهد                          | R64 🔒  |
+| 149 | Payment Failure Spike | ✅ نسبت + کفِ تعداد؛ بلاتکلیفِ R59 هم شکست حساب می‌شود                          | **R64** |
+| 150 | SMS Failure           | ✅ شمارش در `SmsManager`؛ قطعیِ کامل = `down` (ورود ممکن نیست)                  | **R64** |
+| 151 | Backup Failure        | ✅ ردیفِ `failed`، `pending`ِ گیرکرده، و RPOی ازدست‌رفته                        | **R64** |
+| 152 | SSL Expiration        | 🔒 گواهی مالِ nginx است و قیدِ پروژه دست‌نزدن به آن؛ رویه در `docs/ALERTING.md` | R64 🔒  |
 
 ## ۱‑۲۵) Load / Chaos / Dependency / Static Analysis / CI
 
@@ -361,37 +361,37 @@
 
 ## ۲‑۲) بندهای ۲ تا ۱۶ فایل
 
-| #   | بند                                                                                       | وضعیت                                                           | مرحله   |
-| --- | ----------------------------------------------------------------------------------------- | --------------------------------------------------------------- | ------- |
-| 197 | (۲) Token امن                                                                             | ✅ (توکن نداریم)                                                | R8      |
-| 198 | (۲) اطلاعات حساس در localStorage نباشد                                                    | ✅ سنجیده و قفل شد                                              | **R55** |
-| 199 | (۲) کوکی HttpOnly / Secure / SameSite                                                     | ✅                                                              | R16     |
-| 200 | (۲) Rate Limit برای Login و Password Reset                                                | ✅                                                              | R17     |
-| 201 | (۲) کاربر نتواند Role خود را عوض کند                                                      | ✅                                                              | R54     |
-| 202 | (۲) دسترسی Server-side بررسی شود                                                          | ✅                                                              | R44     |
-| 203 | (۲) IDOR/BOLA در تمام APIها                                                               | ✅ ۴۵ تستِ حمله                                                 | **R53** |
-| 204 | (۳) FK / Unique / Check / Index / Nullable / Delete / Update Behavior                     | 🟡                                                              | R52     |
-| 205 | (۳) داده‌ی مالی Hard Delete نشود                                                          | ❌                                                              | **R51** |
-| 206 | (۳) عملیات حساس Transactional و Atomic                                                    | 🟡                                                              | R50     |
-| 207 | (۴) Double Payment                                                                        | ❌ (تست ندارد)                                                  | **R50** |
-| 208 | (۴) Duplicate Callback                                                                    | 🟡                                                              | R51     |
-| 209 | (۴) Pessimistic/Optimistic Locking                                                        | ✅ (`lockForUpdate`)                                            | R22     |
-| 210 | (۴) Audit Trail                                                                           | ✅ (`audit_logs`)                                               | R20     |
-| 211 | (۴) مبلغ از Frontend نباید Trusted باشد                                                   | ✅                                                              | **R54** |
-| 212 | (۵) Backup Monitoring                                                                     | ❌                                                              | **R64** |
-| 213 | (۶) Migration Safety                                                                      | ✅                                                              | **R57** |
-| 214 | (۷) Production Infrastructure                                                             | 🔒                                                              | R56     |
-| 215 | (۸) Observability + Correlation ID                                                        | ✅                                                              | **R63** |
-| 216 | (۹) PWA Audit کامل                                                                        | 🟡                                                              | R60–R62 |
-| 217 | (۹) Push Notification                                                                     | ➖ عمداً نه — سرویسِ بیرونی و VAPID می‌خواهد، زنگولهٔ داخلی هست | R62     |
-| 218 | (۹) Uninstallation                                                                        | ✅ اندازه‌گیری شد: کارِ سمتِ سرور ندارد                         | **R62** |
-| 219 | (۱۰) PWA Update System                                                                    | ✅                                                              | **R61** |
-| 220 | (۱۱) Offline Architecture                                                                 | ✅ `docs/OFFLINE.md`                                            | **R62** |
-| 221 | (۱۲) API Compatibility                                                                    | ✅                                                              | **R61** |
-| 222 | (۱۳) Failure Testing                                                                      | ✅                                                              | **R59** |
-| 223 | (۱۴) Load Testing                                                                         | ❌                                                              | R66     |
-| 224 | (۱۵) Dependency & Code Security                                                           | ✅                                                              | R42     |
-| 225 | (۱۶) Final Security Report با Severity/Component/Problem/Attack Scenario/Fix/Verification | ❌                                                              | **R72** |
+| #   | بند                                                                                       | وضعیت                                                                  | مرحله   |
+| --- | ----------------------------------------------------------------------------------------- | ---------------------------------------------------------------------- | ------- |
+| 197 | (۲) Token امن                                                                             | ✅ (توکن نداریم)                                                       | R8      |
+| 198 | (۲) اطلاعات حساس در localStorage نباشد                                                    | ✅ سنجیده و قفل شد                                                     | **R55** |
+| 199 | (۲) کوکی HttpOnly / Secure / SameSite                                                     | ✅                                                                     | R16     |
+| 200 | (۲) Rate Limit برای Login و Password Reset                                                | ✅                                                                     | R17     |
+| 201 | (۲) کاربر نتواند Role خود را عوض کند                                                      | ✅                                                                     | R54     |
+| 202 | (۲) دسترسی Server-side بررسی شود                                                          | ✅                                                                     | R44     |
+| 203 | (۲) IDOR/BOLA در تمام APIها                                                               | ✅ ۴۵ تستِ حمله                                                        | **R53** |
+| 204 | (۳) FK / Unique / Check / Index / Nullable / Delete / Update Behavior                     | 🟡                                                                     | R52     |
+| 205 | (۳) داده‌ی مالی Hard Delete نشود                                                          | ❌                                                                     | **R51** |
+| 206 | (۳) عملیات حساس Transactional و Atomic                                                    | 🟡                                                                     | R50     |
+| 207 | (۴) Double Payment                                                                        | ❌ (تست ندارد)                                                         | **R50** |
+| 208 | (۴) Duplicate Callback                                                                    | 🟡                                                                     | R51     |
+| 209 | (۴) Pessimistic/Optimistic Locking                                                        | ✅ (`lockForUpdate`)                                                   | R22     |
+| 210 | (۴) Audit Trail                                                                           | ✅ (`audit_logs`)                                                      | R20     |
+| 211 | (۴) مبلغ از Frontend نباید Trusted باشد                                                   | ✅                                                                     | **R54** |
+| 212 | (۵) Backup Monitoring                                                                     | ✅ سه نشانهٔ ارزان هر ربع ساعت + رسیدنِ نتیجهٔ `backups:verify` به آدم | **R64** |
+| 213 | (۶) Migration Safety                                                                      | ✅                                                                     | **R57** |
+| 214 | (۷) Production Infrastructure                                                             | 🔒                                                                     | R56     |
+| 215 | (۸) Observability + Correlation ID                                                        | ✅                                                                     | **R63** |
+| 216 | (۹) PWA Audit کامل                                                                        | 🟡                                                                     | R60–R62 |
+| 217 | (۹) Push Notification                                                                     | ➖ عمداً نه — سرویسِ بیرونی و VAPID می‌خواهد، زنگولهٔ داخلی هست        | R62     |
+| 218 | (۹) Uninstallation                                                                        | ✅ اندازه‌گیری شد: کارِ سمتِ سرور ندارد                                | **R62** |
+| 219 | (۱۰) PWA Update System                                                                    | ✅                                                                     | **R61** |
+| 220 | (۱۱) Offline Architecture                                                                 | ✅ `docs/OFFLINE.md`                                                   | **R62** |
+| 221 | (۱۲) API Compatibility                                                                    | ✅                                                                     | **R61** |
+| 222 | (۱۳) Failure Testing                                                                      | ✅                                                                     | **R59** |
+| 223 | (۱۴) Load Testing                                                                         | ❌                                                                     | R66     |
+| 224 | (۱۵) Dependency & Code Security                                                           | ✅                                                                     | R42     |
+| 225 | (۱۶) Final Security Report با Severity/Component/Problem/Attack Scenario/Fix/Verification | ❌                                                                     | **R72** |
 
 ---
 
@@ -432,43 +432,43 @@
 
 # بخش ۴ — Performance
 
-| #   | بند                                             | وضعیت                                                            | مرحله   |
-| --- | ----------------------------------------------- | ---------------------------------------------------------------- | ------- |
-| 254 | (۱) Performance Baseline (۱۲ سنجه)              | 🟡                                                               | **R65** |
-| 255 | (۲) Core Web Vitals                             | 🟡 (جمع‌آوری هست، نمایش نه)                                      | R65     |
-| 256 | (۳) JavaScript Bundle Analyzer                  | ✅                                                               | R36     |
-| 257 | (۴) Code Splitting                              | ✅                                                               | R36     |
-| 258 | (۵) Tree Shaking                                | ✅                                                               | R36     |
-| 259 | (۶) Image Optimization (WebP/AVIF/srcset/lazy)  | 🟡                                                               | R65     |
-| 260 | (۷) Image Priority                              | ✅                                                               | R36     |
-| 261 | (۸) Font Optimization                           | 🟡                                                               | R65     |
-| 262 | (۹) CSS Performance                             | ❓                                                               | R65     |
-| 263 | (۱۰) Rendering Performance                      | 🟡 هشدارهای react-hooks صفر شد (R49)؛ سنجشِ واقعیِ کارایی با R65 | **R49** |
-| 264 | (۱۱) Large Lists                                | ✅ (`useVirtualRows`)                                            | R14     |
-| 265 | (۱۲) API Performance                            | 🟡                                                               | R65     |
-| 266 | (۱۳) API Payload / DTO                          | 🟡                                                               | R65     |
-| 267 | (۱۴) Database Performance (N+1، Slow Query)     | ✅                                                               | R45     |
-| 268 | (۱۵) Database Index (+ شاخصِ اضافی)             | ✅                                                               | R48     |
-| 269 | (۱۶) Query Caching                              | ❓                                                               | R65     |
-| 270 | (۱۷) Redis                                      | ❓ ⚠️ عمداً استفاده نشده                                         | R65     |
-| 271 | (۱۸) Queue برای کارِ سنگین                      | ✅                                                               | R11     |
-| 272 | (۱۹) Background Job (Retry/Backoff/Timeout)     | 🟡                                                               | **R65** |
-| 273 | (۲۰) HTTP/2، Brotli، Keep-Alive، Cache Headers  | 🔒                                                               | R56     |
-| 274 | (۲۱) Resource Hints                             | ✅                                                               | R36     |
-| 275 | (۲۲) CDN                                        | 🔒                                                               | R56     |
-| 276 | (۲۳) PWA Performance                            | ✅ سطلِ جدا؛ دیگر APIها صفحه‌های آفلاین را بیرون نمی‌اندازند     | **R60** |
-| 277 | (۲۴) Mobile Performance                         | ❌                                                               | **R70** |
-| 278 | (۲۵) Memory Leak                                | 🟡 (R39 دو مورد را گرفت)                                         | R65     |
-| 279 | (۲۶) Network Waterfall                          | 🟡                                                               | R65     |
-| 280 | (۲۷) Request Prioritization                     | 🟡                                                               | R65     |
-| 281 | (۲۸) Prefetch Strategy                          | ❓                                                               | R65     |
-| 282 | (۲۹) Performance Budget                         | 🟡 (بودجهٔ باندل و کوئری هست؛ تصویر/فونت نه)                     | **R65** |
-| 283 | (۳۰) Admin Dashboard Performance                | 🟡                                                               | R65     |
-| 284 | (۳۱) Report Performance                         | ✅ (در صف)                                                       | R28     |
-| 285 | (۳۲) Real-Time Features (WebSocket/SSE/Polling) | ❓                                                               | R65     |
-| 286 | (۳۳) Performance Monitoring                     | 🟡                                                               | R64     |
-| 287 | (۳۴) Final Benchmark                            | ❌                                                               | **R72** |
-| 288 | (۳۵) Final Performance Report                   | ❌                                                               | **R72** |
+| #   | بند                                             | وضعیت                                                              | مرحله   |
+| --- | ----------------------------------------------- | ------------------------------------------------------------------ | ------- |
+| 254 | (۱) Performance Baseline (۱۲ سنجه)              | 🟡                                                                 | **R65** |
+| 255 | (۲) Core Web Vitals                             | 🟡 (جمع‌آوری هست، نمایش نه)                                        | R65     |
+| 256 | (۳) JavaScript Bundle Analyzer                  | ✅                                                                 | R36     |
+| 257 | (۴) Code Splitting                              | ✅                                                                 | R36     |
+| 258 | (۵) Tree Shaking                                | ✅                                                                 | R36     |
+| 259 | (۶) Image Optimization (WebP/AVIF/srcset/lazy)  | 🟡                                                                 | R65     |
+| 260 | (۷) Image Priority                              | ✅                                                                 | R36     |
+| 261 | (۸) Font Optimization                           | 🟡                                                                 | R65     |
+| 262 | (۹) CSS Performance                             | ❓                                                                 | R65     |
+| 263 | (۱۰) Rendering Performance                      | 🟡 هشدارهای react-hooks صفر شد (R49)؛ سنجشِ واقعیِ کارایی با R65   | **R49** |
+| 264 | (۱۱) Large Lists                                | ✅ (`useVirtualRows`)                                              | R14     |
+| 265 | (۱۲) API Performance                            | 🟡                                                                 | R65     |
+| 266 | (۱۳) API Payload / DTO                          | 🟡                                                                 | R65     |
+| 267 | (۱۴) Database Performance (N+1، Slow Query)     | ✅                                                                 | R45     |
+| 268 | (۱۵) Database Index (+ شاخصِ اضافی)             | ✅                                                                 | R48     |
+| 269 | (۱۶) Query Caching                              | ❓                                                                 | R65     |
+| 270 | (۱۷) Redis                                      | ❓ ⚠️ عمداً استفاده نشده                                           | R65     |
+| 271 | (۱۸) Queue برای کارِ سنگین                      | ✅                                                                 | R11     |
+| 272 | (۱۹) Background Job (Retry/Backoff/Timeout)     | 🟡                                                                 | **R65** |
+| 273 | (۲۰) HTTP/2، Brotli، Keep-Alive، Cache Headers  | 🔒                                                                 | R56     |
+| 274 | (۲۱) Resource Hints                             | ✅                                                                 | R36     |
+| 275 | (۲۲) CDN                                        | 🔒                                                                 | R56     |
+| 276 | (۲۳) PWA Performance                            | ✅ سطلِ جدا؛ دیگر APIها صفحه‌های آفلاین را بیرون نمی‌اندازند       | **R60** |
+| 277 | (۲۴) Mobile Performance                         | ❌                                                                 | **R70** |
+| 278 | (۲۵) Memory Leak                                | 🟡 (R39 دو مورد را گرفت)                                           | R65     |
+| 279 | (۲۶) Network Waterfall                          | 🟡                                                                 | R65     |
+| 280 | (۲۷) Request Prioritization                     | 🟡                                                                 | R65     |
+| 281 | (۲۸) Prefetch Strategy                          | ❓                                                                 | R65     |
+| 282 | (۲۹) Performance Budget                         | 🟡 (بودجهٔ باندل و کوئری هست؛ تصویر/فونت نه)                       | **R65** |
+| 283 | (۳۰) Admin Dashboard Performance                | 🟡                                                                 | R65     |
+| 284 | (۳۱) Report Performance                         | ✅ (در صف)                                                         | R28     |
+| 285 | (۳۲) Real-Time Features (WebSocket/SSE/Polling) | ❓                                                                 | R65     |
+| 286 | (۳۳) Performance Monitoring                     | 🟡 ⚠️ R64 هشدارِ **درستی** ساخت نه کارایی؛ این بند به R65 منتقل شد | R65     |
+| 287 | (۳۴) Final Benchmark                            | ❌                                                                 | **R72** |
+| 288 | (۳۵) Final Performance Report                   | ❌                                                                 | **R72** |
 
 ---
 

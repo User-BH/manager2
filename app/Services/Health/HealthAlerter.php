@@ -3,6 +3,7 @@
 namespace App\Services\Health;
 
 use App\Enums\UserRole;
+use App\Logging\SecretScrubber;
 use App\Models\User;
 use App\Notifications\SystemHealthNotification;
 use Illuminate\Support\Facades\Cache;
@@ -78,7 +79,20 @@ class HealthAlerter
 
         foreach ($report['checks'] as $name => $check) {
             if (($check['status'] ?? HealthReport::OK) !== HealthReport::OK) {
-                $problems[$name] = (string) ($check['detail'] ?? 'نامشخص');
+                /*
+                 * 🔴 پاک‌سازی، پیش از هر مصرفی (R64).
+                 *
+                 * ─── نقصی که هنگامِ R64 پیدا شد ────────────────────────────
+                 * شرحِ هر سنجه در بدترین حالت **پیامِ استثنا** است
+                 * (`MeasuresProbes::timed`). استثنای PDO رشته‌ی اتصال و نامِ
+                 * کاربرِ دیتابیس را در خود دارد و استثنای Guzzle آدرسِ کامل
+                 * را — که در درگاهِ پیامک کلیدِ API داخلش است (درسِ R55).
+                 *
+                 * پاک‌کننده‌ی R55 فقط روی مسیرِ **لاگ** بود، ولی همین متن از
+                 * اینجا به **وب‌هوک** هم می‌رود؛ یعنی به یک سرویسِ بیرونی.
+                 * آن مسیر تا امروز دست‌نخورده بیرون می‌رفت.
+                 */
+                $problems[$name] = SecretScrubber::clean((string) ($check['detail'] ?? 'نامشخص'));
             }
         }
 
