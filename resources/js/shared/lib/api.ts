@@ -25,6 +25,7 @@
 import axios, { type AxiosError, type AxiosRequestConfig } from 'axios'
 
 import { ApiError, isRetryable, parseRetryAfter } from './apiError'
+import { definitelyOffline, markOffline } from '@/shared/pwa/connection'
 import { dedupe } from './dedupe'
 import { MAX_ATTEMPTS, backoffDelay, sleep } from './retry'
 import { UPLOAD_TIMEOUT_MS, http, refreshCsrfToken, setCsrfToken } from './http'
@@ -39,6 +40,33 @@ interface RequestOptions {
   method?: Method
   body?: unknown
   signal?: AbortSignal
+}
+
+/**
+ * جلوگیری از نوشتنِ محکوم‌به‌شکست وقتی مرورگر قطعاً می‌گوید آفلاینیم (R62).
+ *
+ * ─── چرا فقط نوشتن ─────────────────────────────────────────────────────────
+ * ⚠️ خواندنِ ناموفق فقط یعنی «الان نمی‌بینی». نوشتنِ ناموفق یعنی **کاری
+ * که کاربر خواسته انجام نشده** — و اگر بیست ثانیه پشتِ timeout بماند،
+ * کاربر یا دوباره می‌زند (و بدترش می‌کند) یا صفحه را می‌بندد و متنش را
+ * از دست می‌دهد.
+ *
+ * شکستِ **فوری با پیامِ روشن** یعنی فرم دست‌نخورده می‌ماند و کاربر
+ * می‌داند چرا.
+ *
+ * ⚠️ فقط به جهتِ منفیِ `navigator.onLine` اعتماد می‌شود. `true`ِ آن پرچم
+ * چیزی را ثابت نمی‌کند (مودمی که خودش قطع است هم `true` می‌دهد)، پس
+ * هرگز مبنای «بفرست» نیست — فقط مبنای «نفرست».
+ */
+function refuseWriteWhileOffline(method: Method): void {
+  if (method === 'GET' || !definitelyOffline()) return
+
+  markOffline(true)
+
+  throw new ApiError(
+    'اتصال اینترنت برقرار نیست. نوشته‌ی شما همین‌جا می‌ماند؛ پس از وصل‌شدن دوباره تلاش کنید.',
+    0,
+  )
 }
 
 function toConfig(path: string, options: RequestOptions, signal?: AbortSignal): AxiosRequestConfig {
@@ -168,6 +196,9 @@ async function sendWithRetry<T>(
  */
 export async function api<T>(path: string, options: RequestOptions = {}): Promise<T> {
   const method = options.method ?? 'GET'
+
+  // ⚠️ پیش از هر لایه‌ای: نوشتنِ محکوم‌به‌شکست اصلاً فرستاده نمی‌شود (R62)
+  refuseWriteWhileOffline(method)
 
   const run = (signal: AbortSignal | undefined) => sendWithRetry<T>(path, options, signal)
 

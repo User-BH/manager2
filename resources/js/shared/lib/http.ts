@@ -9,6 +9,7 @@
 
 import axios, { type AxiosError, type AxiosInstance } from 'axios'
 import { observeServerBuild } from '@/shared/pwa/appBuild'
+import { markOffline, markOnline } from '@/shared/pwa/connection'
 
 /*
  * توکن CSRF در متغیر نگه داشته می‌شود، نه اینکه هر بار از متاتگ خوانده شود.
@@ -77,6 +78,9 @@ http.interceptors.response.use(
   (response) => {
     observeServerBuild(response.headers?.[APP_BUILD_HEADER] as string | undefined)
 
+    // ⚠️ تنها اثباتِ واقعیِ آنلاین‌بودن: پاسخی که رسید (R62)
+    markOnline()
+
     return response
   },
   (error: AxiosError) => {
@@ -89,6 +93,20 @@ http.interceptors.response.use(
      * برایش هست از تور رد می‌شد.
      */
     observeServerBuild(error.response?.headers?.[APP_BUILD_HEADER] as string | undefined)
+
+    /*
+     * ⚠️ «پاسخ نرسید» با «سرور خطا داد» یکی نیست (R62).
+     *
+     * نبودِ `response` یعنی درخواست اصلاً به سرور نرسید — قطعیِ شبکه یا
+     * timeout. هر پاسخی، حتی ۵۰۰، ثابت می‌کند که اتصال هست.
+     */
+    if (error.response) {
+      markOnline()
+    } else {
+      const method = (error.config?.method ?? 'get').toUpperCase()
+
+      markOffline(method !== 'GET')
+    }
 
     return Promise.reject(error)
   },

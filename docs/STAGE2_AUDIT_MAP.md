@@ -210,21 +210,21 @@
 
 ## ۱‑۱۷) Offline Queue
 
-| #   | بند                                        | وضعیت                            | مرحله   |
-| --- | ------------------------------------------ | -------------------------------- | ------- |
-| 104 | Offline → Pending → Online → Sync → Server | ❌                               | **R62** |
-| 105 | فقط برای عملیاتِ امن از نظر Business Logic | ❌                               | R62     |
-| 106 | پرداخت واقعی با صفِ ساده شبیه‌سازی نشود    | ✅ (چون اصلاً صفِ آفلاین نداریم) | R62     |
+| #   | بند                                        | وضعیت                                                                | مرحله   |
+| --- | ------------------------------------------ | -------------------------------------------------------------------- | ------- |
+| 104 | Offline → Pending → Online → Sync → Server | ➖ عمداً ساخته نشد — ۹۵ مسیرِ نوشتنی سنجیده شد، هیچ‌کدام سود نمی‌برد | **R62** |
+| 105 | فقط برای عملیاتِ امن از نظر Business Logic | ✅ جدولِ ۳۰ حوزه در `OFFLINE.md`، با تستِ پوشش                       | **R62** |
+| 106 | پرداخت واقعی با صفِ ساده شبیه‌سازی نشود    | ✅ صفی نیست، و تستِ ساختاری نمی‌گذارد بی‌سروصدا اضافه شود            | **R62** |
 
 ## ۱‑۱۸) Background Sync
 
-| #   | بند                  | وضعیت | مرحله |
-| --- | -------------------- | ----- | ----- |
-| 107 | Retry                | ❌    | R62   |
-| 108 | Duplicate Prevention | ❌    | R62   |
-| 109 | Idempotency          | ❌    | R62   |
-| 110 | Failure Handling     | ❌    | R62   |
-| 111 | Queue Cleanup        | ❌    | R62   |
+| #   | بند                  | وضعیت                                                          | مرحله   |
+| --- | -------------------- | -------------------------------------------------------------- | ------- |
+| 107 | Retry                | ➖ صفی نیست؛ ⚠️ و نوشتن هرگز خودکار تکرار نمی‌شود (تستِ محافظ) | **R62** |
+| 108 | Duplicate Prevention | ➖ صفی نیست؛ همان محافظِ بالا جلوی تکرار را می‌گیرد            | **R62** |
+| 109 | Idempotency          | ➖ صفی نیست                                                    | R62     |
+| 110 | Failure Handling     | ✅ ردِ فوری با پیامِ روشن + نشانگرِ «تغییرِ ذخیره‌نشده»        | **R62** |
+| 111 | Queue Cleanup        | ➖ صفی نیست                                                    | R62     |
 
 ## ۱‑۱۹) Update Strategy
 
@@ -261,10 +261,10 @@
 
 ## ۱‑۲۱) PWA Offline UX
 
-| #   | بند                                                                   | وضعیت                                           | مرحله                                                |
-| --- | --------------------------------------------------------------------- | ----------------------------------------------- | ---------------------------------------------------- |
-| 135 | نمایشِ 🟢 Online / 🔴 Offline / 🔄 Syncing / ✓ Synced / ⚠ Sync Failed | ❌                                              | ⚠️ **اندازه‌گیری شد:** هیچ نشانگرِ وضعیتی وجود ندارد | **R62** |
-| 136 | به کاربر دروغ نگوید که ذخیره شد                                       | ✅ (چون صفِ آفلاین نداریم، ادعای دروغی هم نیست) | R62                                                  |
+| #   | بند                                                                   | وضعیت                            | مرحله                                                                      |
+| --- | --------------------------------------------------------------------- | -------------------------------- | -------------------------------------------------------------------------- |
+| 135 | نمایشِ 🟢 Online / 🔴 Offline / 🔄 Syncing / ✓ Synced / ⚠ Sync Failed | ✅ سه حالتِ واقعی + «ذخیره‌نشده» | ⚠️ سه حالتِ وابسته به صف عمداً ساخته نشد — نشانه‌ای که دروغ بگوید بدتر است | **R62** |
+| 136 | به کاربر دروغ نگوید که ذخیره شد                                       | ✅ با تستِ صریح روی متنِ نشانگر  | **R62**                                                                    |
 
 ## ۱‑۲۲) API Contract و Compatibility
 
@@ -361,37 +361,37 @@
 
 ## ۲‑۲) بندهای ۲ تا ۱۶ فایل
 
-| #   | بند                                                                                       | وضعیت                | مرحله   |
-| --- | ----------------------------------------------------------------------------------------- | -------------------- | ------- |
-| 197 | (۲) Token امن                                                                             | ✅ (توکن نداریم)     | R8      |
-| 198 | (۲) اطلاعات حساس در localStorage نباشد                                                    | ✅ سنجیده و قفل شد   | **R55** |
-| 199 | (۲) کوکی HttpOnly / Secure / SameSite                                                     | ✅                   | R16     |
-| 200 | (۲) Rate Limit برای Login و Password Reset                                                | ✅                   | R17     |
-| 201 | (۲) کاربر نتواند Role خود را عوض کند                                                      | ✅                   | R54     |
-| 202 | (۲) دسترسی Server-side بررسی شود                                                          | ✅                   | R44     |
-| 203 | (۲) IDOR/BOLA در تمام APIها                                                               | ✅ ۴۵ تستِ حمله      | **R53** |
-| 204 | (۳) FK / Unique / Check / Index / Nullable / Delete / Update Behavior                     | 🟡                   | R52     |
-| 205 | (۳) داده‌ی مالی Hard Delete نشود                                                          | ❌                   | **R51** |
-| 206 | (۳) عملیات حساس Transactional و Atomic                                                    | 🟡                   | R50     |
-| 207 | (۴) Double Payment                                                                        | ❌ (تست ندارد)       | **R50** |
-| 208 | (۴) Duplicate Callback                                                                    | 🟡                   | R51     |
-| 209 | (۴) Pessimistic/Optimistic Locking                                                        | ✅ (`lockForUpdate`) | R22     |
-| 210 | (۴) Audit Trail                                                                           | ✅ (`audit_logs`)    | R20     |
-| 211 | (۴) مبلغ از Frontend نباید Trusted باشد                                                   | ✅                   | **R54** |
-| 212 | (۵) Backup Monitoring                                                                     | ❌                   | **R64** |
-| 213 | (۶) Migration Safety                                                                      | ✅                   | **R57** |
-| 214 | (۷) Production Infrastructure                                                             | 🔒                   | R56     |
-| 215 | (۸) Observability + Correlation ID                                                        | ❌                   | **R63** |
-| 216 | (۹) PWA Audit کامل                                                                        | 🟡                   | R60–R62 |
-| 217 | (۹) Push Notification                                                                     | ❌                   | R62     |
-| 218 | (۹) Uninstallation                                                                        | ❓                   | R62     |
-| 219 | (۱۰) PWA Update System                                                                    | ✅                   | **R61** |
-| 220 | (۱۱) Offline Architecture                                                                 | ❌                   | R62     |
-| 221 | (۱۲) API Compatibility                                                                    | ✅                   | **R61** |
-| 222 | (۱۳) Failure Testing                                                                      | ✅                   | **R59** |
-| 223 | (۱۴) Load Testing                                                                         | ❌                   | R66     |
-| 224 | (۱۵) Dependency & Code Security                                                           | ✅                   | R42     |
-| 225 | (۱۶) Final Security Report با Severity/Component/Problem/Attack Scenario/Fix/Verification | ❌                   | **R72** |
+| #   | بند                                                                                       | وضعیت                                                           | مرحله   |
+| --- | ----------------------------------------------------------------------------------------- | --------------------------------------------------------------- | ------- |
+| 197 | (۲) Token امن                                                                             | ✅ (توکن نداریم)                                                | R8      |
+| 198 | (۲) اطلاعات حساس در localStorage نباشد                                                    | ✅ سنجیده و قفل شد                                              | **R55** |
+| 199 | (۲) کوکی HttpOnly / Secure / SameSite                                                     | ✅                                                              | R16     |
+| 200 | (۲) Rate Limit برای Login و Password Reset                                                | ✅                                                              | R17     |
+| 201 | (۲) کاربر نتواند Role خود را عوض کند                                                      | ✅                                                              | R54     |
+| 202 | (۲) دسترسی Server-side بررسی شود                                                          | ✅                                                              | R44     |
+| 203 | (۲) IDOR/BOLA در تمام APIها                                                               | ✅ ۴۵ تستِ حمله                                                 | **R53** |
+| 204 | (۳) FK / Unique / Check / Index / Nullable / Delete / Update Behavior                     | 🟡                                                              | R52     |
+| 205 | (۳) داده‌ی مالی Hard Delete نشود                                                          | ❌                                                              | **R51** |
+| 206 | (۳) عملیات حساس Transactional و Atomic                                                    | 🟡                                                              | R50     |
+| 207 | (۴) Double Payment                                                                        | ❌ (تست ندارد)                                                  | **R50** |
+| 208 | (۴) Duplicate Callback                                                                    | 🟡                                                              | R51     |
+| 209 | (۴) Pessimistic/Optimistic Locking                                                        | ✅ (`lockForUpdate`)                                            | R22     |
+| 210 | (۴) Audit Trail                                                                           | ✅ (`audit_logs`)                                               | R20     |
+| 211 | (۴) مبلغ از Frontend نباید Trusted باشد                                                   | ✅                                                              | **R54** |
+| 212 | (۵) Backup Monitoring                                                                     | ❌                                                              | **R64** |
+| 213 | (۶) Migration Safety                                                                      | ✅                                                              | **R57** |
+| 214 | (۷) Production Infrastructure                                                             | 🔒                                                              | R56     |
+| 215 | (۸) Observability + Correlation ID                                                        | ❌                                                              | **R63** |
+| 216 | (۹) PWA Audit کامل                                                                        | 🟡                                                              | R60–R62 |
+| 217 | (۹) Push Notification                                                                     | ➖ عمداً نه — سرویسِ بیرونی و VAPID می‌خواهد، زنگولهٔ داخلی هست | R62     |
+| 218 | (۹) Uninstallation                                                                        | ✅ اندازه‌گیری شد: کارِ سمتِ سرور ندارد                         | **R62** |
+| 219 | (۱۰) PWA Update System                                                                    | ✅                                                              | **R61** |
+| 220 | (۱۱) Offline Architecture                                                                 | ✅ `docs/OFFLINE.md`                                            | **R62** |
+| 221 | (۱۲) API Compatibility                                                                    | ✅                                                              | **R61** |
+| 222 | (۱۳) Failure Testing                                                                      | ✅                                                              | **R59** |
+| 223 | (۱۴) Load Testing                                                                         | ❌                                                              | R66     |
+| 224 | (۱۵) Dependency & Code Security                                                           | ✅                                                              | R42     |
+| 225 | (۱۶) Final Security Report با Severity/Component/Problem/Attack Scenario/Fix/Verification | ❌                                                              | **R72** |
 
 ---
 
@@ -412,7 +412,7 @@
 | 236 | (۱۱) Business Logic Testing                              | 🟡    | استخراجِ صریحِ قواعد انجام نشده        | **R68**  |
 | 237 | (۱۲) Notification Testing (In-App/Push/SMS/Email)        | 🟡    | ⚠️ ایمیل عمداً وجود ندارد؛ Push هم نه  | R62، R68 |
 | 238 | (۱۳) File Upload Testing                                 | ✅    | **R56**                                |
-| 239 | (۱۴) PWA Testing                                         | ❌    | **R60–R62**                            |
+| 239 | (۱۴) PWA Testing                                         | ✅    | **R60–R62** — ۶۷ تستِ PWA در سه مرحله  |
 | 240 | (۱۵) E2E برای ۱۱ سفرِ کاربر                              | 🟡    | ۱۱ تست هست ولی سفرهای مالی نه          | **R70**  |
 | 241 | (۱۶) Cross-Browser (Chrome/Firefox/Safari/Edge + موبایل) | ❌    | فقط Chromium                           | **R70**  |
 | 242 | (۱۷) Responsive Testing                                  | 🟡    | **R70**                                |

@@ -7,6 +7,7 @@ import { MotionConfig } from 'framer-motion'
 import { initObservability, reportError } from '@/shared/lib/observability'
 import { createQueryClient } from '@/shared/lib/queryClient'
 import { ErrorBoundary, RootErrorFallback } from '@/shared/ui/ErrorBoundary'
+import { ConnectionBanner } from '@/shared/pwa/ConnectionBanner'
 import { PwaPrompts } from '@/shared/pwa/PwaPrompts'
 import { AppRouter } from './AppRouter'
 
@@ -73,6 +74,14 @@ createRoot(document.getElementById('root')!).render(
           بیرونِ `BrowserRouter` است چون به مسیر کاری ندارد، و **درونِ**
           دیوارِ آتش چون اگر خودش بترکد نباید داشبورد را ببرد.
         */}
+          {/*
+          نشانگرِ وضعیتِ اتصال (R62).
+
+          ⚠️ بیرونِ `BrowserRouter` و کنارِ `PwaPrompts`: به مسیر کاری
+          ندارد و باید در هر صفحه‌ای دیده شود — از جمله صفحه‌ای که خودش
+          به‌خاطرِ قطعی خالی مانده.
+        */}
+          <ConnectionBanner />
           <PwaPrompts />
           {DevTools && (
             <Suspense fallback={null}>
