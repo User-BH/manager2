@@ -1,7 +1,9 @@
 import { useEffect, useRef, useState } from 'react'
 import { Download, RefreshCw, X } from 'lucide-react'
 
-import { registerServiceWorker } from './registerServiceWorker'
+import { useFeatures } from '@/shared/hooks'
+import { useAppBuildStore } from './appBuild'
+import { registerServiceWorker, unregisterServiceWorker } from './registerServiceWorker'
 import { useInstallPrompt } from './useInstallPrompt'
 
 /**
@@ -15,6 +17,18 @@ import { useInstallPrompt } from './useInstallPrompt'
 export function PwaPrompts() {
   const [updateReady, setUpdateReady] = useState(false)
   const { canInstall, install, dismiss } = useInstallPrompt()
+  const { isEnabled } = useFeatures()
+  const pwaEnabled = isEnabled('pwa')
+
+  /*
+   * نسخه‌ای که سرور اعلام کرده و با نسخهٔ این صفحه فرق دارد (R61).
+   *
+   * ⚠️ این با «نسخهٔ تازه‌ی SW آماده است» یکی نیست و مقدم بر آن است:
+   * آن یکی می‌گوید «می‌توانی به‌روز شوی»، این یکی می‌گوید «از وقتی این تب
+   * باز شده استقرار انجام شده» — یعنی همین حالا ممکن است چیزی درست کار
+   * نکند.
+   */
+  const staleBuild = useAppBuildStore((state) => state.serverBuild)
 
   /*
    * ⚠️ `handle` عمداً state نیست.
@@ -27,13 +41,49 @@ export function PwaPrompts() {
   const handle = useRef<ReturnType<typeof registerServiceWorker>>(null)
 
   useEffect(() => {
+    /*
+     * 🔴 کلیدِ خاموشی مقدم بر ثبت است (R61).
+     *
+     * اگر پرچمِ `pwa` خاموش شده باشد یعنی نسخه‌ای از service worker خراب
+     * منتشر شده و باید از دستگاه‌ها برداشته شود. ثبتِ دوباره در آن حالت
+     * دقیقاً همان چیزی است که نباید بشود.
+     *
+     * ⚠️ `pwaEnabled` تا نیامدنِ پاسخ `true` است (پیش‌فرضِ `useFeatures`)،
+     * پس قطعیِ لحظه‌ایِ شبکه SW را از دستگاهِ کسی پاک نمی‌کند.
+     */
+    if (!pwaEnabled) {
+      void unregisterServiceWorker()
+
+      return
+    }
+
     const registered = registerServiceWorker()
 
     if (!registered) return
 
     handle.current = registered
     registered.onUpdateReady(() => setUpdateReady(true))
-  }, [])
+  }, [pwaEnabled])
+
+  /*
+   * 🔴 ناهماهنگیِ نسخه مقدم بر همه است.
+   *
+   * ⚠️ و باز هم **تحمیل نمی‌شود**: کاربری که وسطِ پرکردنِ فرمِ هزینه یا
+   * پرداخت است نباید کارش را از دست بدهد. همان استدلالی که در R35 جلوی
+   * `skipWaiting`ِ خودکار را گرفت.
+   */
+  if (staleBuild) {
+    return (
+      <Banner
+        icon={<RefreshCw className="h-4 w-4" aria-hidden />}
+        title="نسخه‌ی تازه‌ای منتشر شده"
+        body="این صفحه با نسخه‌ی قبلی باز مانده. تا بارگذاری دوباره، ممکن است بخش‌هایی درست کار نکنند."
+        actionLabel="بارگذاری دوباره"
+        onAction={() => window.location.reload()}
+        onDismiss={() => useAppBuildStore.setState({ serverBuild: null })}
+      />
+    )
+  }
 
   // به‌روزرسانی مقدم است: کاربر باید روی نسخه‌ی درست تصمیم بگیرد
   if (updateReady) {

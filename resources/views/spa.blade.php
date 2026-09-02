@@ -8,6 +8,8 @@
          تغییردهنده به /api می‌فرستد، چون احراز هویت با نشست وب انجام می‌شود
          نه توکن bearer. --}}
     <meta name="csrf-token" content="{{ csrf_token() }}">
+    {{-- شناسه‌ی ساختِ فرانت (R61): کلاینت با هدرِ X-App-Build مقایسه‌اش می‌کند --}}
+    <meta name="app-build" content="{{ \App\Support\AppBuild::current() }}">
 
     <meta name="description" content="{{ config('brand.description') }}">
     <link rel="icon" href="/favicon-48.png" type="image/png">

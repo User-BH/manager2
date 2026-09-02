@@ -7,7 +7,8 @@
  * فایل کار کند.
  */
 
-import axios, { type AxiosInstance } from 'axios'
+import axios, { type AxiosError, type AxiosInstance } from 'axios'
+import { observeServerBuild } from '@/shared/pwa/appBuild'
 
 /*
  * توکن CSRF در متغیر نگه داشته می‌شود، نه اینکه هر بار از متاتگ خوانده شود.
@@ -31,6 +32,9 @@ export function setCsrfToken(token: string | undefined | null): void {
  */
 export const TIMEOUT_MS = 20_000
 export const UPLOAD_TIMEOUT_MS = 120_000
+
+/** axios نامِ هدرها را کوچک می‌کند. */
+const APP_BUILD_HEADER = 'x-app-build'
 
 export const http: AxiosInstance = axios.create({
   /*
@@ -60,6 +64,35 @@ http.interceptors.request.use((config) => {
   }
   return config
 })
+
+/*
+ * نسخهٔ فرانتی که سرور اعلام می‌کند (R61).
+ *
+ * ⚠️ اینجا و نه در `api.ts`: این رهگیر روی **هر** پاسخ اجرا می‌شود، حتی
+ * پاسخ‌های خطا و حتی درخواست‌هایی که لایه‌های بالاتر دوباره تلاششان
+ * می‌کنند. اگر بالاتر گذاشته می‌شد، مسیرهایی که استثنا می‌دهند از تور
+ * رد می‌شدند — و استقرار دقیقاً همان‌هاست که اول می‌شکند.
+ */
+http.interceptors.response.use(
+  (response) => {
+    observeServerBuild(response.headers?.[APP_BUILD_HEADER] as string | undefined)
+
+    return response
+  },
+  (error: AxiosError) => {
+    /*
+     * ⚠️ مسیرِ خطا هم باید بررسی شود، نه فقط مسیرِ موفق.
+     *
+     * وقتی نسخه‌ی فرانت و API از هم جدا می‌افتند، اولین نشانه معمولاً
+     * **خطاست** — ۴۲۲ روی فیلدی که دیگر نیست، ۴۰۴ روی مسیری که عوض شده.
+     * اگر فقط پاسخِ موفق را می‌خواندیم، دقیقاً همان موردی که این سازوکار
+     * برایش هست از تور رد می‌شد.
+     */
+    observeServerBuild(error.response?.headers?.[APP_BUILD_HEADER] as string | undefined)
+
+    return Promise.reject(error)
+  },
+)
 
 /**
  * گرفتنِ توکنِ تازه پس از ۴۱۹.

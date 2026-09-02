@@ -360,6 +360,8 @@ class EnvironmentTest extends TestCase
             'online_payment' => true,
             'support_bot' => true,
             'public_registration' => true,
+            // R61: کلیدِ خاموشیِ service worker — قابلیت نیست، راهِ بازگشت است
+            'pwa' => true,
         ];
 
         $this->assertSame($expected, app(FeatureFlags::class)->all());

@@ -17,6 +17,7 @@
 | [docs/FRONTEND_STRUCTURE.md](docs/FRONTEND_STRUCTURE.md)   | ساختار `resources/js`، مرزِ MPA/SPA، مدیریت حالت                                     |
 | [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md)                   | استقرار روی سرور                                                                     |
 | [docs/DEPLOYMENT_SECURITY.md](docs/DEPLOYMENT_SECURITY.md) | سخت‌سازیِ سرور و رازها                                                               |
+| [docs/API_COMPATIBILITY.md](docs/API_COMPATIBILITY.md)     | **قراردادِ سازگاری** — Mixed App Versions، چرخهٔ به‌روزرسانیِ SW، و بازگشت           |
 | [docs/DISASTER_RECOVERY.md](docs/DISASTER_RECOVERY.md)     | **بازیابی از فاجعه** — RPO و RTO، مقصدِ خارج از سرور، و رویهٔ هشت سناریو             |
 | [docs/MIGRATIONS.md](docs/MIGRATIONS.md)                   | **مهاجرتِ امن** — Expand→Migrate→Contract، مهاجرتِ مخرب، رویهٔ برگشت                 |
 | [docs/SECRETS.md](docs/SECRETS.md)                         | **رازها و چرخشِ کلید** — فهرست، رویهٔ چرخش، و کارِ لحظهٔ نشت                         |

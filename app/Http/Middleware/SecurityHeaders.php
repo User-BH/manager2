@@ -40,10 +40,7 @@ class SecurityHeaders
 
         $response = $next($request);
 
-        // پاسخ‌های استریمی (دانلود فایل) هدرِ محتوایی لازم ندارند
-        foreach ($this->headers($request, $nonce) as $header => $value) {
-            $response->headers->set($header, $value);
-        }
+        self::apply($request, $response);
 
         /*
          * برداشتنِ هدرهایی که نسخه‌ی نرم‌افزار را اعلام می‌کنند (R48).
@@ -62,12 +59,55 @@ class SecurityHeaders
          * می‌ماند، و این‌طور محافظت همراهِ خودِ کد سفر می‌کند — روی هر
          * سروری که مستقر شود، بی‌آنکه کسی چیزی یادش بماند.
          */
+        return $response;
+    }
+
+    /**
+     * گذاشتنِ هدرها روی یک پاسخِ آماده.
+     *
+     * ─── 🔴 چرا این متد از `handle` بیرون آمد (R61) ────────────────────────
+     * ⚠️ **پاسخی که از یک استثنا ساخته می‌شود، از «پس‌ازِ» میدل‌ورها رد
+     * نمی‌شود.** اندازه‌گیری شد:
+     *
+     *     GET /api/v1/my-bills  (بدونِ ورود)
+     *     status                 401
+     *     X-Frame-Options        NULL
+     *     X-Content-Type-Options NULL
+     *
+     * یعنی هر ۴۰۱، ۴۰۳، ۴۰۴، ۴۱۹ و ۵۰۰ — از جمله صفحه‌های **HTML**ِ خطا —
+     * بدونِ هیچ هدرِ امنیتی می‌رفتند. صفحه‌ی خطای HTML بدونِ
+     * `X-Frame-Options` قابلِ نشستن در iframe است.
+     *
+     * حالا قلابِ `respond` در `bootstrap/app.php` همین متد را روی پاسخِ
+     * استثنا هم صدا می‌زند.
+     */
+    public static function apply(Request $request, Response $response): void
+    {
+        $nonce = (string) $request->attributes->get(self::NONCE_KEY, '');
+
+        // پاسخ‌های استریمی (دانلود فایل) هدرِ محتوایی لازم ندارند
+        foreach ((new self)->headers($request, $nonce) as $header => $value) {
+            $response->headers->set($header, $value);
+        }
+
+        /*
+         * برداشتنِ هدرهایی که نسخه‌ی نرم‌افزار را اعلام می‌کنند (R48).
+         *
+         * ─── چه چیزی اندازه‌گیری شد ────────────────────────────────────────
+         * ⚠️ پاسخ‌ها `X-Powered-By: PHP/8.4.23` داشتند — یعنی **شماره‌ی
+         * دقیقِ نسخه** به هر بازدیدکننده‌ای اعلام می‌شد.
+         *
+         * این به‌تنهایی آسیب‌پذیری نیست، ولی کارِ مهاجم را از «امتحان‌کردنِ
+         * صدها اکسپلویت» به «جستجوی CVEهای همین نسخه» تقلیل می‌دهد.
+         *
+         * ⚠️ `expose_php` را در `php.ini` هم می‌شد خاموش کرد، ولی عمداً
+         * اینجا انجام می‌شود: تنظیماتِ سرور طبقِ قیدِ پروژه دست‌نخورده
+         * می‌ماند و محافظت همراهِ خودِ کد سفر می‌کند.
+         */
         foreach (['X-Powered-By', 'Server'] as $fingerprint) {
             $response->headers->remove($fingerprint);
             header_remove($fingerprint);
         }
-
-        return $response;
     }
 
     /**

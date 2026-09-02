@@ -13,6 +13,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import {
   clearApiCache,
+  unregisterServiceWorker,
   registerServiceWorker,
   serviceWorkerSupported,
 } from '@/shared/pwa/registerServiceWorker'
@@ -86,11 +87,30 @@ describe('پشتیبانیِ service worker', () => {
     expect(register).not.toHaveBeenCalled()
   })
 
+  /**
+   * ⚠️ `updateViaCache: 'none'` صریح (R61).
+   *
+   * پیش‌فرضِ مرورگر (`imports`) فایل‌های importشده‌ی SW را از کشِ HTTP
+   * می‌خواند. امروز importی نداریم؛ روزی که داشته باشیم، پیش‌فرض یعنی
+   * نسخهٔ تازهٔ SW با تکه‌های **کهنه** بالا بیاید.
+   */
+  it('خواندنِ SW از کشِ HTTP صریح خاموش است', () => {
+    const register = vi.fn().mockResolvedValue({ addEventListener: vi.fn() })
+    installNavigator({ register })
+
+    registerServiceWorker()
+
+    expect(register).toHaveBeenCalledWith('/sw.js', {
+      scope: '/',
+      updateViaCache: 'none',
+    })
+  })
+
   it('روی مبدأ امن ثبت می‌کند و دامنه‌اش ریشه است', () => {
     const register = installNavigator({})
 
     expect(registerServiceWorker()).not.toBeNull()
-    expect(register).toHaveBeenCalledWith('/sw.js', { scope: '/' })
+    expect(register).toHaveBeenCalledWith('/sw.js', { scope: '/', updateViaCache: 'none' })
   })
 
   it('وقتی مرورگر اصلاً SW ندارد نمی‌ترکد', () => {
@@ -306,6 +326,41 @@ describe('پاک‌کردنِ کشِ API هنگامِ خروج', () => {
     vi.stubGlobal('caches', undefined)
 
     await expect(clearApiCache()).resolves.toBeUndefined()
+
+    vi.unstubAllGlobals()
+  })
+})
+
+describe('کلیدِ خاموشیِ service worker (R61)', () => {
+  /**
+   * 🔴 راهِ بازگشت وقتی خودِ SW خراب است.
+   *
+   * ⚠️ استقرارِ خرابِ بک‌اند را با یک revert برمی‌گردانیم. ولی SWِ خراب
+   * روی **دستگاهِ کاربر** نصب شده و هیچ استقراری به‌تنهایی پاکش نمی‌کند.
+   */
+  it('همه‌ی ثبت‌ها را حذف و همه‌ی کش‌های ما را پاک می‌کند', async () => {
+    const unregister = vi.fn().mockResolvedValue(true)
+    const deleted: string[] = []
+
+    installNavigator({ register: vi.fn() })
+    Object.assign(navigator.serviceWorker, {
+      getRegistrations: vi.fn().mockResolvedValue([{ unregister }, { unregister }]),
+    })
+
+    vi.stubGlobal('caches', {
+      keys: vi.fn().mockResolvedValue(['sakena-shell-v4', 'sakena-api-v4', 'other-app-cache']),
+      delete: vi.fn((key: string) => {
+        deleted.push(key)
+        return Promise.resolve(true)
+      }),
+    })
+
+    await unregisterServiceWorker()
+
+    expect(unregister).toHaveBeenCalledTimes(2)
+
+    // ⚠️ فقط کش‌های خودمان؛ سطلِ برنامه‌ی دیگری روی همین دامنه دست‌نخورده می‌ماند
+    expect(deleted.sort()).toEqual(['sakena-api-v4', 'sakena-shell-v4'])
 
     vi.unstubAllGlobals()
   })

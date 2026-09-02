@@ -38,11 +38,23 @@ class ApiCacheHeaders
     {
         $response = $next($request);
 
+        self::apply($request, $response);
+
+        return $response;
+    }
+
+    /**
+     * ⚠️ جدا از `handle` تا قلابِ `respond` هم بتواند صدایش بزند: پاسخی
+     * که از استثنا ساخته می‌شود از «پس‌ازِ» میدل‌ورها رد نمی‌شود، و ۴۰۱ی
+     * که `no-store` نداشته باشد همان نقصِ R60 است با درِ دیگر.
+     */
+    public static function apply(Request $request, Response $response): void
+    {
         if (! $request->is('api/*')) {
-            return $response;
+            return;
         }
 
-        if ($this->isPublic($request)) {
+        if (self::isPublic($request)) {
             /*
              * ⚠️ `public` و نه `private`: این پاسخ برای همه یکسان است و
              * اجازه دارد در هر کشی بنشیند. شرطِ عضویت در آن فهرست هم دقیقاً
@@ -53,7 +65,7 @@ class ApiCacheHeaders
                 'public, max-age='.max(0, (int) config('pwa.public_api_ttl', 300)),
             );
 
-            return $response;
+            return;
         }
 
         /*
@@ -73,8 +85,6 @@ class ApiCacheHeaders
             $response->headers->get('Vary', '').', Cookie',
             ', ',
         ));
-
-        return $response;
     }
 
     /**
@@ -83,7 +93,7 @@ class ApiCacheHeaders
      * هر دو پیشوند سنجیده می‌شوند چون نامِ مستعارِ بدونِ نسخه هنوز زنده است
      * و فراموش‌کردنش یعنی نیمی از مسیرها هدرِ اشتباه بگیرند.
      */
-    private function isPublic(Request $request): bool
+    private static function isPublic(Request $request): bool
     {
         foreach ((array) config('pwa.public_api', []) as $path) {
             if ($request->is('api/'.$path, 'api/v1/'.$path)) {

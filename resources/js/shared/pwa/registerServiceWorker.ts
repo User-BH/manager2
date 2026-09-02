@@ -48,12 +48,24 @@ export function registerServiceWorker(url = '/sw.js'): ServiceWorkerHandle | nul
   }
 
   navigator.serviceWorker
-    .register(url, { scope: '/' })
+    /*
+     * ⚠️ `updateViaCache: 'none'` صریح (R61).
+     *
+     * پیش‌فرضِ مرورگرهای امروز (`imports`) خودِ فایلِ SW را از کشِ HTTP
+     * نمی‌خواند، ولی فایل‌های importشده‌اش را می‌خواند. امروز importی
+     * نداریم؛ روزی که داشته باشیم، پیش‌فرض یعنی نسخهٔ تازهٔ SW با
+     * تکه‌های **کهنه** بالا بیاید.
+     *
+     * نوشتنِ صریحش هزینه‌ای ندارد و آن تله را برای همیشه می‌بندد.
+     */
+    .register(url, { scope: '/', updateViaCache: 'none' })
     .then((registration) => {
       // نسخه‌ای که همین حالا منتظر است (کاربر تبِ قبلی را نبسته)
       if (registration.waiting && navigator.serviceWorker.controller) {
         announce(registration.waiting)
       }
+
+      watchForUpdates(registration)
 
       registration.addEventListener('updatefound', () => {
         const installing = registration.installing
@@ -93,6 +105,48 @@ export function registerServiceWorker(url = '/sw.js'): ServiceWorkerHandle | nul
   }
 }
 
+/** فاصلهٔ بررسیِ خودکارِ نسخهٔ تازه. */
+export const UPDATE_CHECK_MS = 30 * 60 * 1000
+
+/**
+ * پرسیدنِ دوره‌ایِ «نسخهٔ تازه‌ای هست؟» (R61).
+ *
+ * ─── چرا لازم است ──────────────────────────────────────────────────────────
+ * ⚠️ مرورگر خودش فقط هنگامِ **پیمایش** سراغِ `sw.js` می‌رود. در یک SPA
+ * پیمایشِ واقعی تقریباً هرگز رخ نمی‌دهد: کاربر تب را باز می‌گذارد و همه‌ی
+ * جابه‌جایی‌ها سمتِ کلاینت است.
+ *
+ * یعنی تبِ بازِ یک کاربر می‌توانست **روزها** روی نسخهٔ قدیم بماند و هیچ
+ * سازوکاری خبردار نشود — که دقیقاً همان Mixed App Versions است.
+ *
+ * ─── دو محرک، عمداً ─────────────────────────────────────────────────────────
+ * ① زمان‌سنج — برای تبی که ساعت‌ها باز است
+ * ② بازگشتِ دید — برای کاربری که لپ‌تاپ را بسته و فردا باز کرده؛ زمان‌سنجِ
+ *   تبِ خواب‌رفته قابل‌اعتماد نیست
+ *
+ * ⚠️ محرکِ دوم throttle دارد، وگرنه هر بار جابه‌جا شدن بینِ تب‌ها یک
+ * درخواستِ شبکه می‌شد.
+ */
+function watchForUpdates(registration: ServiceWorkerRegistration): void {
+  let last = Date.now()
+
+  const check = () => {
+    last = Date.now()
+    void registration.update().catch(() => {
+      // شبکه نیست یا سرور پاسخ نداد؛ دفعهٔ بعد دوباره تلاش می‌شود
+    })
+  }
+
+  setInterval(check, UPDATE_CHECK_MS)
+
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState !== 'visible') return
+    if (Date.now() - last < UPDATE_CHECK_MS) return
+
+    check()
+  })
+}
+
 /**
  * پاک‌کردنِ کش‌هایی که ممکن است پاسخِ مربوط به کاربر داشته باشند.
  *
@@ -126,4 +180,39 @@ export async function clearApiCache(): Promise<void> {
       .filter((key) => key.startsWith('sakena-api-') || key.startsWith('sakena-pages-'))
       .map((key) => caches.delete(key)),
   )
+}
+
+/**
+ * خاموش‌کردنِ کاملِ service worker از راه دور (R61).
+ *
+ * ─── 🔴 مسئله: بازگشت برای خودِ SW ─────────────────────────────────────────
+ * ⚠️ استقرارِ خرابِ بک‌اند را با یک `git revert` برمی‌گردانیم. ولی service
+ * workerِ خراب روی **دستگاهِ کاربر** نصب شده و کنترلِ همه‌ی درخواست‌هایش
+ * را دارد. اگر آن نسخه پوسته‌ی شکسته‌ای را کش کرده باشد، کاربر ممکن است
+ * حتی نتواند صفحه‌ای بگیرد که به او بگوید چه شده.
+ *
+ * ─── راهِ نجات ─────────────────────────────────────────────────────────────
+ * پرچمِ `pwa` در تنظیماتِ سامانه خاموش می‌شود. کلاینت — که این پرچم را
+ * از `/features` می‌گیرد — SW را حذف می‌کند، همه‌ی کش‌ها را پاک می‌کند و
+ * یک بار صفحه را تازه می‌کند. از آن پس همه‌چیز مستقیم از شبکه می‌آید.
+ *
+ * ⚠️ **مرزِ صادقانه‌اش:** این راه به بالا آمدنِ صفحه وابسته است. اگر SWی
+ * منتشر شود که خودِ HTML را هم بشکند، این کار نمی‌کند و باید رویهٔ دستیِ
+ * `docs/API_COMPATIBILITY.md` را اجرا کرد. به همین دلیل `sw.js` عمداً
+ * ساده مانده و `install`ش فقط سه فایلِ کوچک را precache می‌کند.
+ */
+export async function unregisterServiceWorker(): Promise<void> {
+  if (!serviceWorkerSupported()) return
+
+  const registrations = await navigator.serviceWorker.getRegistrations()
+
+  await Promise.all(registrations.map((registration) => registration.unregister()))
+
+  if (typeof caches !== 'undefined') {
+    const keys = await caches.keys()
+
+    await Promise.all(
+      keys.filter((key) => key.startsWith('sakena-')).map((key) => caches.delete(key)),
+    )
+  }
 }

@@ -103,6 +103,34 @@ class CachePolicyTest extends TestCase
         }
     }
 
+    /**
+     * 🔴 پاسخِ **خطا** هم باید `no-store` بگیرد.
+     *
+     * ⚠️ این شکاف در R61 اندازه‌گیری شد و غافلگیرکننده بود: پاسخی که از
+     * یک استثنا ساخته می‌شود، از «پس‌ازِ» میدل‌ورها رد نمی‌شود. یعنی
+     * ۴۰۱ و ۴۰۳ و ۴۲۲ — که بدنه‌شان می‌تواند پیامِ اعتبارسنجی و نامِ
+     * فیلد داشته باشد — بدونِ هیچ هدرِ کشی می‌رفتند، و هدرهای امنیتی هم
+     * همراهشان نبود.
+     */
+    public function test_error_responses_are_never_stored_either(): void
+    {
+        $response = $this->getJson('/api/v1/my-bills');
+
+        $this->assertSame(401, $response->getStatusCode());
+
+        $this->assertStringContainsString(
+            'no-store',
+            (string) $response->headers->get('Cache-Control'),
+            'پاسخِ خطای API هدرِ no-store ندارد.',
+        );
+
+        $this->assertSame(
+            'nosniff',
+            $response->headers->get('X-Content-Type-Options'),
+            'پاسخِ خطا هدرهای امنیتی را از دست داده است.',
+        );
+    }
+
     /** ⚠️ متقارن: بدونِ این، «همه‌چیز no-store» هم سبز می‌شد و کشِ عمومی می‌مرد. */
     public function test_public_api_responses_stay_cacheable(): void
     {

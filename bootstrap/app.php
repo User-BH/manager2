@@ -2,6 +2,7 @@
 
 use App\Exceptions\ApiExceptionRenderer;
 use App\Http\Middleware\ApiCacheHeaders;
+use App\Http\Middleware\AppBuildHeader;
 use App\Http\Middleware\AuthenticateTrustedDevice;
 use App\Http\Middleware\EnsureActive;
 use App\Http\Middleware\EnsureComplexActive;
@@ -19,6 +20,7 @@ use Illuminate\Foundation\Configuration\Middleware;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Middleware\SubstituteBindings;
 use Illuminate\Support\Facades\Route;
+use Symfony\Component\HttpFoundation\Response as SymfonyResponse;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
@@ -151,6 +153,11 @@ return Application::configure(basePath: dirname(__DIR__))
              * service worker، چون محافظتی که فقط یک لایه دارد یک فرض است.
              */
             ApiCacheHeaders::class,
+            /*
+             * اعلامِ نسخه‌ی فرانت روی پاسخِ API (R61) — تا تبِ بازِ کاربر
+             * بفهمد از وقتی باز شده استقرار انجام شده.
+             */
+            AppBuildHeader::class,
             AuthenticateTrustedDevice::class,
             EnsureActive::class,
             SetCurrentComplex::class,
@@ -232,6 +239,30 @@ return Application::configure(basePath: dirname(__DIR__))
         */
         $exceptions->report(function (Throwable $e): void {
             ErrorRecorder::fromException($e, request()->fullUrl(), request()->method());
+        });
+
+        /*
+        | 🔴 هدرها روی پاسخی که از استثنا ساخته می‌شود (R61).
+        |
+        | ⚠️ اندازه‌گیری شد و غافلگیرکننده بود: پاسخِ استثنا از «پس‌ازِ»
+        | میدل‌ورها رد نمی‌شود. یعنی هر ۴۰۱، ۴۰۳، ۴۰۴، ۴۱۹ و ۵۰۰ —
+        | از جمله صفحه‌های HTMLِ خطا — بدونِ هیچ هدرِ امنیتی می‌رفت:
+        |
+        |     GET /api/v1/my-bills (بدونِ ورود)
+        |     X-Frame-Options        NULL
+        |     X-Content-Type-Options NULL
+        |     Cache-Control          no-cache, private   ← نه no-store
+        |
+        | این قلاب همان سه میدل‌ور را روی پاسخِ نهایی صدا می‌زند. منطق
+        | تکرار نشده؛ هر سه یک متدِ `apply` دارند که هم `handle` و هم
+        | اینجا از آن استفاده می‌کنند.
+        */
+        $exceptions->respond(function (SymfonyResponse $response, Throwable $e, Request $request): SymfonyResponse {
+            SecurityHeaders::apply($request, $response);
+            ApiCacheHeaders::apply($request, $response);
+            AppBuildHeader::apply($request, $response);
+
+            return $response;
         });
 
         /*

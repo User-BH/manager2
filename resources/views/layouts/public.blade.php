@@ -106,6 +106,8 @@
 
     {{-- توکن CSRF برای درخواست‌های تغییردهنده‌ی React به /api --}}
     <meta name="csrf-token" content="{{ csrf_token() }}">
+    {{-- شناسه‌ی ساختِ فرانت (R61): کلاینت با هدرِ X-App-Build مقایسه‌اش می‌کند --}}
+    <meta name="app-build" content="{{ \App\Support\AppBuild::current() }}">
 
     <title>{{ $seo['title'] }}</title>
     <meta name="description" content="{{ $seo['description'] }}">
