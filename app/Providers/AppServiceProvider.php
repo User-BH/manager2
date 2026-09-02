@@ -16,12 +16,15 @@ use App\Observers\AuditObserver;
 use App\Support\EnvironmentGuard;
 use App\Support\Jalali;
 use App\Support\Phone;
+use App\Support\RequestId;
 use App\Support\TenantContext;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
 use Illuminate\Pagination\Paginator;
+use Illuminate\Queue\Events\JobProcessing;
 use Illuminate\Support\Facades\Blade;
 use Illuminate\Support\Facades\Date;
+use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
 
@@ -52,6 +55,7 @@ class AppServiceProvider extends ServiceProvider
 
         $this->registerRateLimiters();
         $this->registerAuditObservers();
+        $this->propagateRequestId();
 
         /*
          * `@csp` در Blade به `nonce="..."` تبدیل می‌شود.
@@ -61,6 +65,37 @@ class AppServiceProvider extends ServiceProvider
          * `SecurityHeaders` روی همین درخواست گذاشته است.
          */
         Blade::directive('csp', fn () => "<?php echo 'nonce=\"'.e(request()->attributes->get(\App\Http\Middleware\SecurityHeaders::NONCE_KEY, '')).'\"'; ?>");
+    }
+
+    /**
+     * بردنِ شناسه‌ی درخواست تا داخلِ کارهای صف (R63).
+     *
+     * ─── 🔴 مسئله‌ای که حل می‌کند ──────────────────────────────────────────
+     * ⚠️ سنگین‌ترین کارهای این سامانه در صف انجام می‌شوند: ساختِ بکاپ،
+     * تولیدِ PDFِ دسته‌ی قبض‌ها، ارسالِ اعلان. یعنی وقتی کاربر می‌گوید
+     * «قبض‌هایم ساخته نشد»، خطاهایش **در لاگِ کارگرِ صف** است، نه در لاگِ
+     * درخواستِ او.
+     *
+     * بدونِ این دو قلاب، آن دو دسته لاگ هیچ ربطی به هم نداشتند و پیداکردنِ
+     * «کدام کار مالِ کدام کلیک بود» فقط با حدسِ زمان ممکن بود.
+     *
+     * ─── چرا این دو قلاب و نه تغییرِ هر Job ────────────────────────────────
+     * `createPayloadUsing` روی **هر** کاری که به صف می‌رود اجرا می‌شود —
+     * از جمله کارهای خودِ فریم‌ورک. اگر به‌جایش هر Job را دستی عوض
+     * می‌کردیم، اولین Jobِ تازه‌ای که کسی بنویسد از قلم می‌افتاد.
+     *
+     * ⚠️ و `Queue::before` شناسه را در کارگر **بازمی‌گرداند**، نه اینکه
+     * فقط لاگش کند: از آن لحظه هر خطِ لاگِ آن کار همان شناسه را دارد.
+     */
+    private function propagateRequestId(): void
+    {
+        Queue::createPayloadUsing(fn () => [RequestId::PAYLOAD_KEY => RequestId::current()]);
+
+        Queue::before(function (JobProcessing $event): void {
+            $payload = $event->job->payload();
+
+            RequestId::set($payload[RequestId::PAYLOAD_KEY] ?? null);
+        });
     }
 
     /**

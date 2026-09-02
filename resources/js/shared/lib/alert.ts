@@ -222,12 +222,15 @@ export function alertError(error: unknown, fallback = 'انجام این کار 
 
   if (error instanceof ApiError) {
     const fields = Object.values(error.errors).flat()
+    const trace = traceLine(error)
 
     void fire({
       title: error.message || fallback,
       html:
-        fields.length > 1 ? `<ul class="swal-app-list">${fields.map(li).join('')}</ul>` : undefined,
-      text: fields.length === 1 ? fields[0] : undefined,
+        fields.length > 1
+          ? `<ul class="swal-app-list">${fields.map(li).join('')}</ul>${trace}`
+          : trace || undefined,
+      text: fields.length === 1 && !trace ? fields[0] : undefined,
       icon: 'error',
       confirmButtonText: 'باشه',
     })
@@ -240,6 +243,31 @@ export function alertError(error: unknown, fallback = 'انجام این کار 
     icon: 'error',
     confirmButtonText: 'باشه',
   })
+}
+
+/**
+ * کدِ پیگیریِ خطا، برای گفتن به پشتیبانی (R63).
+ *
+ * ─── ⚠️ چرا فقط برای خطای سمتِ سرور ────────────────────────────────────────
+ * بدنه‌ی **هر** پاسخِ خطا این شناسه را دارد — ارزان است و پشتیبانی ممکن
+ * است درباره‌ی هر کدی بپرسد. ولی **نشان‌دادنش** به کاربر فقط وقتی معنا
+ * دارد که او خودش نتواند کاری بکند.
+ *
+ * «شماره‌ی موبایل تکراری است» پیامِ کاملی است؛ چسباندنِ یک کدِ ده‌نویسه‌ای
+ * به آن فقط شلوغی است و باعث می‌شود کاربر کدها را جدی نگیرد — دقیقاً
+ * وقتی که واقعاً لازم می‌شود.
+ *
+ * پس فقط ۵xx و قطعیِ شبکه (`status === 0`).
+ */
+function traceLine(error: ApiError): string {
+  if (!error.requestId) return ''
+  if (error.status !== 0 && error.status < 500) return ''
+
+  const safe = error.requestId.replace(/[^A-Z0-9-]/g, '')
+
+  if (!safe) return ''
+
+  return `<p class="swal-app-trace">کدِ پیگیری: <code dir="ltr">${safe}</code></p>`
 }
 
 /** جلوگیری از تزریق HTML وقتی پیام خطا از سرور می‌آید. */

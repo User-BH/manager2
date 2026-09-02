@@ -46,6 +46,7 @@ class ErrorEvent extends Model
         'stack',
         'url',
         'method',
+        'request_id',
         'status',
         'user_id',
         'complex_id',

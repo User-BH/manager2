@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\ErrorEvent;
+use App\Support\RequestId;
 use App\Support\TenantContext;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Auth\AuthenticationException;
@@ -125,6 +126,15 @@ class ErrorRecorder
                 ErrorEvent::whereKey($existing->getKey())->update([
                     'occurrences' => DB::raw('occurrences + 1'),
                     'last_seen_at' => $now,
+                    /*
+                     * ⚠️ شناسه‌ی **آخرین** رخداد، نه اولین (R63).
+                     *
+                     * ردیف‌ها با اثرِ انگشت ادغام می‌شوند، پس یک ردیف
+                     * می‌تواند صدها رخداد باشد. کاربری که همین حالا زنگ
+                     * می‌زند شناسه‌ی همین لحظه را در دست دارد؛ شناسه‌ی سه
+                     * هفته پیش کمکی نمی‌کند و لاگش هم دیگر روی دیسک نیست.
+                     */
+                    'request_id' => RequestId::current(),
                     // خطایی که دوباره رخ داده، دیگر «بررسی‌شده» نیست
                     'is_resolved' => false,
                     'updated_at' => $now,
@@ -136,6 +146,7 @@ class ErrorRecorder
             ErrorEvent::create([
                 ...$data,
                 'fingerprint' => $fingerprint,
+                'request_id' => RequestId::current(),
                 'message' => mb_substr($data['message'], 0, 2000),
                 'user_id' => Auth::id(),
                 'complex_id' => app(TenantContext::class)->get(),

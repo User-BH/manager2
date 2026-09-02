@@ -32,17 +32,28 @@ export class ApiError extends Error {
    */
   retryAfterMs?: number
 
+  /**
+   * شناسه‌ی همین درخواست، برای گفتن به پشتیبانی (R63).
+   *
+   * ⚠️ از دو جا می‌آید و هر دو لازم‌اند: فیلدِ `requestId` بدنه‌ی JSON
+   * (پاسخ‌های خودمان) و هدرِ `X-Request-Id` (پاسخ‌هایی که JSON نیستند —
+   * صفحه‌ی خطای ۵۰۰ یا ۵۰۲ی که وسطِ راه ساخته شده).
+   */
+  requestId?: string
+
   constructor(
     message: string,
     status: number,
     errors: Record<string, string[]> = {},
     retryAfterMs?: number,
+    requestId?: string,
   ) {
     super(message)
     this.name = 'ApiError'
     this.status = status
     this.errors = errors
     this.retryAfterMs = retryAfterMs
+    this.requestId = requestId
   }
 
   /** اولین پیام خطای یک فیلد، برای نشاندن زیر همان ورودی در فرم. */

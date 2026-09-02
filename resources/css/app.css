@@ -515,6 +515,26 @@ button:disabled {
     list-style: disc;
 }
 
+/*
+ * کدِ پیگیریِ خطا (R63).
+ *
+ * ⚠️ `user-select: all` عمدی است: کاربر باید بتواند با یک کلیک انتخابش
+ * کند و برای پشتیبانی بفرستد. بدونِ آن، ده نویسه را باید دستی بکشد —
+ * و همان‌جاست که آدم‌ها بی‌خیال می‌شوند.
+ */
+.swal-app-trace {
+    margin: 0.75rem 0 0;
+    color: var(--text-tertiary);
+    font-size: 0.75rem;
+}
+
+.swal-app-trace code {
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 0.85rem;
+    letter-spacing: 0.05em;
+    user-select: all;
+}
+
 .swal-app .swal-app-actions {
     gap: 0.5rem;
     margin: 1.25rem 0 0;

@@ -3,6 +3,7 @@
 use App\Exceptions\ApiExceptionRenderer;
 use App\Http\Middleware\ApiCacheHeaders;
 use App\Http\Middleware\AppBuildHeader;
+use App\Http\Middleware\AssignRequestId;
 use App\Http\Middleware\AuthenticateTrustedDevice;
 use App\Http\Middleware\EnsureActive;
 use App\Http\Middleware\EnsureComplexActive;
@@ -142,6 +143,14 @@ return Application::configure(basePath: dirname(__DIR__))
 
         $middleware->web(append: [
             /*
+             * 🔴 اولین، و عمدی (R63).
+             *
+             * هر خطی که پس از این نوشته شود باید شناسه داشته باشد — از
+             * جمله لاگِ خودِ میدل‌ورهای امنیتی. پایین‌تر بودنش یعنی همان
+             * خطوطی که روزِ حادثه بیشتر لازم می‌شوند بی‌شناسه بمانند.
+             */
+            AssignRequestId::class,
+            /*
              * هدرهای امنیتی روی همه‌ی پاسخ‌های web (شاملِ API، چون API هم روی
              * همین گروه سوار است). عمداً در لاراول و نه nginx: کانفیگِ nginx
              * طبق قید دست‌نخورده می‌ماند، و این‌طور هدرها با کد نسخه‌بندی
@@ -261,6 +270,7 @@ return Application::configure(basePath: dirname(__DIR__))
             SecurityHeaders::apply($request, $response);
             ApiCacheHeaders::apply($request, $response);
             AppBuildHeader::apply($request, $response);
+            AssignRequestId::apply($response);
 
             return $response;
         });

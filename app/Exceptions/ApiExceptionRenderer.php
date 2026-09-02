@@ -3,6 +3,7 @@
 namespace App\Exceptions;
 
 use App\Support\Jalali;
+use App\Support\RequestId;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Auth\AuthenticationException;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
@@ -136,6 +137,14 @@ class ApiExceptionRenderer
             'message' => $message,
             'code' => $code,
             'errors' => $errors ?: null,
+            /*
+             * 🔴 شناسه‌ی درخواست، تا کاربر بتواند بخواندش (R63).
+             *
+             * ⚠️ در **هر** پاسخِ خطا می‌آید، نه فقط ۵۰۰. پشتیبانی معمولاً
+             * درباره‌ی «چرا نشد؟»های ۴۲۲ و ۴۰۳ هم تماس می‌گیرد، و آنجا هم
+             * باید بشود دقیقاً همان درخواست را پیدا کرد.
+             */
+            'requestId' => RequestId::current(),
         ], fn ($value) => $value !== null), $status);
     }
 
@@ -154,6 +163,7 @@ class ApiExceptionRenderer
             'code' => 'too_many_requests',
             // فرانت با این عدد شمارشِ معکوس نشان می‌دهد
             'retryAfter' => $seconds,
+            'requestId' => RequestId::current(),
         ], 429, $e->getHeaders());
     }
 

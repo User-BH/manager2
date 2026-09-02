@@ -1,6 +1,7 @@
 <?php
 
 use App\Logging\RedactSecrets;
+use App\Logging\RequestContext;
 use Monolog\Handler\NullHandler;
 use Monolog\Handler\StreamHandler;
 use Monolog\Handler\SyslogUdpHandler;
@@ -69,7 +70,7 @@ return [
             'level' => 'warning',
             'days' => (int) env('LOG_ALERT_DAYS', 60),
             'replace_placeholders' => true,
-            'tap' => [RedactSecrets::class],
+            'tap' => [RedactSecrets::class, RequestContext::class],
         ],
 
         'stack' => [
@@ -95,7 +96,7 @@ return [
             'path' => storage_path('logs/laravel.log'),
             'level' => env('LOG_LEVEL', 'debug'),
             'replace_placeholders' => true,
-            'tap' => [RedactSecrets::class],
+            'tap' => [RedactSecrets::class, RequestContext::class],
         ],
 
         'daily' => [
@@ -104,7 +105,7 @@ return [
             'level' => env('LOG_LEVEL', 'debug'),
             'days' => env('LOG_DAILY_DAYS', 14),
             'replace_placeholders' => true,
-            'tap' => [RedactSecrets::class],
+            'tap' => [RedactSecrets::class, RequestContext::class],
         ],
 
         'slack' => [

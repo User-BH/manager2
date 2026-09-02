@@ -6,6 +6,7 @@ use App\Enums\UserRole;
 use App\Exceptions\ApiExceptionRenderer;
 use App\Exceptions\DomainException;
 use App\Models\User;
+use App\Support\RequestId;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\File;
@@ -77,11 +78,28 @@ class ApiContractTest extends TestCase
 
         $this->assertNotNull($response);
         $this->assertSame(409, $response->getStatusCode());
+        /*
+         * ⚠️ `requestId` در R63 به قرارداد اضافه شد.
+         *
+         * افزودنِ فیلد به بدنه‌ی پاسخ طبقِ `docs/API_COMPATIBILITY.md`
+         * تغییرِ **بی‌خطر** است: کلاینتِ قدیمی نادیده‌اش می‌گیرد. ولی چون
+         * مقدارش هر بار عوض می‌شود، جدا سنجیده می‌شود و بقیه‌ی شکل
+         * دست‌نخورده مقایسه می‌ماند.
+         */
+        $data = $response->getData(true);
+
+        $this->assertTrue(
+            RequestId::acceptable($data['requestId'] ?? null),
+            'پاسخِ خطا شناسه‌ی درخواست ندارد.',
+        );
+
+        unset($data['requestId']);
+
         $this->assertSame([
             'success' => false,
             'message' => 'همین حالا نمی‌شود.',
             'code' => 'test.conflict',
-        ], $response->getData(true));
+        ], $data);
     }
 
     public function test_server_errors_do_not_leak_internals_in_production(): void

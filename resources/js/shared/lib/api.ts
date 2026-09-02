@@ -114,6 +114,7 @@ async function send<T>(
       errors?: Record<string, string[]>
       csrfToken?: string
       accountDisabled?: boolean
+      requestId?: string
     }>
 
     const status = axiosError.response?.status ?? 0
@@ -141,6 +142,17 @@ async function send<T>(
       axiosError.response?.headers?.['retry-after'] as string | undefined,
     )
 
+    /*
+     * شناسه‌ی درخواست، از بدنه یا از هدر (R63).
+     *
+     * ⚠️ هر دو منبع لازم‌اند: پاسخ‌های خودمان فیلدِ `requestId` دارند، ولی
+     * پاسخی که JSON نیست — صفحه‌ی HTMLِ ۵۰۰، یا ۵۰۲ی که پیش از رسیدن به
+     * PHP ساخته شده — فقط هدر دارد. و دقیقاً همان دسته است که کاربر
+     * درباره‌اش زنگ می‌زند.
+     */
+    const requestId =
+      payload?.requestId ?? (axiosError.response?.headers?.['x-request-id'] as string | undefined)
+
     // خطای اعتبارسنجی/تجاریِ JSON از لاراول
     if (payload && typeof payload === 'object' && ('message' in payload || 'errors' in payload)) {
       throw new ApiError(
@@ -148,6 +160,7 @@ async function send<T>(
         status,
         payload.errors ?? {},
         retryAfterMs,
+        requestId,
       )
     }
 
@@ -161,6 +174,7 @@ async function send<T>(
       status,
       {},
       retryAfterMs,
+      requestId,
     )
   }
 }
