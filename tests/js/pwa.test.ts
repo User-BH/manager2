@@ -249,10 +249,12 @@ describe('پاک‌کردنِ کشِ API هنگامِ خروج', () => {
       keys: vi
         .fn()
         .mockResolvedValue([
+          'sakena-api-v4',
+          'sakena-pages-v4',
           'sakena-pages-v3',
-          'sakena-assets-v3',
-          'sakena-images-v3',
-          'sakena-shell-v3',
+          'sakena-assets-v4',
+          'sakena-images-v4',
+          'sakena-shell-v4',
         ]),
       delete: vi.fn((key: string) => {
         deleted.push(key)
@@ -265,8 +267,37 @@ describe('پاک‌کردنِ کشِ API هنگامِ خروج', () => {
     /*
      * ⚠️ داده‌ی کاربر باید برود، ولی دارایی‌ها نه: پاک‌کردنِ فونت و JS
      * هنگامِ خروج یعنی ورودِ بعدی کندتر است بی‌آنکه چیزی امن‌تر شده باشد.
+     *
+     * 🔴 و `sakena-pages-v3` عمداً در فهرست است (R60): نصب‌هایی که هنوز
+     * روی SWِ قدیمی مانده‌اند **داده‌ی شخصی** در آن سطل دارند. نسخه‌ی تازه
+     * در `activate` پاکش می‌کند، ولی `activate` تا پذیرشِ به‌روزرسانی
+     * اجرا نمی‌شود — پس خروج از حساب باید همان لحظه ببنددش.
      */
-    expect(deleted).toEqual(['sakena-pages-v3'])
+    expect(deleted.sort()).toEqual(['sakena-api-v4', 'sakena-pages-v3', 'sakena-pages-v4'])
+
+    vi.unstubAllGlobals()
+  })
+
+  /**
+   * 🔴 سطلِ API باید پاک شود.
+   *
+   * ⚠️ بدونِ این ادعا، برگرداندنِ تابع به نسخه‌ی «فقط pages» از تور رد
+   * می‌شد — و سطلی که در R60 ساخته شد هرگز پاک نمی‌شد.
+   */
+  it('سطلِ تازه‌ی API را هم پاک می‌کند', async () => {
+    const deleted: string[] = []
+
+    vi.stubGlobal('caches', {
+      keys: vi.fn().mockResolvedValue(['sakena-api-v4', 'sakena-assets-v4']),
+      delete: vi.fn((key: string) => {
+        deleted.push(key)
+        return Promise.resolve(true)
+      }),
+    })
+
+    await clearApiCache()
+
+    expect(deleted).toEqual(['sakena-api-v4'])
 
     vi.unstubAllGlobals()
   })

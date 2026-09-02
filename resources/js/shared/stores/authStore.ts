@@ -1,5 +1,6 @@
 import { create } from 'zustand'
 import { api } from '@/shared/lib/api'
+import { ApiError } from '@/shared/lib/apiError'
 import { clearApiCache } from '@/shared/pwa/registerServiceWorker'
 import type { CurrentUser } from '@/shared/types'
 
@@ -29,8 +30,25 @@ export const useAuthStore = create<AuthState>((set) => ({
     try {
       const { user } = await api<{ user: CurrentUser | null }>('/me')
       set({ user, isLoading: false })
-    } catch {
-      set({ user: null, isLoading: false })
+    } catch (error) {
+      /*
+       * ⚠️ «نرسیدم» با «بیرونت کردند» یکی نیست (R60).
+       *
+       * نسخه‌ی قبلی هر خطایی را «خارج شده» می‌خواند. تا R60 این کمتر دیده
+       * می‌شد چون پاسخِ `/me` کش می‌شد و آفلاین از کش می‌آمد — ولی آن کش
+       * خودش نشت بود: می‌گفت کاربر وارد است، حتی وقتی نشستِ سرور بسته
+       * شده بود.
+       *
+       * حالا که `/me` هرگز کش نمی‌شود، این تفکیک لازم است: قطعیِ شبکه
+       * (`status === 0`) نباید کاربرِ واردشده را از برنامه بیندازد بیرون.
+       * پاسخِ ۴۰۱ی سرور باید.
+       */
+      const offline = error instanceof ApiError && error.status === 0
+
+      set((state) => ({
+        user: offline ? state.user : null,
+        isLoading: false,
+      }))
     }
   },
   logout: async () => {
@@ -48,7 +66,15 @@ export const useAuthStore = create<AuthState>((set) => ({
        * حالتِ آفلاین ببیندشان. نشستِ سرور بسته شده ولی نسخه‌ی کش‌شده
        * سرورش را نمی‌پرسد.
        */
-      void clearApiCache()
+      /*
+       * ⚠️ `await` و نه `void` (R60).
+       *
+       * نسخه‌ی قبلی پاک‌سازی را رها می‌کرد و بی‌درنگ برمی‌گشت. اگر کاربر
+       * بلافاصله تب را می‌بست یا صفحه عوض می‌شد، حذف نیمه‌کاره می‌ماند —
+       * یعنی همان چیزی که این خط برای رفعش هست، در بدترین حالت (خروج و
+       * بستنِ فوری روی دستگاهِ مشترک) کار نمی‌کرد.
+       */
+      await clearApiCache()
     }
   },
 }))

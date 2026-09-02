@@ -1,6 +1,7 @@
 <?php
 
 use App\Exceptions\ApiExceptionRenderer;
+use App\Http\Middleware\ApiCacheHeaders;
 use App\Http\Middleware\AuthenticateTrustedDevice;
 use App\Http\Middleware\EnsureActive;
 use App\Http\Middleware\EnsureComplexActive;
@@ -145,6 +146,11 @@ return Application::configure(basePath: dirname(__DIR__))
              * می‌شوند و تست دارند.
              */
             SecurityHeaders::class,
+            /*
+             * «این پاسخ را هیچ‌جا ذخیره نکن» (R60) — لایه‌ی مستقل از
+             * service worker، چون محافظتی که فقط یک لایه دارد یک فرض است.
+             */
+            ApiCacheHeaders::class,
             AuthenticateTrustedDevice::class,
             EnsureActive::class,
             SetCurrentComplex::class,
