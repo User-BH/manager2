@@ -30,12 +30,25 @@ use Illuminate\Support\Collection;
  */
 class Notifications
 {
-    /** مجموعِ نخوانده‌ها از هر سه منبع — همان عددی که روی زنگوله می‌نشیند. */
-    public static function unreadCount(User $user): int
+    /**
+     * مجموعِ نخوانده‌ها از هر سه منبع — همان عددی که روی زنگوله می‌نشیند.
+     *
+     * ⚠️ `$messenger` برای وقتی است که فراخواننده همین عدد را **همین حالا**
+     * حساب کرده باشد (R65).
+     *
+     * ─── چرا لازم شد ───────────────────────────────────────────────────────
+     * اندازه‌گیریِ R65 نشان داد `GET /notifications` — پرترافیک‌ترین مسیرِ
+     * احراز هویت‌شده، چون هر کاربرِ واردشده هر شصت ثانیه می‌زندش — همان
+     * کوئریِ شمارشِ پیام‌رسان را **دو بار** اجرا می‌کند: یک بار برای ساختنِ
+     * سطرِ فهرست و یک بار همین‌جا. دو کوئریِ کاملاً یکسان، در یک درخواست.
+     *
+     * پارامتر اختیاری است تا هفت فراخوانیِ دیگر دست‌نخورده بمانند.
+     */
+    public static function unreadCount(User $user, ?int $messenger = null): int
     {
         return self::unreadAnnouncementCount($user)
             + $user->unreadNotifications()->count()
-            + self::messengerUnread($user);
+            + ($messenger ?? self::messengerUnread($user));
     }
 
     /**
@@ -201,8 +214,22 @@ class Notifications
     /** شناسه‌ی اطلاعیه‌هایی که کاربر از میان این مجموعه خوانده است. */
     public static function readIds(User $user, iterable $announcementIds): array
     {
+        $ids = collect($announcementIds)->all();
+
+        /*
+         * ⚠️ فهرستِ خالی نباید به دیتابیس برود (R65).
+         *
+         * `whereIn('id', [])` کوئریِ معتبری می‌سازد که به `and 0 = 1` ترجمه
+         * می‌شود: یک رفت‌وبرگشتِ کامل که **قطعاً** خالی برمی‌گردد. در
+         * اندازه‌گیریِ R65 همین کوئری در `GET /notifications` دیده شد —
+         * مسیری که هر کاربرِ واردشده هر شصت ثانیه می‌زندش.
+         */
+        if ($ids === []) {
+            return [];
+        }
+
         return AnnouncementRead::where('user_id', $user->id)
-            ->whereIn('announcement_id', collect($announcementIds)->all())
+            ->whereIn('announcement_id', $ids)
             ->pluck('announcement_id')
             ->all();
     }

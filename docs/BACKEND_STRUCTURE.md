@@ -292,8 +292,20 @@ app/Services/Backup/BackupBuilder.php   منطقِ ساخت (از دو کنتر�
 روی سرور باید یک کارگرِ صف دائمی بالا باشد:
 
 ```bash
-php artisan queue:work --queue=default --tries=3 --timeout=600
+php artisan queue:work --queue=default --tries=3 --timeout=900
 ```
+
+⚠️ **ترتیبِ سه عدد مهم است** (اندازه‌گیریِ R65):
+
+```
+$timeout هر Job  ≤  --timeout کارگر  <  retry_after صف
+     ۹۰۰ ثانیه          ۹۰۰ ثانیه         ۱۰۲۰ ثانیه
+```
+
+🔴 اگر `retry_after` کوچک‌تر باشد، صف کارِ **در حالِ اجرا** را به کارگرِ دوم
+هم می‌دهد و همان سند دو بار ساخته می‌شود — بی‌آنکه هیچ خطایی جایی ثبت شود.
+دلیلِ کامل در `config/queue.php` و `docs/PERFORMANCE.md` است، و یک تست
+آن را از خودِ کلاس‌های کار مشتق می‌کند.
 
 با systemd یا supervisor نگه داشته شود تا پس از کرش یا ریستارتِ سرور خودش
 برگردد. **اگر کارگر اجرا نشود، کاربر «در حال ساخت…» می‌بیند که هرگز تمام

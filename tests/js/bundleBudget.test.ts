@@ -38,9 +38,24 @@ const SESSION_BUDGET = 272 * 1024
  */
 const MAX_TINY_CHUNKS = 24
 
+/**
+ * سقفِ **تعدادِ درخواست** (R65).
+ *
+ * ⚠️ حجم تنها نیمی از داستان است. سی چانکِ ده‌کیلوبایتی و یک چانکِ
+ * سیصدکیلوبایتی حجمِ برابر دارند و روی شبکه‌ی موبایل کاملاً متفاوت رفتار
+ * می‌کنند: هر درخواست هزینه‌ی رفت‌وبرگشتِ خودش را دارد و بودجه‌ی بایتی
+ * هیچ‌وقت آن را نشان نمی‌دهد.
+ *
+ * اندازه‌گیریِ R65: بیشترین چانکِ یک ورودی ۱۵ (صفحه‌ی فرود)، و ۲۴ فایلِ
+ * یکتا در نشستِ پنج‌صفحه‌ای.
+ */
+const MAX_CHUNKS_PER_ENTRY = 17
+const MAX_SESSION_FILES = 26
+
 interface Report {
   entry: string
   gzip: number
+  chunkCount?: number
   fileCount?: number
   tinyChunks?: number
   files?: Array<{ file: string; raw: number; gzip: number }>
@@ -82,6 +97,23 @@ describe.skipIf(!built)('بودجه‌ی باندل', () => {
 
     expect(session).toBeDefined()
     expect(session!.gzip).toBeLessThanOrEqual(SESSION_BUDGET)
+  })
+
+  it('هیچ ورودی‌ای بیش از سقف، درخواست نمی‌سازد', () => {
+    for (const item of report) {
+      if (item.entry === '__session__') continue
+
+      expect(
+        item.chunkCount,
+        `${item.entry}: ${item.chunkCount} چانک > سقفِ ${MAX_CHUNKS_PER_ENTRY}`,
+      ).toBeLessThanOrEqual(MAX_CHUNKS_PER_ENTRY)
+    }
+  })
+
+  it('تعدادِ فایلِ یکتای کلِ نشست از سقف نمی‌گذرد', () => {
+    const session = report.find((row) => row.entry === '__session__')
+
+    expect(session!.fileCount).toBeLessThanOrEqual(MAX_SESSION_FILES)
   })
 
   it('بیلد پر از فایلِ ریز نمی‌شود', () => {

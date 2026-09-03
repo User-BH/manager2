@@ -81,7 +81,9 @@ class NotificationController extends Controller
             ->all();
 
         return response()->json([
-            'unreadCount' => Notifications::unreadCount($user),
+            // ⚠️ `$messenger` بالاتر حساب شده؛ بدونِ پاس‌دادنش همان کوئری
+            // دوباره اجرا می‌شد (اندازه‌گیریِ R65)
+            'unreadCount' => Notifications::unreadCount($user, $messenger),
             'items' => $items,
         ]);
     }

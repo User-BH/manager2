@@ -432,43 +432,43 @@
 
 # بخش ۴ — Performance
 
-| #   | بند                                             | وضعیت                                                              | مرحله   |
-| --- | ----------------------------------------------- | ------------------------------------------------------------------ | ------- |
-| 254 | (۱) Performance Baseline (۱۲ سنجه)              | 🟡                                                                 | **R65** |
-| 255 | (۲) Core Web Vitals                             | 🟡 (جمع‌آوری هست، نمایش نه)                                        | R65     |
-| 256 | (۳) JavaScript Bundle Analyzer                  | ✅                                                                 | R36     |
-| 257 | (۴) Code Splitting                              | ✅                                                                 | R36     |
-| 258 | (۵) Tree Shaking                                | ✅                                                                 | R36     |
-| 259 | (۶) Image Optimization (WebP/AVIF/srcset/lazy)  | 🟡                                                                 | R65     |
-| 260 | (۷) Image Priority                              | ✅                                                                 | R36     |
-| 261 | (۸) Font Optimization                           | 🟡                                                                 | R65     |
-| 262 | (۹) CSS Performance                             | ❓                                                                 | R65     |
-| 263 | (۱۰) Rendering Performance                      | 🟡 هشدارهای react-hooks صفر شد (R49)؛ سنجشِ واقعیِ کارایی با R65   | **R49** |
-| 264 | (۱۱) Large Lists                                | ✅ (`useVirtualRows`)                                              | R14     |
-| 265 | (۱۲) API Performance                            | 🟡                                                                 | R65     |
-| 266 | (۱۳) API Payload / DTO                          | 🟡                                                                 | R65     |
-| 267 | (۱۴) Database Performance (N+1، Slow Query)     | ✅                                                                 | R45     |
-| 268 | (۱۵) Database Index (+ شاخصِ اضافی)             | ✅                                                                 | R48     |
-| 269 | (۱۶) Query Caching                              | ❓                                                                 | R65     |
-| 270 | (۱۷) Redis                                      | ❓ ⚠️ عمداً استفاده نشده                                           | R65     |
-| 271 | (۱۸) Queue برای کارِ سنگین                      | ✅                                                                 | R11     |
-| 272 | (۱۹) Background Job (Retry/Backoff/Timeout)     | 🟡                                                                 | **R65** |
-| 273 | (۲۰) HTTP/2، Brotli، Keep-Alive، Cache Headers  | 🔒                                                                 | R56     |
-| 274 | (۲۱) Resource Hints                             | ✅                                                                 | R36     |
-| 275 | (۲۲) CDN                                        | 🔒                                                                 | R56     |
-| 276 | (۲۳) PWA Performance                            | ✅ سطلِ جدا؛ دیگر APIها صفحه‌های آفلاین را بیرون نمی‌اندازند       | **R60** |
-| 277 | (۲۴) Mobile Performance                         | ❌                                                                 | **R70** |
-| 278 | (۲۵) Memory Leak                                | 🟡 (R39 دو مورد را گرفت)                                           | R65     |
-| 279 | (۲۶) Network Waterfall                          | 🟡                                                                 | R65     |
-| 280 | (۲۷) Request Prioritization                     | 🟡                                                                 | R65     |
-| 281 | (۲۸) Prefetch Strategy                          | ❓                                                                 | R65     |
-| 282 | (۲۹) Performance Budget                         | 🟡 (بودجهٔ باندل و کوئری هست؛ تصویر/فونت نه)                       | **R65** |
-| 283 | (۳۰) Admin Dashboard Performance                | 🟡                                                                 | R65     |
-| 284 | (۳۱) Report Performance                         | ✅ (در صف)                                                         | R28     |
-| 285 | (۳۲) Real-Time Features (WebSocket/SSE/Polling) | ❓                                                                 | R65     |
-| 286 | (۳۳) Performance Monitoring                     | 🟡 ⚠️ R64 هشدارِ **درستی** ساخت نه کارایی؛ این بند به R65 منتقل شد | R65     |
-| 287 | (۳۴) Final Benchmark                            | ❌                                                                 | **R72** |
-| 288 | (۳۵) Final Performance Report                   | ❌                                                                 | **R72** |
+| #   | بند                                             | وضعیت                                                                                 | مرحله   |
+| --- | ----------------------------------------------- | ------------------------------------------------------------------------------------- | ------- |
+| 254 | (۱) Performance Baseline (۱۲ سنجه)              | ✅ دوازده سنجه با عددِ واقعی در `docs/PERFORMANCE.md`؛ سه‌تا صریح NOT MEASURED        | **R65** |
+| 255 | (۲) Core Web Vitals                             | 🟡 مسیرِ خواندن ساخته شد (`perf:baseline`)؛ 🔒 عددش به ترافیکِ واقعی نیاز دارد        | **R65** |
+| 256 | (۳) JavaScript Bundle Analyzer                  | ✅                                                                                    | R36     |
+| 257 | (۴) Code Splitting                              | ✅                                                                                    | R36     |
+| 258 | (۵) Tree Shaking                                | ✅                                                                                    | R36     |
+| 259 | (۶) Image Optimization (WebP/AVIF/srcset/lazy)  | ✅ سقفِ تکی و مجموع، با سیاههٔ معافیتِ دلیل‌دار                                       | **R65** |
+| 260 | (۷) Image Priority                              | ✅                                                                                    | R36     |
+| 261 | (۸) Font Optimization                           | ✅ سقفِ تکی و مجموع؛ `font-display: swap` و تک‌preload از قبل بود                     | **R65** |
+| 262 | (۹) CSS Performance                             | ✅ ۱۶٫۵KB gzip، اندازه‌گیری‌شده و ذیلِ بودجهٔ باندل                                   | **R65** |
+| 263 | (۱۰) Rendering Performance                      | 🟡 هشدارهای react-hooks صفر شد (R49)؛ سنجشِ واقعیِ کارایی با R65                      | **R49** |
+| 264 | (۱۱) Large Lists                                | ✅ (`useVirtualRows`)                                                                 | R14     |
+| 265 | (۱۲) API Performance                            | ✅ کوئری و حجمِ پاسخِ ده مسیر اندازه‌گیری شد                                          | **R65** |
+| 266 | (۱۳) API Payload / DTO                          | ✅ سنگین‌ترین پاسخ ۵٫۸KB برای ۴۰ واحد (~۱۴۶B هر واحد)                                 | **R65** |
+| 267 | (۱۴) Database Performance (N+1، Slow Query)     | ✅                                                                                    | R45     |
+| 268 | (۱۵) Database Index (+ شاخصِ اضافی)             | ✅                                                                                    | R48     |
+| 269 | (۱۶) Query Caching                              | ✅ اندازه‌گیری‌شده: ۱ خواندنِ کش در هر درخواست                                        | **R65** |
+| 270 | (۱۷) Redis                                      | ✅ تصمیم با عدد: **نه** — و شرطِ عوض‌شدنش نوشته شد (چندگره‌ای، نه سرعت)               | **R65** |
+| 271 | (۱۸) Queue برای کارِ سنگین                      | ✅                                                                                    | R11     |
+| 272 | (۱۹) Background Job (Retry/Backoff/Timeout)     | ✅ 🔴 `retry_after` ده برابر کوچک‌تر از مهلتِ کارها بود؛ رفع شد + محافظ               | **R65** |
+| 273 | (۲۰) HTTP/2، Brotli، Keep-Alive، Cache Headers  | 🔒                                                                                    | R56     |
+| 274 | (۲۱) Resource Hints                             | ✅                                                                                    | R36     |
+| 275 | (۲۲) CDN                                        | 🔒                                                                                    | R56     |
+| 276 | (۲۳) PWA Performance                            | ✅ سطلِ جدا؛ دیگر APIها صفحه‌های آفلاین را بیرون نمی‌اندازند                          | **R60** |
+| 277 | (۲۴) Mobile Performance                         | ❌                                                                                    | **R70** |
+| 278 | (۲۵) Memory Leak                                | 🟡 افزایشِ حافظه سنجیده شد (۰–۴MB، بی‌نشتی)؛ 🔒 مقدارِ مطلق از PHPUnit خوانده نمی‌شود | **R65** |
+| 279 | (۲۶) Network Waterfall                          | ✅ بودجهٔ تعدادِ چانک در هر ورودی                                                     | **R65** |
+| 280 | (۲۷) Request Prioritization                     | ✅ بودجهٔ فایلِ یکتای نشست + preloadهای R36                                           | **R65** |
+| 281 | (۲۸) Prefetch Strategy                          | 🟡 `LazyVisible` و resource hints هست؛ prefetchِ مسیرِ بعدی عمداً نه                  | **R65** |
+| 282 | (۲۹) Performance Budget                         | ✅ تصویر، فونت و تعدادِ درخواست اضافه شدند                                            | **R65** |
+| 283 | (۳۰) Admin Dashboard Performance                | 🟡 ۲۳ کوئری اندازه‌گیری شد و با ردیف رشد نمی‌کند؛ بهینه‌سازی منتظرِ عددِ R66          | **R65** |
+| 284 | (۳۱) Report Performance                         | ✅ (در صف)                                                                            | R28     |
+| 285 | (۳۲) Real-Time Features (WebSocket/SSE/Polling) | ✅ تصمیم با عدد: **نه** — بارِ کلِ polling ≈ ۱ درخواست بر ثانیه                       | **R65** |
+| 286 | (۳۳) Performance Monitoring                     | ✅ `perf:baseline`؛ 🔴 پیش از این `web_vitals` فقط نوشته می‌شد                        | **R65** |
+| 287 | (۳۴) Final Benchmark                            | ❌                                                                                    | **R72** |
+| 288 | (۳۵) Final Performance Report                   | ❌                                                                                    | **R72** |
 
 ---
 
