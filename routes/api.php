@@ -139,7 +139,9 @@ Route::post('support/chat', [SupportChatController::class, 'reply'])
 // --- واردشده ---
 Route::middleware('auth')->group(function () {
     Route::post('logout', [AuthController::class, 'logout'])->name('logout');
-    Route::get('dashboard', [DashboardController::class, 'index'])->name('dashboard');
+    // ⚠️ ۲۳ کوئری در هر فراخوانی (اندازه‌گیریِ R65)؛ دلیلِ سقف در AppServiceProvider
+    Route::get('dashboard', [DashboardController::class, 'index'])
+        ->middleware('throttle:dashboard')->name('dashboard');
 
     // --- مشترک بین همه‌ی نقش‌ها ---
     Route::get('messenger', [MessengerController::class, 'index'])

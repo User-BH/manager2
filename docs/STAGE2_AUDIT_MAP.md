@@ -299,26 +299,26 @@
 
 ## ۱‑۲۵) Load / Chaos / Dependency / Static Analysis / CI
 
-| #   | بند                                                            | وضعیت | توضیح                                                                 | مرحله      |
-| --- | -------------------------------------------------------------- | ----- | --------------------------------------------------------------------- | ---------- |
-| 153 | Load Test: ۱۰۰ / ۱٬۰۰۰ / ۱۰٬۰۰۰ کاربر                          | ❌    | ⚠️ R47 فقط ۸ نخ روی `artisan serve` سنجید — **معنیِ ظرفیت ندارد**     | **R66** 🔒 |
-| 154 | Login / Dashboard / Reports / Payment / Notifications / Search | ❌    | —                                                                     | R66        |
-| 155 | Chaos: Redis Down                                              | ❓    | Redis استفاده نمی‌شود                                                 | R59        |
-| 156 | Chaos: Database Slow                                           | ✅    | سقفِ اتصال و سقفِ کوئریِ خواندنی؛ روی MySQLِ CI سنجیده می‌شود         | **R59**    |
-| 157 | Chaos: Payment Gateway Down                                    | ✅    | 🔴 دو نقصِ مالیِ واقعی رفع شد                                         | **R59**    |
-| 158 | Chaos: SMS Provider Down                                       | ✅    | ارسالِ ناموفق دیگر کاربر را پشتِ فاصله‌ی ارسالِ مجدد حبس نمی‌کند      | **R59**    |
-| 159 | Chaos: Network Failure                                         | ✅    | هر تماسِ بیرونی سقفِ اتصال و سقفِ کل دارد؛ هیچ‌کدام داخلِ تراکنش نیست | **R59**    |
-| 160 | Chaos: Queue Down                                              | ✅    | R47                                                                   |
-| 161 | Chaos: Storage Failure                                         | ✅    | ۴۰۴ تمیز؛ ⚠️ دیسکِ پر سنجیده نشد                                      | **R59**    |
-| 162 | `composer audit`                                               | ✅    | R42 (در CI)                                                           |
-| 163 | حذفِ پکیج‌های بلااستفاده                                       | ✅    | `vazirmatn` حذف شد؛ فونت‌ها فایلِ محلی‌اند نه پکیج                    | R55        |
-| 164 | PHPStan                                                        | ✅    | R42                                                                   |
-| 165 | Laravel Pint                                                   | ✅    | R42                                                                   |
-| 166 | TypeScript                                                     | ✅    | R42                                                                   |
-| 167 | ESLint                                                         | ✅    | R42                                                                   |
-| 168 | Prettier                                                       | ✅    | R42                                                                   |
-| 169 | همه در CI                                                      | ✅    | R42                                                                   |
-| 170 | خطِ امنیتیِ CI/CD                                              | 🟡    | Security Scan اختصاصی نیست                                            | R71        |
+| #   | بند                                                            | وضعیت              | توضیح                                                                 | مرحله      |
+| --- | -------------------------------------------------------------- | ------------------ | --------------------------------------------------------------------- | ---------- |
+| 153 | Load Test: ۱۰۰ / ۱٬۰۰۰ / ۱۰٬۰۰۰ کاربر                          | 🟡 ابزار و رویه ✅ | 🔒 اجرا NOT VERIFIED — سرورِ واقعی لازم دارد                          | **R66** 🔒 |
+| 154 | Login / Dashboard / Reports / Payment / Notifications / Search | 🟡                 | هر هشت جریان با سقفِ نرخشان در `docs/LOAD_TESTING.md` فهرست شد        | **R66**    |
+| 155 | Chaos: Redis Down                                              | ❓                 | Redis استفاده نمی‌شود                                                 | R59        |
+| 156 | Chaos: Database Slow                                           | ✅                 | سقفِ اتصال و سقفِ کوئریِ خواندنی؛ روی MySQLِ CI سنجیده می‌شود         | **R59**    |
+| 157 | Chaos: Payment Gateway Down                                    | ✅                 | 🔴 دو نقصِ مالیِ واقعی رفع شد                                         | **R59**    |
+| 158 | Chaos: SMS Provider Down                                       | ✅                 | ارسالِ ناموفق دیگر کاربر را پشتِ فاصله‌ی ارسالِ مجدد حبس نمی‌کند      | **R59**    |
+| 159 | Chaos: Network Failure                                         | ✅                 | هر تماسِ بیرونی سقفِ اتصال و سقفِ کل دارد؛ هیچ‌کدام داخلِ تراکنش نیست | **R59**    |
+| 160 | Chaos: Queue Down                                              | ✅                 | R47                                                                   |
+| 161 | Chaos: Storage Failure                                         | ✅                 | ۴۰۴ تمیز؛ ⚠️ دیسکِ پر سنجیده نشد                                      | **R59**    |
+| 162 | `composer audit`                                               | ✅                 | R42 (در CI)                                                           |
+| 163 | حذفِ پکیج‌های بلااستفاده                                       | ✅                 | `vazirmatn` حذف شد؛ فونت‌ها فایلِ محلی‌اند نه پکیج                    | R55        |
+| 164 | PHPStan                                                        | ✅                 | R42                                                                   |
+| 165 | Laravel Pint                                                   | ✅                 | R42                                                                   |
+| 166 | TypeScript                                                     | ✅                 | R42                                                                   |
+| 167 | ESLint                                                         | ✅                 | R42                                                                   |
+| 168 | Prettier                                                       | ✅                 | R42                                                                   |
+| 169 | همه در CI                                                      | ✅                 | R42                                                                   |
+| 170 | خطِ امنیتیِ CI/CD                                              | 🟡                 | Security Scan اختصاصی نیست                                            | R71        |
 
 ---
 
@@ -389,7 +389,7 @@
 | 220 | (۱۱) Offline Architecture                                                                 | ✅ `docs/OFFLINE.md`                                                   | **R62** |
 | 221 | (۱۲) API Compatibility                                                                    | ✅                                                                     | **R61** |
 | 222 | (۱۳) Failure Testing                                                                      | ✅                                                                     | **R59** |
-| 223 | (۱۴) Load Testing                                                                         | ❌                                                                     | R66     |
+| 223 | (۱۴) Load Testing                                                                         | 🟡 ابزارِ بی‌وابستگی + رویه؛ 🔒 اجرا NOT VERIFIED                      | **R66** |
 | 224 | (۱۵) Dependency & Code Security                                                           | ✅                                                                     | R42     |
 | 225 | (۱۶) Final Security Report با Severity/Component/Problem/Attack Scenario/Fix/Verification | ❌                                                                     | **R72** |
 
@@ -397,36 +397,36 @@
 
 # بخش ۳ — Testing & Quality Assurance
 
-| #   | بند                                                      | وضعیت | توضیح                                  | مرحله    |
-| --- | -------------------------------------------------------- | ----- | -------------------------------------- | -------- |
-| 226 | (۱) Testing Architecture و هرمِ تست                      | 🟡    | تست‌ها هستند، **استراتژیِ مکتوب** نیست | **R68**  |
-| 227 | (۲) Frontend Unit Test                                   | 🟡    | ۲۹۰ تست؛ پوششِ Edge Case مرور نشده     | R69      |
-| 228 | (۳) React Component Test                                 | 🟡    | چند کامپوننتِ کلیدی                    | **R69**  |
-| 229 | (۴) Form Testing (همهٔ فرم‌ها)                           | 🟡    | ورود/ثبت‌نام تست شده؛ بقیه نه          | **R69**  |
-| 230 | (۵) API Testing برای **هر** Endpoint                     | 🟡    | ۴۱ از ۴۶ کنترلر پوشش دارد              | **R68**  |
-| 231 | (۶) Authorization Testing                                | ✅    | **R53**                                |
-| 232 | (۷) Authentication Testing                               | ✅    | R17                                    |
-| 233 | (۸) Payment Testing (۱۰ سناریو)                          | 🟡    | **R50**                                |
-| 234 | (۹) Wallet Testing (۱۰ سناریو)                           | 🟡    | **R50**                                |
-| 235 | (۱۰) Database Testing                                    | 🟡    | R52                                    |
-| 236 | (۱۱) Business Logic Testing                              | 🟡    | استخراجِ صریحِ قواعد انجام نشده        | **R68**  |
-| 237 | (۱۲) Notification Testing (In-App/Push/SMS/Email)        | 🟡    | ⚠️ ایمیل عمداً وجود ندارد؛ Push هم نه  | R62، R68 |
-| 238 | (۱۳) File Upload Testing                                 | ✅    | **R56**                                |
-| 239 | (۱۴) PWA Testing                                         | ✅    | **R60–R62** — ۶۷ تستِ PWA در سه مرحله  |
-| 240 | (۱۵) E2E برای ۱۱ سفرِ کاربر                              | 🟡    | ۱۱ تست هست ولی سفرهای مالی نه          | **R70**  |
-| 241 | (۱۶) Cross-Browser (Chrome/Firefox/Safari/Edge + موبایل) | ❌    | فقط Chromium                           | **R70**  |
-| 242 | (۱۷) Responsive Testing                                  | 🟡    | **R70**                                |
-| 243 | (۱۸) Accessibility Testing                               | ✅    | R37، R48                               |
-| 244 | (۱۹) Error Boundary Testing                              | ✅    | R33                                    |
-| 245 | (۲۰) API Failure UX (۴۰۱…۵۰۴)                            | 🟡    | تلاشِ دوباره هست؛ UX هر کد نه          | **R69**  |
-| 246 | (۲۱) Load Testing (۱۰۰/۵۰۰/۱۰۰۰)                         | ❌    | **R66**                                |
-| 247 | (۲۲) Stress Test تا نقطهٔ شکست                           | ❌    | **R66**                                |
-| 248 | (۲۳) Regression Testing                                  | ✅    | R42 (CI)                               |
-| 249 | (۲۴) Test Coverage هدف‌دار برای Critical                 | ❌    | **R68**                                |
-| 250 | (۲۵) CI Test Pipeline کامل                               | 🟡    | E2E در CI نیست                         | **R71**  |
-| 251 | (۲۶) Test Data (Seed و Factory)                          | 🟡    | سه کارخانه؛ کافی نیست                  | **R68**  |
-| 252 | (۲۷) Test Isolation                                      | ✅    | `RefreshDatabase`                      |
-| 253 | (۲۸) Final Test Report                                   | ❌    | **R72**                                |
+| #   | بند                                                      | وضعیت                                           | توضیح                                  | مرحله    |
+| --- | -------------------------------------------------------- | ----------------------------------------------- | -------------------------------------- | -------- |
+| 226 | (۱) Testing Architecture و هرمِ تست                      | 🟡                                              | تست‌ها هستند، **استراتژیِ مکتوب** نیست | **R68**  |
+| 227 | (۲) Frontend Unit Test                                   | 🟡                                              | ۲۹۰ تست؛ پوششِ Edge Case مرور نشده     | R69      |
+| 228 | (۳) React Component Test                                 | 🟡                                              | چند کامپوننتِ کلیدی                    | **R69**  |
+| 229 | (۴) Form Testing (همهٔ فرم‌ها)                           | 🟡                                              | ورود/ثبت‌نام تست شده؛ بقیه نه          | **R69**  |
+| 230 | (۵) API Testing برای **هر** Endpoint                     | 🟡                                              | ۴۱ از ۴۶ کنترلر پوشش دارد              | **R68**  |
+| 231 | (۶) Authorization Testing                                | ✅                                              | **R53**                                |
+| 232 | (۷) Authentication Testing                               | ✅                                              | R17                                    |
+| 233 | (۸) Payment Testing (۱۰ سناریو)                          | 🟡                                              | **R50**                                |
+| 234 | (۹) Wallet Testing (۱۰ سناریو)                           | 🟡                                              | **R50**                                |
+| 235 | (۱۰) Database Testing                                    | 🟡                                              | R52                                    |
+| 236 | (۱۱) Business Logic Testing                              | 🟡                                              | استخراجِ صریحِ قواعد انجام نشده        | **R68**  |
+| 237 | (۱۲) Notification Testing (In-App/Push/SMS/Email)        | 🟡                                              | ⚠️ ایمیل عمداً وجود ندارد؛ Push هم نه  | R62، R68 |
+| 238 | (۱۳) File Upload Testing                                 | ✅                                              | **R56**                                |
+| 239 | (۱۴) PWA Testing                                         | ✅                                              | **R60–R62** — ۶۷ تستِ PWA در سه مرحله  |
+| 240 | (۱۵) E2E برای ۱۱ سفرِ کاربر                              | 🟡                                              | ۱۱ تست هست ولی سفرهای مالی نه          | **R70**  |
+| 241 | (۱۶) Cross-Browser (Chrome/Firefox/Safari/Edge + موبایل) | ❌                                              | فقط Chromium                           | **R70**  |
+| 242 | (۱۷) Responsive Testing                                  | 🟡                                              | **R70**                                |
+| 243 | (۱۸) Accessibility Testing                               | ✅                                              | R37، R48                               |
+| 244 | (۱۹) Error Boundary Testing                              | ✅                                              | R33                                    |
+| 245 | (۲۰) API Failure UX (۴۰۱…۵۰۴)                            | 🟡                                              | تلاشِ دوباره هست؛ UX هر کد نه          | **R69**  |
+| 246 | (۲۱) Load Testing (۱۰۰/۵۰۰/۱۰۰۰)                         | 🟡                                              | **R66** 🔒                             |
+| 247 | (۲۲) Stress Test تا نقطهٔ شکست                           | 🟡 تعریفِ نقطهٔ شکست و ابزارش آماده؛ 🔒 اجرا نه | **R66**                                |
+| 248 | (۲۳) Regression Testing                                  | ✅                                              | R42 (CI)                               |
+| 249 | (۲۴) Test Coverage هدف‌دار برای Critical                 | ❌                                              | **R68**                                |
+| 250 | (۲۵) CI Test Pipeline کامل                               | 🟡                                              | E2E در CI نیست                         | **R71**  |
+| 251 | (۲۶) Test Data (Seed و Factory)                          | 🟡                                              | سه کارخانه؛ کافی نیست                  | **R68**  |
+| 252 | (۲۷) Test Isolation                                      | ✅                                              | `RefreshDatabase`                      |
+| 253 | (۲۸) Final Test Report                                   | ❌                                              | **R72**                                |
 
 ---
 

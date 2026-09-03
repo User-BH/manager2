@@ -8,30 +8,31 @@
 
 ## نقشهٔ مستندات
 
-| مستند                                                      | چه چیزی در آن است                                                                    |
-| ---------------------------------------------------------- | ------------------------------------------------------------------------------------ |
-| [docs/DEVELOPER_GUIDE.md](docs/DEVELOPER_GUIDE.md)         | **از اینجا شروع کنید.** راه‌اندازی، دستورهای روزمره، قراردادهای کد، افزودن یک قابلیت |
-| [docs/TECHNICAL_REPORT.md](docs/TECHNICAL_REPORT.md)       | **گزارش فنی نهایی** — چه چیزی سنجیده شده، با چه عددی، و چه چیزی سنجیده نشده          |
-| [docs/FINAL_REVIEW.md](docs/FINAL_REVIEW.md)               | **بازبینی نهایی ۹ نقشه** — یافته‌ها، رفع‌ها، و مواردی که آگاهانه تغییر نکردند        |
-| [docs/BACKEND_STRUCTURE.md](docs/BACKEND_STRUCTURE.md)     | لایه‌بندی بک‌اند، چندمستأجری، مدل‌ها و سرویس‌ها                                      |
-| [docs/FRONTEND_STRUCTURE.md](docs/FRONTEND_STRUCTURE.md)   | ساختار `resources/js`، مرزِ MPA/SPA، مدیریت حالت                                     |
-| [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md)                   | استقرار روی سرور                                                                     |
-| [docs/DEPLOYMENT_SECURITY.md](docs/DEPLOYMENT_SECURITY.md) | سخت‌سازیِ سرور و رازها                                                               |
-| [docs/OFFLINE.md](docs/OFFLINE.md)                         | **معماریِ آفلاین** — چه کاری آفلاین ممکن است، و چرا صفِ آفلاین ساخته نشد             |
-| [docs/API_COMPATIBILITY.md](docs/API_COMPATIBILITY.md)     | **قراردادِ سازگاری** — Mixed App Versions، چرخهٔ به‌روزرسانیِ SW، و بازگشت           |
-| [docs/PERFORMANCE.md](docs/PERFORMANCE.md)                 | **پایهٔ کارایی** — دوازده سنجه با عددِ واقعی، بودجه‌ها، و تصمیمِ Redis و Real-Time   |
-| [docs/ALERTING.md](docs/ALERTING.md)                       | **دفترچهٔ هشدار** — چه چیزی زنگ می‌زند، چرا آن عدد، و اپراتور چه کند                 |
-| [docs/DISASTER_RECOVERY.md](docs/DISASTER_RECOVERY.md)     | **بازیابی از فاجعه** — RPO و RTO، مقصدِ خارج از سرور، و رویهٔ هشت سناریو             |
-| [docs/MIGRATIONS.md](docs/MIGRATIONS.md)                   | **مهاجرتِ امن** — Expand→Migrate→Contract، مهاجرتِ مخرب، رویهٔ برگشت                 |
-| [docs/SECRETS.md](docs/SECRETS.md)                         | **رازها و چرخشِ کلید** — فهرست، رویهٔ چرخش، و کارِ لحظهٔ نشت                         |
-| [docs/SERVER_HARDENING.md](docs/SERVER_HARDENING.md)       | **چک‌لیستِ سخت‌سازیِ سرور** — آنچه کد نمی‌تواند تضمین کند                            |
-| [docs/SECURITY_AUDIT.md](docs/SECURITY_AUDIT.md)           | ممیزی امنیتی و یافته‌های باز                                                         |
-| [docs/AUDIT_REPORT.md](docs/AUDIT_REPORT.md)               | ممیزی فنیِ اولیه                                                                     |
-| [docs/WORK_PLAN.md](docs/WORK_PLAN.md)                     | نقشهٔ ۴۸ مرحله‌ای و شرحِ هر مرحله                                                    |
-| [docs/STAGE2_AUDIT_MAP.md](docs/STAGE2_AUDIT_MAP.md)       | **نقشهٔ ایرادات مرحلهٔ دوم** — هر ۳۲۵ بند با وضعیتِ اندازه‌گیری‌شده و مرحلهٔ متناظر  |
-| [docs/PROJECT_MEMORY.md](docs/PROJECT_MEMORY.md)           | درس‌های آموخته‌شده و دام‌های تکرارشونده                                              |
-| [docs/COMPLETED_WORK.md](docs/COMPLETED_WORK.md)           | کارهای انجام‌شده                                                                     |
-| [docs/REMAINING_WORK.md](docs/REMAINING_WORK.md)           | کارهای باقی‌مانده                                                                    |
+| مستند                                                      | چه چیزی در آن است                                                                       |
+| ---------------------------------------------------------- | --------------------------------------------------------------------------------------- |
+| [docs/DEVELOPER_GUIDE.md](docs/DEVELOPER_GUIDE.md)         | **از اینجا شروع کنید.** راه‌اندازی، دستورهای روزمره، قراردادهای کد، افزودن یک قابلیت    |
+| [docs/TECHNICAL_REPORT.md](docs/TECHNICAL_REPORT.md)       | **گزارش فنی نهایی** — چه چیزی سنجیده شده، با چه عددی، و چه چیزی سنجیده نشده             |
+| [docs/FINAL_REVIEW.md](docs/FINAL_REVIEW.md)               | **بازبینی نهایی ۹ نقشه** — یافته‌ها، رفع‌ها، و مواردی که آگاهانه تغییر نکردند           |
+| [docs/BACKEND_STRUCTURE.md](docs/BACKEND_STRUCTURE.md)     | لایه‌بندی بک‌اند، چندمستأجری، مدل‌ها و سرویس‌ها                                         |
+| [docs/FRONTEND_STRUCTURE.md](docs/FRONTEND_STRUCTURE.md)   | ساختار `resources/js`، مرزِ MPA/SPA، مدیریت حالت                                        |
+| [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md)                   | استقرار روی سرور                                                                        |
+| [docs/DEPLOYMENT_SECURITY.md](docs/DEPLOYMENT_SECURITY.md) | سخت‌سازیِ سرور و رازها                                                                  |
+| [docs/OFFLINE.md](docs/OFFLINE.md)                         | **معماریِ آفلاین** — چه کاری آفلاین ممکن است، و چرا صفِ آفلاین ساخته نشد                |
+| [docs/API_COMPATIBILITY.md](docs/API_COMPATIBILITY.md)     | **قراردادِ سازگاری** — Mixed App Versions، چرخهٔ به‌روزرسانیِ SW، و بازگشت              |
+| [docs/PERFORMANCE.md](docs/PERFORMANCE.md)                 | **پایهٔ کارایی** — دوازده سنجه با عددِ واقعی، بودجه‌ها، و تصمیمِ Redis و Real-Time      |
+| [docs/LOAD_TESTING.md](docs/LOAD_TESTING.md)               | **سنجشِ بار** — رویه، پیش‌نیازها، و اینکه چرا بیشترِ اجراها محدودکنندهٔ نرخ را می‌سنجند |
+| [docs/ALERTING.md](docs/ALERTING.md)                       | **دفترچهٔ هشدار** — چه چیزی زنگ می‌زند، چرا آن عدد، و اپراتور چه کند                    |
+| [docs/DISASTER_RECOVERY.md](docs/DISASTER_RECOVERY.md)     | **بازیابی از فاجعه** — RPO و RTO، مقصدِ خارج از سرور، و رویهٔ هشت سناریو                |
+| [docs/MIGRATIONS.md](docs/MIGRATIONS.md)                   | **مهاجرتِ امن** — Expand→Migrate→Contract، مهاجرتِ مخرب، رویهٔ برگشت                    |
+| [docs/SECRETS.md](docs/SECRETS.md)                         | **رازها و چرخشِ کلید** — فهرست، رویهٔ چرخش، و کارِ لحظهٔ نشت                            |
+| [docs/SERVER_HARDENING.md](docs/SERVER_HARDENING.md)       | **چک‌لیستِ سخت‌سازیِ سرور** — آنچه کد نمی‌تواند تضمین کند                               |
+| [docs/SECURITY_AUDIT.md](docs/SECURITY_AUDIT.md)           | ممیزی امنیتی و یافته‌های باز                                                            |
+| [docs/AUDIT_REPORT.md](docs/AUDIT_REPORT.md)               | ممیزی فنیِ اولیه                                                                        |
+| [docs/WORK_PLAN.md](docs/WORK_PLAN.md)                     | نقشهٔ ۴۸ مرحله‌ای و شرحِ هر مرحله                                                       |
+| [docs/STAGE2_AUDIT_MAP.md](docs/STAGE2_AUDIT_MAP.md)       | **نقشهٔ ایرادات مرحلهٔ دوم** — هر ۳۲۵ بند با وضعیتِ اندازه‌گیری‌شده و مرحلهٔ متناظر     |
+| [docs/PROJECT_MEMORY.md](docs/PROJECT_MEMORY.md)           | درس‌های آموخته‌شده و دام‌های تکرارشونده                                                 |
+| [docs/COMPLETED_WORK.md](docs/COMPLETED_WORK.md)           | کارهای انجام‌شده                                                                        |
+| [docs/REMAINING_WORK.md](docs/REMAINING_WORK.md)           | کارهای باقی‌مانده                                                                       |
 
 مستند API از روی مسیرهای واقعی ساخته می‌شود: `php artisan openapi:generate`
 خروجی‌اش `public/openapi.json` است و روی `/openapi.json` سرو می‌شود.
