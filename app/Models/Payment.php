@@ -8,6 +8,7 @@ use App\Models\Concerns\BelongsToComplex;
 use App\Models\Concerns\NeverDeleted;
 use App\Services\Payment\GatewayOrder;
 use App\Support\PrivateFiles;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
@@ -29,6 +30,7 @@ class Payment extends Model implements GatewayOrder
      * می‌توانست تاریخچه‌ی مالی را ببرد.
      */
     use BelongsToComplex, NeverDeleted;
+    use HasFactory;
 
     protected $fillable = [
         'complex_id', 'unit_id', 'bill_id', 'user_id', 'amount', 'method',

@@ -41,6 +41,52 @@ class BillingFlowTest extends TestCase
         ]);
     }
 
+    /**
+     * 🔴 تخفیف نمی‌تواند قبض را منفی کند (R68).
+     *
+     * ─── چرا این قاعده تا امروز بی‌تست بود ─────────────────────────────────
+     * `BillGenerator` مبلغ را با `max(0, base + penalty - discount)` می‌بندد
+     * — یک `max` کوچک که کلِ محافظت را انجام می‌دهد و **هیچ تستی نداشت**.
+     *
+     * ⚠️ اگر آن `max` روزی برداشته شود، قبضی با مبلغِ منفی ساخته می‌شود.
+     * از آنجا به بعد هیچ‌چیز سرِ جایش نیست: «بدهیِ» منفی در جمعِ بدهیِ
+     * مجتمع کم می‌کند، و پرداختِ منفی معنی ندارد.
+     *
+     * سیاهه‌ی `BusinessRulesTest` همین شکاف را پیدا کرد.
+     */
+    public function test_a_discount_never_pushes_a_bill_below_zero(): void
+    {
+        $c = $this->makeComplex();
+        $unit = $this->makeUnit($c, '1', 2, 100);
+
+        ChargeRule::withoutGlobalScopes()->create([
+            'complex_id' => $c->id, 'name' => 'شارژ ثابت', 'type' => ChargeRuleType::Fixed,
+            'category' => ExpenseCategory::Tenant, 'config' => ['amount' => 200000], 'is_active' => true,
+        ]);
+
+        // تخفیفی بزرگ‌تر از خودِ شارژ — چه از اشتباهِ تایپی، چه از سیاستِ مجتمع
+        Discount::withoutGlobalScopes()->create([
+            'complex_id' => $c->id, 'unit_id' => $unit->id,
+            'period' => '1404-03', 'amount' => 900000,
+        ]);
+
+        app(BillGenerator::class)->generate($c, '1404-03');
+
+        $bill = Bill::withoutGlobalScopes()->where('unit_id', $unit->id)->firstOrFail();
+
+        $this->assertSame(0.0, (float) $bill->total_amount, 'قبض با مبلغِ منفی ساخته شد.');
+
+        /*
+         * ⚠️ و مبلغِ پایه دست‌نخورده می‌ماند.
+         *
+         * صفرکردنِ `base_amount` هم «منفی نشدن» را برآورده می‌کرد، ولی
+         * آن‌وقت معلوم نبود تخفیف روی چه مبلغی اعمال شده — و صورت‌حسابِ
+         * غیرقابلِ توضیح، خودش یک باگ است.
+         */
+        $this->assertSame(200000.0, (float) $bill->base_amount);
+        $this->assertSame(900000.0, (float) $bill->discount_amount);
+    }
+
     public function test_generates_bills_split_into_owner_and_tenant(): void
     {
         $c = $this->makeComplex();

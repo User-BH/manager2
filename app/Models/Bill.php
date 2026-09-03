@@ -6,6 +6,7 @@ use App\Enums\BillStatus;
 use App\Models\Concerns\BelongsToComplex;
 use App\Models\Concerns\NeverDeleted;
 use Carbon\CarbonInterface;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -26,6 +27,7 @@ class Bill extends Model
      * می‌توانست تاریخچه‌ی مالی را ببرد.
      */
     use BelongsToComplex, NeverDeleted;
+    use HasFactory;
 
     protected $fillable = [
         'complex_id', 'unit_id', 'period', 'owner_amount', 'tenant_amount',

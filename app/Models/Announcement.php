@@ -6,6 +6,7 @@ use App\Enums\AnnouncementAudience;
 use App\Enums\UserRole;
 use App\Models\Concerns\BelongsToComplex;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -24,6 +25,7 @@ use Illuminate\Support\Carbon;
 class Announcement extends Model
 {
     use BelongsToComplex;
+    use HasFactory;
 
     protected $fillable = [
         'complex_id', 'title', 'body', 'audience',

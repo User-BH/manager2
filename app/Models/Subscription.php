@@ -6,6 +6,7 @@ use App\Contracts\PlanCapabilities;
 use App\Enums\SubscriptionPlan;
 use App\Services\Payment\GatewayOrder;
 use App\Support\PrivateFiles;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
@@ -15,6 +16,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  */
 class Subscription extends Model implements GatewayOrder
 {
+    use HasFactory;
+
     protected $fillable = [
         'complex_id', 'user_id', 'plan', 'plan_id', 'status', 'method', 'amount', 'months',
         'starts_at', 'ends_at', 'gateway', 'ref_id', 'tracking_code', 'paid_at',

@@ -5,6 +5,7 @@ namespace App\Models;
 use App\Enums\ChargeRuleType;
 use App\Enums\ExpenseCategory;
 use App\Models\Concerns\BelongsToComplex;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
@@ -22,6 +23,7 @@ class Expense extends Model
      * بود و فقط با بازیابیِ کلِ بکاپ برمی‌گشت.
      */
     use BelongsToComplex, SoftDeletes;
+    use HasFactory;
 
     protected $fillable = [
         'complex_id', 'title', 'amount', 'category', 'period', 'spend_date',

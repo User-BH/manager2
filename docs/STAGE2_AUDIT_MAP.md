@@ -397,36 +397,36 @@
 
 # بخش ۳ — Testing & Quality Assurance
 
-| #   | بند                                                      | وضعیت                                           | توضیح                                  | مرحله    |
-| --- | -------------------------------------------------------- | ----------------------------------------------- | -------------------------------------- | -------- |
-| 226 | (۱) Testing Architecture و هرمِ تست                      | 🟡                                              | تست‌ها هستند، **استراتژیِ مکتوب** نیست | **R68**  |
-| 227 | (۲) Frontend Unit Test                                   | 🟡                                              | ۲۹۰ تست؛ پوششِ Edge Case مرور نشده     | R69      |
-| 228 | (۳) React Component Test                                 | 🟡                                              | چند کامپوننتِ کلیدی                    | **R69**  |
-| 229 | (۴) Form Testing (همهٔ فرم‌ها)                           | 🟡                                              | ورود/ثبت‌نام تست شده؛ بقیه نه          | **R69**  |
-| 230 | (۵) API Testing برای **هر** Endpoint                     | 🟡                                              | ۴۱ از ۴۶ کنترلر پوشش دارد              | **R68**  |
-| 231 | (۶) Authorization Testing                                | ✅                                              | **R53**                                |
-| 232 | (۷) Authentication Testing                               | ✅                                              | R17                                    |
-| 233 | (۸) Payment Testing (۱۰ سناریو)                          | 🟡                                              | **R50**                                |
-| 234 | (۹) Wallet Testing (۱۰ سناریو)                           | 🟡                                              | **R50**                                |
-| 235 | (۱۰) Database Testing                                    | 🟡                                              | R52                                    |
-| 236 | (۱۱) Business Logic Testing                              | 🟡                                              | استخراجِ صریحِ قواعد انجام نشده        | **R68**  |
-| 237 | (۱۲) Notification Testing (In-App/Push/SMS/Email)        | 🟡                                              | ⚠️ ایمیل عمداً وجود ندارد؛ Push هم نه  | R62، R68 |
-| 238 | (۱۳) File Upload Testing                                 | ✅                                              | **R56**                                |
-| 239 | (۱۴) PWA Testing                                         | ✅                                              | **R60–R62** — ۶۷ تستِ PWA در سه مرحله  |
-| 240 | (۱۵) E2E برای ۱۱ سفرِ کاربر                              | 🟡                                              | ۱۱ تست هست ولی سفرهای مالی نه          | **R70**  |
-| 241 | (۱۶) Cross-Browser (Chrome/Firefox/Safari/Edge + موبایل) | ❌                                              | فقط Chromium                           | **R70**  |
-| 242 | (۱۷) Responsive Testing                                  | 🟡                                              | **R70**                                |
-| 243 | (۱۸) Accessibility Testing                               | ✅                                              | R37، R48                               |
-| 244 | (۱۹) Error Boundary Testing                              | ✅                                              | R33                                    |
-| 245 | (۲۰) API Failure UX (۴۰۱…۵۰۴)                            | 🟡                                              | تلاشِ دوباره هست؛ UX هر کد نه          | **R69**  |
-| 246 | (۲۱) Load Testing (۱۰۰/۵۰۰/۱۰۰۰)                         | 🟡                                              | **R66** 🔒                             |
-| 247 | (۲۲) Stress Test تا نقطهٔ شکست                           | 🟡 تعریفِ نقطهٔ شکست و ابزارش آماده؛ 🔒 اجرا نه | **R66**                                |
-| 248 | (۲۳) Regression Testing                                  | ✅                                              | R42 (CI)                               |
-| 249 | (۲۴) Test Coverage هدف‌دار برای Critical                 | ❌                                              | **R68**                                |
-| 250 | (۲۵) CI Test Pipeline کامل                               | 🟡                                              | E2E در CI نیست                         | **R71**  |
-| 251 | (۲۶) Test Data (Seed و Factory)                          | 🟡                                              | سه کارخانه؛ کافی نیست                  | **R68**  |
-| 252 | (۲۷) Test Isolation                                      | ✅                                              | `RefreshDatabase`                      |
-| 253 | (۲۸) Final Test Report                                   | ❌                                              | **R72**                                |
+| #   | بند                                                      | وضعیت                                                               | توضیح                                 | مرحله   |
+| --- | -------------------------------------------------------- | ------------------------------------------------------------------- | ------------------------------------- | ------- |
+| 226 | (۱) Testing Architecture و هرمِ تست                      | ✅ `docs/TESTING.md` با هرمِ اندازه‌گیری‌شده و قاعدهٔ تصمیم         | **R68**                               |
+| 227 | (۲) Frontend Unit Test                                   | 🟡                                                                  | ۲۹۰ تست؛ پوششِ Edge Case مرور نشده    | R69     |
+| 228 | (۳) React Component Test                                 | 🟡                                                                  | چند کامپوننتِ کلیدی                   | **R69** |
+| 229 | (۴) Form Testing (همهٔ فرم‌ها)                           | 🟡                                                                  | ورود/ثبت‌نام تست شده؛ بقیه نه         | **R69** |
+| 230 | (۵) API Testing برای **هر** Endpoint                     | ✅ **۴۶ از ۴۶** — ردیفِ کهنه بود؛ آن پنج در خودِ R48 بسته شده بودند | **R68**                               |
+| 231 | (۶) Authorization Testing                                | ✅                                                                  | **R53**                               |
+| 232 | (۷) Authentication Testing                               | ✅                                                                  | R17                                   |
+| 233 | (۸) Payment Testing (۱۰ سناریو)                          | 🟡                                                                  | **R50**                               |
+| 234 | (۹) Wallet Testing (۱۰ سناریو)                           | 🟡                                                                  | **R50**                               |
+| 235 | (۱۰) Database Testing                                    | 🟡                                                                  | R52                                   |
+| 236 | (۱۱) Business Logic Testing                              | ✅ سیاههٔ ۳۲ قاعده در ده دامنه، با محافظِ «هر قاعده تستِ زنده دارد» | **R68**                               |
+| 237 | (۱۲) Notification Testing (In-App/Push/SMS/Email)        | 🟡 درون‌برنامه‌ای ✅؛ ⚠️ ایمیل عمداً وجود ندارد و Push ساخته نشده   | R62، R68                              |
+| 238 | (۱۳) File Upload Testing                                 | ✅                                                                  | **R56**                               |
+| 239 | (۱۴) PWA Testing                                         | ✅                                                                  | **R60–R62** — ۶۷ تستِ PWA در سه مرحله |
+| 240 | (۱۵) E2E برای ۱۱ سفرِ کاربر                              | 🟡                                                                  | ۱۱ تست هست ولی سفرهای مالی نه         | **R70** |
+| 241 | (۱۶) Cross-Browser (Chrome/Firefox/Safari/Edge + موبایل) | ❌                                                                  | فقط Chromium                          | **R70** |
+| 242 | (۱۷) Responsive Testing                                  | 🟡                                                                  | **R70**                               |
+| 243 | (۱۸) Accessibility Testing                               | ✅                                                                  | R37، R48                              |
+| 244 | (۱۹) Error Boundary Testing                              | ✅                                                                  | R33                                   |
+| 245 | (۲۰) API Failure UX (۴۰۱…۵۰۴)                            | 🟡                                                                  | تلاشِ دوباره هست؛ UX هر کد نه         | **R69** |
+| 246 | (۲۱) Load Testing (۱۰۰/۵۰۰/۱۰۰۰)                         | 🟡                                                                  | **R66** 🔒                            |
+| 247 | (۲۲) Stress Test تا نقطهٔ شکست                           | 🟡 تعریفِ نقطهٔ شکست و ابزارش آماده؛ 🔒 اجرا نه                     | **R66**                               |
+| 248 | (۲۳) Regression Testing                                  | ✅                                                                  | R42 (CI)                              |
+| 249 | (۲۴) Test Coverage هدف‌دار برای Critical                 | ✅ معیار «قاعدهٔ ثبت‌شده» به‌جای درصد؛ ۹ کلاسِ بحرانی قفل شدند      | **R68**                               |
+| 250 | (۲۵) CI Test Pipeline کامل                               | 🟡                                                                  | E2E در CI نیست                        | **R71** |
+| 251 | (۲۶) Test Data (Seed و Factory)                          | ✅ شش کارخانهٔ تازه، انتخاب‌شده با اندازه‌گیریِ تکرارِ واقعی        | **R68**                               |
+| 252 | (۲۷) Test Isolation                                      | ✅                                                                  | `RefreshDatabase`                     |
+| 253 | (۲۸) Final Test Report                                   | ❌                                                                  | **R72**                               |
 
 ---
 
