@@ -2,6 +2,7 @@
 
 namespace App\Services\System;
 
+use App\Enums\ComplexType;
 use App\Enums\PaymentStatus;
 use App\Models\Bill;
 use App\Models\Complex;
@@ -51,12 +52,20 @@ class PlatformStats
     /** @return array<string, int> */
     private function complexes(): array
     {
-        $complexes = Complex::withoutGlobalScopes()->get(['id', 'is_active']);
+        $complexes = Complex::withoutGlobalScopes()->get(['id', 'is_active', 'type']);
 
         return [
             'total' => $complexes->count(),
             'active' => $complexes->where('is_active', true)->count(),
             'suspended' => $complexes->where('is_active', false)->count(),
+            /*
+             * تفکیکِ نوع (R67).
+             *
+             * ⚠️ بدونِ این عدد، ادمینِ کل نمی‌داند تعرفه‌ی تجاری اصلاً
+             * مشتری دارد یا نه — و تصمیمِ قیمت‌گذاری بدونِ آن، حدس است.
+             */
+            'residential' => $complexes->where('type', ComplexType::Residential)->count(),
+            'commercial' => $complexes->where('type', ComplexType::Commercial)->count(),
             'units' => Unit::withoutGlobalScopes()->count(),
         ];
     }

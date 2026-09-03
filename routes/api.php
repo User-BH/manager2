@@ -402,6 +402,9 @@ Route::middleware('auth')->group(function () {
          * تعلیق دلیلِ اجباری می‌خواهد چون همان متن به اعضای مجتمع نشان
          * داده می‌شود.
          */
+        // تغییرِ نوعِ مجتمع (R67) — عمداً فقط اینجا، نه در تنظیماتِ خودِ مجتمع
+        Route::patch('complexes/{complex}/type', [SystemComplexController::class, 'retype'])
+            ->name('complexes.retype');
         Route::post('complexes/{complex}/suspend', [SystemComplexController::class, 'suspend'])
             ->name('complexes.suspend');
         Route::post('complexes/{complex}/activate', [SystemComplexController::class, 'activate'])

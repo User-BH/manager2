@@ -38,7 +38,19 @@ class SubscriptionCheckoutController extends Controller
         // پکیجِ دیتابیسیِ فعال مقدم است، وگرنه enumِ قابلِ‌خریدِ قدیمی. مبلغ و
         // مدت سمت سرور تعیین می‌شود، نه از درخواست.
         $slug = $request->string('plan')->value();
-        $dbPlan = Plan::where('slug', $slug)->where('is_active', true)->first();
+
+        /*
+         * 🔴 `forComplexType` — همان محافظی که در مسیرِ رسیدی هم هست (R67).
+         *
+         * تعرفه‌ی پکیج‌های تجاری و مسکونی متفاوت است. بدونِ این فیلتر،
+         * فرستادنِ slugِ پکیجِ نوعِ دیگر مستقیم به این مسیر، تعرفه‌ی آن را
+         * می‌گرفت — و چون مبلغ سمت سرور از همین ردیف خوانده می‌شود، هیچ
+         * لایه‌ی دیگری جلویش را نمی‌گرفت.
+         */
+        $dbPlan = Plan::where('slug', $slug)
+            ->where('is_active', true)
+            ->forComplexType($complex->type)
+            ->first();
 
         if ($dbPlan) {
             $shadow = SubscriptionPlan::Pro->value;

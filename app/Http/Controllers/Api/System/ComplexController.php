@@ -2,12 +2,17 @@
 
 namespace App\Http\Controllers\Api\System;
 
+use App\Enums\ComplexType;
 use App\Enums\UserRole;
+use App\Exceptions\DomainException;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreComplexRequest;
 use App\Http\Requests\SuspendComplexRequest;
+use App\Http\Requests\UpdateComplexTypeRequest;
 use App\Models\Complex;
 use App\Models\User;
+use App\Services\Subscription\PlanGate;
+use App\Support\Audit;
 use App\Support\Jalali;
 use App\Support\Phone;
 use Illuminate\Http\JsonResponse;
@@ -16,6 +21,8 @@ use Illuminate\Support\Str;
 
 class ComplexController extends Controller
 {
+    public function __construct(private readonly PlanGate $plans) {}
+
     public function index(): JsonResponse
     {
         /*
@@ -36,6 +43,8 @@ class ComplexController extends Controller
             'data' => $complexes->getCollection()->map(fn (Complex $c) => [
                 'id' => $c->id,
                 'name' => $c->name,
+                'type' => $c->type->value,
+                'typeLabel' => $c->type->label(),
                 'address' => $c->address,
                 'units' => (int) $c->units_count,
                 'users' => (int) $c->users_count,
@@ -58,6 +67,8 @@ class ComplexController extends Controller
         $complex = Complex::create([
             'name' => $data['name'],
             'slug' => Str::slug($data['name']).'-'.Str::random(4),
+            // نوع (R67) — تعرفه‌ی پکیج‌های اشتراک از روی همین تعیین می‌شود
+            'type' => ComplexType::tryFrom($data['type'] ?? '') ?? ComplexType::default(),
             'address' => $data['address'] ?? null,
             'payment_gateway' => 'none',
         ]);
@@ -77,7 +88,43 @@ class ComplexController extends Controller
         ], 201);
     }
 
-    /** ورود ادمین کل به اسکوپ یک مجتمع. */
+    /**
+     * تغییرِ نوعِ مجتمع — فقط ادمینِ کل (R67).
+     *
+     * ─── چرا مدیرِ مجتمع نمی‌تواند ──────────────────────────────────────────
+     * 🔴 تعرفه‌ی پکیج‌های اشتراک به نوع گره خورده است. اگر مدیر می‌توانست
+     * نوعش را عوض کند، با یک سوییچ تعرفه‌ی ارزان‌تر را می‌گرفت و بعد
+     * برمی‌گرداند. این یک تنظیمِ ظاهری نیست؛ ورودیِ صورت‌حساب است.
+     *
+     * ⚠️ و با اشتراکِ فعال اصلاً عوض نمی‌شود: پکیجی که خریده شده مالِ نوعِ
+     * قبلی است و پس از تغییر، مجتمع اشتراکی دارد که در فهرستِ خودش وجود
+     * ندارد — حالتی که هیچ صفحه‌ای بلد نیست نشانش بدهد.
+     */
+    public function retype(UpdateComplexTypeRequest $request, Complex $complex): JsonResponse
+    {
+        $type = ComplexType::from($request->validated()['type']);
+
+        if ($type === $complex->type) {
+            return response()->json(['message' => 'نوعِ مجتمع همین است.']);
+        }
+
+        if ($this->plans->activeSubscription($complex) !== null) {
+            throw DomainException::invalid(
+                'تا پایانِ اشتراکِ فعالِ این مجتمع، نوعش عوض نمی‌شود.',
+                'complex.type_locked_by_subscription',
+            );
+        }
+
+        $complex->update(['type' => $type]);
+
+        Audit::log('complex.retyped', 'نوعِ مجتمع به «'.$type->label().'» تغییر کرد.', $complex);
+
+        return response()->json([
+            'message' => 'نوعِ مجتمع به «'.$type->label().'» تغییر کرد.',
+            'type' => $type->value,
+        ]);
+    }
+
     /**
      * تعلیق یا بازفعال‌سازیِ یک مجتمع (R29).
      *
@@ -130,6 +177,7 @@ class ComplexController extends Controller
         ];
     }
 
+    /** ورود ادمین کل به اسکوپ یک مجتمع. */
     public function select(Complex $complex): JsonResponse
     {
         session(['active_complex_id' => $complex->id]);

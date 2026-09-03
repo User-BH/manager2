@@ -45,7 +45,12 @@ class ProfileResource extends JsonResource
             'isActive' => (bool) $user->is_active,
             'canMessage' => (bool) $user->can_message,
             'joinedAt' => Jalali::date($user->created_at),
-            'complex' => $user->complex ? ['id' => $user->complex->id, 'name' => $user->complex->name] : null,
+            'complex' => $user->complex ? [
+                'id' => $user->complex->id,
+                'name' => $user->complex->name,
+                'type' => $user->complex->type->value,
+                'typeLabel' => $user->complex->type->label(),
+            ] : null,
         ];
     }
 }

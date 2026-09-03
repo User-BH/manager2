@@ -16,9 +16,25 @@ export interface NavSection {
 
 export type UserRole = 'super_admin' | 'complex_admin' | 'owner' | 'tenant'
 
+/** نوعِ مجتمع (R67) — یک مجتمع یا مسکونی است یا تجاری، هرگز هر دو. */
+export type ComplexType = 'residential' | 'commercial'
+
 export interface ComplexSummary {
   id: number
   name: string
+
+  /**
+   * ⚠️ واژگان از سرور می‌آید، نه از رشته‌ی ثابت در فرانت.
+   *
+   * تفاوتش با «تغییرِ چند Label» همین است: نوعِ سومی که روزی اضافه شود،
+   * یک‌جا در `ComplexType`ِ PHP تعریف می‌شود — نه با گشتنِ دنبالِ کلمه‌ی
+   * «ساکن» در ده‌ها فایلِ فرانت.
+   */
+  type: ComplexType
+  typeLabel: string
+  occupantLabel: string
+  occupantPluralLabel: string
+  unitLabel: string
 }
 
 /** شکلی که /api/me برمی‌گرداند */

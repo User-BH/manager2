@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests;
 
+use App\Enums\ComplexType;
 use Illuminate\Validation\Rule;
 
 /**
@@ -20,6 +21,14 @@ class StorePlanRequest extends BaseFormRequest
         return [
             'name' => ['required', 'string', 'max:100'],
             'slug' => ['required', 'string', 'max:40', 'regex:/^[a-z0-9-]+$/', Rule::unique('plans', 'slug')->ignore($this->route('plan')?->id)],
+            /*
+             * نوعِ مجتمعی که این پکیج برایش است (R67).
+             *
+             * ⚠️ `nullable` عمدی است و معنی‌دار: خالی یعنی «برای هر دو
+             * نوع». همه‌ی پکیج‌های موجود در همین حالت‌اند تا ادمین تعرفه‌ی
+             * تجاری را جدا تعریف کند.
+             */
+            'complex_type' => ['nullable', Rule::in(ComplexType::values())],
             'price' => ['required', 'integer', 'min:0'],
             'months' => ['required', 'integer', 'min:1', 'max:60'],
             'unit_limit' => ['nullable', 'integer', 'min:1'],
@@ -49,6 +58,7 @@ class StorePlanRequest extends BaseFormRequest
     {
         return [
             'name' => 'نام', 'slug' => 'شناسه', 'price' => 'قیمت', 'months' => 'مدت',
+            'complex_type' => 'نوع مجتمع',
         ];
     }
 }

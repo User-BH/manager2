@@ -3,11 +3,13 @@
 namespace App\Models;
 
 use App\Casts\EncryptedJson;
+use App\Enums\ComplexType;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 /**
+ * @property ComplexType $type
  * @property array<string, mixed>|null $settings
  * @property array<string, mixed>|null $gateway_config
  */
@@ -16,7 +18,7 @@ class Complex extends Model
     use HasFactory;
 
     protected $fillable = [
-        'name', 'slug', 'address', 'phone', 'currency',
+        'name', 'slug', 'type', 'address', 'phone', 'currency',
         'messenger_enabled', 'good_payer_enabled', 'good_payer_config',
         'payment_gateway', 'gateway_config',
         'charge_due_day', 'penalty_enabled', 'penalty_type', 'penalty_value', 'penalty_grace_days',
@@ -28,6 +30,7 @@ class Complex extends Model
     protected function casts(): array
     {
         return [
+            'type' => ComplexType::class,
             'messenger_enabled' => 'boolean',
             'good_payer_enabled' => 'boolean',
             'good_payer_config' => 'array',

@@ -32,6 +32,9 @@ class PlanResource extends JsonResource
             'id' => $p->id,
             'name' => $p->name,
             'slug' => $p->slug,
+            // null یعنی «برای هر دو نوع» (R67)
+            'complex_type' => $p->complex_type?->value,
+            'complexTypeLabel' => $p->complex_type?->label() ?? 'هر دو',
             'price' => $p->price,
             'priceLabel' => Jalali::money($p->price),
             'months' => $p->months,

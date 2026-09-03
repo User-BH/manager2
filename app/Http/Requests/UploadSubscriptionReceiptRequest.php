@@ -3,7 +3,9 @@
 namespace App\Http\Requests;
 
 use App\Enums\AccountState;
+use App\Enums\ComplexType;
 use App\Models\User;
+use Illuminate\Validation\Rule;
 
 /**
  * رسیدِ خریدِ اشتراک که مدیرِ مجتمع می‌فرستد.
@@ -34,6 +36,26 @@ class UploadSubscriptionReceiptRequest extends BaseFormRequest
                 'string', 'max:150',
             ],
             'complex_address' => ['nullable', 'string', 'max:255'],
+
+            /*
+             * نوعِ مجتمع، فقط در همان خریدی که مجتمع را می‌سازد (R67).
+             *
+             * ⚠️ برای مدیرِ فعلی عمداً نادیده گرفته می‌شود: تغییرِ نوع پس از
+             * ساخت فقط کارِ ادمینِ کل است، چون تعرفه‌ی پکیج به آن گره خورده
+             * و تغییرِ آزادانه‌اش یعنی مدیر بتواند با یک سوییچ تعرفه‌ی
+             * ارزان‌تر را بگیرد.
+             *
+             * ─── 🔴 چرا `nullable` و نه `required` ─────────────────────────
+             * قاعده‌ی خودِ پروژه (`docs/API_COMPATIBILITY.md`): افزودنِ فیلدِ
+             * **اجباری** به بدنه‌ی درخواست تغییرِ شکننده است و تبِ بازِ
+             * کاربر را می‌شکند — دقیقاً وسطِ خرید.
+             *
+             * پس گامِ Expand: فیلد اختیاری است و نبودنش «مسکونی» معنی
+             * می‌دهد. فرانت همیشه می‌فرستدش. گامِ Contract (اجباری‌کردن)
+             * پس از یک چرخه‌ی استقرار انجام می‌شود و در
+             * `docs/COMPLEX_TYPES.md` ثبت شده.
+             */
+            'complex_type' => ['nullable', Rule::in(ComplexType::values())],
         ];
     }
 

@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { Loader2, Plus, Save, Trash2, X, Gift } from 'lucide-react'
 import { Card } from '@/shared/ui/Card'
-import { TextField } from '@/shared/ui/Field'
+import { SelectField, TextField } from '@/shared/ui/Field'
 import { ErrorState } from '@/shared/ui/PageState'
 import { CardListSkeleton } from '@/shared/ui/Skeleton'
 import { useQuery } from '@tanstack/react-query'
@@ -15,6 +15,9 @@ interface Plan {
   id: number
   name: string
   slug: string
+  /** null یعنی «برای هر دو نوع» (R67) */
+  complex_type: 'residential' | 'commercial' | null
+  complexTypeLabel: string
   price: number
   priceLabel: string
   months: number
@@ -43,6 +46,9 @@ type Draft = Omit<Plan, 'id' | 'priceLabel'> & { id?: number }
 const BLANK: Draft = {
   name: '',
   slug: '',
+  // پیش‌فرض «هر دو»، چون همه‌ی پکیج‌های امروز همین‌اند
+  complex_type: null,
+  complexTypeLabel: 'هر دو',
   price: 0,
   months: 1,
   unit_limit: null,
@@ -148,6 +154,28 @@ export function PlansPage() {
                 placeholder="basic"
                 value={draft.slug}
                 onChange={(e) => setDraft({ ...draft, slug: e.target.value })}
+              />
+              {/*
+                ⚠️ تعرفه‌ی تجاری و مسکونی متفاوت است (R67).
+
+                «هر دو» یعنی پکیج برای هر نوعی قابلِ خرید است — حالتی که
+                همه‌ی پکیج‌های موجود در آن‌اند. برای تعرفه‌ی جدا، دو پکیج
+                با دو نوع بسازید.
+              */}
+              <SelectField
+                label="نوع مجتمع"
+                options={[
+                  { value: '', label: 'هر دو' },
+                  { value: 'residential', label: 'مسکونی' },
+                  { value: 'commercial', label: 'تجاری' },
+                ]}
+                value={draft.complex_type ?? ''}
+                onChange={(e) =>
+                  setDraft({
+                    ...draft,
+                    complex_type: (e.target.value || null) as Draft['complex_type'],
+                  })
+                }
               />
               <TextField
                 label="قیمت (تومان)"
@@ -295,8 +323,8 @@ export function PlansPage() {
                 </span>
               </div>
               <div className="text-[11.5px]" style={{ color: 'var(--text-tertiary)' }}>
-                {plan.months} ماهه · سقف واحد: {plan.unit_limit ?? 'نامحدود'} ·{' '}
-                {plan.real_gateway ? 'درگاه ✓' : 'درگاه ✕'} ·{' '}
+                {plan.complexTypeLabel} · {plan.months} ماهه · سقف واحد:{' '}
+                {plan.unit_limit ?? 'نامحدود'} · {plan.real_gateway ? 'درگاه ✓' : 'درگاه ✕'} ·{' '}
                 {plan.excel_export ? 'Excel ✓' : 'Excel ✕'}
               </div>
               <div className="mt-1 flex gap-2">

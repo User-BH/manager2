@@ -486,7 +486,16 @@ class AuthController extends Controller
             'roleLabel' => $user->role->label(),
             'isAdmin' => $user->role->isAdmin(),
             'isSuperAdmin' => $user->isSuperAdmin(),
-            'complex' => $complex ? ['id' => $complex->id, 'name' => $complex->name] : null,
+            'complex' => $complex ? [
+                'id' => $complex->id,
+                'name' => $complex->name,
+                // نوع (R67): فرانت واژگانِ «ساکن/کسب‌وکار» را از آن می‌گیرد
+                'type' => $complex->type->value,
+                'typeLabel' => $complex->type->label(),
+                'occupantLabel' => $complex->type->occupantLabel(),
+                'occupantPluralLabel' => $complex->type->occupantPluralLabel(),
+                'unitLabel' => $complex->type->unitLabel(),
+            ] : null,
 
             /*
              * حالتِ حساب برای شاخه‌زدنِ رابط (R21). از واقعیت مشتق می‌شود

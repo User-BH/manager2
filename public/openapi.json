@@ -2142,7 +2142,8 @@
                             }
                         }
                     }
-                }
+                },
+                "description": "فقط برای نقشِ: super_admin,complex_admin"
             }
         },
         "/api/v1/join-requests/lookup": {
@@ -2259,7 +2260,8 @@
                             }
                         }
                     }
-                }
+                },
+                "description": "فقط برای نقشِ: super_admin,complex_admin"
             }
         },
         "/api/v1/join-requests/{invitation}/reject": {
@@ -2322,7 +2324,8 @@
                             }
                         }
                     }
-                }
+                },
+                "description": "فقط برای نقشِ: super_admin,complex_admin"
             }
         },
         "/api/v1/login": {
@@ -6265,6 +6268,9 @@
                                     },
                                     "complex_address": {
                                         "type": "string"
+                                    },
+                                    "complex_type": {
+                                        "type": "string"
                                     }
                                 },
                                 "required": [
@@ -7244,6 +7250,10 @@
                                         "type": "string",
                                         "description": "نام مجتمع"
                                     },
+                                    "type": {
+                                        "type": "string",
+                                        "description": "نوع مجتمع"
+                                    },
                                     "address": {
                                         "type": "string"
                                     },
@@ -7535,6 +7545,89 @@
                                 },
                                 "required": [
                                     "reason"
+                                ]
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/system/complexes/{complex}/type": {
+            "patch": {
+                "summary": "api.system.complexes.retype",
+                "tags": [
+                    "system"
+                ],
+                "parameters": [
+                    {
+                        "name": "complex",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "موفق"
+                    },
+                    "422": {
+                        "description": "خطای اعتبارسنجی",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    },
+                    "429": {
+                        "description": "عبور از محدودیتِ نرخ",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "وارد نشده‌اید",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "دسترسی ندارید",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    }
+                },
+                "description": "فقط برای نقشِ: super_admin",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "type": {
+                                        "type": "string",
+                                        "description": "نوع مجتمع"
+                                    }
+                                },
+                                "required": [
+                                    "type"
                                 ]
                             }
                         }
@@ -8266,6 +8359,10 @@
                                         "type": "string",
                                         "description": "شناسه"
                                     },
+                                    "complex_type": {
+                                        "type": "string",
+                                        "description": "نوع مجتمع"
+                                    },
                                     "price": {
                                         "type": "number",
                                         "description": "قیمت"
@@ -8540,6 +8637,10 @@
                                     "slug": {
                                         "type": "string",
                                         "description": "شناسه"
+                                    },
+                                    "complex_type": {
+                                        "type": "string",
+                                        "description": "نوع مجتمع"
                                     },
                                     "price": {
                                         "type": "number",

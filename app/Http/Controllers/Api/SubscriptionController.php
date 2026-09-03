@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Enums\AccountState;
+use App\Enums\ComplexType;
 use App\Enums\SubscriptionPlan;
 use App\Exceptions\DomainException;
 use App\Http\Controllers\Controller;
@@ -60,7 +61,7 @@ class SubscriptionController extends Controller
             ] : null,
 
             'freeFeatures' => SubscriptionPlan::Free->features(),
-            'plans' => $this->purchasablePlans(),
+            'plans' => $this->purchasablePlans($this->complexType()),
 
             'checkoutEnabled' => $this->gateways->isEnabled(),
             'checkoutAction' => route('subscription.checkout'),
@@ -104,7 +105,13 @@ class SubscriptionController extends Controller
          * محدودیت‌های پلنِ رایگان اعمال می‌شود.
          */
         $complex = AccountState::of($user) === AccountState::Initial
-            ? $this->upgrader->upgrade($user, $data['complex_name'], $data['complex_address'] ?? null)
+            ? $this->upgrader->upgrade(
+                $user,
+                $data['complex_name'],
+                $data['complex_address'] ?? null,
+                // ⚠️ نوع همین‌جا تثبیت می‌شود و بعد فقط ادمینِ کل عوضش می‌کند (R67)
+                ComplexType::tryFrom($data['complex_type'] ?? '') ?? ComplexType::default(),
+            )
             : $this->requireComplex();
 
         // هر مجتمع هم‌زمان فقط یک درخواست در انتظار بررسی داشته باشد، وگرنه
@@ -140,7 +147,7 @@ class SubscriptionController extends Controller
             );
         }
 
-        $resolved = $this->resolvePurchasePlan($data['plan']);
+        $resolved = $this->resolvePurchasePlan($data['plan'], $complex->type);
 
         /*
          * دیسک local خصوصی است؛ فایل فقط از مسیر کنترل‌شده‌ی ادمین سرو می‌شود.
@@ -189,10 +196,25 @@ class SubscriptionController extends Controller
         return response()->json(['message' => 'اشتراک لغو شد.']);
     }
 
-    /** فهرستِ پکیج‌های قابلِ خرید؛ پکیج‌های دیتابیسی مقدم‌اند، وگرنه enumِ قدیمی. */
-    private function purchasablePlans(): array
+    /**
+     * نوعِ مجتمعِ جاری — و اگر هنوز مجتمعی نیست، پیش‌فرض (R67).
+     *
+     * ⚠️ کاربرِ «حالتِ اولیه» هنوز مجتمع ندارد ولی باید فهرستِ پکیج‌ها را
+     * ببیند. نشان‌دادنِ فهرستِ مسکونی به او درست است: نوع را در همان فرمِ
+     * خرید انتخاب می‌کند و از آن لحظه فهرست به نوعِ خودش می‌آید.
+     */
+    private function complexType(): ComplexType
     {
-        $dbPlans = Plan::purchasable()->get();
+        $complex = $this->currentComplex();
+
+        return $complex === null ? ComplexType::default() : $complex->type;
+    }
+
+    /** فهرستِ پکیج‌های قابلِ خرید؛ پکیج‌های دیتابیسی مقدم‌اند، وگرنه enumِ قدیمی. */
+    private function purchasablePlans(ComplexType $type): array
+    {
+        // 🔴 فیلترِ نوع، همان‌جا که فهرست ساخته می‌شود (R67)
+        $dbPlans = Plan::purchasable()->forComplexType($type)->get();
 
         if ($dbPlans->isNotEmpty()) {
             return $dbPlans->map(fn (Plan $p) => [
@@ -225,9 +247,19 @@ class SubscriptionController extends Controller
      *
      * @return array{shadow:string, plan_id:?int, amount:int, months:int}
      */
-    private function resolvePurchasePlan(string $slug): array
+    private function resolvePurchasePlan(string $slug, ComplexType $type): array
     {
-        $plan = Plan::where('slug', $slug)->where('is_active', true)->first();
+        /*
+         * 🔴 `forComplexType` اینجا هم لازم است، نه فقط در فهرست (R67).
+         *
+         * بدونش مدیرِ یک مجتمعِ مسکونی می‌توانست slugِ پکیجِ تجاری را
+         * مستقیم بفرستد و تعرفه‌ی آن را بگیرد — بی‌آنکه آن پکیج هرگز در
+         * صفحه‌اش دیده شده باشد.
+         */
+        $plan = Plan::where('slug', $slug)
+            ->where('is_active', true)
+            ->forComplexType($type)
+            ->first();
 
         if ($plan) {
             return [

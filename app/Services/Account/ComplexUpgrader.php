@@ -3,6 +3,7 @@
 namespace App\Services\Account;
 
 use App\Enums\AccountState;
+use App\Enums\ComplexType;
 use App\Enums\UserRole;
 use App\Exceptions\DomainException;
 use App\Models\Complex;
@@ -30,8 +31,12 @@ class ComplexUpgrader
      * خودبه‌خود برداشته می‌شود (چون از `complex_id` مشتق می‌شود، نه از یک
      * پرچمِ جداگانه که ممکن است یادمان برود عوضش کنیم).
      */
-    public function upgrade(User $user, string $complexName, ?string $address = null): Complex
-    {
+    public function upgrade(
+        User $user,
+        string $complexName,
+        ?string $address = null,
+        ?ComplexType $type = null,
+    ): Complex {
         if (AccountState::of($user) !== AccountState::Initial) {
             throw DomainException::invalid(
                 'این حساب از قبل به یک مجتمع وصل است.',
@@ -39,7 +44,9 @@ class ComplexUpgrader
             );
         }
 
-        return DB::transaction(function () use ($user, $complexName, $address): Complex {
+        $type ??= ComplexType::default();
+
+        return DB::transaction(function () use ($user, $complexName, $address, $type): Complex {
             /*
              * وضعیت **داخلِ تراکنش** دوباره خوانده می‌شود: دو ارسالِ هم‌زمانِ
              * فرم نباید دو مجتمع بسازد و کاربر را به دومی وصل کند، در حالی
@@ -56,6 +63,14 @@ class ComplexUpgrader
 
             $complex = Complex::create([
                 'name' => $complexName,
+                /*
+                 * ⚠️ نوع در همین لحظه تثبیت می‌شود (R67).
+                 *
+                 * پس از این، فقط ادمینِ کل می‌تواند عوضش کند — چون تعرفه‌ی
+                 * پکیج به آن گره خورده و تغییرِ آزادانه‌اش یعنی مدیر بتواند
+                 * با یک سوییچ، تعرفه‌ی ارزان‌تر را بگیرد.
+                 */
+                'type' => $type,
                 // پسوندِ تصادفی: دو مجتمع می‌توانند نامِ یکسان داشته باشند
                 'slug' => Str::slug($complexName).'-'.Str::random(4),
                 'address' => $address,

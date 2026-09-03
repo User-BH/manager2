@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests;
 
+use App\Enums\ComplexType;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Rules\Password;
 
@@ -20,6 +21,14 @@ class StoreComplexRequest extends BaseFormRequest
     {
         return [
             'name' => ['required', 'string', 'max:150'],
+            /*
+             * نوعِ مجتمع (R67) — تعرفه‌ی پکیج‌های اشتراک به آن وابسته است.
+             *
+             * ⚠️ `nullable` طبقِ همان قاعده‌ی سازگاری: فیلدِ اجباریِ تازه
+             * تغییرِ شکننده است. خالی یعنی مسکونی، و فرمِ پنل همیشه پرش
+             * می‌کند.
+             */
+            'type' => ['nullable', Rule::in(ComplexType::values())],
             'address' => ['nullable', 'string', 'max:255'],
             'admin_name' => ['required', 'string', 'max:120'],
             // ورود سامانه با شماره تلفن است، پس مدیر مجتمع حتماً باید شماره
@@ -57,6 +66,7 @@ class StoreComplexRequest extends BaseFormRequest
     {
         return [
             'name' => 'نام مجتمع',
+            'type' => 'نوع مجتمع',
             'admin_name' => 'نام مدیر',
             'admin_phone' => 'شماره مدیر',
             'admin_email' => 'ایمیل مدیر',

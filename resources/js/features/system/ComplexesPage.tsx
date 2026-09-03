@@ -15,7 +15,7 @@ import {
 import { z } from 'zod'
 import { Card } from '@/shared/ui/Card'
 import { Modal } from '@/shared/ui/Modal'
-import { TextField } from '@/shared/ui/Field'
+import { SelectField, TextField } from '@/shared/ui/Field'
 import { EmptyState, ErrorState } from '@/shared/ui/PageState'
 import { TableSkeleton } from '@/shared/ui/Skeleton'
 import { useQuery } from '@tanstack/react-query'
@@ -29,6 +29,15 @@ import { formatNumber } from '@/shared/lib/format'
 
 const complexSchema = z.object({
   name: z.string().min(1, 'نام مجتمع را وارد کنید').max(150, 'نام طولانی است'),
+  /*
+   * نوعِ مجتمع (R67).
+   *
+   * ⚠️ اینجا اجباری است هرچند API اختیاری‌اش گرفته: قاعده‌ی سازگاری
+   * می‌گوید فیلدِ اجباریِ تازه در API تغییرِ شکننده است، ولی فرمِ ما باید
+   * صریح بپرسد — چون تعرفه‌ی اشتراک به همین وابسته است و پیش‌فرضِ خاموش
+   * یعنی مجتمعِ تجاری بی‌سروصدا تعرفه‌ی مسکونی بگیرد.
+   */
+  type: z.enum(['residential', 'commercial']),
   address: z.string().max(255, 'آدرس طولانی است').optional(),
   admin_name: z.string().min(1, 'نام مدیر را وارد کنید').max(120),
   admin_phone: z
@@ -44,6 +53,8 @@ type ComplexFormValues = z.infer<typeof complexSchema>
 interface ComplexRow {
   id: number
   name: string
+  type: 'residential' | 'commercial'
+  typeLabel: string
   address: string | null
   units: number
   users: number
@@ -293,7 +304,8 @@ export function ComplexesPage() {
                         </p>
                       )}
                       <p className="mt-0.5 text-[11px]" style={{ color: 'var(--text-tertiary)' }}>
-                        {formatNumber(complex.units)} واحد · {formatNumber(complex.users)} کاربر
+                        {complex.typeLabel} · {formatNumber(complex.units)} واحد ·{' '}
+                        {formatNumber(complex.users)} کاربر
                         {complex.address && ` · ${complex.address}`}
                       </p>
                     </div>
@@ -462,6 +474,7 @@ function ComplexForm({ onSaved, onCancel }: { onSaved: () => void; onCancel: () 
     resolver: zodResolver(complexSchema),
     defaultValues: {
       name: '',
+      type: 'residential',
       address: '',
       admin_name: '',
       admin_phone: '',
@@ -509,6 +522,15 @@ function ComplexForm({ onSaved, onCancel }: { onSaved: () => void; onCancel: () 
       )}
 
       <TextField label="نام مجتمع" error={errors.name?.message} {...register('name')} />
+      <SelectField
+        label="نوع مجتمع"
+        error={errors.type?.message}
+        options={[
+          { value: 'residential', label: 'مسکونی' },
+          { value: 'commercial', label: 'تجاری' },
+        ]}
+        {...register('type')}
+      />
       <TextField label="آدرس (اختیاری)" error={errors.address?.message} {...register('address')} />
 
       <div
