@@ -24,6 +24,21 @@ import { expect, test } from '@playwright/test'
  */
 const BURGER_BREAKPOINT = 600
 
+/**
+ * کمینه‌ی اندازه‌ی هدفِ لمس، با ارفاقِ زیرپیکسلی.
+ *
+ * ⚠️ عددِ راهنمای اپل و گوگل ۴۴ است، ولی مقایسه‌ی دقیق با عددِ اعشاریِ
+ * چیدمان شکننده است: همان دکمه‌ای که در ویندوز ۴۴ گزارش می‌شود، روی
+ * رانرِ لینوکسیِ CI **۴۳٫۹۹۹۹۹۸** می‌شود.
+ *
+ * 🔴 و این را CI لو داد، نه اجرای محلی — همان درسِ R70 در شکلی تازه:
+ * تستی که فقط روی یک سکو اجرا شود، به دقتِ همان سکو گره می‌خورد.
+ *
+ * نیم پیکسل ارفاق، گِردکردنِ موتور را می‌پوشاند و دکمه‌ی واقعاً کوچک
+ * (۴۰ پیکسل و کمتر) همچنان رد می‌شود.
+ */
+const MIN_TOUCH_TARGET = 43.5
+
 /** صفحه‌های عمومی که مهمان می‌بیند؛ بیشترین ترافیک را دارند. */
 const PUBLIC_PAGES = ['/', '/demo', '/support', '/auth'] as const
 
@@ -199,13 +214,16 @@ test.describe('اندازه‌ها', () => {
 
       const box = await button.boundingBox()
 
-      if (box && (box.width < 44 || box.height < 44)) {
+      if (box && (box.width < MIN_TOUCH_TARGET || box.height < MIN_TOUCH_TARGET)) {
         small.push(
           `${(await button.textContent())?.trim().slice(0, 30)} → ${box.width}×${box.height}`,
         )
       }
     }
 
-    expect(small, `دکمه‌های کوچک‌تر از ۴۴ پیکسل:\n  ${small.join('\n  ')}`).toEqual([])
+    expect(
+      small,
+      `دکمه‌های کوچک‌تر از ${MIN_TOUCH_TARGET} پیکسل:\n  ${small.join('\n  ')}`,
+    ).toEqual([])
   })
 })
