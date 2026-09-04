@@ -53,6 +53,19 @@ test.describe('صفحه‌ی اصلی', () => {
 
   test('دارایی‌های عبوری از Vite با نامِ هش‌دار سرو می‌شوند', async ({ page }) => {
     await page.goto('/')
+
+    /*
+     * ⚠️ انتظار برای رندرِ اپ، نه فقط رسیدنِ HTML (R70).
+     *
+     * بلافاصله پس از `goto` تنها تصویرِ موجود `enamad.png`ِ سرورساید است؛
+     * تصویرهای عبوری از Vite را React پس از هیدریشن می‌سازد.
+     *
+     * 🔴 این را **WebKit لو داد**: کرومیوم به‌قدری سریع بود که تست اتفاقی
+     * سبز می‌شد. یعنی ادعا درست بود ولی سنجشش به سرعتِ موتور وابسته —
+     * همان تستِ شکننده‌ای که یک روز بی‌دلیل قرمز می‌شود.
+     */
+    await page.waitForLoadState('networkidle')
+
     const hashed = await page.evaluate(() =>
       [...document.querySelectorAll('img')].some((i) => /\/build\/assets\//.test(i.src)),
     )

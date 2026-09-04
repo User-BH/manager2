@@ -397,78 +397,78 @@
 
 # بخش ۳ — Testing & Quality Assurance
 
-| #   | بند                                                      | وضعیت                                                                         | توضیح                                 | مرحله   |
-| --- | -------------------------------------------------------- | ----------------------------------------------------------------------------- | ------------------------------------- | ------- |
-| 226 | (۱) Testing Architecture و هرمِ تست                      | ✅ `docs/TESTING.md` با هرمِ اندازه‌گیری‌شده و قاعدهٔ تصمیم                   | **R68**                               |
-| 227 | (۲) Frontend Unit Test                                   | ✅ ۳۹۴ تست؛ مرزها و کدهای خطا صریح سنجیده می‌شوند                             | **R69**                               |
-| 228 | (۳) React Component Test                                 | ✅ کامپوننت‌های کلیدی + قراردادِ مشترکِ فرم‌ها                                | **R69**                               |
-| 229 | (۴) Form Testing (همهٔ فرم‌ها)                           | ✅ چهار قاعده روی **هر بیست فرم** + شش سناریوی رفتاری روی فرمِ نماینده        | **R69**                               |
-| 230 | (۵) API Testing برای **هر** Endpoint                     | ✅ **۴۶ از ۴۶** — ردیفِ کهنه بود؛ آن پنج در خودِ R48 بسته شده بودند           | **R68**                               |
-| 231 | (۶) Authorization Testing                                | ✅                                                                            | **R53**                               |
-| 232 | (۷) Authentication Testing                               | ✅                                                                            | R17                                   |
-| 233 | (۸) Payment Testing (۱۰ سناریو)                          | 🟡                                                                            | **R50**                               |
-| 234 | (۹) Wallet Testing (۱۰ سناریو)                           | 🟡                                                                            | **R50**                               |
-| 235 | (۱۰) Database Testing                                    | 🟡                                                                            | R52                                   |
-| 236 | (۱۱) Business Logic Testing                              | ✅ سیاههٔ ۳۲ قاعده در ده دامنه، با محافظِ «هر قاعده تستِ زنده دارد»           | **R68**                               |
-| 237 | (۱۲) Notification Testing (In-App/Push/SMS/Email)        | 🟡 درون‌برنامه‌ای ✅؛ ⚠️ ایمیل عمداً وجود ندارد و Push ساخته نشده             | R62، R68                              |
-| 238 | (۱۳) File Upload Testing                                 | ✅                                                                            | **R56**                               |
-| 239 | (۱۴) PWA Testing                                         | ✅                                                                            | **R60–R62** — ۶۷ تستِ PWA در سه مرحله |
-| 240 | (۱۵) E2E برای ۱۱ سفرِ کاربر                              | 🟡                                                                            | ۱۱ تست هست ولی سفرهای مالی نه         | **R70** |
-| 241 | (۱۶) Cross-Browser (Chrome/Firefox/Safari/Edge + موبایل) | ❌                                                                            | فقط Chromium                          | **R70** |
-| 242 | (۱۷) Responsive Testing                                  | 🟡                                                                            | **R70**                               |
-| 243 | (۱۸) Accessibility Testing                               | ✅                                                                            | R37، R48                              |
-| 244 | (۱۹) Error Boundary Testing                              | ✅                                                                            | R33                                   |
-| 245 | (۲۰) API Failure UX (۴۰۱…۵۰۴)                            | ✅ نگاشتِ کدِ وضعیت به راهنما و آیکون؛ زمانِ انتظارِ ۴۲۹ به کاربر گفته می‌شود | **R69**                               |
-| 246 | (۲۱) Load Testing (۱۰۰/۵۰۰/۱۰۰۰)                         | 🟡                                                                            | **R66** 🔒                            |
-| 247 | (۲۲) Stress Test تا نقطهٔ شکست                           | 🟡 تعریفِ نقطهٔ شکست و ابزارش آماده؛ 🔒 اجرا نه                               | **R66**                               |
-| 248 | (۲۳) Regression Testing                                  | ✅                                                                            | R42 (CI)                              |
-| 249 | (۲۴) Test Coverage هدف‌دار برای Critical                 | ✅ معیار «قاعدهٔ ثبت‌شده» به‌جای درصد؛ ۹ کلاسِ بحرانی قفل شدند                | **R68**                               |
-| 250 | (۲۵) CI Test Pipeline کامل                               | 🟡                                                                            | E2E در CI نیست                        | **R71** |
-| 251 | (۲۶) Test Data (Seed و Factory)                          | ✅ شش کارخانهٔ تازه، انتخاب‌شده با اندازه‌گیریِ تکرارِ واقعی                  | **R68**                               |
-| 252 | (۲۷) Test Isolation                                      | ✅                                                                            | `RefreshDatabase`                     |
-| 253 | (۲۸) Final Test Report                                   | ❌                                                                            | **R72**                               |
+| #   | بند                                                      | وضعیت                                                                          | توضیح                                 | مرحله   |
+| --- | -------------------------------------------------------- | ------------------------------------------------------------------------------ | ------------------------------------- | ------- |
+| 226 | (۱) Testing Architecture و هرمِ تست                      | ✅ `docs/TESTING.md` با هرمِ اندازه‌گیری‌شده و قاعدهٔ تصمیم                    | **R68**                               |
+| 227 | (۲) Frontend Unit Test                                   | ✅ ۳۹۴ تست؛ مرزها و کدهای خطا صریح سنجیده می‌شوند                              | **R69**                               |
+| 228 | (۳) React Component Test                                 | ✅ کامپوننت‌های کلیدی + قراردادِ مشترکِ فرم‌ها                                 | **R69**                               |
+| 229 | (۴) Form Testing (همهٔ فرم‌ها)                           | ✅ چهار قاعده روی **هر بیست فرم** + شش سناریوی رفتاری روی فرمِ نماینده         | **R69**                               |
+| 230 | (۵) API Testing برای **هر** Endpoint                     | ✅ **۴۶ از ۴۶** — ردیفِ کهنه بود؛ آن پنج در خودِ R48 بسته شده بودند            | **R68**                               |
+| 231 | (۶) Authorization Testing                                | ✅                                                                             | **R53**                               |
+| 232 | (۷) Authentication Testing                               | ✅                                                                             | R17                                   |
+| 233 | (۸) Payment Testing (۱۰ سناریو)                          | 🟡                                                                             | **R50**                               |
+| 234 | (۹) Wallet Testing (۱۰ سناریو)                           | 🟡                                                                             | **R50**                               |
+| 235 | (۱۰) Database Testing                                    | 🟡                                                                             | R52                                   |
+| 236 | (۱۱) Business Logic Testing                              | ✅ سیاههٔ ۳۲ قاعده در ده دامنه، با محافظِ «هر قاعده تستِ زنده دارد»            | **R68**                               |
+| 237 | (۱۲) Notification Testing (In-App/Push/SMS/Email)        | 🟡 درون‌برنامه‌ای ✅؛ ⚠️ ایمیل عمداً وجود ندارد و Push ساخته نشده              | R62، R68                              |
+| 238 | (۱۳) File Upload Testing                                 | ✅                                                                             | **R56**                               |
+| 239 | (۱۴) PWA Testing                                         | ✅                                                                             | **R60–R62** — ۶۷ تستِ PWA در سه مرحله |
+| 240 | (۱۵) E2E برای ۱۱ سفرِ کاربر                              | 🟡                                                                             | ۱۱ تست هست ولی سفرهای مالی نه         | **R70** |
+| 241 | (۱۶) Cross-Browser (Chrome/Firefox/Safari/Edge + موبایل) | ✅ سه موتور در CI؛ 🔒 Safariِ واقعی نه (WebKit موتور را می‌سنجد نه محصولِ اپل) | **R70**                               |
+| 242 | (۱۷) Responsive Testing                                  | ✅ چهار رزولوشن: سرریزِ افقی، دیده‌شدنِ عنوان، ناوبری، هدفِ لمس                | **R70**                               |
+| 243 | (۱۸) Accessibility Testing                               | ✅                                                                             | R37، R48                              |
+| 244 | (۱۹) Error Boundary Testing                              | ✅                                                                             | R33                                   |
+| 245 | (۲۰) API Failure UX (۴۰۱…۵۰۴)                            | ✅ نگاشتِ کدِ وضعیت به راهنما و آیکون؛ زمانِ انتظارِ ۴۲۹ به کاربر گفته می‌شود  | **R69**                               |
+| 246 | (۲۱) Load Testing (۱۰۰/۵۰۰/۱۰۰۰)                         | 🟡                                                                             | **R66** 🔒                            |
+| 247 | (۲۲) Stress Test تا نقطهٔ شکست                           | 🟡 تعریفِ نقطهٔ شکست و ابزارش آماده؛ 🔒 اجرا نه                                | **R66**                               |
+| 248 | (۲۳) Regression Testing                                  | ✅                                                                             | R42 (CI)                              |
+| 249 | (۲۴) Test Coverage هدف‌دار برای Critical                 | ✅ معیار «قاعدهٔ ثبت‌شده» به‌جای درصد؛ ۹ کلاسِ بحرانی قفل شدند                 | **R68**                               |
+| 250 | (۲۵) CI Test Pipeline کامل                               | 🟡                                                                             | E2E در CI نیست                        | **R71** |
+| 251 | (۲۶) Test Data (Seed و Factory)                          | ✅ شش کارخانهٔ تازه، انتخاب‌شده با اندازه‌گیریِ تکرارِ واقعی                   | **R68**                               |
+| 252 | (۲۷) Test Isolation                                      | ✅                                                                             | `RefreshDatabase`                     |
+| 253 | (۲۸) Final Test Report                                   | ❌                                                                             | **R72**                               |
 
 ---
 
 # بخش ۴ — Performance
 
-| #   | بند                                             | وضعیت                                                                                 | مرحله   |
-| --- | ----------------------------------------------- | ------------------------------------------------------------------------------------- | ------- |
-| 254 | (۱) Performance Baseline (۱۲ سنجه)              | ✅ دوازده سنجه با عددِ واقعی در `docs/PERFORMANCE.md`؛ سه‌تا صریح NOT MEASURED        | **R65** |
-| 255 | (۲) Core Web Vitals                             | 🟡 مسیرِ خواندن ساخته شد (`perf:baseline`)؛ 🔒 عددش به ترافیکِ واقعی نیاز دارد        | **R65** |
-| 256 | (۳) JavaScript Bundle Analyzer                  | ✅                                                                                    | R36     |
-| 257 | (۴) Code Splitting                              | ✅                                                                                    | R36     |
-| 258 | (۵) Tree Shaking                                | ✅                                                                                    | R36     |
-| 259 | (۶) Image Optimization (WebP/AVIF/srcset/lazy)  | ✅ سقفِ تکی و مجموع، با سیاههٔ معافیتِ دلیل‌دار                                       | **R65** |
-| 260 | (۷) Image Priority                              | ✅                                                                                    | R36     |
-| 261 | (۸) Font Optimization                           | ✅ سقفِ تکی و مجموع؛ `font-display: swap` و تک‌preload از قبل بود                     | **R65** |
-| 262 | (۹) CSS Performance                             | ✅ ۱۶٫۵KB gzip، اندازه‌گیری‌شده و ذیلِ بودجهٔ باندل                                   | **R65** |
-| 263 | (۱۰) Rendering Performance                      | 🟡 هشدارهای react-hooks صفر شد (R49)؛ سنجشِ واقعیِ کارایی با R65                      | **R49** |
-| 264 | (۱۱) Large Lists                                | ✅ (`useVirtualRows`)                                                                 | R14     |
-| 265 | (۱۲) API Performance                            | ✅ کوئری و حجمِ پاسخِ ده مسیر اندازه‌گیری شد                                          | **R65** |
-| 266 | (۱۳) API Payload / DTO                          | ✅ سنگین‌ترین پاسخ ۵٫۸KB برای ۴۰ واحد (~۱۴۶B هر واحد)                                 | **R65** |
-| 267 | (۱۴) Database Performance (N+1، Slow Query)     | ✅                                                                                    | R45     |
-| 268 | (۱۵) Database Index (+ شاخصِ اضافی)             | ✅                                                                                    | R48     |
-| 269 | (۱۶) Query Caching                              | ✅ اندازه‌گیری‌شده: ۱ خواندنِ کش در هر درخواست                                        | **R65** |
-| 270 | (۱۷) Redis                                      | ✅ تصمیم با عدد: **نه** — و شرطِ عوض‌شدنش نوشته شد (چندگره‌ای، نه سرعت)               | **R65** |
-| 271 | (۱۸) Queue برای کارِ سنگین                      | ✅                                                                                    | R11     |
-| 272 | (۱۹) Background Job (Retry/Backoff/Timeout)     | ✅ 🔴 `retry_after` ده برابر کوچک‌تر از مهلتِ کارها بود؛ رفع شد + محافظ               | **R65** |
-| 273 | (۲۰) HTTP/2، Brotli، Keep-Alive، Cache Headers  | 🔒                                                                                    | R56     |
-| 274 | (۲۱) Resource Hints                             | ✅                                                                                    | R36     |
-| 275 | (۲۲) CDN                                        | 🔒                                                                                    | R56     |
-| 276 | (۲۳) PWA Performance                            | ✅ سطلِ جدا؛ دیگر APIها صفحه‌های آفلاین را بیرون نمی‌اندازند                          | **R60** |
-| 277 | (۲۴) Mobile Performance                         | ❌                                                                                    | **R70** |
-| 278 | (۲۵) Memory Leak                                | 🟡 افزایشِ حافظه سنجیده شد (۰–۴MB، بی‌نشتی)؛ 🔒 مقدارِ مطلق از PHPUnit خوانده نمی‌شود | **R65** |
-| 279 | (۲۶) Network Waterfall                          | ✅ بودجهٔ تعدادِ چانک در هر ورودی                                                     | **R65** |
-| 280 | (۲۷) Request Prioritization                     | ✅ بودجهٔ فایلِ یکتای نشست + preloadهای R36                                           | **R65** |
-| 281 | (۲۸) Prefetch Strategy                          | 🟡 `LazyVisible` و resource hints هست؛ prefetchِ مسیرِ بعدی عمداً نه                  | **R65** |
-| 282 | (۲۹) Performance Budget                         | ✅ تصویر، فونت و تعدادِ درخواست اضافه شدند                                            | **R65** |
-| 283 | (۳۰) Admin Dashboard Performance                | 🟡 ۲۳ کوئری اندازه‌گیری شد و با ردیف رشد نمی‌کند؛ بهینه‌سازی منتظرِ عددِ R66          | **R65** |
-| 284 | (۳۱) Report Performance                         | ✅ (در صف)                                                                            | R28     |
-| 285 | (۳۲) Real-Time Features (WebSocket/SSE/Polling) | ✅ تصمیم با عدد: **نه** — بارِ کلِ polling ≈ ۱ درخواست بر ثانیه                       | **R65** |
-| 286 | (۳۳) Performance Monitoring                     | ✅ `perf:baseline`؛ 🔴 پیش از این `web_vitals` فقط نوشته می‌شد                        | **R65** |
-| 287 | (۳۴) Final Benchmark                            | ❌                                                                                    | **R72** |
-| 288 | (۳۵) Final Performance Report                   | ❌                                                                                    | **R72** |
+| #   | بند                                             | وضعیت                                                                                             | مرحله   |
+| --- | ----------------------------------------------- | ------------------------------------------------------------------------------------------------- | ------- |
+| 254 | (۱) Performance Baseline (۱۲ سنجه)              | ✅ دوازده سنجه با عددِ واقعی در `docs/PERFORMANCE.md`؛ سه‌تا صریح NOT MEASURED                    | **R65** |
+| 255 | (۲) Core Web Vitals                             | 🟡 مسیرِ خواندن ساخته شد (`perf:baseline`)؛ 🔒 عددش به ترافیکِ واقعی نیاز دارد                    | **R65** |
+| 256 | (۳) JavaScript Bundle Analyzer                  | ✅                                                                                                | R36     |
+| 257 | (۴) Code Splitting                              | ✅                                                                                                | R36     |
+| 258 | (۵) Tree Shaking                                | ✅                                                                                                | R36     |
+| 259 | (۶) Image Optimization (WebP/AVIF/srcset/lazy)  | ✅ سقفِ تکی و مجموع، با سیاههٔ معافیتِ دلیل‌دار                                                   | **R65** |
+| 260 | (۷) Image Priority                              | ✅                                                                                                | R36     |
+| 261 | (۸) Font Optimization                           | ✅ سقفِ تکی و مجموع؛ `font-display: swap` و تک‌preload از قبل بود                                 | **R65** |
+| 262 | (۹) CSS Performance                             | ✅ ۱۶٫۵KB gzip، اندازه‌گیری‌شده و ذیلِ بودجهٔ باندل                                               | **R65** |
+| 263 | (۱۰) Rendering Performance                      | 🟡 هشدارهای react-hooks صفر شد (R49)؛ سنجشِ واقعیِ کارایی با R65                                  | **R49** |
+| 264 | (۱۱) Large Lists                                | ✅ (`useVirtualRows`)                                                                             | R14     |
+| 265 | (۱۲) API Performance                            | ✅ کوئری و حجمِ پاسخِ ده مسیر اندازه‌گیری شد                                                      | **R65** |
+| 266 | (۱۳) API Payload / DTO                          | ✅ سنگین‌ترین پاسخ ۵٫۸KB برای ۴۰ واحد (~۱۴۶B هر واحد)                                             | **R65** |
+| 267 | (۱۴) Database Performance (N+1، Slow Query)     | ✅                                                                                                | R45     |
+| 268 | (۱۵) Database Index (+ شاخصِ اضافی)             | ✅                                                                                                | R48     |
+| 269 | (۱۶) Query Caching                              | ✅ اندازه‌گیری‌شده: ۱ خواندنِ کش در هر درخواست                                                    | **R65** |
+| 270 | (۱۷) Redis                                      | ✅ تصمیم با عدد: **نه** — و شرطِ عوض‌شدنش نوشته شد (چندگره‌ای، نه سرعت)                           | **R65** |
+| 271 | (۱۸) Queue برای کارِ سنگین                      | ✅                                                                                                | R11     |
+| 272 | (۱۹) Background Job (Retry/Backoff/Timeout)     | ✅ 🔴 `retry_after` ده برابر کوچک‌تر از مهلتِ کارها بود؛ رفع شد + محافظ                           | **R65** |
+| 273 | (۲۰) HTTP/2، Brotli، Keep-Alive، Cache Headers  | 🔒                                                                                                | R56     |
+| 274 | (۲۱) Resource Hints                             | ✅                                                                                                | R36     |
+| 275 | (۲۲) CDN                                        | 🔒                                                                                                | R56     |
+| 276 | (۲۳) PWA Performance                            | ✅ سطلِ جدا؛ دیگر APIها صفحه‌های آفلاین را بیرون نمی‌اندازند                                      | **R60** |
+| 277 | (۲۴) Mobile Performance                         | 🟡 سازوکارش از R65 آماده (صدکِ ۷۵ به تفکیکِ دستگاه)؛ دادهٔ میدانی نیاز به بازدیدکنندهٔ واقعی دارد | R70     |
+| 278 | (۲۵) Memory Leak                                | 🟡 افزایشِ حافظه سنجیده شد (۰–۴MB، بی‌نشتی)؛ 🔒 مقدارِ مطلق از PHPUnit خوانده نمی‌شود             | **R65** |
+| 279 | (۲۶) Network Waterfall                          | ✅ بودجهٔ تعدادِ چانک در هر ورودی                                                                 | **R65** |
+| 280 | (۲۷) Request Prioritization                     | ✅ بودجهٔ فایلِ یکتای نشست + preloadهای R36                                                       | **R65** |
+| 281 | (۲۸) Prefetch Strategy                          | 🟡 `LazyVisible` و resource hints هست؛ prefetchِ مسیرِ بعدی عمداً نه                              | **R65** |
+| 282 | (۲۹) Performance Budget                         | ✅ تصویر، فونت و تعدادِ درخواست اضافه شدند                                                        | **R65** |
+| 283 | (۳۰) Admin Dashboard Performance                | 🟡 ۲۳ کوئری اندازه‌گیری شد و با ردیف رشد نمی‌کند؛ بهینه‌سازی منتظرِ عددِ R66                      | **R65** |
+| 284 | (۳۱) Report Performance                         | ✅ (در صف)                                                                                        | R28     |
+| 285 | (۳۲) Real-Time Features (WebSocket/SSE/Polling) | ✅ تصمیم با عدد: **نه** — بارِ کلِ polling ≈ ۱ درخواست بر ثانیه                                   | **R65** |
+| 286 | (۳۳) Performance Monitoring                     | ✅ `perf:baseline`؛ 🔴 پیش از این `web_vitals` فقط نوشته می‌شد                                    | **R65** |
+| 287 | (۳۴) Final Benchmark                            | ❌                                                                                                | **R72** |
+| 288 | (۳۵) Final Performance Report                   | ❌                                                                                                | **R72** |
 
 ---
 

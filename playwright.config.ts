@@ -24,7 +24,39 @@ export default defineConfig({
     locale: 'fa-IR',
   },
 
-  projects: [{ name: 'chromium', use: { ...devices['Desktop Chrome'] } }],
+  /*
+   * ─── سه موتور، نه سه مرورگر (R70) ────────────────────────────────────────
+   * ⚠️ این تفکیک مهم است و در گزارش هم صریح آمده: Playwright سه **موتورِ
+   * رندر** را اجرا می‌کند، نه سه محصولِ تجاری را.
+   *
+   *   chromium → همان موتورِ Chrome و Edge
+   *   firefox  → همان موتورِ Firefox
+   *   webkit   → موتورِ Safari، **ولی خودِ Safari نیست**
+   *
+   * 🔴 WebKitِ Playwright بیلدِ خودِ موتور است، نه Safariِ اپل. تفاوت‌های
+   * موتور (CSS، جاوااسکریپت، طرح‌بندی) را می‌گیرد؛ رفتارهای مخصوصِ Safari
+   * مثل ITP و کاستی‌های iOS را نه. آن‌ها NOT VERIFIED می‌مانند.
+   */
+  projects: [
+    { name: 'chromium', use: { ...devices['Desktop Chrome'] } },
+    { name: 'firefox', use: { ...devices['Desktop Firefox'] } },
+    { name: 'webkit', use: { ...devices['Desktop Safari'] } },
+
+    /*
+     * ─── رزولوشن‌ها ──────────────────────────────────────────────────────
+     * ⚠️ فقط عرضِ پنجره عوض نمی‌شود: پروفایلِ موبایل عاملِ کاربر، نسبتِ
+     * پیکسل و **رویدادِ لمسی** را هم می‌آورد. صفحه‌ای که با ماوس کار
+     * می‌کند و با انگشت نه، با تغییرِ صرفِ عرض سالم به نظر می‌رسد.
+     */
+    { name: 'موبایل', use: { ...devices['Pixel 7'] }, testMatch: /responsive\.spec\.ts/ },
+    { name: 'موبایلِ iOS', use: { ...devices['iPhone 13'] }, testMatch: /responsive\.spec\.ts/ },
+    { name: 'تبلت', use: { ...devices['iPad (gen 7)'] }, testMatch: /responsive\.spec\.ts/ },
+    {
+      name: 'لپ‌تاپ',
+      use: { ...devices['Desktop Chrome'], viewport: { width: 1366, height: 768 } },
+      testMatch: /responsive\.spec\.ts/,
+    },
+  ],
 
   webServer: {
     command: 'php artisan serve --host=127.0.0.1 --port=8001',

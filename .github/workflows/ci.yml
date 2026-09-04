@@ -148,6 +148,101 @@ jobs:
         run: php artisan test
 
   # ────────────────────────────────────────────────────────────────────────
+  #  سرتاسری روی سه موتورِ رندر (R70)
+  # ────────────────────────────────────────────────────────────────────────
+  #
+  #  ⚠️ تا پیش از R70، Playwright **فقط محلی و فقط روی کرومیوم** اجرا
+  #  می‌شد — یعنی هیچ دروازه‌ای جلوی خرابیِ مخصوصِ یک موتور را نمی‌گرفت.
+  #
+  #  🔴 و همان اجرا ثابت کرد که این خلأ واقعی بود: تستِ «دارایی‌های Vite
+  #  هش‌دار سرو می‌شوند» در WebKit افتاد، چون بلافاصله پس از `goto` هنوز
+  #  چیزی رندر نشده بود. کرومیوم به‌قدری سریع بود که تست **اتفاقی** سبز
+  #  می‌شد.
+  #
+  #  ⚠️ چرا اوبونتو و نه ویندوز: بیلدِ ویندوزیِ فایرفاکسِ Playwright روی
+  #  ماشینِ توسعه با خطای side-by-side بالا نمی‌آید (اسمبلیِ خصوصیِ
+  #  `mozglue` پیدا نمی‌شود). روی رانرِ لینوکسی چنین مفهومی وجود ندارد و
+  #  هر سه موتور اجرا می‌شوند.
+  e2e:
+    name: سرتاسری (سه موتور)
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    needs: frontend
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: نصب PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          extensions: gd, zip, intl, bcmath, pdo_sqlite, sqlite3, mbstring, exif
+          coverage: none
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+
+      - name: کشِ Composer
+        uses: actions/cache@v4
+        with:
+          path: vendor
+          key: composer-${{ runner.os }}-${{ hashFiles('composer.lock') }}
+          restore-keys: composer-${{ runner.os }}-
+
+      - name: نصب وابستگی‌ها
+        run: |
+          composer install --prefer-dist --no-interaction --no-progress
+          npm ci
+
+      # ⚠️ خروجیِ همان بیلدی که بقیه‌ی jobها می‌سنجند، نه بیلدِ دوباره.
+      - name: بازیابیِ خروجیِ بیلد
+        uses: actions/download-artifact@v4
+        with:
+          name: frontend-build
+          path: public/build
+
+      - name: آماده‌سازیِ محیط
+        run: |
+          cp .env.example .env
+          php artisan key:generate
+          touch database/database.sqlite
+          php artisan migrate --force --no-interaction
+        env:
+          DB_CONNECTION: sqlite
+          DB_DATABASE: database/database.sqlite
+
+      # ⚠️ کش بر اساسِ **نسخه‌ی دقیقِ** Playwright: با هر ارتقا، مرورگرها
+      # هم عوض می‌شوند و کشِ کهنه یعنی اجرای تست روی موتوری که دیگر
+      # نصب‌شده نیست.
+      - name: کشِ مرورگرها
+        id: playwright-cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
+
+      - name: نصب مرورگرها
+        run: npx playwright install --with-deps chromium firefox webkit
+
+      - name: تستِ سرتاسری
+        run: npx playwright test
+        env:
+          DB_CONNECTION: sqlite
+          DB_DATABASE: database/database.sqlite
+
+      - name: نگه‌داشتنِ گزارشِ شکست
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: |
+            playwright-report
+            test-results
+          retention-days: 7
+
+  # ────────────────────────────────────────────────────────────────────────
   #  قیدهای دیتابیس روی موتورِ واقعیِ محصول
   # ────────────────────────────────────────────────────────────────────────
   #
