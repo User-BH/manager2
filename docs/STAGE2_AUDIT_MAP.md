@@ -299,26 +299,26 @@
 
 ## ۱‑۲۵) Load / Chaos / Dependency / Static Analysis / CI
 
-| #   | بند                                                            | وضعیت              | توضیح                                                                 | مرحله      |
-| --- | -------------------------------------------------------------- | ------------------ | --------------------------------------------------------------------- | ---------- |
-| 153 | Load Test: ۱۰۰ / ۱٬۰۰۰ / ۱۰٬۰۰۰ کاربر                          | 🟡 ابزار و رویه ✅ | 🔒 اجرا NOT VERIFIED — سرورِ واقعی لازم دارد                          | **R66** 🔒 |
-| 154 | Login / Dashboard / Reports / Payment / Notifications / Search | 🟡                 | هر هشت جریان با سقفِ نرخشان در `docs/LOAD_TESTING.md` فهرست شد        | **R66**    |
-| 155 | Chaos: Redis Down                                              | ❓                 | Redis استفاده نمی‌شود                                                 | R59        |
-| 156 | Chaos: Database Slow                                           | ✅                 | سقفِ اتصال و سقفِ کوئریِ خواندنی؛ روی MySQLِ CI سنجیده می‌شود         | **R59**    |
-| 157 | Chaos: Payment Gateway Down                                    | ✅                 | 🔴 دو نقصِ مالیِ واقعی رفع شد                                         | **R59**    |
-| 158 | Chaos: SMS Provider Down                                       | ✅                 | ارسالِ ناموفق دیگر کاربر را پشتِ فاصله‌ی ارسالِ مجدد حبس نمی‌کند      | **R59**    |
-| 159 | Chaos: Network Failure                                         | ✅                 | هر تماسِ بیرونی سقفِ اتصال و سقفِ کل دارد؛ هیچ‌کدام داخلِ تراکنش نیست | **R59**    |
-| 160 | Chaos: Queue Down                                              | ✅                 | R47                                                                   |
-| 161 | Chaos: Storage Failure                                         | ✅                 | ۴۰۴ تمیز؛ ⚠️ دیسکِ پر سنجیده نشد                                      | **R59**    |
-| 162 | `composer audit`                                               | ✅                 | R42 (در CI)                                                           |
-| 163 | حذفِ پکیج‌های بلااستفاده                                       | ✅                 | `vazirmatn` حذف شد؛ فونت‌ها فایلِ محلی‌اند نه پکیج                    | R55        |
-| 164 | PHPStan                                                        | ✅                 | R42                                                                   |
-| 165 | Laravel Pint                                                   | ✅                 | R42                                                                   |
-| 166 | TypeScript                                                     | ✅                 | R42                                                                   |
-| 167 | ESLint                                                         | ✅                 | R42                                                                   |
-| 168 | Prettier                                                       | ✅                 | R42                                                                   |
-| 169 | همه در CI                                                      | ✅                 | R42                                                                   |
-| 170 | خطِ امنیتیِ CI/CD                                              | 🟡                 | Security Scan اختصاصی نیست                                            | R71        |
+| #   | بند                                                            | وضعیت                                                                               | توضیح                                                                 | مرحله      |
+| --- | -------------------------------------------------------------- | ----------------------------------------------------------------------------------- | --------------------------------------------------------------------- | ---------- |
+| 153 | Load Test: ۱۰۰ / ۱٬۰۰۰ / ۱۰٬۰۰۰ کاربر                          | 🟡 ابزار و رویه ✅                                                                  | 🔒 اجرا NOT VERIFIED — سرورِ واقعی لازم دارد                          | **R66** 🔒 |
+| 154 | Login / Dashboard / Reports / Payment / Notifications / Search | 🟡                                                                                  | هر هشت جریان با سقفِ نرخشان در `docs/LOAD_TESTING.md` فهرست شد        | **R66**    |
+| 155 | Chaos: Redis Down                                              | ❓                                                                                  | Redis استفاده نمی‌شود                                                 | R59        |
+| 156 | Chaos: Database Slow                                           | ✅                                                                                  | سقفِ اتصال و سقفِ کوئریِ خواندنی؛ روی MySQLِ CI سنجیده می‌شود         | **R59**    |
+| 157 | Chaos: Payment Gateway Down                                    | ✅                                                                                  | 🔴 دو نقصِ مالیِ واقعی رفع شد                                         | **R59**    |
+| 158 | Chaos: SMS Provider Down                                       | ✅                                                                                  | ارسالِ ناموفق دیگر کاربر را پشتِ فاصله‌ی ارسالِ مجدد حبس نمی‌کند      | **R59**    |
+| 159 | Chaos: Network Failure                                         | ✅                                                                                  | هر تماسِ بیرونی سقفِ اتصال و سقفِ کل دارد؛ هیچ‌کدام داخلِ تراکنش نیست | **R59**    |
+| 160 | Chaos: Queue Down                                              | ✅                                                                                  | R47                                                                   |
+| 161 | Chaos: Storage Failure                                         | ✅                                                                                  | ۴۰۴ تمیز؛ ⚠️ دیسکِ پر سنجیده نشد                                      | **R59**    |
+| 162 | `composer audit`                                               | ✅                                                                                  | R42 (در CI)                                                           |
+| 163 | حذفِ پکیج‌های بلااستفاده                                       | ✅                                                                                  | `vazirmatn` حذف شد؛ فونت‌ها فایلِ محلی‌اند نه پکیج                    | R55        |
+| 164 | PHPStan                                                        | ✅                                                                                  | R42                                                                   |
+| 165 | Laravel Pint                                                   | ✅                                                                                  | R42                                                                   |
+| 166 | TypeScript                                                     | ✅                                                                                  | R42                                                                   |
+| 167 | ESLint                                                         | ✅                                                                                  | R42                                                                   |
+| 168 | Prettier                                                       | ✅                                                                                  | R42                                                                   |
+| 169 | همه در CI                                                      | ✅                                                                                  | R42                                                                   |
+| 170 | خطِ امنیتیِ CI/CD                                              | ✅ اسکنِ رازهای کامیت‌شده + هشت تستِ سطحِ حمله؛ ⚠️ CodeQL برای مخزنِ خصوصی پولی است | **R71**                                                               |
 
 ---
 
@@ -423,7 +423,7 @@
 | 247 | (۲۲) Stress Test تا نقطهٔ شکست                           | 🟡 تعریفِ نقطهٔ شکست و ابزارش آماده؛ 🔒 اجرا نه                                | **R66**                               |
 | 248 | (۲۳) Regression Testing                                  | ✅                                                                             | R42 (CI)                              |
 | 249 | (۲۴) Test Coverage هدف‌دار برای Critical                 | ✅ معیار «قاعدهٔ ثبت‌شده» به‌جای درصد؛ ۹ کلاسِ بحرانی قفل شدند                 | **R68**                               |
-| 250 | (۲۵) CI Test Pipeline کامل                               | 🟡                                                                             | E2E در CI نیست                        | **R71** |
+| 250 | (۲۵) CI Test Pipeline کامل                               | ✅ هر ۱۶ گام، با محافظی که حذفشان را می‌گیرد                                   | **R71**                               |
 | 251 | (۲۶) Test Data (Seed و Factory)                          | ✅ شش کارخانهٔ تازه، انتخاب‌شده با اندازه‌گیریِ تکرارِ واقعی                   | **R68**                               |
 | 252 | (۲۷) Test Isolation                                      | ✅                                                                             | `RefreshDatabase`                     |
 | 253 | (۲۸) Final Test Report                                   | ❌                                                                             | **R72**                               |
@@ -474,28 +474,28 @@
 
 # بخش ۵ — Deployment و Release Engineering
 
-| #   | گام                                         | وضعیت                                     | مرحله   |
-| --- | ------------------------------------------- | ----------------------------------------- | ------- |
-| 289 | ۱. Type Check                               | ✅                                        | R42     |
-| 290 | ۲. Lint                                     | ✅                                        | R42     |
-| 291 | ۳. Unit Test                                | ✅                                        | R42     |
-| 292 | ۴. Component Test                           | ✅                                        | R42     |
-| 293 | ۵. Integration Test                         | ✅                                        | R42     |
-| 294 | ۶. API Test                                 | ✅                                        | R42     |
-| 295 | ۷. E2E Test                                 | ❌                                        | **R71** |
-| 296 | ۸. Security Scan                            | 🟡                                        | **R71** |
-| 297 | ۹. Dependency Audit                         | ✅                                        | R42     |
-| 298 | ۱۰. Build                                   | ✅                                        | R42     |
-| 299 | ۱۱. Performance Check                       | ❌                                        | **R71** |
-| 300 | ۱۲. Database Migration Check                | ✅ گامِ `migrate:check` در `deploy.yml`   | **R57** |
-| 301 | ۱۳. Backup Verification                     | 🟡                                        | **R71** |
-| 302 | ۱۴. Deployment                              | 🟡 (نوشته، اجرانشده)                      | R71     |
-| 303 | ۱۵. Health Check                            | ✅                                        | R43     |
-| 304 | ۱۶. Smoke Test                              | ❌                                        | **R71** |
-| 305 | توقفِ Release در صورتِ شکستِ Critical Check | ✅                                        | R42     |
-| 306 | قابلیت Rollback                             | 🟡                                        | R71     |
-| 307 | سازگاریِ Migration با Deployment            | ✅ Expand→Migrate→Contract مستند و اجباری | **R57** |
-| 308 | Blue-Green یا Rolling Deployment            | 🔒                                        | R71     |
+| #   | گام                                         | وضعیت                                                                     | مرحله   |
+| --- | ------------------------------------------- | ------------------------------------------------------------------------- | ------- |
+| 289 | ۱. Type Check                               | ✅                                                                        | R42     |
+| 290 | ۲. Lint                                     | ✅                                                                        | R42     |
+| 291 | ۳. Unit Test                                | ✅                                                                        | R42     |
+| 292 | ۴. Component Test                           | ✅                                                                        | R42     |
+| 293 | ۵. Integration Test                         | ✅                                                                        | R42     |
+| 294 | ۶. API Test                                 | ✅                                                                        | R42     |
+| 295 | ۷. E2E Test                                 | ✅ کارِ «سرتاسری (سه موتور)» در CI                                        | **R70** |
+| 296 | ۸. Security Scan                            | ✅ `CommittedSecretsTest` + تست‌های سطحِ حمله                             | **R71** |
+| 297 | ۹. Dependency Audit                         | ✅                                                                        | R42     |
+| 298 | ۱۰. Build                                   | ✅                                                                        | R42     |
+| 299 | ۱۱. Performance Check                       | ✅ بودجهٔ تصویر/فونت/باندل/کوئری در تست‌ها (R65)                          | **R65** |
+| 300 | ۱۲. Database Migration Check                | ✅ گامِ `migrate:check` در `deploy.yml`                                   | **R57** |
+| 301 | ۱۳. Backup Verification                     | ✅ اندازه، سلامتِ gzip و وجودِ جدول — پیش از مهاجرت                       | **R71** |
+| 302 | ۱۴. Deployment                              | 🟡 نوشته و از نظرِ نحو سنجیده؛ ⚠️ هرگز روی سرورِ واقعی اجرا نشده          | R71     |
+| 303 | ۱۵. Health Check                            | ✅                                                                        | R43     |
+| 304 | ۱۶. Smoke Test                              | ✅ چهار بررسیِ HTTP پس از استقرار                                         | **R71** |
+| 305 | توقفِ Release در صورتِ شکستِ Critical Check | ✅                                                                        | R42     |
+| 306 | قابلیت Rollback                             | ✅ کد خودکار؛ ⚠️ دیتابیس عمداً دستی (دلیلش در `docs/RELEASE_PIPELINE.md`) | **R71** |
+| 307 | سازگاریِ Migration با Deployment            | ✅ Expand→Migrate→Contract مستند و اجباری                                 | **R57** |
+| 308 | Blue-Green یا Rolling Deployment            | 🔒 یک سرور، بدونِ متعادل‌کننده، و قیدِ دست‌نزدن به nginx                  | R71 🔒  |
 
 ---
 

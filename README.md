@@ -19,6 +19,7 @@
 | [docs/DEPLOYMENT_SECURITY.md](docs/DEPLOYMENT_SECURITY.md) | سخت‌سازیِ سرور و رازها                                                                  |
 | [docs/OFFLINE.md](docs/OFFLINE.md)                         | **معماریِ آفلاین** — چه کاری آفلاین ممکن است، و چرا صفِ آفلاین ساخته نشد                |
 | [docs/API_COMPATIBILITY.md](docs/API_COMPATIBILITY.md)     | **قراردادِ سازگاری** — Mixed App Versions، چرخهٔ به‌روزرسانیِ SW، و بازگشت              |
+| [docs/RELEASE_PIPELINE.md](docs/RELEASE_PIPELINE.md)       | **خطِ انتشار** — شانزده گام، چه چیزی هرکدام را نگه می‌دارد، و چرا Blue-Green نه         |
 | [docs/TESTING.md](docs/TESTING.md)                         | **استراتژیِ تست** — هرمِ اندازه‌گیری‌شده، سیاههٔ قواعد، و آنچه عمداً سنجیده نمی‌شود     |
 | [docs/COMPLEX_TYPES.md](docs/COMPLEX_TYPES.md)             | **مجتمعِ مسکونی و تجاری** — تصمیم، تعرفهٔ جدا، و پرسش‌های بازِ ثبت‌شده                  |
 | [docs/PERFORMANCE.md](docs/PERFORMANCE.md)                 | **پایهٔ کارایی** — دوازده سنجه با عددِ واقعی، بودجه‌ها، و تصمیمِ Redis و Real-Time      |
