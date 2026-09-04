@@ -101,7 +101,7 @@ class ReleasePipelineTest extends TestCase
      */
     private function executablePartOf(string $file): string
     {
-        $lines = preg_split('/\R/', (string) file_get_contents(base_path($file))) ?: [];
+        $lines = preg_split('/\R/u', (string) file_get_contents(base_path($file))) ?: [];
 
         $code = array_filter(
             $lines,
