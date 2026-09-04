@@ -1,5 +1,6 @@
 import type { SweetAlertOptions, SweetAlertResult } from 'sweetalert2'
 import { ApiError } from './api'
+import { errorUx } from './errorUx'
 
 /**
  * تمام هشدارهای سایت از اینجا رد می‌شوند.
@@ -220,27 +221,37 @@ export function alertError(error: unknown, fallback = 'انجام این کار 
     return
   }
 
+  /*
+   * ⚠️ راهنمای «حالا چه کنم» از نگاشتِ کدِ وضعیت می‌آید (R69).
+   *
+   * پیش از این ۴۰۱، ۴۰۳، ۴۰۴، ۴۰۹، ۴۲۹ و همه‌ی ۵xx یک دیالوگِ یکسان
+   * می‌گرفتند — کاربر می‌فهمید «نشد» ولی نمی‌فهمید چه کند، در حالی که
+   * کارِ درست در هر کدام کاملاً متفاوت است.
+   */
+  const ux = errorUx(error, fallback)
+
   if (error instanceof ApiError) {
     const fields = Object.values(error.errors).flat()
     const trace = traceLine(error)
+    const hint = ux.hint ? `<p class="swal-app-hint">${escapeHtml(ux.hint)}</p>` : ''
 
     void fire({
-      title: error.message || fallback,
+      title: ux.title,
       html:
         fields.length > 1
-          ? `<ul class="swal-app-list">${fields.map(li).join('')}</ul>${trace}`
-          : trace || undefined,
-      text: fields.length === 1 && !trace ? fields[0] : undefined,
-      icon: 'error',
+          ? `<ul class="swal-app-list">${fields.map(li).join('')}</ul>${hint}${trace}`
+          : hint + trace || undefined,
+      text: fields.length === 1 && !hint && !trace ? fields[0] : undefined,
+      icon: ux.icon,
       confirmButtonText: 'باشه',
     })
     return
   }
 
   void fire({
-    title: fallback,
-    text: error instanceof Error ? error.message : undefined,
-    icon: 'error',
+    title: ux.title === fallback ? fallback : ux.title,
+    text: ux.title === fallback && error instanceof Error ? error.message : undefined,
+    icon: ux.icon,
     confirmButtonText: 'باشه',
   })
 }
@@ -270,9 +281,17 @@ function traceLine(error: ApiError): string {
   return `<p class="swal-app-trace">کدِ پیگیری: <code dir="ltr">${safe}</code></p>`
 }
 
-/** جلوگیری از تزریق HTML وقتی پیام خطا از سرور می‌آید. */
-function li(message: string): string {
-  const escaped = message.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+/**
+ * جلوگیری از تزریق HTML وقتی پیام خطا از سرور می‌آید.
+ *
+ * ⚠️ راهنمای R69 از نگاشتِ ثابتِ خودمان می‌آید و ذاتاً امن است، ولی از
+ * همین تابع رد می‌شود: تفکیکِ «این رشته امن است و آن یکی نه» همان چیزی
+ * است که روزی اشتباه می‌شود.
+ */
+function escapeHtml(message: string): string {
+  return message.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+}
 
-  return `<li>${escaped}</li>`
+function li(message: string): string {
+  return `<li>${escapeHtml(message)}</li>`
 }
