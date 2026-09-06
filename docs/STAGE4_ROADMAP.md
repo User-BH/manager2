@@ -96,10 +96,12 @@ Inventory → Inspect → Fix → Test → Adversarial Test → Regression → D
 کار ۱۰۲۰ ثانیه timeout داشت». غلط است — `BuildBillsBundleJob` با ۹۰۰
 ثانیه طولانی‌ترین است. عددِ نهاییِ `retry_after` درست است، توضیحش نه.
 
-**② عددِ polling بی‌پشتوانه.** ادعای «≈ ۱ درخواست بر ثانیه» باید **از
-صفر** استخراج شود: `polling`، `refetchInterval`، `refetchOnWindowFocus`،
-WebSocket، SSE، تایمرها، تازه‌سازیِ اعلان، درخواست‌های پس‌زمینه. ⚠️ اگر
-polling واقعاً وجود ندارد، عدد **حذف** می‌شود نه اصلاح.
+**② عددِ polling بی‌پشتوانه.** ✅ **بسته شد — و نتیجه‌اش خلافِ حدسم بود.**
+نوشته بودم شاید polling اصلاً وجود ندارد؛ اشتباه بود: در
+`features/notifications/` گشته بودم ولی polling در
+`shared/stores/notificationStore.ts` است. عددِ «≈ ۱ درخواست بر ثانیه»
+**درست بود**؛ آنچه کم بود مبنا و واحد بود. جزئیات در
+[`CANONICAL_INVENTORY.md`](CANONICAL_INVENTORY.md).
 
 **③ خرابکاری جایگزینِ پوشش نیست.** `FINAL_TEST_REPORT.md` خرابکاری را
 «معیارِ جایگزین» پوشش نامیده. ⚠️ اصلاحیه صریح می‌گوید این دو **هدفِ
@@ -126,9 +128,12 @@ polling واقعاً وجود ندارد، عدد **حذف** می‌شود نه 
 
 # فازها
 
-## فاز ۰ — رفعِ تناقض و سیاههٔ مرجع
+## فاز ۰ — رفعِ تناقض و سیاههٔ مرجع · ✅ **انجام شد**
 
-**اندازه:** M
+**اندازه:** M · **خروجی:** [`CANONICAL_INVENTORY.md`](CANONICAL_INVENTORY.md)
+
+🔴 **چهار تناقض بسته شد، نه سه** — یکی‌اش را در حین کار پیدا کردم:
+`STAGE2_AUDIT_MAP` با **ردیف‌های خودش** تناقض داشت.
 
 هفت سند با مخزن Cross-check می‌شوند: `FINAL_AUDIT`،
 `FINAL_SECURITY_REPORT`، `FINAL_TEST_REPORT`، `FINAL_PERFORMANCE_REPORT`،
