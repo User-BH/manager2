@@ -20,7 +20,7 @@ class ManagementApiTest extends TestCase
 
     private function admin(): User
     {
-        $complex = Complex::create(['name' => 'مجتمع مدیریت', 'slug' => 'mgmt-'.uniqid()]);
+        $complex = Complex::create(['type' => 'residential', 'name' => 'مجتمع مدیریت', 'slug' => 'mgmt-'.uniqid()]);
 
         return User::create([
             'complex_id' => $complex->id,

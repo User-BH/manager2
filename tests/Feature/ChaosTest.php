@@ -60,7 +60,7 @@ class ChaosTest extends TestCase
     {
         parent::setUp();
 
-        $this->complex = Complex::create([
+        $this->complex = Complex::create(['type' => 'residential',
             'name' => 'مجتمع آشوب',
             'slug' => 'chaos-'.uniqid(),
             'currency' => 'toman',

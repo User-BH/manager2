@@ -40,7 +40,7 @@ class MaintenanceAndLimitsTest extends TestCase
     {
         parent::setUp();
 
-        $this->complex = Complex::create([
+        $this->complex = Complex::create(['type' => 'residential',
             'name' => 'مجتمع نگهداری', 'slug' => 'mnt-'.uniqid(), 'currency' => 'toman',
             'charge_due_day' => 10, 'payment_gateway' => 'fake',
         ]);

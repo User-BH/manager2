@@ -24,9 +24,17 @@ use Illuminate\Database\Eloquent\Model;
  * همان قاعده را **اجرا** می‌کند: هر تلاشی برای ویرایش یا حذف، استثنای
  * روشن می‌دهد.
  *
- * ⚠️ این محافظت فقط از راهِ Eloquent است. `DB::table(...)->delete()`
- * دورش می‌زند — و همین عمدی است: بازیابیِ بکاپ و هرسِ دوره‌ای باید
- * بتوانند کار کنند.
+ * ─── دو لایه، چون یک لایه کافی نبود ───────────────────────────────────────
+ * 🔴 رویدادهای زیر فقط مسیرِ **نمونهٔ مدل** را می‌بندند. کاوشِ فاز ۱ نشان
+ * داد به‌روزرسانیِ انبوه رویدادِ مدل شلیک نمی‌کند و از تور رد می‌شود:
+ *
+ *     WalletTransaction::where(...)->update([...])   ← عوض می‌کرد
+ *     WalletTransaction::where(...)->delete()        ← حذف می‌کرد
+ *
+ * پس مسیرِ کوئری هم با `ImmutableBuilder` بسته شد.
+ *
+ * ⚠️ `DB::table(...)->delete()` همچنان دورش می‌زند — و همین عمدی است:
+ * بازیابیِ بکاپ و هرسِ دوره‌ای باید بتوانند کار کنند.
  */
 trait Immutable
 {
@@ -34,6 +42,12 @@ trait Immutable
     protected static function immutableBlocksDeletion(): bool
     {
         return true;
+    }
+
+    /** مسیرِ کوئری هم باید بسته باشد، نه فقط مسیرِ نمونهٔ مدل. */
+    public function newEloquentBuilder($query): ImmutableBuilder
+    {
+        return new ImmutableBuilder($query);
     }
 
     protected static function bootImmutable(): void

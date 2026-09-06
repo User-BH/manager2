@@ -26,7 +26,7 @@ class BillingFlowTest extends TestCase
 
     private function makeComplex(): Complex
     {
-        return Complex::create([
+        return Complex::create(['type' => 'residential',
             'name' => 'تست', 'currency' => 'toman', 'charge_due_day' => 10,
             'penalty_enabled' => false, 'payment_gateway' => 'fake',
         ]);

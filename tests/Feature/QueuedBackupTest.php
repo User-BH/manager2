@@ -39,7 +39,7 @@ class QueuedBackupTest extends TestCase
 
         Storage::fake('local');
 
-        $this->complex = Complex::create([
+        $this->complex = Complex::create(['type' => 'residential',
             'name' => 'مجتمع صف', 'slug' => 'queue-'.uniqid(), 'currency' => 'toman',
             'charge_due_day' => 10, 'payment_gateway' => 'none', 'messenger_enabled' => true,
         ]);

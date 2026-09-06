@@ -35,7 +35,7 @@ class SubscriptionFlowTest extends TestCase
     {
         parent::setUp();
 
-        $this->complex = Complex::create([
+        $this->complex = Complex::create(['type' => 'residential',
             'name' => 'مجتمع آزمون', 'slug' => 'sub-'.uniqid(), 'currency' => 'toman',
             'charge_due_day' => 10, 'payment_gateway' => 'none',
         ]);
@@ -377,7 +377,7 @@ class SubscriptionFlowTest extends TestCase
     {
         $subscription = $this->activatePro();
 
-        $otherComplex = Complex::create(['name' => 'دیگری', 'slug' => 'other-'.uniqid()]);
+        $otherComplex = Complex::create(['type' => 'residential', 'name' => 'دیگری', 'slug' => 'other-'.uniqid()]);
         $otherAdmin = User::create([
             'complex_id' => $otherComplex->id, 'name' => 'مدیر دیگر', 'phone' => '09121110010',
             'role' => UserRole::ComplexAdmin, 'password' => Hash::make('secret123'), 'is_active' => true,

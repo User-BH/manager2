@@ -31,7 +31,7 @@ class SchemaIntegrityTest extends TestCase
     {
         parent::setUp();
 
-        $this->complex = Complex::create([
+        $this->complex = Complex::create(['type' => 'residential',
             'name' => 'مجتمع اسکیما', 'slug' => 'schema-'.uniqid(), 'currency' => 'toman',
             'charge_due_day' => 10, 'payment_gateway' => 'none', 'messenger_enabled' => true,
         ]);
@@ -99,7 +99,7 @@ class SchemaIntegrityTest extends TestCase
     {
         $this->makeUnit('۵');
 
-        $other = Complex::create([
+        $other = Complex::create(['type' => 'residential',
             'name' => 'مجتمع دوم', 'slug' => 'schema2-'.uniqid(), 'currency' => 'toman',
             'charge_due_day' => 10, 'payment_gateway' => 'none', 'messenger_enabled' => true,
         ]);

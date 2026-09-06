@@ -101,7 +101,7 @@ class MassAssignmentTest extends TestCase
 
     private function complex(string $slug): Complex
     {
-        return Complex::create([
+        return Complex::create(['type' => 'residential',
             'name' => 'مجتمع '.$slug,
             'slug' => $slug.'-'.uniqid(),
             'currency' => 'toman',

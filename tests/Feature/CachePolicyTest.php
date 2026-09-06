@@ -38,7 +38,7 @@ class CachePolicyTest extends TestCase
     {
         parent::setUp();
 
-        $complex = Complex::create([
+        $complex = Complex::create(['type' => 'residential',
             'name' => 'مجتمع کش',
             'slug' => 'cache-'.uniqid(),
             'currency' => 'toman',

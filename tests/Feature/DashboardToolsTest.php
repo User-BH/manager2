@@ -34,7 +34,7 @@ class DashboardToolsTest extends TestCase
     {
         parent::setUp();
 
-        $this->complex = Complex::create([
+        $this->complex = Complex::create(['type' => 'residential',
             'name' => 'مجتمع نگین', 'slug' => 'negin', 'currency' => 'toman',
             'charge_due_day' => 10, 'payment_gateway' => 'fake',
         ]);
@@ -225,7 +225,7 @@ class DashboardToolsTest extends TestCase
 
     public function test_admin_cannot_edit_another_complexs_announcement(): void
     {
-        $otherComplex = Complex::create(['name' => 'مجتمع دیگر', 'slug' => 'other-'.uniqid()]);
+        $otherComplex = Complex::create(['type' => 'residential', 'name' => 'مجتمع دیگر', 'slug' => 'other-'.uniqid()]);
         $foreign = Announcement::withoutGlobalScopes()->create([
             'complex_id' => $otherComplex->id,
             'title' => 'مال مجتمع دیگر',

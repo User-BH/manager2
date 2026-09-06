@@ -31,7 +31,7 @@ class AdvertisementTest extends TestCase
         // هر تست دقیقاً داده‌ی خودش را ببیند، جدول را خالی می‌کنیم.
         Advertisement::query()->delete();
 
-        $complex = Complex::create([
+        $complex = Complex::create(['type' => 'residential',
             'name' => 'مجتمع تبلیغ', 'slug' => 'ads-'.uniqid(), 'currency' => 'toman',
             'charge_due_day' => 10, 'payment_gateway' => 'fake',
         ]);

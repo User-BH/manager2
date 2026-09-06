@@ -34,7 +34,7 @@ class MessageModerationTest extends TestCase
     {
         parent::setUp();
 
-        $this->complex = Complex::create([
+        $this->complex = Complex::create(['type' => 'residential',
             'name' => 'مجتمع پیام', 'slug' => 'msg-'.uniqid(), 'currency' => 'toman',
             'charge_due_day' => 10, 'payment_gateway' => 'none', 'messenger_enabled' => true,
         ]);

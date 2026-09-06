@@ -188,7 +188,7 @@ class QueryProfileTest extends TestCase
     /** ساختِ حجمِ واقعی: واحد، ساکن، قبض، پرداخت، اطلاعیه. */
     private function seedVolume(): void
     {
-        $this->complex = Complex::create([
+        $this->complex = Complex::create(['type' => 'residential',
             'name' => 'مجتمع پرحجم', 'slug' => 'perf-'.uniqid(), 'currency' => 'toman',
             'charge_due_day' => 10, 'payment_gateway' => 'none', 'messenger_enabled' => true,
         ]);

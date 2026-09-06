@@ -40,7 +40,7 @@ class SandboxGatewayTest extends TestCase
     {
         parent::setUp();
 
-        $this->complex = Complex::create([
+        $this->complex = Complex::create(['type' => 'residential',
             'name' => 'مجتمع سندباکس', 'slug' => 'sbx-'.uniqid(), 'currency' => 'toman',
             'charge_due_day' => 10, 'payment_gateway' => 'fake',
         ]);

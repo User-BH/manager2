@@ -28,7 +28,7 @@ class StoreComplexRequest extends BaseFormRequest
              * تغییرِ شکننده است. خالی یعنی مسکونی، و فرمِ پنل همیشه پرش
              * می‌کند.
              */
-            'type' => ['nullable', Rule::in(ComplexType::values())],
+            'type' => ['required', Rule::in(ComplexType::values())],
             'address' => ['nullable', 'string', 'max:255'],
             'admin_name' => ['required', 'string', 'max:120'],
             // ورود سامانه با شماره تلفن است، پس مدیر مجتمع حتماً باید شماره

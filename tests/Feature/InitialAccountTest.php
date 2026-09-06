@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Enums\AccountState;
+use App\Enums\ComplexType;
 use App\Enums\UserRole;
 use App\Models\Announcement;
 use App\Models\Bill;
@@ -304,6 +305,8 @@ class InitialAccountTest extends TestCase
             ->postJson('/api/v1/subscription/receipt', [
                 'plan' => $plan->slug,
                 'complex_name' => 'مجتمع تازه‌ساز',
+                // نوع از فاز ۱ اجباری است
+                'complex_type' => 'residential',
                 'receipt' => UploadedFile::fake()->image('r.jpg', 30, 30),
             ])
             ->assertStatus(201);
@@ -324,6 +327,7 @@ class InitialAccountTest extends TestCase
         $this->actingAs($this->fresh)->postJson('/api/v1/subscription/receipt', [
             'plan' => $plan->slug,
             'complex_name' => 'مجتمع تازه‌ساز',
+            'complex_type' => 'residential',
             'receipt' => UploadedFile::fake()->image('r.jpg', 30, 30),
         ])->assertStatus(201);
 
@@ -362,10 +366,10 @@ class InitialAccountTest extends TestCase
     {
         $upgrader = app(ComplexUpgrader::class);
 
-        $upgrader->upgrade($this->fresh, 'اولی');
+        $upgrader->upgrade($this->fresh, 'اولی', null, ComplexType::Residential);
 
         $this->expectExceptionMessage('از قبل به یک مجتمع وصل است');
-        $upgrader->upgrade($this->fresh->fresh(), 'دومی');
+        $upgrader->upgrade($this->fresh->fresh(), 'دومی', null, ComplexType::Residential);
     }
 
     public function test_upgrading_cancels_any_pending_invitation(): void
@@ -376,7 +380,7 @@ class InitialAccountTest extends TestCase
          */
         $invitation = $this->invite();
 
-        app(ComplexUpgrader::class)->upgrade($this->fresh, 'مجتمع خودم');
+        app(ComplexUpgrader::class)->upgrade($this->fresh, 'مجتمع خودم', null, ComplexType::Residential);
 
         $this->assertSame(ComplexInvitation::DECLINED, $invitation->fresh()->status);
     }

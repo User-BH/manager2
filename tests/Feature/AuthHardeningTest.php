@@ -242,6 +242,8 @@ class AuthHardeningTest extends TestCase
         $this->actingAs($this->superAdmin())
             ->postJson('/api/v1/system/complexes', [
                 'name' => 'مجتمع نو',
+                // نوع از فاز ۱ اجباری است؛ این تست دربارهٔ رمز است نه نوع
+                'type' => 'residential',
                 'admin_name' => 'مدیر',
                 'admin_phone' => '09121112233',
                 'admin_password' => 'goodpass99',

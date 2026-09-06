@@ -44,7 +44,7 @@ class OperationalHardeningTest extends TestCase
     {
         parent::setUp();
 
-        $this->complex = Complex::create([
+        $this->complex = Complex::create(['type' => 'residential',
             'name' => 'مجتمع عملیاتی', 'slug' => 'ops-'.uniqid(), 'currency' => 'toman',
             'charge_due_day' => 10, 'payment_gateway' => 'none', 'messenger_enabled' => true,
         ]);
@@ -137,7 +137,7 @@ class OperationalHardeningTest extends TestCase
     {
         Storage::fake('local');
 
-        $other = Complex::create([
+        $other = Complex::create(['type' => 'residential',
             'name' => 'مجتمع دوم', 'slug' => 'ops2-'.uniqid(), 'currency' => 'toman',
             'charge_due_day' => 10, 'payment_gateway' => 'none',
         ]);

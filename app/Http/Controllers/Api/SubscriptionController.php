@@ -110,7 +110,7 @@ class SubscriptionController extends Controller
                 $data['complex_name'],
                 $data['complex_address'] ?? null,
                 // ⚠️ نوع همین‌جا تثبیت می‌شود و بعد فقط ادمینِ کل عوضش می‌کند (R67)
-                ComplexType::tryFrom($data['complex_type'] ?? '') ?? ComplexType::default(),
+                ComplexType::from($data['complex_type']),
             )
             : $this->requireComplex();
 

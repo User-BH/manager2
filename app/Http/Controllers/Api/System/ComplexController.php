@@ -68,7 +68,7 @@ class ComplexController extends Controller
             'name' => $data['name'],
             'slug' => Str::slug($data['name']).'-'.Str::random(4),
             // نوع (R67) — تعرفه‌ی پکیج‌های اشتراک از روی همین تعیین می‌شود
-            'type' => ComplexType::tryFrom($data['type'] ?? '') ?? ComplexType::default(),
+            'type' => ComplexType::from($data['type']),
             'address' => $data['address'] ?? null,
             'payment_gateway' => 'none',
         ]);

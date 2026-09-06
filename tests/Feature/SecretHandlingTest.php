@@ -55,7 +55,7 @@ class SecretHandlingTest extends TestCase
 
     private function complex(): Complex
     {
-        return Complex::create([
+        return Complex::create(['type' => 'residential',
             'name' => 'مجتمع راز',
             'slug' => 'secret-'.uniqid(),
             'currency' => 'toman',

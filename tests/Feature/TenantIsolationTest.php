@@ -60,7 +60,7 @@ class TenantIsolationTest extends TestCase
      */
     private function buildComplex(string $slug, string $phonePrefix): array
     {
-        $complex = Complex::create([
+        $complex = Complex::create(['type' => 'residential',
             'name' => 'مجتمع '.$slug, 'slug' => $slug.'-'.uniqid(), 'currency' => 'toman',
             'charge_due_day' => 10, 'payment_gateway' => 'fake', 'messenger_enabled' => true,
         ]);

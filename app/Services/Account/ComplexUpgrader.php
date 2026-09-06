@@ -34,8 +34,8 @@ class ComplexUpgrader
     public function upgrade(
         User $user,
         string $complexName,
-        ?string $address = null,
-        ?ComplexType $type = null,
+        ?string $address,
+        ComplexType $type,
     ): Complex {
         if (AccountState::of($user) !== AccountState::Initial) {
             throw DomainException::invalid(
@@ -43,8 +43,6 @@ class ComplexUpgrader
                 'account.already_member',
             );
         }
-
-        $type ??= ComplexType::default();
 
         return DB::transaction(function () use ($user, $complexName, $address, $type): Complex {
             /*

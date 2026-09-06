@@ -46,6 +46,7 @@ class DemoSeeder extends Seeder
         $complex = Complex::create([
             'name' => 'مجتمع مسکونی آفتاب',
             'slug' => 'aftab',
+            'type' => 'residential',
             'address' => 'تهران، خیابان نمونه، پلاک ۱۲',
             'phone' => '02112345678',
             'currency' => 'toman',

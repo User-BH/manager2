@@ -54,7 +54,7 @@ class SpaShellTest extends TestCase
 
     public function test_complex_admins_cannot_reach_system_endpoints(): void
     {
-        $complex = Complex::create(['name' => 'مجتمع تست', 'slug' => 'test-'.uniqid()]);
+        $complex = Complex::create(['type' => 'residential', 'name' => 'مجتمع تست', 'slug' => 'test-'.uniqid()]);
 
         $admin = User::create([
             'complex_id' => $complex->id,
@@ -76,7 +76,7 @@ class SpaShellTest extends TestCase
     /** اعتبارنامه‌ی درگاه بانکی هرگز نباید در پاسخ API دیده شود. */
     public function test_settings_never_expose_the_gateway_password(): void
     {
-        $complex = Complex::create([
+        $complex = Complex::create(['type' => 'residential',
             'name' => 'مجتمع رمزدار', 'slug' => 'secret-'.uniqid(),
             'gateway_config' => ['terminal_id' => '123', 'username' => 'u', 'password' => 'SUPERSECRET'],
         ]);

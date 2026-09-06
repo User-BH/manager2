@@ -38,8 +38,8 @@ class CrossTenantReferenceTest extends TestCase
     {
         parent::setUp();
 
-        $this->mine = Complex::create(['name' => 'مجتمع من', 'slug' => 'mine-'.uniqid()]);
-        $this->theirs = Complex::create(['name' => 'مجتمع دیگر', 'slug' => 'theirs-'.uniqid()]);
+        $this->mine = Complex::create(['type' => 'residential', 'name' => 'مجتمع من', 'slug' => 'mine-'.uniqid()]);
+        $this->theirs = Complex::create(['type' => 'residential', 'name' => 'مجتمع دیگر', 'slug' => 'theirs-'.uniqid()]);
 
         $this->admin = User::create([
             'complex_id' => $this->mine->id, 'name' => 'مدیر من', 'phone' => '09125550001',

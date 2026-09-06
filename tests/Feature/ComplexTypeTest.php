@@ -8,9 +8,12 @@ use App\Models\Complex;
 use App\Models\Plan;
 use App\Models\Subscription;
 use App\Models\User;
+use App\Services\Account\ComplexUpgrader;
 use App\Support\PrivateFiles;
+use Illuminate\Database\QueryException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Storage;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -383,13 +386,22 @@ class ComplexTypeTest extends TestCase
     }
 
     /**
-     * ⚠️ نبودنِ فیلد یعنی مسکونی — و این عمدی است.
+     * 🔴 نبودنِ نوع دیگر «مسکونی» معنی نمی‌دهد — رد می‌شود (فاز ۱).
      *
-     * قاعده‌ی `docs/API_COMPATIBILITY.md`: فیلدِ اجباریِ تازه در بدنه‌ی
-     * درخواست تغییرِ شکننده است و تبِ بازِ کاربر را وسطِ خرید می‌شکند. پس
-     * گامِ Expand اختیاری است و فرانت همیشه می‌فرستدش.
+     * ─── این تست عمداً برعکسِ نسخه‌ی قبلی‌اش است ────────────────────────────
+     * ⚠️ نسخه‌ی قبلی می‌سنجید که نبودنِ فیلد **بپذیرد** و مسکونی ثبت کند، با
+     * این استدلال که فیلدِ اجباریِ تازه تبِ بازِ کاربر را می‌شکند و «فرانت
+     * همیشه می‌فرستدش».
+     *
+     * 🔴 آن استدلال روی فرضی غلط بنا شده بود: بازبینیِ فاز ۱ نشان داد **هیچ
+     * فرمی در فرانت این فیلد را نمی‌فرستد** — در واقع هیچ فرمی اصلاً مجتمع
+     * نمی‌سازد. یعنی آن «سازگاری» چیزی را حفظ نمی‌کرد؛ فقط باعث می‌شد هر
+     * مجتمعِ تجاری بی‌صدا مسکونی ثبت شود و تعرفه‌ی اشتباه بگیرد.
+     *
+     * تست حذف نشد — **معکوس** شد، تا اگر روزی کسی پیش‌فرض را برگرداند،
+     * همین‌جا قرمز شود.
      */
-    public function test_an_older_client_that_omits_the_type_still_works(): void
+    public function test_a_missing_type_is_refused_instead_of_defaulting(): void
     {
         $this->plan('both', null, 200000);
 
@@ -401,9 +413,14 @@ class ComplexTypeTest extends TestCase
                 'complex_name' => 'مجتمعِ بی‌نوع',
                 'receipt' => UploadedFile::fake()->image('r.jpg'),
             ])
-            ->assertCreated();
+            ->assertStatus(422)
+            ->assertJsonValidationErrors('complex_type');
 
-        $this->assertSame(ComplexType::Residential, $buyer->fresh()->complex->type);
+        /*
+         * ⚠️ ادعای اصلی این است، نه کدِ ۴۲۲: **هیچ مجتمعی ساخته نشده باشد.**
+         * اعتبارسنجی‌ای که رد کند ولی رکورد بسازد، بدتر از نبودنش است.
+         */
+        $this->assertNull($buyer->fresh()->complex_id, 'با وجودِ رد شدن، مجتمع ساخته شد.');
     }
 
     public function test_the_super_admin_creation_form_records_the_type(): void
@@ -492,4 +509,95 @@ class ComplexTypeTest extends TestCase
     }
 
     private ?User $superAdmin = null;
+
+    /**
+     * 🔴 امضای ارتقادهنده نباید نوع را اختیاری کند.
+     *
+     * ─── این تست هم از خرابکاری آمد ────────────────────────────────────────
+     * ⚠️ خرابکاریِ «`ComplexType $type` را دوباره `?ComplexType $type = null`
+     * کن» از تور رد شد. هیچ تستی قرمز نشد، چون همه‌ی فراخوان‌ها نوع را
+     * می‌فرستند — تا روزی که یکی نفرستد.
+     *
+     * محافظِ واقعیِ آن مسیر **خودِ اعلانِ نوعِ PHP** است، نه یک شرطِ داخلِ
+     * متد. و اعلانِ نوع را نمی‌شود با فراخوانی سنجید (کامپایلر جلویش را
+     * می‌گیرد)، پس از بازتاب پرسیده می‌شود.
+     *
+     * ⚠️ این تنها جای فاز ۱ است که به‌جای رفتار، **امضا** سنجیده می‌شود — و
+     * دلیلش این است که خودِ امضا اینجا محافظ است.
+     */
+    public function test_the_upgrader_cannot_be_called_without_a_type(): void
+    {
+        $parameter = collect(
+            (new \ReflectionMethod(ComplexUpgrader::class, 'upgrade'))->getParameters()
+        )->firstWhere(fn (\ReflectionParameter $p): bool => $p->getName() === 'type');
+
+        $this->assertNotNull($parameter, 'پارامترِ `type` از ارتقادهنده حذف شده است.');
+        $this->assertFalse($parameter->allowsNull(), 'نوع دوباره nullable شد؛ نبودنش بی‌صدا مسکونی می‌شود.');
+        $this->assertFalse($parameter->isDefaultValueAvailable(), 'نوع پیش‌فرض گرفت؛ پیش‌فرضِ خطرناک برگشت.');
+    }
+
+    /** ⚠️ مقدارِ نامعتبر هم باید رد شود، نه اینکه به پیش‌فرض بیفتد. */
+    public function test_an_invalid_type_is_refused(): void
+    {
+        $this->plan('both', null, 200000);
+
+        $buyer = User::factory()->create(['role' => UserRole::Owner->value, 'complex_id' => null, 'is_active' => true]);
+
+        $this->actingAs($buyer)
+            ->postJson('/api/v1/subscription/receipt', [
+                'plan' => 'both',
+                'complex_name' => 'مجتمعِ جعلی',
+                'complex_type' => 'industrial',
+                'receipt' => UploadedFile::fake()->image('r.jpg'),
+            ])
+            ->assertStatus(422)
+            ->assertJsonValidationErrors('complex_type');
+
+        $this->assertNull($buyer->fresh()->complex_id);
+    }
+
+    /** ⚠️ مسیرِ ادمینِ کل هم همان قاعده را دارد. */
+    public function test_the_admin_creation_path_also_refuses_a_missing_type(): void
+    {
+        $this->actingAs($this->superAdmin())
+            ->postJson('/api/v1/system/complexes', [
+                'name' => 'مجتمعِ بی‌نوع',
+                'admin_name' => 'مدیر',
+                'admin_phone' => '09121112244',
+                'admin_password' => 'abcd1234',
+            ])
+            ->assertStatus(422)
+            ->assertJsonValidationErrors('type');
+
+        $this->assertDatabaseMissing('complexes', ['name' => 'مجتمعِ بی‌نوع']);
+    }
+
+    /**
+     * 🔴 عمیق‌ترین لایه: دیتابیس هم نباید جای خالی را پر کند.
+     *
+     * ─── این تست را خرابکاری خواست ─────────────────────────────────────────
+     * ⚠️ سه خرابکاریِ فاز ۱ از تور رد شدند: برگرداندنِ پیش‌فرض در سرویس، در
+     * کنترلر، و اختیاری‌کردنِ پارامترِ ارتقادهنده. هیچ‌کدام تستی را قرمز
+     * نکردند.
+     *
+     * علتش یکی بود: ستونِ `complexes.type` پیش‌فرضِ `residential` داشت، پس
+     * هر مسیری که نوع را جا می‌انداخت **بی‌صدا** مسکونی می‌شد. اعتبارسنجیِ
+     * فرم مسیرِ HTTP را می‌بست، ولی مهاجرت، صف، کنسول و seeder از کنارش رد
+     * می‌شدند.
+     *
+     * پیش‌فرض برداشته شد. حالا نبودِ نوع خطای دیتابیس می‌دهد — بلند و
+     * غیرقابلِ‌نادیده‌گرفتن.
+     */
+    public function test_the_database_refuses_a_complex_without_a_type(): void
+    {
+        $this->expectException(QueryException::class);
+
+        DB::table('complexes')->insert([
+            'name' => 'مجتمعِ بی‌نوع',
+            'slug' => 'no-type-'.uniqid(),
+            'currency' => 'toman',
+            'charge_due_day' => 10,
+            'payment_gateway' => 'none',
+        ]);
+    }
 }

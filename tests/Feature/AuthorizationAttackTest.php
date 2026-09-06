@@ -78,7 +78,7 @@ class AuthorizationAttackTest extends TestCase
     {
         parent::setUp();
 
-        $this->complex = Complex::create([
+        $this->complex = Complex::create(['type' => 'residential',
             'name' => 'مجتمع آزمون',
             'slug' => 'attack-'.uniqid(),
             'currency' => 'toman',

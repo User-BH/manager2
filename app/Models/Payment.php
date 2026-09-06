@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Enums\PaymentMethod;
 use App\Enums\PaymentStatus;
+use App\Exceptions\DomainException;
 use App\Models\Concerns\BelongsToComplex;
 use App\Models\Concerns\NeverDeleted;
 use App\Services\Payment\GatewayOrder;
@@ -63,6 +64,47 @@ class Payment extends Model implements GatewayOrder
             if ($payment->receipt_path) {
                 PrivateFiles::disk()->delete($payment->receipt_path);
             }
+        });
+
+        /*
+         * 🔴 وضعیت فقط از مسیرهای مجاز عبور می‌کند (فاز ۱).
+         *
+         * ─── چه چیزی باز بود ───────────────────────────────────────────────
+         * `PaymentService::settle()` پیش از تسویه فقط یک حالت را رد می‌کرد:
+         *
+         *     if ($fresh->status === PaymentStatus::Success) return false;
+         *
+         * ⚠️ یعنی پرداختِ **ناموفق** یا **ردشده** با فراخوانیِ دوباره موفق
+         * می‌شد و پولی که هرگز نیامده بود روی بدهی می‌نشست. و `reject()`
+         * هیچ شرطی نداشت: پرداختِ تسویه‌شده را می‌شد رد کرد، بی‌آنکه پولش
+         * برگردد.
+         *
+         * ─── چرا اینجا و نه در سرویس ───────────────────────────────────────
+         * شرطِ داخلِ سرویس فقط همان یک مسیر را می‌بندد. کنترلر، کارِ صف،
+         * دستورِ کنسول و `tinker` هرکدام راهِ خودشان را دارند. قاعده جایی
+         * می‌نشیند که **همه‌ی مسیرها از آن می‌گذرند**.
+         *
+         * ⚠️ مرزِ صریح: به‌روزرسانیِ انبوه رویدادِ مدل شلیک نمی‌کند. تنها
+         * مسیرِ انبوهِ زنده (`GatewayController`) محافظش را در خودِ SQL دارد
+         * (`->where('status', Pending)`) و تستِ جداگانه‌ای همان را می‌سنجد.
+         */
+        static::updating(function (Payment $payment) {
+            if (! $payment->isDirty('status')) {
+                return;
+            }
+
+            $from = $payment->getOriginal('status');
+            $from = $from instanceof PaymentStatus ? $from : PaymentStatus::from((string) $from);
+            $to = $payment->status;
+
+            if ($from === $to || $from->canTransitionTo($to)) {
+                return;
+            }
+
+            throw DomainException::invalid(
+                "پرداختِ «{$from->label()}» نمی‌تواند به «{$to->label()}» برود.",
+                'payment.invalid_transition',
+            );
         });
     }
 

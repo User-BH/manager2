@@ -40,7 +40,7 @@ class SystemRestoreTest extends TestCase
         // مهاجرت، سه بنر پیش‌فرض درج می‌کند؛ تست‌های شمارش باید از صفر شروع کنند
         Advertisement::query()->delete();
 
-        $this->complex = Complex::create([
+        $this->complex = Complex::create(['type' => 'residential',
             'name' => 'مجتمع اصلی', 'slug' => 'restore-'.uniqid(), 'currency' => 'toman',
             'charge_due_day' => 10, 'payment_gateway' => 'none',
         ]);
@@ -132,7 +132,7 @@ class SystemRestoreTest extends TestCase
         $file = $this->realBackupFile();
 
         // یک مجتمع تازه که در فایل بکاپ نیست
-        Complex::create([
+        Complex::create(['type' => 'residential',
             'name' => 'مجتمع بعد از بکاپ', 'slug' => 'later-'.uniqid(),
             'currency' => 'toman', 'charge_due_day' => 10, 'payment_gateway' => 'none',
         ]);
@@ -179,7 +179,7 @@ class SystemRestoreTest extends TestCase
     {
         $file = $this->realBackupFile();
 
-        $extra = Complex::create([
+        $extra = Complex::create(['type' => 'residential',
             'name' => 'مجتمع اضافه', 'slug' => 'extra-'.uniqid(),
             'currency' => 'toman', 'charge_due_day' => 10, 'payment_gateway' => 'none',
         ]);
