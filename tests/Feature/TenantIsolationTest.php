@@ -17,13 +17,16 @@ use App\Models\Expense;
 use App\Models\Income;
 use App\Models\Message;
 use App\Models\Payment;
+use App\Models\ServiceRequest;
 use App\Models\Unit;
 use App\Models\User;
+use App\Support\PrivateFiles;
 use App\Support\TenantContext;
 use Illuminate\Contracts\Http\Kernel;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Routing\Middleware\SubstituteBindings;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Storage;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Tests\TestCase;
 
@@ -48,6 +51,17 @@ class TenantIsolationTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
+
+        /*
+         * 🔴 دیسکِ خصوصی fake می‌شود و رسیدها **واقعاً** نوشته می‌شوند.
+         *
+         * ⚠️ بدونِ این، مسیرِ دانلودِ رسید برای رکوردِ خودی هم ۴۰۴ می‌داد
+         * (فایل نبود) و تستِ بینامجتمعی‌اش نمی‌توانست بینِ «دسترسی رد شد»
+         * و «فایل وجود ندارد» تفاوت بگذارد — یعنی پوچ بود.
+         *
+         * این را `test_each_attacked_route_really_exists` لو داد.
+         */
+        Storage::fake(PrivateFiles::name());
 
         $this->a = $this->buildComplex('alpha', '09171110');
         $this->b = $this->buildComplex('beta', '09172220');
@@ -85,6 +99,9 @@ class TenantIsolationTest extends TestCase
             'complex_id' => $complex->id, 'relation' => 'owner', 'share_percent' => 100, 'is_current' => true,
         ]);
 
+        Storage::disk(PrivateFiles::name())->put("receipts/{$slug}.jpg", 'x');
+        Storage::disk(PrivateFiles::name())->put("messenger/{$slug}.jpg", 'x');
+
         return [
             'complex' => $complex,
             'admin' => $admin,
@@ -113,15 +130,28 @@ class TenantIsolationTest extends TestCase
             'payment' => Payment::withoutGlobalScopes()->create([
                 'complex_id' => $complex->id, 'unit_id' => $unit->id, 'user_id' => $resident->id,
                 'amount' => 1000, 'method' => PaymentMethod::Receipt, 'status' => PaymentStatus::Pending,
-                'receipt_path' => 'receipts/x.jpg',
+                'receipt_path' => "receipts/{$slug}.jpg",
             ]),
             'announcement' => Announcement::withoutGlobalScopes()->create([
                 'complex_id' => $complex->id, 'title' => 'اطلاعیه '.$slug, 'body' => 'متن',
                 'audience' => 'all', 'is_active' => true, 'published_at' => now(), 'created_by' => $admin->id,
             ]),
+            /*
+             * ⚠️ درخواستِ خدمات تا فاز ۲ اینجا نبود — و شش مسیرِ مدل‌بند
+             * داشت که هیچ‌کدام تستِ بینامجتمعی نداشتند، از جمله دانلودِ
+             * پیوست.
+             */
+            'serviceRequest' => ServiceRequest::withoutGlobalScopes()->create([
+                'complex_id' => $complex->id, 'unit_id' => $unit->id, 'user_id' => $resident->id,
+                'category' => 'facilities', 'priority' => 'normal', 'status' => 'new',
+                'title' => 'خرابیِ آسانسور', 'description' => 'شرح',
+                'attachment_path' => 'service-requests/x.jpg', 'attachment_name' => 'x.jpg',
+            ]),
             'message' => Message::withoutGlobalScopes()->create([
                 'complex_id' => $complex->id, 'user_id' => $resident->id, 'body' => 'پیام',
                 'author_name' => 'ساکن', 'author_role' => 'owner', 'unit_label' => '۱',
+                // پیوستِ واقعی، وگرنه مسیرِ دانلود برای رکوردِ خودی هم ۴۰۴ می‌دهد و تست پوچ می‌شود
+                'attachment_path' => "messenger/{$slug}.jpg", 'attachment_name' => 'x.jpg', 'attachment_kind' => 'image',
             ]),
         ];
     }
@@ -163,6 +193,31 @@ class TenantIsolationTest extends TestCase
             'دانلود رسید پرداخت' => ['GET', 'payments/%d/receipt', 'payment', []],
             'تایید پرداخت' => ['POST', 'payments/%d/approve', 'payment', []],
             'رد پرداخت' => ['POST', 'payments/%d/reject', 'payment', ['note' => 'x']],
+
+            /* ── افزوده‌های فاز ۲: مسیرهایی که سیاهه لو داد ───────────── */
+
+            'خواندنِ واحد' => ['GET', 'units/%d', 'unit', []],
+            'ویرایشِ جزئیِ واحد' => ['PATCH', 'units/%d', 'unit', ['floor' => 9]],
+            // 🔴 موجودیِ کیفِ پولِ واحدِ مجتمعِ دیگر
+            'موجودیِ کیفِ واحد' => ['GET', 'wallet/%d', 'unit', []],
+            'انتقالِ مالکیتِ واحد' => ['POST', 'units/%d/transfer-ownership', 'unit', []],
+
+            'خواندنِ درخواستِ خدمات' => ['GET', 'service-requests/%d', 'serviceRequest', []],
+            // 🔴 دانلودِ پیوستِ درخواستِ مجتمعِ دیگر
+            'پیوستِ درخواستِ خدمات' => ['GET', 'service-requests/%d/attachment', 'serviceRequest', []],
+            'تغییرِ وضعیتِ درخواست' => ['PATCH', 'service-requests/%d/status', 'serviceRequest', ['status' => 'resolved']],
+            'تغییرِ اولویتِ درخواست' => ['PATCH', 'service-requests/%d/priority', 'serviceRequest', ['priority' => 'urgent']],
+            'ارجاعِ درخواست' => ['PATCH', 'service-requests/%d/assign', 'serviceRequest', []],
+            'یادداشت روی درخواست' => ['POST', 'service-requests/%d/comments', 'serviceRequest', ['body' => 'متن']],
+
+            /* ── چهار موردی که محافظِ پوششِ سیستمی لو داد ────────────────── */
+
+            // 🔴 آپلودِ رسید روی قبضِ مجتمعِ دیگر
+            'رسید روی قبضِ دیگری' => ['POST', 'pay/%d/receipt', 'bill', []],
+            // 🔴 پرداختِ قبضِ مجتمعِ دیگر از کیفِ پول
+            'پرداختِ قبضِ دیگری از کیف' => ['POST', 'wallet/pay/%d', 'bill', []],
+            'پیوستِ پیامِ مجتمعِ دیگر' => ['GET', 'messenger/%d/attachment', 'message', []],
+            'خواندنِ اطلاعیهٔ دیگری' => ['POST', 'notifications/%d/read', 'announcement', []],
         ];
     }
 
@@ -181,6 +236,47 @@ class TenantIsolationTest extends TestCase
             $response->status(),
             [403, 404],
             "{$method} {$uri} باید رد شود ولی {$response->status()} برگرداند.",
+        );
+    }
+
+    /**
+     * 🔴 محافظِ ضدِ پوچی — بدونِ این، نیمی از ماتریسِ بالا بی‌معنا می‌شد.
+     *
+     * ─── چرا لازم است ──────────────────────────────────────────────────────
+     * ⚠️ تستِ بینامجتمعی وضعیتِ [۴۰۳، ۴۰۴] را قبول می‌کند. ولی مسیری که
+     * **اصلاً وجود نداشته باشد** هم ۴۰۴ می‌دهد.
+     *
+     * یعنی یک غلطِ تایپی در الگوی مسیر — یا مسیری که روزی حذف شود — تستِ
+     * حمله را سبز نگه می‌دارد در حالی که هیچ حمله‌ای انجام نشده. محافظی که
+     * با نبودِ مسیر سبز بماند، بدتر از نداشتنش است.
+     *
+     * پس همان مسیر روی رکوردِ **خودِ مجتمع A** زده می‌شود: هر چیزی مجاز است
+     * جز ۴۰۴. اگر ۴۰۴ بدهد، یعنی مسیر وجود ندارد و ردیفِ متناظرِ ماتریس
+     * چیزی را اثبات نمی‌کند.
+     */
+    #[DataProvider('crossTenantRoutes')]
+    public function test_each_attacked_route_really_exists(
+        string $method,
+        string $template,
+        string $key,
+        array $payload,
+    ): void {
+        $uri = '/api/'.sprintf($template, $this->a[$key]->id);
+
+        $response = $this->asAdminOfA($method, $uri, $payload);
+
+        /*
+         * ⚠️ `getStatusCode()` و نه `status()`.
+         *
+         * مسیرهای دانلود در حالتِ **موفق** پاسخِ جریانی (`StreamedResponse`)
+         * برمی‌گردانند که متدِ `status()` ندارد. در اجرای فیلترشده این
+         * دیده نمی‌شد و فقط در اجرای کاملِ مجموعه بیرون زد.
+         */
+        $this->assertNotSame(
+            404,
+            $response->getStatusCode(),
+            "{$method} {$uri} روی رکوردِ خودِ مجتمع هم ۴۰۴ داد — یعنی این مسیر وجود ندارد "
+            .'و ردیفِ متناظرش در ماتریسِ حمله پوچ است.',
         );
     }
 

@@ -6,6 +6,7 @@ use App\Http\Controllers\GatewayController;
 use App\Http\Controllers\HealthController;
 use App\Http\Controllers\SeoController;
 use App\Http\Controllers\SubscriptionCheckoutController;
+use App\Http\Middleware\SetCurrentComplex;
 use Illuminate\Foundation\Http\Middleware\PreventRequestForgery;
 use Illuminate\Support\Facades\Route;
 
@@ -142,15 +143,28 @@ Route::middleware('auth')->group(function () {
 |
 | محدودیت نرخ چون مسیر دیگر پشت نشست نیست و نباید بشود شناسه‌ها را پیمود.
 */
+/*
+| ⚠️ `SetCurrentComplex` هم کنار گذاشته می‌شود، و این عمدی است (فاز ۲).
+|
+| از فاز ۲ به بعد، درخواستِ **مهمان** صریحاً از همه‌ی داده‌ی مستأجری محروم
+| می‌شود. ولی بانک دقیقاً به‌صورتِ مهمان برمی‌گردد — بدونِ نشست، و گاهی
+| ساعت‌ها بعد. بدونِ این استثنا، اتصالِ مدلِ مسیر چیزی پیدا نمی‌کرد و
+| callbackِ واقعیِ بانک ۴۰۴ می‌گرفت؛ یعنی پولی که کسر شده هرگز تسویه
+| نمی‌شد.
+|
+| 🔴 پس این دو مسیر همان رفتارِ قبلی را نگه می‌دارند: زمینه‌ی مستأجری
+| ندارند و محافظشان همان است که بالا نوشته شده — تاییدیه‌ی خودِ درگاه به
+| علاوه‌ی محدودیتِ نرخ. هیچ مسیرِ دیگری این استثنا را ندارد.
+*/
 Route::match(['get', 'post'], 'pay/callback/{payment}', [GatewayController::class, 'callback'])
     ->middleware('throttle:gateway-callback')
     ->name('payments.callback')
-    ->withoutMiddleware([PreventRequestForgery::class]);
+    ->withoutMiddleware([PreventRequestForgery::class, SetCurrentComplex::class]);
 
 Route::match(['get', 'post'], 'subscription/callback/{subscription}', [SubscriptionCheckoutController::class, 'callback'])
     ->middleware('throttle:gateway-callback')
     ->name('subscription.callback')
-    ->withoutMiddleware([PreventRequestForgery::class]);
+    ->withoutMiddleware([PreventRequestForgery::class, SetCurrentComplex::class]);
 
 /*
 | بررسیِ سلامت (R43).
