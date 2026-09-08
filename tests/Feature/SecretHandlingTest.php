@@ -127,12 +127,22 @@ class SecretHandlingTest extends TestCase
     }
 
     /**
-     * ⚠️ ردیفِ **قدیمیِ متنِ ساده** باید همچنان خوانده شود.
+     * 🔴 ردیفِ متنِ ساده دیگر بی‌صدا خوانده نمی‌شود — بلند خطا می‌دهد (فاز ۴).
      *
-     * این تحملْ همان چیزی است که مهاجرتِ بی‌قطعی را ممکن می‌کند: در فاصله‌ی
-     * بینِ شروع و پایانِ مهاجرت، هر دو شکل روی دیسک‌اند.
+     * ─── این تست عمداً برعکسِ نسخهٔ قبلی‌اش است ─────────────────────────────
+     * ⚠️ نسخهٔ قبلی می‌سنجید که ردیفِ قدیمی **همچنان خوانده شود**. آن تحمل
+     * در زمانِ خودش درست بود: مهاجرتِ رمزنگاری نمی‌توانست لحظه‌ای باشد و
+     * قطعِ میانی‌اش نباید پرداختِ زنده را می‌شکست.
+     *
+     * 🔴 ولی پذیرشِ بی‌صدا معنایش این بود که هیچ‌کس نمی‌فهمید مهاجرت تمام
+     * شده یا نه. نصبی که اجرایش نکرده بود می‌توانست ماه‌ها با اعتبارنامهٔ
+     * خام کار کند و همه‌چیز سالم به نظر برسد — دقیقاً همان حالتی که
+     * رمزنگاری برای بستنش آمده بود.
+     *
+     * تست حذف نشد، **معکوس** شد: اگر روزی کسی تحمل را برگرداند، همین‌جا
+     * قرمز می‌شود.
      */
-    public function test_a_legacy_plaintext_row_is_still_readable(): void
+    public function test_a_legacy_plaintext_row_is_refused_with_a_usable_message(): void
     {
         $complex = $this->complex();
 
@@ -140,7 +150,47 @@ class SecretHandlingTest extends TestCase
             'gateway_config' => json_encode(self::GATEWAY, JSON_UNESCAPED_UNICODE),
         ]);
 
-        $this->assertEquals(self::GATEWAY, Complex::find($complex->id)->gateway_config);
+        try {
+            Complex::find($complex->id)->gateway_config;
+            $this->fail('🔴 ردیفِ متنِ ساده بی‌صدا پذیرفته شد.');
+        } catch (RuntimeException $e) {
+            /*
+             * ⚠️ ادعا فقط «استثنا داد» نیست. خطایی که نگوید چه باید کرد،
+             * فقط جای خرابیِ خاموش را با خرابیِ پرسروصدا عوض می‌کند.
+             */
+            $this->assertStringContainsString('migrate --force', $e->getMessage());
+            $this->assertStringContainsString('secrets:audit', $e->getMessage());
+        }
+    }
+
+    /**
+     * 🔴 و ابزارِ پویش باید همان ردیف را پیدا کند.
+     *
+     * ⚠️ اصلاحیه صریح می‌گوید پیش از حذفِ تحمل باید دیتابیس پویش شود. بدونِ
+     * این دستور، اپراتور راهی برای دانستنِ وضعیت ندارد و حذفِ تحمل تبدیل
+     * می‌شود به یک شرط‌بندی.
+     */
+    public function test_the_audit_command_finds_a_plaintext_row(): void
+    {
+        $complex = $this->complex();
+
+        DB::table('complexes')->where('id', $complex->id)->update([
+            'gateway_config' => json_encode(self::GATEWAY, JSON_UNESCAPED_UNICODE),
+        ]);
+
+        $this->artisan('secrets:audit')
+            ->expectsOutputToContain('gateway_config')
+            ->assertExitCode(1);
+    }
+
+    /** ⚠️ و روی دادهٔ سالم باید ساکت و سبز باشد، وگرنه هشدارش بی‌معنا می‌شود. */
+    public function test_the_audit_command_is_clean_when_everything_is_encrypted(): void
+    {
+        $complex = $this->complex();
+        $complex->gateway_config = self::GATEWAY;
+        $complex->save();
+
+        $this->artisan('secrets:audit')->assertExitCode(0);
     }
 
     /** و اولین ذخیره‌ی بعدی باید همان ردیف را رمز کند. */
