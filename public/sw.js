@@ -162,6 +162,43 @@ async function trim(cacheName, max) {
   }
 }
 
+/**
+ * 🔴 کلیدِ کش — با پارامترهای بی‌اثر حذف‌شده (فاز ۴، بخشِ PWA).
+ *
+ * ─── مسئله ─────────────────────────────────────────────────────────────────
+ * ⚠️ Cache Storage کلید را از **کلِ URL** می‌سازد، شاملِ رشته‌ی پرسش. یعنی
+ * این‌ها چهار ورودیِ جدا می‌شوند، با اینکه سرور برای هر چهار **یک چیز**
+ * برمی‌گرداند:
+ *
+ *     /api/v1/ads        /api/v1/ads?x=1        /api/v1/ads?x=2  ...
+ *
+ * سقفِ `LIMIT` جلوی رشدِ بی‌نهایت را می‌گیرد، ولی مهاجم می‌تواند با چند ده
+ * آدرسِ بی‌معنی کشِ واقعی را **بیرون بریزد** — نه سرریز، بلکه پاک‌سازیِ
+ * هدفمند. آن‌وقت کاربر در قطعیِ شبکه چیزی برای نشان‌دادن ندارد.
+ *
+ * ─── تصمیم، به تفکیکِ سیاست ────────────────────────────────────────────────
+ * ⚠️ نمی‌شود پارامترها را همه‌جا دور ریخت:
+ *
+ *   • دارایی و تصویر → **نگه داشته می‌شود**. `?v=` نسخه‌بندی است؛ حذفش
+ *     یعنی نسخه‌ی قدیمیِ فایل سرو شود.
+ *   • مسیرهای عمومیِ API و صفحه‌ها → **دور ریخته می‌شود**. سنجیده شد که
+ *     هیچ‌کدام از چهار مسیرِ عمومی پارامتر نمی‌گیرند (`ads` یک `get()`
+ *     ساده است، بدونِ صفحه‌بندی)، و صفحه‌ها پوسته‌ی یکسانِ SPA‌اند.
+ *
+ * 🔴 اگر روزی مسیرِ عمومی‌ای پارامترِ معنادار بگیرد — مثلاً صفحه‌بندی — این
+ * تصمیم باید عوض شود، وگرنه صفحه‌ی دومِ آفلاین همان صفحه‌ی اول را نشان
+ * می‌دهد.
+ */
+function cacheKeyFor(request, normalize) {
+  if (!normalize) return request
+
+  const url = new URL(request.url)
+
+  url.search = ''
+
+  return new Request(url.toString(), { method: 'GET', headers: request.headers })
+}
+
 /** کش اول؛ برای چیزی که با نامش نسخه‌بندی شده و هرگز عوض نمی‌شود. */
 async function cacheFirst(request, cacheName, max) {
   const cache = await caches.open(cacheName)
@@ -205,20 +242,27 @@ async function staleWhileRevalidate(request, cacheName) {
  * قبض و موجودی و پیام باید تازه باشند. کش فقط تورِ ایمنیِ حالتِ آفلاین
  * است، نه منبعِ اول.
  */
-async function networkFirst(request, cacheName, max) {
+async function networkFirst(request, cacheName, max, normalize) {
   const cache = await caches.open(cacheName)
+
+  /*
+   * ⚠️ درخواست به شبکه **همان درخواستِ اصلی** است؛ فقط کلیدِ کش نرمال
+   * می‌شود. اگر آدرسِ نرمال‌شده را می‌فرستادیم، پارامترهایی که سرور
+   * لازم دارد از بین می‌رفتند.
+   */
+  const key = cacheKeyFor(request, normalize)
 
   try {
     const response = await fetch(request)
 
     if (cacheable(response)) {
-      await cache.put(request, response.clone())
+      await cache.put(key, response.clone())
       if (max) trim(cacheName, max)
     }
 
     return response
   } catch (error) {
-    const hit = await cache.match(request)
+    const hit = await cache.match(key)
 
     if (hit) return hit
 
@@ -287,6 +331,8 @@ const POLICY = [
     strategy: 'networkFirst',
     cache: () => CACHE.api,
     limit: () => LIMIT.api,
+    // پارامتر ندارند؛ کلید نرمال می‌شود تا آدرسِ ساختگی کش را بیرون نریزد
+    normalize: true,
   },
   {
     // 🔴 منعِ پیش‌فرض — هر چیزِ دیگری زیرِ /api هرگز روی دیسک نمی‌نشیند
@@ -321,6 +367,8 @@ const POLICY = [
     strategy: 'networkFirst',
     cache: () => CACHE.pages,
     limit: () => LIMIT.pages,
+    // پوستهٔ SPA برای هر پرسشی یکی است
+    normalize: true,
   },
 ]
 
@@ -339,6 +387,7 @@ function policyFor(url) {
  */
 self.__policyFor = policyFor
 self.__cacheable = cacheable
+self.__cacheKeyFor = cacheKeyFor
 
 /* ─────────────────────────── مسیریابی ─────────────────────────── */
 
@@ -376,11 +425,19 @@ self.addEventListener('fetch', (event) => {
       (async () => {
         const cache = await caches.open(CACHE.pages)
 
+        /*
+         * ⚠️ شاخهٔ پیمایش عمداً از `networkFirst` نمی‌گذرد (پیش‌بارگذاری
+         * و صفحهٔ آفلاین را لازم دارد)، پس کلیدِ نرمال‌شده باید همین‌جا
+         * ساخته شود — وگرنه صفحه‌ها از نرمال‌سازی جا می‌مانند و همان
+         * راهِ بیرون‌ریختنِ کش باز می‌ماند.
+         */
+        const key = cacheKeyFor(request, true)
+
         try {
           const preloaded = await event.preloadResponse
 
           if (preloaded) {
-            if (cacheable(preloaded)) cache.put(request, preloaded.clone())
+            if (cacheable(preloaded)) cache.put(key, preloaded.clone())
 
             return preloaded
           }
@@ -392,13 +449,13 @@ self.addEventListener('fetch', (event) => {
           const fresh = await fetch(request)
 
           if (cacheable(fresh)) {
-            cache.put(request, fresh.clone())
+            cache.put(key, fresh.clone())
             trim(CACHE.pages, LIMIT.pages)
           }
 
           return fresh
         } catch {
-          const cached = await cache.match(request)
+          const cached = await cache.match(key)
 
           // اگر حتی صفحه‌ی آفلاین هم نبود، خطای خام بهتر از پاسخِ خالی است
           return cached || (await caches.match(OFFLINE_URL)) || Response.error()
@@ -431,5 +488,5 @@ self.addEventListener('fetch', (event) => {
     return
   }
 
-  event.respondWith(networkFirst(request, rule.cache(), rule.limit?.()))
+  event.respondWith(networkFirst(request, rule.cache(), rule.limit?.(), rule.normalize))
 })

@@ -28,11 +28,16 @@ import { describe, expect, it } from 'vitest'
 interface Rule {
   name: string
   strategy: string
+  normalize?: boolean
 }
 
 interface SwSandbox {
   __policyFor: (url: URL) => Rule
   __cacheable: (response: unknown) => boolean
+  __cacheKeyFor: (
+    request: { url: string; headers: unknown },
+    normalize?: boolean,
+  ) => { url: string }
 }
 
 function loadServiceWorker(): SwSandbox {
@@ -62,6 +67,7 @@ function loadServiceWorker(): SwSandbox {
     },
     fetch: () => Promise.resolve(undefined),
     URL,
+    Request,
     console,
   }
 
@@ -219,5 +225,56 @@ describe('نسخه‌ی کش', () => {
     const source = readFileSync(resolve(process.cwd(), 'public/sw.js'), 'utf8')
 
     expect(source).toContain('api: `sakena-api-${VERSION}`')
+  })
+})
+
+describe('نرمال‌سازیِ کلیدِ کش', () => {
+  const keyFor = (path: string, normalize?: boolean) =>
+    sw.__cacheKeyFor(
+      { url: new URL(path, 'https://sakena.test').toString(), headers: new Headers() },
+      normalize,
+    ).url
+
+  /**
+   * 🔴 آدرس‌های ساختگی نباید ورودیِ جدا بسازند.
+   *
+   * ─── حمله‌ای که این را لازم کرد ──────────────────────────────────────────
+   * ⚠️ Cache Storage کلید را از **کلِ URL** می‌سازد. پس `?x=1` تا `?x=99`
+   * نود‌ونه ورودیِ جدا می‌شوند، با اینکه سرور برای همه یک چیز می‌دهد.
+   *
+   * سقفِ `LIMIT` جلوی رشدِ بی‌نهایت را می‌گیرد، ولی مهاجم می‌تواند با چند
+   * ده آدرسِ بی‌معنی کشِ **واقعی** را بیرون بریزد. آن‌وقت کاربر در قطعیِ
+   * شبکه چیزی برای دیدن ندارد — نه سرریز، بلکه پاک‌سازیِ هدفمند.
+   */
+  it('پارامترهای بی‌اثر از کلید حذف می‌شوند', () => {
+    const base = keyFor('/api/v1/ads', true)
+
+    expect(keyFor('/api/v1/ads?x=1', true)).toBe(base)
+    expect(keyFor('/api/v1/ads?x=2&y=3', true)).toBe(base)
+    expect(base).toBe('https://sakena.test/api/v1/ads')
+  })
+
+  /**
+   * ⚠️ و برعکسش لازم است: دارایی‌ها باید پارامترشان را نگه دارند.
+   *
+   * 🔴 `?v=` نسخه‌بندی است. اگر حذف شود، نسخه‌ی قدیمیِ فایل از کش سرو
+   * می‌شود و به‌روزرسانی هرگز به کاربر نمی‌رسد — یعنی محافظِ ضدِ مسمومیت
+   * خودش یک باگِ بدتر می‌سازد.
+   */
+  it('برای دارایی‌ها پارامتر دست‌نخورده می‌ماند', () => {
+    expect(keyFor('/build/app.js?v=abc', false)).toBe('https://sakena.test/build/app.js?v=abc')
+    expect(keyFor('/ads/7/image?v=2', false)).not.toBe(keyFor('/ads/7/image?v=3', false))
+  })
+
+  /** ⚠️ و جدولِ سیاست باید همین تفکیک را اعلام کند، نه چیزِ دیگری. */
+  it('فقط سیاست‌های بی‌پارامتر نرمال‌سازی دارند', () => {
+    const rule = (path: string) => sw.__policyFor(new URL(path, 'https://sakena.test'))
+
+    expect(rule('/api/v1/ads').normalize).toBe(true)
+    expect(rule('/dashboard').normalize).toBe(true)
+
+    expect(rule('/build/app.js').normalize).toBeUndefined()
+    expect(rule('/ads/7/image').normalize).toBeUndefined()
+    expect(rule('/logo.png').normalize).toBeUndefined()
   })
 })
