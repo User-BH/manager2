@@ -1,0 +1,223 @@
+{
+  "/api/v1/me": {
+    "csrfToken": "string",
+    "user": {
+      "accountState": "string",
+      "canWrite": "bool",
+      "complex": {
+        "id": "int",
+        "name": "string",
+        "occupantLabel": "string",
+        "occupantPluralLabel": "string",
+        "type": "string",
+        "typeLabel": "string",
+        "unitLabel": "string"
+      },
+      "id": "int",
+      "isAdmin": "bool",
+      "isSuperAdmin": "bool",
+      "name": "string",
+      "pendingInvitations": "int",
+      "phone": "null",
+      "role": "string",
+      "roleLabel": "string"
+    }
+  },
+  "/api/v1/dashboard": {
+    "balance": "int",
+    "currency": "string",
+    "debtors": "array:empty",
+    "expense": "int",
+    "goodPayers": "array:empty",
+    "income": "int",
+    "openPolls": "array:empty",
+    "openRequests": "int",
+    "period": "string",
+    "periodLabel": "string",
+    "statusCounts": {
+      "paid": "int",
+      "partial": "int",
+      "pending": "int",
+      "unpaid": "int"
+    },
+    "totalDebt": "int",
+    "trend": [
+      {
+        "expense": "int",
+        "income": "int",
+        "label": "string"
+      }
+    ],
+    "type": "string"
+  },
+  "/api/v1/units": {
+    "data": [
+      {
+        "area": "int",
+        "balance": "int",
+        "buildingId": "null",
+        "buildingName": "null",
+        "coefficient": "int",
+        "floor": "int",
+        "id": "int",
+        "notes": "null",
+        "occupancyLabel": "string",
+        "occupancyStatus": "string",
+        "parkingCount": "int",
+        "residentsCount": "int",
+        "storageCount": "int",
+        "unitNumber": "string",
+        "usesElevator": "bool"
+      }
+    ],
+    "filters": {
+      "buildings": "array:empty",
+      "occupancyOptions": [
+        {
+          "label": "string",
+          "value": "string"
+        }
+      ]
+    },
+    "meta": {
+      "currentPage": "int",
+      "lastPage": "int",
+      "perPage": "int",
+      "total": "int"
+    }
+  },
+  "/api/v1/bills": {
+    "collected": "int",
+    "count": "int",
+    "currency": "string",
+    "data": [
+      {
+        "dueDate": "null",
+        "id": "int",
+        "ownerAmount": "int",
+        "paidAmount": "int",
+        "penaltyAmount": "int",
+        "status": "string",
+        "statusLabel": "string",
+        "tenantAmount": "int",
+        "totalAmount": "int",
+        "unitLabel": "string"
+      }
+    ],
+    "period": "string",
+    "periodLabel": "string",
+    "periods": [
+      {
+        "label": "string",
+        "value": "string"
+      }
+    ],
+    "total": "int",
+    "truncated": "bool"
+  },
+  "/api/v1/my-bills": {
+    "currency": "string",
+    "data": [
+      {
+        "dueDate": "null",
+        "id": "int",
+        "ownerAmount": "int",
+        "paidAmount": "int",
+        "payPath": "string",
+        "pdfUrl": "string",
+        "penaltyAmount": "int",
+        "period": "string",
+        "periodLabel": "string",
+        "remaining": "int",
+        "status": "string",
+        "statusLabel": "string",
+        "tenantAmount": "int",
+        "totalAmount": "int",
+        "unitLabel": "string"
+      }
+    ],
+    "meta": {
+      "currentPage": "int",
+      "lastPage": "int",
+      "total": "int"
+    },
+    "totalDebt": "int"
+  },
+  "/api/v1/payments": {
+    "currency": "string",
+    "pending": [
+      {
+        "amount": "int",
+        "billPeriod": "string",
+        "createdAt": "string",
+        "description": "null",
+        "hasReceipt": "bool",
+        "id": "int",
+        "method": "string",
+        "methodLabel": "string",
+        "paidAt": "null",
+        "payerName": "string",
+        "receiptUrl": "null",
+        "status": "string",
+        "statusLabel": "string",
+        "unitLabel": "string"
+      }
+    ],
+    "pendingTotal": "int",
+    "recent": "array:empty"
+  },
+  "/api/v1/finance": {
+    "categories": [
+      {
+        "label": "string",
+        "value": "string"
+      }
+    ],
+    "currency": "string",
+    "expenseTotal": "int",
+    "expenses": "array:empty",
+    "incomeTotal": "int",
+    "incomes": "array:empty",
+    "period": "string",
+    "periodLabel": "string",
+    "periods": [
+      {
+        "label": "string",
+        "value": "string"
+      }
+    ],
+    "splitMethods": [
+      {
+        "label": "string",
+        "value": "string"
+      }
+    ]
+  },
+  "/api/v1/notifications": {
+    "items": "array:empty",
+    "unreadCount": "int"
+  },
+  "/api/v1/residents": {
+    "data": "array:empty",
+    "filters": {
+      "roleOptions": [
+        {
+          "label": "string",
+          "value": "string"
+        }
+      ],
+      "units": [
+        {
+          "id": "int",
+          "unit_number": "string"
+        }
+      ]
+    },
+    "meta": {
+      "currentPage": "int",
+      "lastPage": "int",
+      "perPage": "int",
+      "total": "int"
+    }
+  }
+}
