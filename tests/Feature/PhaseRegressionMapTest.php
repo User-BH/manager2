@@ -1,0 +1,232 @@
+<?php
+
+namespace Tests\Feature;
+
+use PHPUnit\Framework\Attributes\DataProvider;
+use Tests\TestCase;
+
+/**
+ * هر اصلاحِ فازهای ۰ تا ۷ تستِ رگرسیون دارد (فاز ۸).
+ *
+ * ─── 🔴 چرا این فایل وجود دارد ─────────────────────────────────────────────
+ * الزامِ صریحِ اصلاحیه: «تمام اصلاحات فازهای ۰ تا ۷ باید regression test
+ * داشته باشند.»
+ *
+ * ⚠️ آن جمله را می‌شود با «بله، داریم» جواب داد و رد شد. این فایل به‌جایش
+ * **فهرست می‌کند** و هر ردیف را می‌سنجد: کلاسِ تست وجود دارد، و متدی که
+ * نامش ادعا شده واقعاً در آن هست.
+ *
+ * ─── مرزِ صریحِ این محافظ ───────────────────────────────────────────────────
+ * 🔴 این تست ثابت **نمی‌کند** که آن تست‌ها درست می‌سنجند — هیچ فهرستی
+ * نمی‌تواند. کاری که می‌کند این است که نگذارد اصلاحی بی‌محافظ بماند یا
+ * محافظش بی‌سروصدا حذف شود.
+ *
+ * ⚠️ اثباتِ اینکه خودِ آن محافظ‌ها پوچ نیستند کارِ **خرابکاری** است، که در
+ * هر فاز جداگانه اجرا و گزارش شده.
+ */
+class PhaseRegressionMapTest extends TestCase
+{
+    /**
+     * فاز ← اصلاح ← تستی که نبودنش را می‌گیرد.
+     *
+     * @return array<string, array{0: string, 1: string, 2: string}>
+     */
+    public static function fixes(): array
+    {
+        return [
+            /* ── فاز ۰: تناقض‌ها ─────────────────────────────────────────── */
+            'صحتِ عددِ timeout در گزارش' => [
+                'DocumentedNumbersTest', 'test_the_longest_job_timeout_matches_the_documents', '۰',
+            ],
+            'مبنای عددِ polling' => [
+                'DocumentedNumbersTest', 'test_the_polling_load_arithmetic_still_holds', '۰',
+            ],
+            'یافته‌های تاریخی هنوز رفع‌اند' => [
+                'DocumentedNumbersTest', 'test_every_historical_fix_is_still_in_place', '۰',
+            ],
+            'شمارشِ اسناد با نقشه می‌خواند' => [
+                'FinalReportsTest', 'test_the_audit_numbers_match_the_map', '۰',
+            ],
+
+            /* ── فاز ۱: یکپارچگیِ مالی ───────────────────────────────────── */
+            'دفتر از هیچ مسیری عوض نمی‌شود' => [
+                'LedgerMutationVectorsTest', 'test_the_ledger_refuses_every_mutation_path', '۱',
+            ],
+            'مفرِ عمدیِ بازیابیِ بکاپ باز مانده' => [
+                'LedgerMutationVectorsTest', 'test_the_raw_query_escape_hatch_stays_open_on_purpose', '۱',
+            ],
+            'گذارِ ممنوعِ وضعیتِ پرداخت' => [
+                'PaymentStateMachineTest', 'test_a_forbidden_transition_is_refused', '۱',
+            ],
+            'پرداختِ ردشده پول جابه‌جا نمی‌کند' => [
+                'PaymentStateMachineTest', 'test_settling_a_rejected_payment_does_not_move_money', '۱',
+            ],
+            'نوعِ مجتمع پیش‌فرضِ خطرناک ندارد' => [
+                'ComplexTypeTest', 'test_a_missing_type_is_refused_instead_of_defaulting', '۱',
+            ],
+            'دیتابیس هم جای خالی را پر نمی‌کند' => [
+                'ComplexTypeTest', 'test_the_database_refuses_a_complex_without_a_type', '۱',
+            ],
+
+            /* ── فاز ۲: چندمستأجری ───────────────────────────────────────── */
+            'هر مسیرِ API محافظ دارد' => [
+                'EndpointInventoryTest', 'test_every_api_route_is_authenticated_or_explicitly_public', '۲',
+            ],
+            'مهمان دادهٔ مستأجری نمی‌بیند' => [
+                'EndpointInventoryTest', 'test_no_public_route_touches_a_tenant_model', '۲',
+            ],
+            'فقط دو مسیر از زمینهٔ مستأجری مستثنا' => [
+                'EndpointInventoryTest', 'test_only_the_gateway_callbacks_skip_the_tenant_middleware', '۲',
+            ],
+            'هر مسیرِ مدل‌بند تستِ حمله دارد' => [
+                'EndpointInventoryTest', 'test_every_tenant_bound_route_has_a_cross_tenant_attack', '۲',
+            ],
+            'اسکوپ روی هر مدلِ مستأجری اثر دارد' => [
+                'TenantScopeCoverageTest', 'test_every_tenant_model_is_constrained_to_the_active_complex', '۲',
+            ],
+            'مسیرهای حمله واقعاً وجود دارند' => [
+                'TenantIsolationTest', 'test_each_attacked_route_really_exists', '۲',
+            ],
+
+            /* ── فاز ۳: نشست ─────────────────────────────────────────────── */
+            'کوکیِ نشست HttpOnly است' => [
+                'SessionSecurityTest', 'test_the_session_cookie_is_http_only_on_the_real_response', '۳',
+            ],
+            'کوکیِ CSRF عمداً خواندنی مانده' => [
+                'SessionSecurityTest', 'test_the_csrf_cookie_stays_readable_by_design', '۳',
+            ],
+            'کدِ یک‌بارمصرف بازپخش نمی‌شود' => [
+                'SessionSecurityTest', 'test_the_same_code_cannot_be_verified_twice', '۳',
+            ],
+            'سقفِ نرخ روی IP هم هست' => [
+                'SessionSecurityTest', 'test_many_phones_from_one_ip_hit_the_ip_ceiling', '۳',
+            ],
+
+            /* ── فاز ۴: رازها ────────────────────────────────────────────── */
+            'رازِ متنِ ساده بلند خطا می‌دهد' => [
+                'SecretHandlingTest', 'test_a_legacy_plaintext_row_is_refused_with_a_usable_message', '۴',
+            ],
+            'پویشگرِ راز ردیفِ خام را می‌بیند' => [
+                'SecretHandlingTest', 'test_the_audit_command_finds_a_plaintext_row', '۴',
+            ],
+
+            /* ── فاز ۶: قراردادِ پاسخ ────────────────────────────────────── */
+            'شکلِ پاسخ بی‌صدا عوض نمی‌شود' => [
+                'ResponseShapeTest', 'test_no_critical_response_loses_a_field', '۶',
+            ],
+            'مقایسه‌گرِ شکل واقعاً می‌گیرد' => [
+                'ResponseShapeTest', 'test_the_comparison_actually_detects_a_break', '۶',
+            ],
+
+            /* ── فاز ۷: صف، آپلود، SSRF ──────────────────────────────────── */
+            'پنجرهٔ صف حاشیه دارد' => [
+                'PerformanceBaselineTest', 'test_the_queue_never_retries_a_job_that_is_still_running', '۷',
+            ],
+            'مقصدِ شبکه از متغیر نمی‌آید' => [
+                'OutboundSurfaceTest', 'test_no_request_takes_its_destination_from_a_variable', '۷',
+            ],
+            'آپلود قالبِ اجراشدنی نمی‌پذیرد' => [
+                'OutboundSurfaceTest', 'test_no_upload_rule_accepts_an_executable_format', '۷',
+            ],
+
+            /* ── فاز ۸: سناریوهای مالی ───────────────────────────────────── */
+            'مبلغ از کلاینت پذیرفته نمی‌شود' => [
+                'AdversarialFinanceTest', 'test_a_client_supplied_amount_cannot_change_what_is_owed', '۸',
+            ],
+            'سندِ معکوس کار می‌کند' => [
+                'AdversarialFinanceTest', 'test_a_mistake_is_corrected_by_a_reversing_entry', '۸',
+            ],
+            'واریزِ هم‌زمان گم نمی‌شود' => [
+                'AdversarialFinanceTest', 'test_two_credits_never_lose_one_of_them', '۸',
+            ],
+            'پرداختِ دوباره پول دوباره نمی‌برد' => [
+                'AdversarialFinanceTest', 'test_paying_the_same_bill_twice_from_the_wallet_takes_the_money_once', '۸',
+            ],
+        ];
+    }
+
+    #[DataProvider('fixes')]
+    public function test_every_phase_fix_has_a_living_guard(string $class, string $method, string $phase): void
+    {
+        $path = base_path("tests/Feature/{$class}.php");
+
+        $this->assertFileExists(
+            $path,
+            "محافظِ فازِ {$phase} («{$class}») وجود ندارد.",
+        );
+
+        /*
+         * ⚠️ متن خوانده می‌شود و **کامنت‌ها پاک می‌شوند**.
+         *
+         * 🔴 همان تلهٔ تکرارشوندهٔ این پروژه: نامِ متد در توضیحِ بالای خودش
+         * هم می‌آید. بدونِ پاک‌سازی، حذفِ خودِ متد این تست را قرمز نمی‌کرد.
+         */
+        $source = (string) file_get_contents($path);
+        $code = (string) preg_replace(['#/\*.*?\*/#s', '#^\s*//.*$#m'], '', $source);
+
+        $this->assertStringContainsString(
+            "function {$method}(",
+            $code,
+            "محافظِ فازِ {$phase} حذف شده: {$class}::{$method}",
+        );
+    }
+
+    /**
+     * ⚠️ هر فاز باید دستِ‌کم یک محافظ داشته باشد.
+     *
+     * 🔴 بدونِ این، حذفِ کاملِ ردیف‌های یک فاز از فهرستِ بالا تستی را قرمز
+     * نمی‌کرد — و آن‌وقت این نقشه با خالی‌شدن، سبزتر می‌شد.
+     */
+    public function test_no_phase_is_missing_from_the_map(): void
+    {
+        $phases = array_unique(array_column(self::fixes(), 2));
+        sort($phases);
+
+        $this->assertSame(
+            ['۰', '۱', '۲', '۳', '۴', '۶', '۷', '۸'],
+            $phases,
+            '⚠️ فازی از نقشهٔ رگرسیون افتاده است.',
+        );
+    }
+
+    /**
+     * 🔴 فاز ۵ عمداً اینجا نیست — و این را باید صریح گفت.
+     *
+     * محافظ‌هایش در `tests/js` هستند (نرمال‌سازیِ کلیدِ کش و پاک‌سازیِ کشِ
+     * خروج)، و این کلاس فقط تست‌های PHP را می‌بیند.
+     *
+     * ⚠️ بدونِ این ادعا، نبودنِ فاز ۵ به‌نظر یک فراموشی می‌آمد.
+     */
+    public function test_the_javascript_side_guards_exist_too(): void
+    {
+        foreach ([
+            'tests/js/serviceWorkerPolicy.test.ts' => 'نرمال‌سازیِ کلیدِ کش',
+            'tests/js/logoutCacheCleanup.test.ts' => 'پاک‌سازیِ کشِ خروج',
+        ] as $path => $what) {
+            $this->assertFileExists(base_path($path), "محافظِ «{$what}» (فاز ۵) وجود ندارد.");
+        }
+    }
+
+    /**
+     * 🔴 نقشه فقط بزرگ می‌شود، کوچک نه.
+     *
+     * ─── این را خرابکاری خواست ─────────────────────────────────────────────
+     * ⚠️ حذفِ **یک ردیف** از نقشه هیچ تستی را قرمز نمی‌کرد: تستِ «هیچ فازی
+     * جا نیفتاده» فقط می‌سنجد که فاز **به‌کلی** غایب نباشد، و هر فاز چند
+     * ردیف دارد.
+     *
+     * یعنی می‌شد محافظِ یک اصلاح را بی‌سروصدا از نقشه برداشت و نقشه
+     * همچنان سبز می‌ماند — دقیقاً همان کهنه‌شدنِ خاموشی که این فایل برای
+     * بستنش ساخته شده.
+     *
+     * ⚠️ عدد **کف** است نه دقیق: افزودنِ اصلاحِ تازه باید آزاد باشد.
+     */
+    public function test_the_map_never_shrinks(): void
+    {
+        $this->assertGreaterThanOrEqual(
+            31,
+            count(self::fixes()),
+            'ردیفی از نقشهٔ رگرسیون حذف شده؛ یعنی اصلاحی محافظش را از دست داده.',
+        );
+    }
+}
