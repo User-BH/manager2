@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use PHPUnit\Framework\Attributes\DataProvider;
+use Tests\Concerns\ReadsAuditMap;
 use Tests\TestCase;
 
 /**
@@ -21,15 +22,9 @@ use Tests\TestCase;
  */
 class FinalReportsTest extends TestCase
 {
-    private const MAP = 'docs/STAGE2_AUDIT_MAP.md';
+    use ReadsAuditMap;
 
     private const AUDIT = 'docs/FINAL_AUDIT.md';
-
-    /** نشانه‌های وضعیت، به همان ترتیبی که در نقشه معنا دارند. */
-    /** ردیفی که وضعیت ندارد چون اصلاً موردِ قابلِ سنجش نیست. */
-    private const RULE = '—';
-
-    private const STATUSES = ['✅', '🟡', '❌', '🔒', '❓'];
 
     /**
      * هر گزارش و فیلدهایی که فایلِ اصلی برایش خواسته.
@@ -63,7 +58,7 @@ class FinalReportsTest extends TestCase
     #[DataProvider('reports')]
     public function test_every_report_has_the_fields_that_were_asked_for(string $path, array $fields): void
     {
-        $contents = $this->read($path);
+        $contents = $this->readDoc($path);
 
         foreach ($fields as $field) {
             $this->assertStringContainsString(
@@ -135,8 +130,8 @@ class FinalReportsTest extends TestCase
      */
     public function test_the_audit_numbers_match_the_map(): void
     {
-        $actual = $this->tally();
-        $audit = $this->read(self::AUDIT);
+        $actual = $this->tallyAuditMap();
+        $audit = $this->readDoc(self::AUDIT);
 
         $rows = [
             '✅' => 'انجام‌شده و سنجیده',
@@ -144,11 +139,11 @@ class FinalReportsTest extends TestCase
             '🔒' => 'عمداً ساخته نشد',
             '❌' => 'انجام‌نشده',
             '❓' => 'نامعلوم',
-            self::RULE => 'قاعدهٔ اجرا',
+            self::RULE_ROW => 'قاعدهٔ اجرا',
         ];
 
         foreach ($rows as $symbol => $label) {
-            $claimed = $this->claimedNumberFor($audit, $label);
+            $claimed = $this->claimedNumberIn($audit, $label);
             $real = $actual[$symbol] ?? 0;
 
             $this->assertSame(
@@ -161,7 +156,7 @@ class FinalReportsTest extends TestCase
 
         $this->assertSame(
             array_sum($actual),
-            $this->claimedNumberFor($audit, 'ردیف'),
+            $this->claimedNumberIn($audit, 'ردیف'),
             'مجموعِ ردیف‌های نوشته‌شده با نقشه نمی‌خواند.',
         );
     }
@@ -178,7 +173,7 @@ class FinalReportsTest extends TestCase
      */
     public function test_no_audit_row_is_left_unanswered(): void
     {
-        $tally = $this->tally();
+        $tally = $this->tallyAuditMap();
 
         $this->assertSame(0, $tally['❌'] ?? 0, 'ردیفِ ❌ در نقشه هست؛ یا انجامش دهید یا با دلیل 🔒 کنید.');
         $this->assertSame(0, $tally['❓'] ?? 0, 'ردیفِ ❓ در نقشه هست؛ «نمی‌دانیم» وضعیتِ نهایی نیست.');
@@ -195,7 +190,7 @@ class FinalReportsTest extends TestCase
         $broken = [];
 
         foreach (self::reports() as [$path]) {
-            $contents = $this->read($path);
+            $contents = $this->readDoc($path);
 
             preg_match_all('/\]\((?!https?:)([A-Za-z0-9_\-.\/]+\.md)\)/', $contents, $matches);
 
@@ -212,80 +207,10 @@ class FinalReportsTest extends TestCase
     // ─────────────────────────────────────────────────────────────────────
     //  ابزار
 
-    private function read(string $path): string
-    {
-        $full = base_path($path);
-
-        $this->assertFileExists($full, "گزارشِ «{$path}» وجود ندارد.");
-
-        return (string) file_get_contents($full);
-    }
-
-    /**
-     * شمارشِ وضعیت‌ها از خودِ نقشه.
-     *
-     * ⚠️ فقط ردیف‌هایی که خانهٔ اولشان **شماره** است — سرستون و جداکننده
-     * نباید شمرده شوند، وگرنه عدد بی‌معنا می‌شود.
-     *
-     * ─── 🔴 چرا `/u` روی `\R` حیاتی است ─────────────────────────────────────
-     * ⚠️ `preg_split('/\R/', ...)` بدونِ `/u` در حالتِ **بایتی** کار می‌کند و
-     * `\R` آنجا بایتِ `0x85` را هم می‌گیرد — که دقیقاً بایتِ دومِ حرفِ «م»
-     * است (`D9 85`).
-     *
-     * یعنی هر خطی که «م» داشته باشد **وسطِ حرف** تکه می‌شود و آن بایت هم
-     * حذف می‌گردد. نتیجه‌اش خطایی است که مثلِ باگِ منطقی به نظر می‌رسد:
-     * برچسبِ فارسی در هیچ خطی پیدا نمی‌شود، در حالی که در فایل هست.
-     *
-     * همین‌جا واقعاً اتفاق افتاد و اولین اجرای این تست را قرمز کرد.
-     *
-     * @return array<string, int>
-     */
-    private function tally(): array
-    {
-        $tally = [];
-
-        foreach (preg_split('/\R/u', $this->read(self::MAP)) ?: [] as $line) {
-            $line = trim($line);
-
-            if (! str_starts_with($line, '|')) {
-                continue;
-            }
-
-            $cells = array_map('trim', explode('|', trim($line, '|')));
-
-            if (count($cells) < 2 || preg_match('/^\d+$/', $cells[0]) !== 1) {
-                continue;
-            }
-
-            $rest = implode(' ', array_slice($cells, 1));
-
-            $found = null;
-
-            foreach (self::STATUSES as $symbol) {
-                if (str_contains($rest, $symbol)) {
-                    $found = $symbol;
-                    break;
-                }
-            }
-
-            /*
-             * ⚠️ ردیفی که هیچ نشانه‌ای ندارد «قاعدهٔ اجرا» است — دستورالعملِ
-             * کار، نه موردِ قابلِ تیک‌زدن. اگر شمرده نشود، مجموعِ گزارش با
-             * نقشه نمی‌خواند و محافظ به‌جای گرفتنِ کهنگی، خودش قرمز می‌ماند.
-             */
-            $key = $found ?? self::RULE;
-            $tally[$key] = ($tally[$key] ?? 0) + 1;
-        }
-
-        $this->assertNotEmpty($tally, 'هیچ ردیفی از نقشه خوانده نشد؛ محافظ پوچ می‌شود.');
-
-        return $tally;
-    }
-
     /** بخش‌های `## …` یک سند، به‌صورتِ عنوان ← متن. */
     private function numberedSectionsOf(string $path): array
     {
-        $parts = preg_split('/^## /mu', $this->read($path)) ?: [];
+        $parts = preg_split('/^## /mu', $this->readDoc($path)) ?: [];
         $sections = [];
 
         foreach (array_slice($parts, 1) as $part) {
@@ -300,35 +225,5 @@ class FinalReportsTest extends TestCase
         }
 
         return $sections;
-    }
-
-    /**
-     * عددِ فارسیِ نوشته‌شده در ردیفی که برچسبِ داده‌شده را دارد.
-     *
-     * ⚠️ ارقام فارسی‌اند و `(int)` رویشان صفر می‌دهد — که یعنی محافظ بی‌صدا
-     * پوچ می‌شد. پس صریح تبدیل می‌شوند.
-     */
-    private function claimedNumberFor(string $document, string $label): int
-    {
-        $latin = null;
-
-        foreach (preg_split('/\R/u', $document) ?: [] as $line) {
-            if (! str_contains($line, $label)) {
-                continue;
-            }
-
-            if (preg_match('/\*\*([۰-۹,٬]+)\*\*/u', $line, $m) === 1) {
-                $latin = $m[1];
-                break;
-            }
-        }
-
-        $this->assertNotNull($latin, "عددی برای «{$label}» در ممیزیِ نهایی پیدا نشد.");
-
-        return (int) str_replace(
-            ['۰', '۱', '۲', '۳', '۴', '۵', '۶', '۷', '۸', '۹', ',', '٬'],
-            ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '', ''],
-            $latin,
-        );
     }
 }

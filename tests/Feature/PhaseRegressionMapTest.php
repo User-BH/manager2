@@ -6,7 +6,7 @@ use PHPUnit\Framework\Attributes\DataProvider;
 use Tests\TestCase;
 
 /**
- * هر اصلاحِ فازهای ۰ تا ۷ تستِ رگرسیون دارد (فاز ۸).
+ * هر اصلاحِ فازهای ۰ تا ۹ تستِ رگرسیون دارد (فاز ۸، گسترده‌شده در فاز ۹).
  *
  * ─── 🔴 چرا این فایل وجود دارد ─────────────────────────────────────────────
  * الزامِ صریحِ اصلاحیه: «تمام اصلاحات فازهای ۰ تا ۷ باید regression test
@@ -142,6 +142,29 @@ class PhaseRegressionMapTest extends TestCase
             'پرداختِ دوباره پول دوباره نمی‌برد' => [
                 'AdversarialFinanceTest', 'test_paying_the_same_bill_twice_from_the_wallet_takes_the_money_once', '۸',
             ],
+
+            /* ── فاز ۹: دروازهٔ نهایی ────────────────────────────────────── */
+            'سندِ نهایی هر ۲۴ بخش را دارد' => [
+                'FinalPreProductionAuditTest', 'test_every_required_section_is_present', '۹',
+            ],
+            'شمارشِ مرجع از نقشه بازمحاسبه می‌شود' => [
+                'FinalPreProductionAuditTest', 'test_the_canonical_count_is_recomputed_from_the_map', '۹',
+            ],
+            'هر موردِ محیطی معیارِ شکست دارد' => [
+                'FinalPreProductionAuditTest', 'test_every_environment_item_carries_all_six_fields', '۹',
+            ],
+            'هر موردِ خارج از دامنه آستانه دارد' => [
+                'FinalPreProductionAuditTest', 'test_every_out_of_scope_item_states_its_future_threshold', '۹',
+            ],
+            'حکم با جدولِ سه‌سطحی می‌خواند' => [
+                'FinalPreProductionAuditTest', 'test_the_verdict_matches_the_three_level_table', '۹',
+            ],
+            'فاصلهٔ polling در هیچ سندی جعلی نیست' => [
+                'CrossDocumentFactsTest', 'test_no_document_claims_a_polling_interval_that_does_not_exist', '۹',
+            ],
+            'شمارِ گام‌ها در همهٔ اسناد یکی است' => [
+                'CrossDocumentFactsTest', 'test_every_document_agrees_on_the_number_of_release_stages', '۹',
+            ],
         ];
     }
 
@@ -183,7 +206,7 @@ class PhaseRegressionMapTest extends TestCase
         sort($phases);
 
         $this->assertSame(
-            ['۰', '۱', '۲', '۳', '۴', '۶', '۷', '۸'],
+            ['۰', '۱', '۲', '۳', '۴', '۶', '۷', '۸', '۹'],
             $phases,
             '⚠️ فازی از نقشهٔ رگرسیون افتاده است.',
         );
@@ -224,7 +247,7 @@ class PhaseRegressionMapTest extends TestCase
     public function test_the_map_never_shrinks(): void
     {
         $this->assertGreaterThanOrEqual(
-            31,
+            38,
             count(self::fixes()),
             'ردیفی از نقشهٔ رگرسیون حذف شده؛ یعنی اصلاحی محافظش را از دست داده.',
         );
