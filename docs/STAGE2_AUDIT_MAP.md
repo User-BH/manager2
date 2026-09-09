@@ -391,7 +391,7 @@
 | 222 | (۱۳) Failure Testing                                                                      | ✅                                                                     | **R59**                                                                              |
 | 223 | (۱۴) Load Testing                                                                         | 🟡 ابزارِ بی‌وابستگی + رویه؛ 🔒 اجرا NOT VERIFIED                      | **R66**                                                                              |
 | 224 | (۱۵) Dependency & Code Security                                                           | ✅                                                                     | R42                                                                                  |
-| 225 | (۱۶) Final Security Report با Severity/Component/Problem/Attack Scenario/Fix/Verification | ✅                                                                     | `docs/FINAL_SECURITY_REPORT.md` — ۹ یافته با شش فیلد                                 | **R72** |
+| 225 | (۱۶) Final Security Report با Severity/Component/Problem/Attack Scenario/Fix/Verification | ✅                                                                     | `docs/FINAL_SECURITY_REPORT.md` — ۱۰ یافته با شش فیلد                                | **R72** |
 
 ---
 

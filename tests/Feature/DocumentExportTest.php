@@ -6,6 +6,7 @@ use App\Enums\ExpenseCategory;
 use App\Enums\PaymentMethod;
 use App\Enums\PaymentStatus;
 use App\Enums\ResidentRelation;
+use App\Enums\SubscriptionPlan;
 use App\Enums\UserRole;
 use App\Jobs\BuildBillsBundleJob;
 use App\Models\Bill;
@@ -13,6 +14,7 @@ use App\Models\Complex;
 use App\Models\Expense;
 use App\Models\GeneratedDocument;
 use App\Models\Payment;
+use App\Models\Subscription;
 use App\Models\Unit;
 use App\Models\User;
 use App\Services\Units\TenureService;
@@ -20,6 +22,7 @@ use App\Support\Jalali;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Bus;
 use Illuminate\Support\Facades\Storage;
+use PHPUnit\Framework\Attributes\DataProvider;
 use Tests\TestCase;
 
 /**
@@ -193,6 +196,85 @@ class DocumentExportTest extends TestCase
     public function test_a_resident_cannot_download_the_financial_report(): void
     {
         $this->actingAs($this->makeUser())->get('/reports/financial.pdf')->assertForbidden();
+    }
+
+    // ── خروجی اکسل ─────────────────────────────────────────────────────────
+
+    /**
+     * 🔴 دورهٔ دست‌کاری‌شده به نامِ فایلِ خروجی نمی‌رسد (فاز ۹).
+     *
+     * ─── چرا این تست وجود دارد ─────────────────────────────────────────────
+     * مشاورهٔ CVE-2026-84374 روی `maatwebsite/excel` (پیش از ۳٫۱٫۷۰): با
+     * مسیرِ کنترل‌شده از سمتِ فراخوان، خروجی می‌تواند **بیرونِ دیسکِ
+     * پیکربندی‌شده** نوشته شود.
+     *
+     * ⚠️ `billsExport` دقیقاً همان شکل بود: `'bills-'.$period.'.xlsx'` و
+     * `$period` مستقیم از `?period=` می‌آمد، بی‌هیچ سنجشی.
+     *
+     * 🔴 کتابخانه به‌روز شد، ولی این تست روی **ورودی** است نه کتابخانه —
+     * تا آسیب‌پذیریِ بعدیِ همان کتابخانه دوباره از همین در وارد نشود.
+     */
+    #[DataProvider('crookedPeriods')]
+    public function test_a_crooked_period_never_reaches_the_export_filename(string $period): void
+    {
+        /*
+         * ⚠️ اشتراکِ پرو لازم است، وگرنه دروازهٔ پلن **پیش از** اعتبارسنجی
+         * ۴۰۲ می‌دهد و تست سبز می‌شود بی‌آنکه محافظِ موردِ نظر را دیده باشد.
+         *
+         * 🔴 همان تلهٔ همیشگی: پاسخِ درست به دلیلِ غلط.
+         */
+        $this->activatePro();
+
+        $this->actingAs($this->manager)
+            ->get('/bills/export.xlsx?period='.urlencode($period))
+            ->assertStatus(422);
+    }
+
+    /** @return array<string, array{0: string}> */
+    public static function crookedPeriods(): array
+    {
+        return [
+            'پیمایشِ مسیر' => ['../../../../etc/passwd'],
+            'پیمایشِ ویندوزی' => ['..\\..\\windows\\win.ini'],
+            'جداکنندهٔ مسیر' => ['1405/04'],
+            'بایتِ تهی' => ["1405-04\0.php"],
+            'پسوندِ دیگر' => ['1405-04.phtml'],
+        ];
+    }
+
+    /*
+     * ⚠️ دورهٔ **خالی** عمداً در این فهرست نیست.
+     *
+     * `?period=` نامِ فایل را `bills-.xlsx` می‌کند — که همچنان داخلِ دیسک
+     * است و بردارِ پیمایش نیست. 🔴 گذاشتنش اینجا ادعای این تست را مخدوش
+     * می‌کرد: این فهرست دربارهٔ **پیمایشِ مسیر** است، نه هر ورودیِ نامعتبر.
+     */
+
+    /** ⚠️ و دورهٔ سالم باید همچنان کار کند، وگرنه محافظ قابلیت را کشته است. */
+    public function test_a_well_formed_period_still_exports(): void
+    {
+        $this->bill();
+        $this->activatePro();
+
+        $this->actingAs($this->manager)
+            ->get('/bills/export.xlsx?period='.$this->period)
+            ->assertOk();
+    }
+
+    /** اشتراکِ پرو — خروجی اکسل بدونِ آن اصلاً به اعتبارسنجی نمی‌رسد. */
+    private function activatePro(): void
+    {
+        Subscription::create([
+            'complex_id' => $this->complex->id,
+            'user_id' => $this->manager->id,
+            'plan' => SubscriptionPlan::Pro,
+            'status' => 'active',
+            'method' => 'receipt',
+            'amount' => SubscriptionPlan::Pro->price(),
+            'months' => 1,
+            'starts_at' => now(),
+            'ends_at' => now()->addMonth(),
+        ]);
     }
 
     // ── پرونده‌ی واحد ──────────────────────────────────────────────────────

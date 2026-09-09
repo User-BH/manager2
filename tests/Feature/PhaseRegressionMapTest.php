@@ -165,6 +165,9 @@ class PhaseRegressionMapTest extends TestCase
             'شمارِ گام‌ها در همهٔ اسناد یکی است' => [
                 'CrossDocumentFactsTest', 'test_every_document_agrees_on_the_number_of_release_stages', '۹',
             ],
+            'دورهٔ کج به نامِ فایلِ خروجی نمی‌رسد' => [
+                'DocumentExportTest', 'test_a_crooked_period_never_reaches_the_export_filename', '۹',
+            ],
         ];
     }
 
@@ -247,7 +250,7 @@ class PhaseRegressionMapTest extends TestCase
     public function test_the_map_never_shrinks(): void
     {
         $this->assertGreaterThanOrEqual(
-            38,
+            39,
             count(self::fixes()),
             'ردیفی از نقشهٔ رگرسیون حذف شده؛ یعنی اصلاحی محافظش را از دست داده.',
         );
