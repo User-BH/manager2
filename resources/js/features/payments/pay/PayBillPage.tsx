@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -60,6 +60,40 @@ export function PayBillPage() {
   const fileRef = useRef<HTMLInputElement>(null)
 
   const [payingFromWallet, setPayingFromWallet] = useState(false)
+
+  /**
+   * 🔴 قفلِ دکمهٔ درگاه (مرحلهٔ ۵، فاز ۴ — بند ۲۴).
+   *
+   * ─── چه چیزی باز بود ───────────────────────────────────────────────────
+   * این یک فرمِ **واقعیِ مرورگر** است، نه `fetch`؛ پس هیچ `isSubmitting`ی
+   * نداشت و هیچ‌چیز جلوی کلیکِ دوم را نمی‌گرفت.
+   *
+   * ⚠️ سرور خودش idempotent است و پرداختِ در انتظار را دوباره استفاده
+   * می‌کند، پس ردیفِ دوم ساخته **نمی‌شد**. مشکل جای دیگری بود:
+   *
+   * 🔴 هر POST یک درخواستِ تازه به بانک می‌زند و `ref_id` را بازنویسی
+   * می‌کند. اگر مرورگر با refِ **اول** به callback برگردد در حالی که
+   * دیتابیس refِ **دوم** را دارد، `verify` رد می‌کند — یعنی پرداختِ موفقِ
+   * بانکی «ناموفق» ثبت می‌شود.
+   */
+  const [leavingToGateway, setLeavingToGateway] = useState(false)
+
+  /*
+   * ⚠️ و بازگشت با دکمهٔ back نباید دکمه را مرده رها کند (بند ۲۹).
+   *
+   * مرورگر صفحه را از bfcache برمی‌گرداند و state همان‌طور که بود می‌ماند.
+   * بدونِ این، کاربری که از درگاه برمی‌گردد دکمه‌ای غیرفعال می‌بیند و
+   * فکر می‌کند صفحه خراب است.
+   */
+  useEffect(() => {
+    function unlock(event: PageTransitionEvent) {
+      if (event.persisted) setLeavingToGateway(false)
+    }
+
+    window.addEventListener('pageshow', unlock)
+
+    return () => window.removeEventListener('pageshow', unlock)
+  }, [])
 
   useDocumentTitle('پرداخت قبض')
 
@@ -201,15 +235,20 @@ export function PayBillPage() {
             فرم واقعی به روت وب می‌رود، نه fetch: مرورگر باید از سایت ما خارج
             و به درگاه بانک منتقل شود.
           */}
-          <form method="POST" action={data.onlineAction}>
+          <form method="POST" action={data.onlineAction} onSubmit={() => setLeavingToGateway(true)}>
             <input type="hidden" name="_token" value={csrf} />
             <button
               type="submit"
-              className="flex w-full items-center justify-center gap-2 rounded-xl py-3.5 text-sm font-bold text-white transition-transform hover:scale-[1.01]"
+              disabled={leavingToGateway}
+              className="flex w-full items-center justify-center gap-2 rounded-xl py-3.5 text-sm font-bold text-white transition-transform hover:scale-[1.01] disabled:opacity-70 disabled:hover:scale-100"
               style={{ backgroundColor: 'var(--color-brand-500)' }}
             >
-              <CreditCard size={17} />
-              انتقال به درگاه بانکی
+              {leavingToGateway ? (
+                <Loader2 size={17} className="animate-spin" />
+              ) : (
+                <CreditCard size={17} />
+              )}
+              {leavingToGateway ? 'در حال انتقال به درگاه…' : 'انتقال به درگاه بانکی'}
             </button>
           </form>
         </Card>

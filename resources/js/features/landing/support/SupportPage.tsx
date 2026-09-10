@@ -6,7 +6,7 @@ import { scrollToElement } from '@/shared/lib/scroll'
 import { HomeNavbar } from '../home/components/HomeNavbar'
 import { FloatingActions } from '../home/components/FloatingActions'
 import { SupportWheel } from './SupportWheel'
-import { supportTopics, type SupportTopicId } from './supportContent'
+import { isSupportTopicId, supportTopics, type SupportTopicId } from './supportContent'
 
 /** ارتفاع نوار بالای صفحه، تا مقصدِ اسکرول زیرش پنهان نشود. */
 const NAVBAR_OFFSET = 88
@@ -21,7 +21,9 @@ const NAVBAR_OFFSET = 88
  */
 export function SupportPage() {
   const [params] = useSearchParams()
-  const requested = params.get('topic') as SupportTopicId | null
+  // ⚠️ مقدارِ نامعتبر یعنی «موضوعی خواسته نشده»، نه «هرچه بود را باور کن»
+  const asked = params.get('topic')
+  const requested: SupportTopicId | null = isSupportTopicId(asked) ? asked : null
 
   const [activeTopic, setActiveTopic] = useState<SupportTopicId | null>(requested)
   const [openEntry, setOpenEntry] = useState<string | null>(null)

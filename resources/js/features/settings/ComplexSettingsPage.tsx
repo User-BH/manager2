@@ -10,7 +10,7 @@ import { FormSkeleton } from '@/shared/ui/Skeleton'
 import { useQuery } from '@tanstack/react-query'
 import { errorMessage } from '@/shared/lib/queryClient'
 import { queryKeys } from '@/shared/lib/queryKeys'
-import { useDocumentTitle } from '@/shared/hooks'
+import { useDocumentTitle, useUnsavedChanges } from '@/shared/hooks'
 import { api, ApiError } from '@/shared/lib/api'
 
 const settingsSchema = z.object({
@@ -76,10 +76,19 @@ export function ComplexSettingsPage() {
     handleSubmit,
     reset,
     setError,
-    formState: { errors, isSubmitting },
+    formState: { errors, isSubmitting, isDirty },
   } = useForm<SettingsInput, unknown, SettingsValues>({
     resolver: zodResolver(settingsSchema),
   })
+
+  /*
+   * ⚠️ تنظیماتِ مجتمع بلندترین فرمِ پروژه است و کاربر دقایقی رویش وقت
+   * می‌گذارد. بستنِ تب نباید بی‌پرسش همه‌اش را ببرد (بند ۲۵).
+   *
+   * `isDirty` پس از `reset` خودش صفر می‌شود، پس ذخیرهٔ موفق هشدار را
+   * برمی‌دارد.
+   */
+  useUnsavedChanges(isDirty)
 
   // مقادیر فرم پس از رسیدن پاسخ پر می‌شوند؛ رمز درگاه هرگز از سرور نمی‌آید.
   useEffect(() => {

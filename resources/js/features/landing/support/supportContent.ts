@@ -186,3 +186,21 @@ export const supportTopics: SupportTopic[] = [
     ],
   },
 ]
+
+/**
+ * ⚠️ نگهبانِ شناسهٔ موضوع برای مقداری که از **آدرس** می‌آید.
+ *
+ * ─── 🔴 چه چیزی باز بود (مرحلهٔ ۵، فاز ۴ — بندهای ۱۴ و ۳۱) ────────────────
+ * `SupportPage` می‌نوشت:
+ *
+ *     params.get('topic') as SupportTopicId | null
+ *
+ * یعنی هر رشته‌ای که در `?topic=` می‌آمد، بدونِ بررسی «شناسهٔ معتبر» جا
+ * می‌زد. آدرس را کاربر می‌سازد و لینکش را هم می‌شود جای دیگری فرستاد.
+ *
+ * ⚠️ بندِ ۳۱ صریح است: پارامترهای پرس‌وجو باید Type-safe و **Validated**
+ * باشند. ادعای نوع هیچ‌کدام را فراهم نمی‌کند.
+ */
+export function isSupportTopicId(value: unknown): value is SupportTopicId {
+  return typeof value === 'string' && supportTopics.some((topic) => topic.id === value)
+}
