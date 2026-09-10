@@ -3,7 +3,7 @@ import { useQueryClient } from '@tanstack/react-query'
 import { ArrowLeft, BarChart3 } from 'lucide-react'
 import { Card } from '@/shared/ui/Card'
 import { queryKeys } from '@/shared/lib/queryKeys'
-import { PollCard, type MessagePoll } from '@/features/messaging/messenger/PollCard'
+import { PollCard, type MessagePoll } from '@/shared/ui/PollCard'
 
 /**
  * کارتِ نظرسنجی‌های باز در داشبورد (R24).

@@ -26,7 +26,7 @@ import { formatMoney, formatNumber } from '@/shared/lib/format'
 import type { BillStatus } from '@/shared/types'
 import { InitialDashboard } from './InitialDashboard'
 import { OpenPollsCard } from './components/OpenPollsCard'
-import type { MessagePoll } from '@/features/messaging/messenger/PollCard'
+import type { MessagePoll } from '@/shared/ui/PollCard'
 
 /** نظرسنجی‌های باز، مشترکِ هر سه نوعِ داشبورد (R24). */
 interface WithPolls {

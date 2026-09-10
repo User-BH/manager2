@@ -2,7 +2,7 @@ import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
-import { PollCard, type MessagePoll } from '@/features/messaging/messenger/PollCard'
+import { PollCard, type MessagePoll } from '@/shared/ui/PollCard'
 import { EmojiPicker } from '@/features/messaging/messenger/EmojiPicker'
 
 /**

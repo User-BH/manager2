@@ -24,7 +24,7 @@ import { alertError, toastSuccess } from '@/shared/lib/alert'
 import { cn } from '@/shared/lib/cn'
 import { AudiencePicker, type Audience, type MessengerUnit } from './AudiencePicker'
 import { EmojiPicker } from './EmojiPicker'
-import { PollCard, type MessagePoll } from './PollCard'
+import { PollCard, type MessagePoll } from '@/shared/ui/PollCard'
 import { PollComposer, emptyPoll, type PollDraft } from './PollComposer'
 
 /** همان قیدِ `StoreMessageRequest`؛ اینجا فقط تا کاربر پیش از آپلود بفهمد. */
