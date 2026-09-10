@@ -168,6 +168,20 @@ class PhaseRegressionMapTest extends TestCase
             'دورهٔ کج به نامِ فایلِ خروجی نمی‌رسد' => [
                 'DocumentExportTest', 'test_a_crooked_period_never_reaches_the_export_filename', '۹',
             ],
+
+            /* ── تجمیع: گزارشِ مرجعِ نهایی ─────────────────────────────── */
+            'گزارشِ مرجع هر ۲۵ بخش را دارد' => [
+                'ConsolidatedAuditTest', 'test_every_required_section_is_present', '۹',
+            ],
+            'سهمِ نقشه در شمارش بازمحاسبه می‌شود' => [
+                'ConsolidatedAuditTest', 'test_the_map_share_of_the_count_is_recomputed', '۹',
+            ],
+            'جدولِ شمارش با ستون‌هایش می‌خواند' => [
+                'ConsolidatedAuditTest', 'test_the_headline_table_adds_up', '۹',
+            ],
+            'ادعای تأییدِ محیط پشتوانه می‌خواهد' => [
+                'ConsolidatedAuditTest', 'test_the_environment_verdict_needs_the_table_to_agree', '۹',
+            ],
         ];
     }
 
@@ -250,7 +264,7 @@ class PhaseRegressionMapTest extends TestCase
     public function test_the_map_never_shrinks(): void
     {
         $this->assertGreaterThanOrEqual(
-            39,
+            43,
             count(self::fixes()),
             'ردیفی از نقشهٔ رگرسیون حذف شده؛ یعنی اصلاحی محافظش را از دست داده.',
         );

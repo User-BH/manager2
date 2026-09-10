@@ -8,42 +8,43 @@
 
 ## نقشهٔ مستندات
 
-| مستند                                                                    | چه چیزی در آن است                                                                       |
-| ------------------------------------------------------------------------ | --------------------------------------------------------------------------------------- |
-| [docs/DEVELOPER_GUIDE.md](docs/DEVELOPER_GUIDE.md)                       | **از اینجا شروع کنید.** راه‌اندازی، دستورهای روزمره، قراردادهای کد، افزودن یک قابلیت    |
-| [docs/STAGE4_ROADMAP.md](docs/STAGE4_ROADMAP.md)                         | 🔴 **نقشهٔ مرحلهٔ چهارم** — ده فاز، دسته‌بندیِ A/B/C، و اینکه از کجا شروع کنیم          |
-| [docs/FINAL_PRE_PRODUCTION_AUDIT.md](docs/FINAL_PRE_PRODUCTION_AUDIT.md) | 🔴 **ممیزیِ نهاییِ پیش از محصول** — ۲۴ بخش، شمارشِ مرجع، و حکمِ نهاییِ انتشار           |
-| [docs/CANONICAL_INVENTORY.md](docs/CANONICAL_INVENTORY.md)               | 🔴 **سیاههٔ مرجع** — وضعیتِ قطعی هر مورد؛ هرجا سندی متناقض گفت، این درست است            |
-| [docs/FINAL_AUDIT.md](docs/FINAL_AUDIT.md)                               | **ممیزیِ نهایی** — حکمِ آمادگی، ۳۲۵ ردیف، و پنج کارِ پیش از محصول                       |
-| [docs/NOT_VERIFIED.md](docs/NOT_VERIFIED.md)                             | 🔴 **آنچه سنجیده نشده** — ۱۲ مورد، هرکدام با دلیل، ریسک، و راهِ سنجیدنش                 |
-| [docs/FINAL_SECURITY_REPORT.md](docs/FINAL_SECURITY_REPORT.md)           | **گزارشِ نهاییِ امنیت** — ۹ یافته با سناریوی حمله و روشِ راستی‌آزمایی                   |
-| [docs/FINAL_TEST_REPORT.md](docs/FINAL_TEST_REPORT.md)                   | **گزارشِ نهاییِ تست** — اعدادِ واقعی، و چرا پوشش اندازه‌گیری نشد                        |
-| [docs/FINAL_PERFORMANCE_REPORT.md](docs/FINAL_PERFORMANCE_REPORT.md)     | **گزارشِ نهاییِ کارایی** — چهار گلوگاه، پیش و پس، بودجه‌ها                              |
-| [docs/TECHNICAL_REPORT.md](docs/TECHNICAL_REPORT.md)                     | **گزارش فنی نهایی** — چه چیزی سنجیده شده، با چه عددی، و چه چیزی سنجیده نشده             |
-| [docs/FINAL_REVIEW.md](docs/FINAL_REVIEW.md)                             | **بازبینی نهایی ۹ نقشه** — یافته‌ها، رفع‌ها، و مواردی که آگاهانه تغییر نکردند           |
-| [docs/BACKEND_STRUCTURE.md](docs/BACKEND_STRUCTURE.md)                   | لایه‌بندی بک‌اند، چندمستأجری، مدل‌ها و سرویس‌ها                                         |
-| [docs/FRONTEND_STRUCTURE.md](docs/FRONTEND_STRUCTURE.md)                 | ساختار `resources/js`، مرزِ MPA/SPA، مدیریت حالت                                        |
-| [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md)                                 | استقرار روی سرور                                                                        |
-| [docs/DEPLOYMENT_SECURITY.md](docs/DEPLOYMENT_SECURITY.md)               | سخت‌سازیِ سرور و رازها                                                                  |
-| [docs/OFFLINE.md](docs/OFFLINE.md)                                       | **معماریِ آفلاین** — چه کاری آفلاین ممکن است، و چرا صفِ آفلاین ساخته نشد                |
-| [docs/API_COMPATIBILITY.md](docs/API_COMPATIBILITY.md)                   | **قراردادِ سازگاری** — Mixed App Versions، چرخهٔ به‌روزرسانیِ SW، و بازگشت              |
-| [docs/RELEASE_PIPELINE.md](docs/RELEASE_PIPELINE.md)                     | **خطِ انتشار** — شانزده گام، چه چیزی هرکدام را نگه می‌دارد، و چرا Blue-Green نه         |
-| [docs/TESTING.md](docs/TESTING.md)                                       | **استراتژیِ تست** — هرمِ اندازه‌گیری‌شده، سیاههٔ قواعد، و آنچه عمداً سنجیده نمی‌شود     |
-| [docs/COMPLEX_TYPES.md](docs/COMPLEX_TYPES.md)                           | **مجتمعِ مسکونی و تجاری** — تصمیم، تعرفهٔ جدا، و پرسش‌های بازِ ثبت‌شده                  |
-| [docs/PERFORMANCE.md](docs/PERFORMANCE.md)                               | **پایهٔ کارایی** — دوازده سنجه با عددِ واقعی، بودجه‌ها، و تصمیمِ Redis و Real-Time      |
-| [docs/LOAD_TESTING.md](docs/LOAD_TESTING.md)                             | **سنجشِ بار** — رویه، پیش‌نیازها، و اینکه چرا بیشترِ اجراها محدودکنندهٔ نرخ را می‌سنجند |
-| [docs/ALERTING.md](docs/ALERTING.md)                                     | **دفترچهٔ هشدار** — چه چیزی زنگ می‌زند، چرا آن عدد، و اپراتور چه کند                    |
-| [docs/DISASTER_RECOVERY.md](docs/DISASTER_RECOVERY.md)                   | **بازیابی از فاجعه** — RPO و RTO، مقصدِ خارج از سرور، و رویهٔ هشت سناریو                |
-| [docs/MIGRATIONS.md](docs/MIGRATIONS.md)                                 | **مهاجرتِ امن** — Expand→Migrate→Contract، مهاجرتِ مخرب، رویهٔ برگشت                    |
-| [docs/SECRETS.md](docs/SECRETS.md)                                       | **رازها و چرخشِ کلید** — فهرست، رویهٔ چرخش، و کارِ لحظهٔ نشت                            |
-| [docs/SERVER_HARDENING.md](docs/SERVER_HARDENING.md)                     | **چک‌لیستِ سخت‌سازیِ سرور** — آنچه کد نمی‌تواند تضمین کند                               |
-| [docs/SECURITY_AUDIT.md](docs/SECURITY_AUDIT.md)                         | ممیزی امنیتی و یافته‌های باز                                                            |
-| [docs/AUDIT_REPORT.md](docs/AUDIT_REPORT.md)                             | ممیزی فنیِ اولیه                                                                        |
-| [docs/WORK_PLAN.md](docs/WORK_PLAN.md)                                   | نقشهٔ ۴۸ مرحله‌ای و شرحِ هر مرحله                                                       |
-| [docs/STAGE2_AUDIT_MAP.md](docs/STAGE2_AUDIT_MAP.md)                     | **نقشهٔ ایرادات مرحلهٔ دوم** — هر ۳۲۵ بند با وضعیتِ اندازه‌گیری‌شده و مرحلهٔ متناظر     |
-| [docs/PROJECT_MEMORY.md](docs/PROJECT_MEMORY.md)                         | درس‌های آموخته‌شده و دام‌های تکرارشونده                                                 |
-| [docs/COMPLETED_WORK.md](docs/COMPLETED_WORK.md)                         | کارهای انجام‌شده                                                                        |
-| [docs/REMAINING_WORK.md](docs/REMAINING_WORK.md)                         | کارهای باقی‌مانده                                                                       |
+| مستند                                                                              | چه چیزی در آن است                                                                                              |
+| ---------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------- |
+| [docs/DEVELOPER_GUIDE.md](docs/DEVELOPER_GUIDE.md)                                 | **از اینجا شروع کنید.** راه‌اندازی، دستورهای روزمره، قراردادهای کد، افزودن یک قابلیت                           |
+| [docs/STAGE4_ROADMAP.md](docs/STAGE4_ROADMAP.md)                                   | 🔴 **نقشهٔ مرحلهٔ چهارم** — ده فاز، دسته‌بندیِ A/B/C، و اینکه از کجا شروع کنیم                                 |
+| [docs/STAGE4_FINAL_CONSOLIDATED_AUDIT.md](docs/STAGE4_FINAL_CONSOLIDATED_AUDIT.md) | 🔴 **گزارشِ مرجعِ نهاییِ مرحلهٔ چهارم** — ۲۵ بخش، شمارشِ قطعی، و حکمِ انتشار؛ بر همهٔ گزارش‌های فازها مقدم است |
+| [docs/FINAL_PRE_PRODUCTION_AUDIT.md](docs/FINAL_PRE_PRODUCTION_AUDIT.md)           | 🔴 **ممیزیِ نهاییِ پیش از محصول** — ۲۴ بخش، شمارشِ مرجع، و حکمِ نهاییِ انتشار                                  |
+| [docs/CANONICAL_INVENTORY.md](docs/CANONICAL_INVENTORY.md)                         | 🔴 **سیاههٔ مرجع** — وضعیتِ قطعی هر مورد؛ هرجا سندی متناقض گفت، این درست است                                   |
+| [docs/FINAL_AUDIT.md](docs/FINAL_AUDIT.md)                                         | **ممیزیِ نهایی** — حکمِ آمادگی، ۳۲۵ ردیف، و پنج کارِ پیش از محصول                                              |
+| [docs/NOT_VERIFIED.md](docs/NOT_VERIFIED.md)                                       | 🔴 **آنچه سنجیده نشده** — ۱۲ مورد، هرکدام با دلیل، ریسک، و راهِ سنجیدنش                                        |
+| [docs/FINAL_SECURITY_REPORT.md](docs/FINAL_SECURITY_REPORT.md)                     | **گزارشِ نهاییِ امنیت** — ۹ یافته با سناریوی حمله و روشِ راستی‌آزمایی                                          |
+| [docs/FINAL_TEST_REPORT.md](docs/FINAL_TEST_REPORT.md)                             | **گزارشِ نهاییِ تست** — اعدادِ واقعی، و چرا پوشش اندازه‌گیری نشد                                               |
+| [docs/FINAL_PERFORMANCE_REPORT.md](docs/FINAL_PERFORMANCE_REPORT.md)               | **گزارشِ نهاییِ کارایی** — چهار گلوگاه، پیش و پس، بودجه‌ها                                                     |
+| [docs/TECHNICAL_REPORT.md](docs/TECHNICAL_REPORT.md)                               | **گزارش فنی نهایی** — چه چیزی سنجیده شده، با چه عددی، و چه چیزی سنجیده نشده                                    |
+| [docs/FINAL_REVIEW.md](docs/FINAL_REVIEW.md)                                       | **بازبینی نهایی ۹ نقشه** — یافته‌ها، رفع‌ها، و مواردی که آگاهانه تغییر نکردند                                  |
+| [docs/BACKEND_STRUCTURE.md](docs/BACKEND_STRUCTURE.md)                             | لایه‌بندی بک‌اند، چندمستأجری، مدل‌ها و سرویس‌ها                                                                |
+| [docs/FRONTEND_STRUCTURE.md](docs/FRONTEND_STRUCTURE.md)                           | ساختار `resources/js`، مرزِ MPA/SPA، مدیریت حالت                                                               |
+| [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md)                                           | استقرار روی سرور                                                                                               |
+| [docs/DEPLOYMENT_SECURITY.md](docs/DEPLOYMENT_SECURITY.md)                         | سخت‌سازیِ سرور و رازها                                                                                         |
+| [docs/OFFLINE.md](docs/OFFLINE.md)                                                 | **معماریِ آفلاین** — چه کاری آفلاین ممکن است، و چرا صفِ آفلاین ساخته نشد                                       |
+| [docs/API_COMPATIBILITY.md](docs/API_COMPATIBILITY.md)                             | **قراردادِ سازگاری** — Mixed App Versions، چرخهٔ به‌روزرسانیِ SW، و بازگشت                                     |
+| [docs/RELEASE_PIPELINE.md](docs/RELEASE_PIPELINE.md)                               | **خطِ انتشار** — شانزده گام، چه چیزی هرکدام را نگه می‌دارد، و چرا Blue-Green نه                                |
+| [docs/TESTING.md](docs/TESTING.md)                                                 | **استراتژیِ تست** — هرمِ اندازه‌گیری‌شده، سیاههٔ قواعد، و آنچه عمداً سنجیده نمی‌شود                            |
+| [docs/COMPLEX_TYPES.md](docs/COMPLEX_TYPES.md)                                     | **مجتمعِ مسکونی و تجاری** — تصمیم، تعرفهٔ جدا، و پرسش‌های بازِ ثبت‌شده                                         |
+| [docs/PERFORMANCE.md](docs/PERFORMANCE.md)                                         | **پایهٔ کارایی** — دوازده سنجه با عددِ واقعی، بودجه‌ها، و تصمیمِ Redis و Real-Time                             |
+| [docs/LOAD_TESTING.md](docs/LOAD_TESTING.md)                                       | **سنجشِ بار** — رویه، پیش‌نیازها، و اینکه چرا بیشترِ اجراها محدودکنندهٔ نرخ را می‌سنجند                        |
+| [docs/ALERTING.md](docs/ALERTING.md)                                               | **دفترچهٔ هشدار** — چه چیزی زنگ می‌زند، چرا آن عدد، و اپراتور چه کند                                           |
+| [docs/DISASTER_RECOVERY.md](docs/DISASTER_RECOVERY.md)                             | **بازیابی از فاجعه** — RPO و RTO، مقصدِ خارج از سرور، و رویهٔ هشت سناریو                                       |
+| [docs/MIGRATIONS.md](docs/MIGRATIONS.md)                                           | **مهاجرتِ امن** — Expand→Migrate→Contract، مهاجرتِ مخرب، رویهٔ برگشت                                           |
+| [docs/SECRETS.md](docs/SECRETS.md)                                                 | **رازها و چرخشِ کلید** — فهرست، رویهٔ چرخش، و کارِ لحظهٔ نشت                                                   |
+| [docs/SERVER_HARDENING.md](docs/SERVER_HARDENING.md)                               | **چک‌لیستِ سخت‌سازیِ سرور** — آنچه کد نمی‌تواند تضمین کند                                                      |
+| [docs/SECURITY_AUDIT.md](docs/SECURITY_AUDIT.md)                                   | ممیزی امنیتی و یافته‌های باز                                                                                   |
+| [docs/AUDIT_REPORT.md](docs/AUDIT_REPORT.md)                                       | ممیزی فنیِ اولیه                                                                                               |
+| [docs/WORK_PLAN.md](docs/WORK_PLAN.md)                                             | نقشهٔ ۴۸ مرحله‌ای و شرحِ هر مرحله                                                                              |
+| [docs/STAGE2_AUDIT_MAP.md](docs/STAGE2_AUDIT_MAP.md)                               | **نقشهٔ ایرادات مرحلهٔ دوم** — هر ۳۲۵ بند با وضعیتِ اندازه‌گیری‌شده و مرحلهٔ متناظر                            |
+| [docs/PROJECT_MEMORY.md](docs/PROJECT_MEMORY.md)                                   | درس‌های آموخته‌شده و دام‌های تکرارشونده                                                                        |
+| [docs/COMPLETED_WORK.md](docs/COMPLETED_WORK.md)                                   | کارهای انجام‌شده                                                                                               |
+| [docs/REMAINING_WORK.md](docs/REMAINING_WORK.md)                                   | کارهای باقی‌مانده                                                                                              |
 
 مستند API از روی مسیرهای واقعی ساخته می‌شود: `php artisan openapi:generate`
 خروجی‌اش `public/openapi.json` است و روی `/openapi.json` سرو می‌شود.
