@@ -26,11 +26,57 @@
   "/api/v1/dashboard": {
     "balance": "int",
     "currency": "string",
-    "debtors": "array:empty",
+    "debtors": [
+      {
+        "balance": "int",
+        "floor": "int",
+        "id": "int",
+        "label": "string"
+      }
+    ],
     "expense": "int",
-    "goodPayers": "array:empty",
+    "goodPayers": [
+      {
+        "id": "int",
+        "label": "string",
+        "onTime": "int"
+      }
+    ],
     "income": "int",
-    "openPolls": "array:empty",
+    "openPolls": [
+      {
+        "allowChange": "bool",
+        "blockReason": "string",
+        "castWeight": "int",
+        "closesAt": "string",
+        "eligibleWeight": "int",
+        "id": "int",
+        "isClosed": "bool",
+        "isTie": "bool",
+        "leaderId": "null",
+        "myOptionId": "null",
+        "options": [
+          {
+            "id": "int",
+            "label": "string",
+            "share": "int",
+            "votes": "int",
+            "weight": "int"
+          }
+        ],
+        "question": "string",
+        "quorumMet": "bool",
+        "quorumPercent": "null",
+        "totalVotes": "int",
+        "turnoutPercent": "int",
+        "voterScope": "string",
+        "voterScopeLabel": "string",
+        "weightMode": "string",
+        "weightModeLabel": "string",
+        "weightUnavailable": "bool",
+        "weightUnit": "string"
+      }
+    ],
     "openRequests": "int",
     "period": "string",
     "periodLabel": "string",
@@ -164,7 +210,24 @@
       }
     ],
     "pendingTotal": "int",
-    "recent": "array:empty"
+    "recent": [
+      {
+        "amount": "int",
+        "billPeriod": "string",
+        "createdAt": "string",
+        "description": "null",
+        "hasReceipt": "bool",
+        "id": "int",
+        "method": "string",
+        "methodLabel": "string",
+        "paidAt": "string",
+        "payerName": "string",
+        "receiptUrl": "null",
+        "status": "string",
+        "statusLabel": "string",
+        "unitLabel": "string"
+      }
+    ]
   },
   "/api/v1/finance": {
     "categories": [
@@ -175,9 +238,30 @@
     ],
     "currency": "string",
     "expenseTotal": "int",
-    "expenses": "array:empty",
+    "expenses": [
+      {
+        "amount": "int",
+        "category": "string",
+        "categoryLabel": "string",
+        "description": "null",
+        "id": "int",
+        "isDistributed": "bool",
+        "spendDate": "string",
+        "splitLabel": "null",
+        "splitMethod": "null",
+        "title": "string"
+      }
+    ],
     "incomeTotal": "int",
-    "incomes": "array:empty",
+    "incomes": [
+      {
+        "amount": "int",
+        "id": "int",
+        "receivedDate": "string",
+        "source": "string",
+        "title": "string"
+      }
+    ],
     "period": "string",
     "periodLabel": "string",
     "periods": [
@@ -194,11 +278,40 @@
     ]
   },
   "/api/v1/notifications": {
-    "items": "array:empty",
+    "items": [
+      {
+        "announcementId": "int",
+        "excerpt": "string",
+        "id": "string",
+        "isPinned": "bool",
+        "isRead": "bool",
+        "kind": "string",
+        "publishedAt": "string",
+        "title": "string"
+      }
+    ],
     "unreadCount": "int"
   },
   "/api/v1/residents": {
-    "data": "array:empty",
+    "data": [
+      {
+        "canMessage": "bool",
+        "email": "string",
+        "id": "int",
+        "isActive": "bool",
+        "name": "string",
+        "nationalId": "null",
+        "phone": "null",
+        "role": "string",
+        "roleLabel": "string",
+        "units": [
+          {
+            "id": "int",
+            "label": "string"
+          }
+        ]
+      }
+    ],
     "filters": {
       "roleOptions": [
         {
@@ -218,6 +331,449 @@
       "lastPage": "int",
       "perPage": "int",
       "total": "int"
+    }
+  },
+  "/api/v1/wallet": {
+    "wallets": [
+      {
+        "balance": "int",
+        "unitId": "int",
+        "unitLabel": "string"
+      }
+    ]
+  },
+  "/api/v1/service-requests": {
+    "assignables": [
+      {
+        "id": "int",
+        "name": "string",
+        "role": "string"
+      }
+    ],
+    "categories": [
+      {
+        "label": "string",
+        "value": "string"
+      }
+    ],
+    "counts": {
+      "closed": "int",
+      "in_progress": "int",
+      "new": "int",
+      "open": "int",
+      "rejected": "int",
+      "resolved": "int"
+    },
+    "currentPage": "int",
+    "isAdmin": "bool",
+    "lastPage": "int",
+    "priorities": [
+      {
+        "color": "string",
+        "label": "string",
+        "value": "string"
+      }
+    ],
+    "requests": [
+      {
+        "assignee": "null",
+        "attachment": "null",
+        "can": {
+          "assign": "bool",
+          "isAssignee": "bool",
+          "isRequester": "bool",
+          "noteInternally": "bool"
+        },
+        "category": "string",
+        "categoryLabel": "string",
+        "closedAt": "null",
+        "createdAt": "string",
+        "description": "string",
+        "id": "int",
+        "isOpen": "bool",
+        "priority": "string",
+        "priorityColor": "string",
+        "priorityLabel": "string",
+        "requesterName": "string",
+        "resolvedAt": "null",
+        "status": "string",
+        "statusColor": "string",
+        "statusLabel": "string",
+        "title": "string",
+        "unitLabel": "string"
+      }
+    ],
+    "statuses": [
+      {
+        "color": "string",
+        "label": "string",
+        "value": "string"
+      }
+    ],
+    "total": "int"
+  },
+  "/api/v1/announcements": {
+    "audienceOptions": [
+      {
+        "label": "string",
+        "value": "string"
+      }
+    ],
+    "canManage": "bool",
+    "data": [
+      {
+        "audience": "string",
+        "audienceLabel": "string",
+        "body": "string",
+        "id": "int",
+        "isActive": "bool",
+        "isPinned": "bool",
+        "isRead": "bool",
+        "publishedAt": "string",
+        "title": "string"
+      }
+    ],
+    "meta": {
+      "currentPage": "int",
+      "lastPage": "int",
+      "total": "int"
+    },
+    "unreadCount": "int"
+  },
+  "/api/v1/messenger": {
+    "canSend": "bool",
+    "hasOlder": "bool",
+    "hiddenIds": "array:empty",
+    "isAdmin": "bool",
+    "messages": [
+      {
+        "attachment": "null",
+        "audience": "string",
+        "audienceLabel": "string",
+        "authorName": "string",
+        "body": "string",
+        "id": "int",
+        "isHidden": "bool",
+        "isMine": "bool",
+        "poll": {
+          "allowChange": "bool",
+          "blockReason": "string",
+          "castWeight": "int",
+          "closesAt": "string",
+          "eligibleWeight": "int",
+          "id": "int",
+          "isClosed": "bool",
+          "isTie": "bool",
+          "leaderId": "null",
+          "myOptionId": "null",
+          "options": [
+            {
+              "id": "int",
+              "label": "string",
+              "share": "int",
+              "votes": "int",
+              "weight": "int"
+            }
+          ],
+          "question": "string",
+          "quorumMet": "bool",
+          "quorumPercent": "null",
+          "totalVotes": "int",
+          "turnoutPercent": "int",
+          "voterScope": "string",
+          "voterScopeLabel": "string",
+          "weightMode": "string",
+          "weightModeLabel": "string",
+          "weightUnavailable": "bool",
+          "weightUnit": "string"
+        },
+        "readCount": "int",
+        "sentAt": "string",
+        "unitLabel": "null"
+      }
+    ],
+    "reason": "string",
+    "units": [
+      {
+        "id": "int",
+        "label": "string"
+      }
+    ],
+    "unreadCount": "int"
+  },
+  "/api/v1/settings": {
+    "gatewayBlockedByPlan": "bool",
+    "options": {
+      "currencies": [
+        {
+          "label": "string",
+          "value": "string"
+        }
+      ],
+      "gateways": [
+        {
+          "label": "string",
+          "value": "string"
+        }
+      ],
+      "penaltyTypes": [
+        {
+          "label": "string",
+          "value": "string"
+        }
+      ]
+    },
+    "sandboxActive": "bool",
+    "sandboxAllowed": "bool",
+    "settings": {
+      "address": "null",
+      "charge_due_day": "int",
+      "currency": "string",
+      "good_payer_enabled": "bool",
+      "gw_password_set": "bool",
+      "gw_terminal_id": "string",
+      "gw_username": "string",
+      "messenger_enabled": "bool",
+      "name": "string",
+      "payment_gateway": "string",
+      "penalty_enabled": "bool",
+      "penalty_grace_days": "int",
+      "penalty_type": "string",
+      "penalty_value": "int",
+      "phone": "null"
+    }
+  },
+  "/api/v1/profile": {
+    "complexes": [
+      {
+        "address": "null",
+        "id": "int",
+        "isActive": "bool",
+        "isCurrent": "bool",
+        "name": "string",
+        "phone": "null",
+        "unitsCount": "int",
+        "usersCount": "int"
+      }
+    ],
+    "people": [
+      {
+        "id": "int",
+        "isActive": "bool",
+        "name": "string",
+        "phone": "null",
+        "relationLabel": "string",
+        "roleLabel": "string"
+      }
+    ],
+    "profile": {
+      "address": "null",
+      "bio": "null",
+      "birthDate": "null",
+      "birthDateLabel": "null",
+      "canMessage": "bool",
+      "complex": {
+        "id": "int",
+        "name": "string",
+        "type": "string",
+        "typeLabel": "string"
+      },
+      "email": "string",
+      "emergencyPhone": "null",
+      "id": "int",
+      "isActive": "bool",
+      "isAdmin": "bool",
+      "joinedAt": "string",
+      "name": "string",
+      "nationalId": "null",
+      "phone": "null",
+      "role": "string",
+      "roleLabel": "string"
+    },
+    "stats": {
+      "billsCount": "int",
+      "paidCount": "int",
+      "totalDebt": "int",
+      "unitsCount": "int"
+    },
+    "units": [
+      {
+        "area": "int",
+        "balance": "int",
+        "buildingName": "null",
+        "endDate": "null",
+        "floor": "int",
+        "id": "int",
+        "isCurrent": "bool",
+        "label": "string",
+        "relation": "string",
+        "relationLabel": "string",
+        "sharePercent": "int",
+        "startDate": "null"
+      }
+    ]
+  },
+  "/api/v1/subscription": {
+    "bankInfo": {
+      "bank_name": "string",
+      "card": "string",
+      "holder": "string",
+      "iban": "string"
+    },
+    "checkoutAction": "string",
+    "checkoutEnabled": "bool",
+    "complexName": "string",
+    "current": {
+      "amount": "int",
+      "amountLabel": "string",
+      "buyerName": "string",
+      "createdAt": "string",
+      "daysLeft": "int",
+      "endsAt": "string",
+      "hasReceipt": "bool",
+      "id": "int",
+      "method": "string",
+      "methodLabel": "string",
+      "plan": "string",
+      "planLabel": "string",
+      "reviewNote": "null",
+      "startsAt": "string",
+      "status": "string",
+      "statusLabel": "string",
+      "trackingCode": "null"
+    },
+    "currentPlan": "string",
+    "currentPlanLabel": "string",
+    "freeFeatures": ["string"],
+    "history": [
+      {
+        "amount": "int",
+        "amountLabel": "string",
+        "buyerName": "string",
+        "createdAt": "string",
+        "daysLeft": "int",
+        "endsAt": "string",
+        "hasReceipt": "bool",
+        "id": "int",
+        "method": "string",
+        "methodLabel": "string",
+        "plan": "string",
+        "planLabel": "string",
+        "reviewNote": "null",
+        "startsAt": "string",
+        "status": "string",
+        "statusLabel": "string",
+        "trackingCode": "null"
+      }
+    ],
+    "plans": [
+      {
+        "features": ["string"],
+        "label": "string",
+        "months": "int",
+        "price": "int",
+        "priceLabel": "string",
+        "savingPercent": "int",
+        "value": "string"
+      }
+    ],
+    "supportPhone": "string",
+    "usage": {
+      "unitLimit": "null",
+      "units": "int"
+    }
+  },
+  "/api/v1/charge-rules": {
+    "categories": [
+      {
+        "label": "string",
+        "value": "string"
+      }
+    ],
+    "data": [
+      {
+        "category": "string",
+        "categoryLabel": "string",
+        "config": {
+          "amount": "int"
+        },
+        "id": "int",
+        "isActive": "bool",
+        "isPoolBased": "bool",
+        "name": "string",
+        "poolAmount": "null",
+        "type": "string",
+        "typeLabel": "string"
+      }
+    ],
+    "types": [
+      {
+        "fields": ["string"],
+        "isPoolBased": "bool",
+        "label": "string",
+        "value": "string"
+      }
+    ]
+  },
+  "/api/v1/discounts": {
+    "currency": "string",
+    "data": [
+      {
+        "amount": "int",
+        "id": "int",
+        "reason": "string",
+        "unitId": "int",
+        "unitLabel": "string"
+      }
+    ],
+    "period": "string",
+    "periodLabel": "string",
+    "periods": [
+      {
+        "label": "string",
+        "value": "string"
+      }
+    ],
+    "total": "int",
+    "units": [
+      {
+        "label": "string",
+        "value": "int"
+      }
+    ]
+  },
+  "/api/v1/managers": {
+    "complexName": "string",
+    "data": [
+      {
+        "createdAt": "string",
+        "id": "int",
+        "isActive": "bool",
+        "isSelf": "bool",
+        "name": "string",
+        "phone": "null"
+      }
+    ]
+  },
+  "/api/v1/notifications/settings": {
+    "channels": [
+      {
+        "description": "string",
+        "enabled": "bool",
+        "isSms": "bool",
+        "label": "string",
+        "value": "string"
+      }
+    ]
+  },
+  "/api/v1/features": {
+    "data": {
+      "messenger": "bool",
+      "online_payment": "bool",
+      "polls": "bool",
+      "public_registration": "bool",
+      "pwa": "bool",
+      "support_bot": "bool"
     }
   }
 }

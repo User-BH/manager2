@@ -2,14 +2,32 @@
 
 namespace Tests\Feature;
 
+use App\Enums\AnnouncementAudience;
 use App\Enums\BillStatus;
+use App\Enums\ChargeRuleType;
+use App\Enums\ExpenseCategory;
+use App\Enums\MessageAudience;
 use App\Enums\OccupancyStatus;
 use App\Enums\PaymentMethod;
 use App\Enums\PaymentStatus;
+use App\Enums\ServiceRequestCategory;
+use App\Enums\ServiceRequestPriority;
+use App\Enums\ServiceRequestStatus;
+use App\Enums\SubscriptionPlan;
 use App\Enums\UserRole;
+use App\Models\Announcement;
 use App\Models\Bill;
+use App\Models\ChargeRule;
 use App\Models\Complex;
+use App\Models\Discount;
+use App\Models\Expense;
+use App\Models\Income;
+use App\Models\Message;
+use App\Models\MessagePoll;
 use App\Models\Payment;
+use App\Models\PollOption;
+use App\Models\ServiceRequest;
+use App\Models\Subscription;
 use App\Models\Unit;
 use App\Models\User;
 use App\Support\Jalali;
@@ -79,6 +97,8 @@ class ResponseShapeTest extends TestCase
             'complex_id' => $complex->id, 'unit_number' => '1', 'floor' => 1, 'area' => 100,
             'residents_count' => 2, 'coefficient' => 1,
             'occupancy_status' => OccupancyStatus::OwnerOccupied, 'uses_elevator' => true,
+            // ⚠️ `dashboard.debtors` از همین ستون می‌خواند، نه از جمعِ قبض‌ها
+            'balance' => 400000,
         ]);
 
         /*
@@ -103,6 +123,145 @@ class ResponseShapeTest extends TestCase
             'user_id' => $this->admin->id, 'amount' => 1000,
             'method' => PaymentMethod::Receipt, 'status' => PaymentStatus::Pending,
         ]);
+
+        /*
+         * ─── دادهٔ چهار مسیرِ تازه (مرحلهٔ ۵، فاز ۱ — S4-29) ────────────────
+         *
+         * 🔴 بدونِ این ردیف‌ها، هر چهار مسیر `data: array:empty` برمی‌گردانند
+         * و اسنپ‌شات **شکلِ ردیف را اصلاً ثبت نمی‌کند**. آن‌وقت پوشش روی
+         * کاغذ بیشتر می‌شود و در عمل هیچ فیلدی محافظت نمی‌شود.
+         *
+         * ⚠️ همین تله یک بار در فاز ۶ با خرابکاری پیدا شد؛ حالا
+         * `test_no_recorded_shape_is_vacuous` نمی‌گذارد تکرار شود.
+         */
+        Announcement::withoutGlobalScopes()->create([
+            'complex_id' => $complex->id, 'title' => 'اطلاعیهٔ قرارداد',
+            'body' => 'متنِ آزمایشی برای ثبتِ شکلِ پاسخ.',
+            'audience' => AnnouncementAudience::All, 'is_active' => true,
+            'is_pinned' => false, 'published_at' => now(), 'created_by' => $this->admin->id,
+        ]);
+
+        $message = Message::withoutGlobalScopes()->create([
+            'complex_id' => $complex->id, 'user_id' => $this->admin->id,
+            'body' => 'پیامِ آزمایشی برای ثبتِ شکلِ پاسخ.',
+            'audience' => MessageAudience::All,
+            'author_name' => $this->admin->name, 'author_role' => UserRole::ComplexAdmin->value,
+        ]);
+
+        ChargeRule::withoutGlobalScopes()->create([
+            'complex_id' => $complex->id, 'name' => 'شارژِ ثابتِ قرارداد',
+            'type' => ChargeRuleType::Fixed, 'category' => ExpenseCategory::cases()[0],
+            'config' => ['amount' => 100000], 'is_active' => true, 'sort_order' => 1,
+        ]);
+
+        Discount::withoutGlobalScopes()->create([
+            'complex_id' => $complex->id, 'unit_id' => $unit->id,
+            'period' => Jalali::currentPeriod(), 'amount' => 50000,
+            'reason' => 'تخفیفِ آزمایشی', 'created_by' => $this->admin->id,
+        ]);
+
+        /*
+         * ─── و ردیف‌هایی که محافظِ پوچی‌سنج لو داد ─────────────────────────
+         *
+         * 🔴 این‌ها به مسیرهای **قدیمیِ** سیاهه مربوط‌اند، نه مسیرهای تازه.
+         * یعنی `residents.data`، `finance.expenses` و `payments.recent` از
+         * فاز ۶ تا امروز **خالی ثبت می‌شدند** و شکلِ ردیفشان هیچ‌وقت
+         * محافظت نشده بود.
+         *
+         * ⚠️ نمونهٔ دقیقِ همان چیزی که این فاز برای بستنش است: پوششی که
+         * روی کاغذ بود و در عمل نبود.
+         */
+        $resident = User::factory()->create([
+            'complex_id' => $complex->id,
+            'role' => UserRole::Owner,
+            'is_active' => true,
+        ]);
+
+        $resident->units()->attach($unit->id, [
+            'complex_id' => $complex->id, 'relation' => 'owner',
+            'share_percent' => 100, 'is_current' => true,
+        ]);
+
+        // پرداختِ موفق — `payments.recent` فقط تسویه‌شده‌ها را نشان می‌دهد
+        Payment::withoutGlobalScopes()->create([
+            'complex_id' => $complex->id, 'unit_id' => $unit->id, 'bill_id' => $bill->id,
+            'user_id' => $this->admin->id, 'amount' => 25000,
+            'method' => PaymentMethod::Receipt, 'status' => PaymentStatus::Success,
+            'paid_at' => now(),
+        ]);
+
+        Expense::withoutGlobalScopes()->create([
+            'complex_id' => $complex->id, 'title' => 'هزینهٔ آزمایشی',
+            'amount' => 300000, 'category' => ExpenseCategory::cases()[0],
+            'period' => Jalali::currentPeriod(), 'spend_date' => now(),
+            'created_by' => $this->admin->id,
+        ]);
+
+        Income::withoutGlobalScopes()->create([
+            'complex_id' => $complex->id, 'title' => 'درآمدِ آزمایشی',
+            'amount' => 120000, 'source' => 'اجارهٔ بام',
+            'period' => Jalali::currentPeriod(), 'received_date' => now(),
+            'created_by' => $this->admin->id,
+        ]);
+
+        ServiceRequest::withoutGlobalScopes()->create([
+            'complex_id' => $complex->id, 'unit_id' => $unit->id,
+            'user_id' => $resident->id, 'category' => ServiceRequestCategory::Facilities,
+            'priority' => ServiceRequestPriority::Normal, 'status' => ServiceRequestStatus::New,
+            'title' => 'درخواستِ آزمایشی', 'description' => 'شرحِ آزمایشی.',
+        ]);
+
+        Subscription::withoutGlobalScopes()->create([
+            'complex_id' => $complex->id, 'user_id' => $this->admin->id,
+            'plan' => SubscriptionPlan::Pro, 'status' => 'active', 'method' => 'receipt',
+            'amount' => SubscriptionPlan::Pro->price(), 'months' => 1,
+            'starts_at' => now(), 'ends_at' => now()->addMonth(),
+        ]);
+
+        /*
+         * قبضِ معوقِ دورهٔ گذشته — تا `dashboard.debtors` شکلِ ردیفش را ثبت کند.
+         *
+         * ⚠️ بدهکارها مالی‌اند و مستقیم روی داشبوردِ مدیر رندر می‌شوند؛
+         * حذفِ بی‌صدای یک فیلد از این ردیف یعنی مدیر عددِ اشتباه ببیند.
+         */
+        Bill::withoutGlobalScopes()->create([
+            'complex_id' => $complex->id, 'unit_id' => $unit->id,
+            'period' => Jalali::shiftPeriod(Jalali::currentPeriod(), -1),
+            'total_amount' => 400000, 'paid_amount' => 0,
+            'status' => BillStatus::Unpaid, 'issued_at' => now()->subMonth(),
+        ]);
+
+        // قبضِ **به‌موقع پرداخت‌شده** — تنها راهی که `dashboard.goodPayers` ردیف بسازد
+        Bill::withoutGlobalScopes()->create([
+            'complex_id' => $complex->id, 'unit_id' => $unit->id,
+            'period' => Jalali::shiftPeriod(Jalali::currentPeriod(), -2),
+            'total_amount' => 200000, 'paid_amount' => 200000,
+            'status' => BillStatus::Paid, 'issued_at' => now()->subMonths(2),
+            'due_date' => now()->subMonths(2)->addDays(10),
+            'paid_at' => now()->subMonths(2)->addDays(3),
+        ]);
+
+        // مدیرِ دوم — `profile.people` برای مدیر یعنی «هم‌تیمی‌های مدیریت»
+        User::factory()->create([
+            'complex_id' => $complex->id,
+            'role' => UserRole::ComplexAdmin,
+            'is_active' => true,
+        ]);
+
+        // نظرسنجیِ باز — `dashboard.openPolls`
+        $poll = MessagePoll::create([
+            'message_id' => $message->id,
+            'question' => 'پرسشِ آزمایشی؟',
+            'closes_at' => now()->addWeek(),
+        ]);
+
+        foreach (['گزینهٔ یک', 'گزینهٔ دو'] as $order => $label) {
+            PollOption::create([
+                'message_poll_id' => $poll->id,
+                'label' => $label,
+                'sort_order' => $order,
+            ]);
+        }
     }
 
     /**
@@ -126,8 +285,48 @@ class ResponseShapeTest extends TestCase
             '/api/v1/finance',
             '/api/v1/notifications',
             '/api/v1/residents',
+
+            /* ── افزودهٔ مرحلهٔ ۵، فاز ۱ (S4-29) ─────────────────────────── */
+            // 🔴 مالی — شکستنِ بی‌صدای شکلش یعنی موجودی اشتباه نشان داده شود
+            '/api/v1/wallet',
+            '/api/v1/service-requests',
+            '/api/v1/announcements',
+            '/api/v1/messenger',
+            // فرمِ تنظیماتِ مجتمع مستقیم از این ساخته می‌شود
+            '/api/v1/settings',
+            '/api/v1/profile',
+            '/api/v1/subscription',
+            '/api/v1/charge-rules',
+            '/api/v1/discounts',
+            '/api/v1/managers',
+            '/api/v1/notifications/settings',
+            '/api/v1/features',
         ];
     }
+
+    /**
+     * کلیدهایی که **حق دارند** خالی باشند، با دلیل.
+     *
+     * ─── ⚠️ چرا سیاههٔ صریح و نه قاعدهٔ کلی ─────────────────────────────────
+     * قاعدهٔ «هیچ کلیدی خالی نباشد» تورِ پرسروصدایی می‌سازد: `hiddenIds`
+     * وقتی چیزی پنهان نشده واقعاً خالی است و باید باشد.
+     *
+     * 🔴 ولی قاعدهٔ «خالی بودن اشکالی ندارد» هم بی‌معناست، چون همان چیزی
+     * است که پوششِ صوری می‌سازد. پس هر خالیِ مجاز **نوشته** می‌شود — همان
+     * الگوی معافیتِ تصویر در `PerformanceBaselineTest`.
+     *
+     * @var array<string, string>
+     */
+    private const EMPTY_ALLOWED = [
+        /*
+         * ⚠️ تنها موردِ مجاز — و عمداً فقط همین یکی.
+         *
+         * `hiddenIds` فهرستِ شناسه است، نه فهرستِ شیء: شکلی ندارد که بشکند.
+         * ضمناً وقتی مدیر هیچ پیامی پنهان نکرده باشد **باید** خالی باشد و
+         * پر کردنش یعنی ساختنِ حالتی که کاربرِ عادی نمی‌بیند.
+         */
+        '/api/v1/messenger → hiddenIds' => 'فهرستِ شناسه است نه شیء؛ خالی‌بودنش حالتِ عادی است.',
+    ];
 
     /**
      * شکلِ یک مقدار: کلیدها و نوعشان، بازگشتی.
@@ -166,9 +365,83 @@ class ResponseShapeTest extends TestCase
     /**
      * 🔴 هیچ فیلدی از پاسخ‌های حیاتی بی‌صدا حذف یا نوع‌عوض نمی‌شود.
      */
+    /**
+     * 🔴 هیچ شکلِ ثبت‌شده‌ای پوچ نیست.
+     *
+     * ─── چه چیزی را می‌گیرد ────────────────────────────────────────────────
+     * افزودنِ یک مسیر به سیاهه وقتی آن مسیر `data: array:empty` برمی‌گرداند،
+     * **پوشش را روی کاغذ زیاد می‌کند و در عمل هیچ**: شکلِ ردیف اصلاً ثبت
+     * نمی‌شود، پس حذفِ فیلد از ردیف هم قرمز نمی‌کند.
+     *
+     * ⚠️ این دقیقاً همان چیزی است که در فاز ۶ با خرابکاری پیدا شد. آن‌بار
+     * دستی اصلاح شد؛ حالا محافظ دارد.
+     */
+    public function test_no_recorded_shape_is_vacuous(): void
+    {
+        $vacuous = [];
+
+        foreach ($this->criticalEndpoints() as $endpoint) {
+            $response = $this->actingAs($this->admin)->getJson($endpoint);
+
+            $this->assertSame(200, $response->status(), "مسیرِ «{$endpoint}» ۲۰۰ نداد.");
+
+            $shape = $this->shapeOf($response->json());
+
+            if (! is_array($shape)) {
+                $vacuous[] = "{$endpoint}: پاسخ اصلاً ساختار ندارد";
+
+                continue;
+            }
+
+            foreach ($shape as $key => $value) {
+                if ($value !== 'array:empty') {
+                    continue;
+                }
+
+                if (isset(self::EMPTY_ALLOWED["{$endpoint} → {$key}"])) {
+                    continue;
+                }
+
+                $vacuous[] = "{$endpoint} → {$key}";
+            }
+        }
+
+        $this->assertSame(
+            [],
+            $vacuous,
+            "این کلیدها خالی ثبت می‌شوند، پس شکلِ ردیفشان محافظت نمی‌شود:\n  "
+            .implode("\n  ", $vacuous)
+            ."\n⚠️ یا در `setUp()` داده بسازید، یا با دلیل به `EMPTY_ALLOWED` اضافه کنید.",
+        );
+    }
+
     public function test_no_critical_response_loses_a_field(): void
     {
         $path = base_path(self::SNAPSHOT);
+
+        /*
+         * ⚠️ حالتِ بازتولید — که پیامِ خطای پایین سال‌ها وعده‌اش را می‌داد
+         * ولی پیاده‌سازی‌اش وجود نداشت (پیدا شده در فاز ۱ مرحلهٔ ۵).
+         *
+         * 🔴 عمداً تست را **ناتمام** اعلام می‌کند، نه سبز: تولیدِ اسنپ‌شات
+         * راستی‌آزمایی نیست و نباید شبیهش به نظر برسد.
+         */
+        if (getenv('SHAPE_SNAPSHOT') === '1') {
+            $fresh = [];
+
+            foreach ($this->criticalEndpoints() as $endpoint) {
+                $fresh[$endpoint] = $this->shapeOf(
+                    $this->actingAs($this->admin)->getJson($endpoint)->json(),
+                );
+            }
+
+            file_put_contents(
+                $path,
+                json_encode($fresh, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE)."\n",
+            );
+
+            $this->markTestIncomplete('اسنپ‌شات بازتولید شد. آن را **بخوانید** و بعد کامیت کنید.');
+        }
 
         $this->assertFileExists(
             $path,

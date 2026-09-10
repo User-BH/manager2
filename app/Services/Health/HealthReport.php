@@ -62,6 +62,15 @@ class HealthReport
     public const HEARTBEAT_KEY = 'health:scheduler-heartbeat';
 
     /**
+     * ⚠️ تنها وابستگیِ تزریقیِ این کلاس، و عمداً فقط همین یکی.
+     *
+     * بقیهٔ سنجه‌ها (دیتابیس، کش، صف) با facadeهای لاراول کار می‌کنند که
+     * خودشان در تست قابلِ جعل‌اند. فضای دیسک تنها چیزی بود که هیچ راهی
+     * برای تثبیت نداشت.
+     */
+    public function __construct(private readonly DiskSpace $disk) {}
+
+    /**
      * @return array{status: string, checks: array<string, array<string, mixed>>, checked_at: string}
      */
     public function run(): array
@@ -162,12 +171,20 @@ class HealthReport
     private function disk(): array
     {
         return $this->timed(function (): array {
-            $total = @disk_total_space(base_path());
-            $free = @disk_free_space(base_path());
+            /*
+             * 🔴 سنجش از `DiskSpace` می‌آید، نه مستقیم از فایل‌سیستم.
+             *
+             * ⚠️ دلیلش در خودِ آن کلاس نوشته شده (S4-27): وقتی این متد
+             * مستقیم `disk_free_space()` را صدا می‌زد، نتیجهٔ پنج تستِ
+             * سلامت به **پرشدنِ دیسکِ ماشین** بستگی داشت.
+             */
+            $usage = $this->disk->usage(base_path());
 
-            if ($total === false || $free === false || $total <= 0.0) {
+            if ($usage === null) {
                 return ['status' => self::OK, 'detail' => 'فضای دیسک از این محیط خوانده نمی‌شود'];
             }
+
+            ['total' => $total, 'free' => $free] = $usage;
 
             $usedPercent = (int) round((($total - $free) / $total) * 100);
 

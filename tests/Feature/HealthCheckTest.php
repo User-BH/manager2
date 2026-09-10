@@ -16,6 +16,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Queue;
+use Tests\Concerns\HoldsDiskHealthy;
 use Tests\TestCase;
 
 /**
@@ -23,7 +24,7 @@ use Tests\TestCase;
  */
 class HealthCheckTest extends TestCase
 {
-    use RefreshDatabase;
+    use HoldsDiskHealthy, RefreshDatabase;
 
     /** نامِ اتصالِ واقعی، تا در پایانِ هر تست برگردانده شود. */
     private ?string $realConnection = null;
@@ -33,6 +34,16 @@ class HealthCheckTest extends TestCase
         parent::setUp();
 
         $this->realConnection = config('database.default');
+
+        /*
+         * 🔴 دیسک روی مقدارِ سالم تثبیت می‌شود (S4-27).
+         *
+         * ⚠️ ادعای تست‌های این کلاس دربارهٔ دیتابیس، کش، صف و کدِ وضعیتِ
+         * مسیر است — نه دربارهٔ فضای دیسکِ ماشین. سنجشِ خودِ آستانه‌های
+         * دیسک کارِ `DiskThresholdTest` است و آنجا هر نُه مرز سنجیده
+         * می‌شود.
+         */
+        $this->holdDiskHealthy();
     }
 
     protected function tearDown(): void

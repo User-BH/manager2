@@ -182,6 +182,20 @@ class PhaseRegressionMapTest extends TestCase
             'ادعای تأییدِ محیط پشتوانه می‌خواهد' => [
                 'ConsolidatedAuditTest', 'test_the_environment_verdict_needs_the_table_to_agree', '۹',
             ],
+
+            /* ── مرحلهٔ ۵، فاز ۱: بدهیِ مرحلهٔ چهارم ─────────────────────── */
+            'نگاشتِ شدتِ دیسک تستِ مستقیم دارد' => [
+                'DiskThresholdTest', 'test_each_occupancy_maps_to_its_severity', '۵',
+            ],
+            'آستانهٔ دیسک بی‌سروصدا شل نمی‌شود' => [
+                'DiskThresholdTest', 'test_the_thresholds_did_not_drift', '۵',
+            ],
+            'محیطِ بی‌سنجهٔ دیسک هشدار نمی‌سازد' => [
+                'DiskThresholdTest', 'test_an_environment_without_disk_metrics_stays_ok', '۵',
+            ],
+            'هیچ شکلِ ثبت‌شده‌ای پوچ نیست' => [
+                'ResponseShapeTest', 'test_no_recorded_shape_is_vacuous', '۵',
+            ],
         ];
     }
 
@@ -223,7 +237,7 @@ class PhaseRegressionMapTest extends TestCase
         sort($phases);
 
         $this->assertSame(
-            ['۰', '۱', '۲', '۳', '۴', '۶', '۷', '۸', '۹'],
+            ['۰', '۱', '۲', '۳', '۴', '۵', '۶', '۷', '۸', '۹'],
             $phases,
             '⚠️ فازی از نقشهٔ رگرسیون افتاده است.',
         );
@@ -264,7 +278,7 @@ class PhaseRegressionMapTest extends TestCase
     public function test_the_map_never_shrinks(): void
     {
         $this->assertGreaterThanOrEqual(
-            43,
+            47,
             count(self::fixes()),
             'ردیفی از نقشهٔ رگرسیون حذف شده؛ یعنی اصلاحی محافظش را از دست داده.',
         );

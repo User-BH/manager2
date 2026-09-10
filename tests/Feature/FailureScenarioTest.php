@@ -17,6 +17,7 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Facades\Storage;
+use Tests\Concerns\HoldsDiskHealthy;
 use Tests\TestCase;
 
 /**
@@ -34,7 +35,7 @@ use Tests\TestCase;
  */
 class FailureScenarioTest extends TestCase
 {
-    use RefreshDatabase;
+    use HoldsDiskHealthy, RefreshDatabase;
 
     private ?string $realConnection = null;
 
@@ -295,6 +296,20 @@ class FailureScenarioTest extends TestCase
      */
     public function test_a_dead_alert_webhook_does_not_break_the_health_command(): void
     {
+        /*
+         * 🔴 دیسک تثبیت می‌شود، چون ادعای این تست دربارهٔ **وب‌هوک** است
+         * نه دیسک (S4-27).
+         *
+         * ⚠️ اینجا `assertSuccessful()` سنجیده می‌شود و `health:check` با
+         * دیسکِ بحرانی کدِ ۱ می‌دهد. یعنی پرشدنِ دیسکِ ماشین این تست را
+         * قرمز می‌کرد بی‌آنکه وب‌هوک هیچ مشکلی داشته باشد — و دقیقاً همین
+         * در ممیزیِ تجمیعی رخ داد.
+         *
+         * ⚠️ عمداً فقط همین تست، نه کلِ کلاس: بقیهٔ سناریوهای این فایل
+         * دربارهٔ شکستن‌اند و شاید روزی یکی‌شان واقعاً دیسکِ پر بخواهد.
+         */
+        $this->holdDiskHealthy();
+
         Http::fake(fn () => throw new \RuntimeException('connection refused'));
 
         config([
