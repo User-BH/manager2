@@ -65,7 +65,8 @@ function InvitationList() {
 
   const { data, isLoading } = useQuery({
     queryKey: queryKeys.invitations.all(),
-    queryFn: () => api<{ data: Invitation[] }>('/invitations'),
+    // ⚠️ `signal` تنها چیزی است که با unmount یا تغییرِ مسیر درخواست را لغو می‌کند (فاز ۳)
+    queryFn: ({ signal }) => api<{ data: Invitation[] }>('/invitations', { signal }),
   })
 
   const accept = (id: number) =>

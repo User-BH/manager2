@@ -45,7 +45,13 @@ export function ReceiptUploadForm({
       plan: plans[0]?.value ?? 'pro',
       paidOn: '',
       note: '',
-      receipt: undefined as unknown as File,
+      /*
+       * ⚠️ `receipt` عمداً اینجا نیست (فاز ۳).
+       *
+       * 🔴 پیش از این `undefined as unknown as File` بود — یک ادعای دولایه
+       * که به TypeScript می‌گفت مقداری هست که وجود ندارد. `DefaultValues`
+       * خودش فیلدها را اختیاری می‌کند، پس نبودنش نیازی به دروغ ندارد.
+       */
     },
   })
 

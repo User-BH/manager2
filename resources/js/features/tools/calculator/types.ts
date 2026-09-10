@@ -26,3 +26,37 @@ export interface KeySpec {
 }
 
 /** کلیدهای علمی؛ ردیف اول با دکمه‌ی 2nd جای خود را به معکوس‌ها می‌دهد. */
+
+/**
+ * نگهبانِ زمانِ اجرا برای تاریخچه‌ای که از `localStorage` می‌آید.
+ *
+ * ─── 🔴 چرا لازم است ───────────────────────────────────────────────────────
+ * ⚠️ `HistoryEntry` فقط در زمانِ کامپایل وجود دارد. آنچه واقعاً از حافظهٔ
+ * مرورگر بیرون می‌آید هر چیزی می‌تواند باشد: نسخهٔ قدیمیِ برنامه، ویرایشِ
+ * دستیِ کاربر، یا افزونه‌ای که همان کلید را نوشته.
+ *
+ * بدونِ این بررسی، `history.map(...)` روی چیزی که آرایه نیست اجرا می‌شد و
+ * صفحه سفید می‌ماند.
+ */
+export function isHistory(value: unknown): value is HistoryEntry[] {
+  return (
+    Array.isArray(value) &&
+    value.every((row) => {
+      if (typeof row !== 'object' || row === null) return false
+
+      const entry = row as Record<string, unknown>
+
+      return (
+        typeof entry.id === 'string' &&
+        typeof entry.expression === 'string' &&
+        typeof entry.result === 'string' &&
+        typeof entry.at === 'number'
+      )
+    })
+  )
+}
+
+/** ⚠️ حافظهٔ ماشین‌حساب باید عددِ متناهی باشد؛ `NaN` و `Infinity` هم رد می‌شوند. */
+export function isMemory(value: unknown): value is number {
+  return typeof value === 'number' && Number.isFinite(value)
+}

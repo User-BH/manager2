@@ -69,14 +69,18 @@ export function OtpBoxes({
     if (typeof window === 'undefined' || !('OTPCredential' in window)) return
 
     const controller = new AbortController()
-    ;(
-      navigator.credentials as unknown as {
-        get: (o: unknown) => Promise<{ code?: string } | null>
-      }
-    )
+
+    /*
+     * ⚠️ بدونِ ادعای نوع (فاز ۳).
+     *
+     * شکلِ WebOTP در `shared/types/webotp.d.ts` اعلام شده، پس امضا
+     * **سنجیده** می‌شود. پیش از این `as unknown as` بود و هر آرگومانِ
+     * اشتباهی از کامپایلر رد می‌شد.
+     */
+    navigator.credentials
       .get({ otp: { transport: ['sms'] }, signal: controller.signal })
       .then((cred) => {
-        const code = String(cred?.code ?? '')
+        const code = String((cred as OTPCredential | null)?.code ?? '')
           .replace(/\D/g, '')
           .slice(0, length)
         if (!code) return

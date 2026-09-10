@@ -15,10 +15,43 @@ const MAX_RECENT = 8
 const MIN_LENGTH = 2
 const DEBOUNCE_MS = 450
 
+/**
+ * ⚠️ جست‌وجوهای اخیر از `localStorage` می‌آیند — یعنی دادهٔ **خارجی**.
+ *
+ * ─── 🔴 چه چیزی باز بود (مرحلهٔ ۵، فاز ۳) ─────────────────────────────────
+ * نسخهٔ قبلی `JSON.parse(raw) as RecentSearch[]` بود: یک ادعا، نه یک
+ * بررسی. هر چیزی که در آن کلید می‌نشست مستقیم وارد رندر می‌شد.
+ *
+ * ⚠️ و نکتهٔ گویا این بود که `rememberMe.ts` — درست کنارِ همین فایل —
+ * **بررسی می‌کرد**. یعنی الگوی درست در پروژه وجود داشت و اینجا رعایت
+ * نشده بود.
+ */
+export function isRecent(value: unknown): value is RecentSearch[] {
+  return (
+    Array.isArray(value) &&
+    value.every((row) => {
+      if (typeof row !== 'object' || row === null) return false
+
+      const item = row as Record<string, unknown>
+
+      return (
+        typeof item.query === 'string' &&
+        typeof item.total === 'number' &&
+        typeof item.at === 'number'
+      )
+    })
+  )
+}
+
 function readRecent(): RecentSearch[] {
   try {
     const raw = window.localStorage.getItem(RECENT_KEY)
-    return raw ? (JSON.parse(raw) as RecentSearch[]) : []
+    if (!raw) return []
+
+    const parsed: unknown = JSON.parse(raw)
+
+    // 🔴 دادهٔ نامعتبر یعنی «تاریخچه‌ای نداریم»، نه «هرچه بود را نشان بده»
+    return isRecent(parsed) ? parsed : []
   } catch {
     return []
   }

@@ -7,7 +7,7 @@ import { CalculationError, evaluate, formatResult, type AngleMode } from '@/shar
 import { Display, MemoryRow } from './Display'
 import { Keypad } from './Keypad'
 import { HistoryPanel } from './HistoryPanel'
-import type { HistoryEntry } from './types'
+import { isHistory, isMemory, type HistoryEntry } from './types'
 
 const HISTORY_KEY = 'app:calculator-history'
 const MEMORY_KEY = 'app:calculator-memory'
@@ -23,8 +23,9 @@ export function CalculatorPage() {
   const [secondFn, setSecondFn] = useState(false)
   const [historyQuery, setHistoryQuery] = useState('')
 
-  const [history, setHistory] = useLocalStorage<HistoryEntry[]>(HISTORY_KEY, [])
-  const [memory, setMemory] = useLocalStorage<number>(MEMORY_KEY, 0)
+  // ⚠️ نگهبانِ زمانِ اجرا اجباری است: دادهٔ `localStorage` خارجی است (فاز ۳)
+  const [history, setHistory] = useLocalStorage<HistoryEntry[]>(HISTORY_KEY, [], isHistory)
+  const [memory, setMemory] = useLocalStorage<number>(MEMORY_KEY, 0, isMemory)
 
   const inputRef = useRef<HTMLInputElement>(null)
 
