@@ -46,6 +46,25 @@
 @theme {
     --font-sans: 'Vazirmatn', ui-sans-serif, system-ui, 'Segoe UI', Tahoma, sans-serif;
 
+    /*
+     * ─── مقیاسِ تایپِ پروژه (مرحلهٔ ۵، فاز ۵ — بند ۴۷) ───────────────────────
+     * اندازه‌گیری نشان داد ۵۱۶ کلاسِ `text-[Npx]` در کد هست، با ۱۸ مقدارِ
+     * متمایز — یعنی یک مقیاس که هیچ‌وقت نامی نگرفته بود.
+     *
+     * ⚠️ پنج مقدارِ پرمصرف اینجا نام گرفتند تا مهاجرت هدف داشته باشد.
+     * نام‌های پیش‌فرضِ تیلویند (xs/sm/…) عمداً بازنویسی نشدند: ۲۲۵ جا در
+     * استفاده‌اند و تغییرشان همه را بی‌صدا عوض می‌کرد.
+     *
+     * 🔴 مهاجرتِ انبوه انجام نشد: تستِ بصری‌ای نداریم که اشتباهِ اندازه را
+     * بگیرد. به‌جایش `designTokens.test.ts` نمی‌گذارد مجموعهٔ مقادیرِ دلخواه
+     * بزرگ‌تر شود — پس فقط می‌تواند کم شود.
+     */
+    --text-micro: 10px;
+    --text-tiny: 11px;
+    --text-small: 12px;
+    --text-body: 13px;
+    --text-reading: 15px;
+
     --color-brand-50: #e1f5ee;
     --color-brand-100: #c3ebdd;
     --color-brand-200: #8fd9c0;
@@ -124,6 +143,9 @@
     --tone-warning-fg: #8a5406;
     --tone-info-bg: #e4f1f6;
     --tone-info-fg: #1a5a73;
+    /* بنفش برای وضعیتِ «در حالِ بررسی» — تنها رنگِ سرور که معادلِ tone نداشت (فاز ۵) */
+    --tone-accent-bg: #ede9fb;
+    --tone-accent-fg: #5b3fb5;
 
     --shadow-ambient: 0 1px 2px rgb(15 110 86 / 0.06), 0 8px 24px -16px rgb(15 110 86 / 0.18);
 }
@@ -162,6 +184,8 @@
     --tone-warning-fg: #e3bd76;
     --tone-info-bg: #16323d;
     --tone-info-fg: #93cfe4;
+    --tone-accent-bg: #2e2650;
+    --tone-accent-fg: #c4b5ff;
 
     --shadow-ambient: 0 1px 2px rgb(0 0 0 / 0.4), 0 8px 24px -16px rgb(0 0 0 / 0.6);
 }

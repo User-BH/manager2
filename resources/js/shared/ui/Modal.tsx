@@ -1,6 +1,7 @@
-import { useEffect, type ReactNode } from 'react'
+import { useEffect, useRef, type ReactNode } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 import { X } from 'lucide-react'
+import { useFocusTrap } from '@/shared/hooks/useFocusTrap'
 
 interface ModalProps {
   open: boolean
@@ -10,6 +11,17 @@ interface ModalProps {
 }
 
 export function Modal({ open, title, onClose, children }: ModalProps) {
+  const panelRef = useRef<HTMLDivElement>(null)
+
+  /*
+   * 🔴 Focus داخلِ مودال می‌ماند و پس از بستن برمی‌گردد (مرحلهٔ ۵، فاز ۵).
+   *
+   * ⚠️ پیش از این، مودال `role="dialog"` داشت ولی Tab از آن بیرون می‌رفت و
+   * صفحهٔ پشتِ روکش را می‌پیمود. برای کاربرِ کیبورد یعنی مودالی که «باز
+   * شده» ولی نمی‌شود واردش شد. شرحش در خودِ هوک.
+   */
+  useFocusTrap(panelRef, open)
+
   // بستن با Escape و جلوگیری از اسکرول پس‌زمینه تا وقتی مودال باز است
   useEffect(() => {
     if (!open) return
@@ -39,6 +51,7 @@ export function Modal({ open, title, onClose, children }: ModalProps) {
           />
 
           <motion.div
+            ref={panelRef}
             role="dialog"
             aria-modal="true"
             aria-label={title}

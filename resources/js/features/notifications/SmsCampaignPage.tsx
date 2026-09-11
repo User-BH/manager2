@@ -88,7 +88,7 @@ export function SmsCampaignPage() {
         {data.blockReason && (
           <p
             className="mt-3 flex items-center gap-1.5 rounded-xl px-3 py-2 text-[12.5px]"
-            style={{ backgroundColor: 'rgba(245,158,11,0.12)', color: '#b45309' }}
+            style={{ backgroundColor: 'var(--tone-warning-bg)', color: 'var(--tone-warning-fg)' }}
           >
             <TriangleAlert size={14} />
             {data.blockReason}

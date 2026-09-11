@@ -170,7 +170,7 @@ export function PlatformStatsPage() {
                   className="rounded-full px-2.5 py-0.5 text-[11px] font-semibold"
                   style={{
                     backgroundColor: on ? 'rgba(16,185,129,0.14)' : 'var(--surface-sunken)',
-                    color: on ? '#059669' : 'var(--text-tertiary)',
+                    color: on ? 'var(--state-success)' : 'var(--text-tertiary)',
                   }}
                 >
                   {ANALYTICS_LABELS[key] ?? key}

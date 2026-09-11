@@ -7,13 +7,24 @@ import { cn } from '@/shared/lib/cn'
  * تعریف شده‌اند و اگر رنگشان اینجا هم تکرار می‌شد، افزودنِ وضعیتِ تازه یعنی
  * ویرایشِ دو فایل و فراموش‌کردنِ یکی.
  */
+/**
+ * ─── 🔴 چرا دیگر hex نیست (مرحلهٔ ۵، فاز ۵ — بند ۴۹) ────────────────────
+ * پیش از این هر رنگ یک hexِ ثابت بود: `#475569` برای متنِ خاکستری، `#b45309`
+ * برای کهربایی. در حالتِ تیره، همین‌ها روی پس‌زمینهٔ تیره می‌نشستند و
+ * کنتراست از دست می‌رفت — و هیچ تستی نمی‌دیدش چون فقط در تمِ تیره رخ می‌داد.
+ *
+ * ⚠️ در همان حال، `app.css` یک نظامِ کاملِ `--tone-*-bg/fg` داشت که در `.dark`
+ * بازتعریف می‌شود. این فایل آن را دور زده بود.
+ *
+ * نامِ رنگ همچنان از سرور می‌آید؛ فقط نگاشتش به توکن رفت.
+ */
 const TONES: Record<string, { bg: string; text: string }> = {
-  sky: { bg: 'rgba(14,165,233,0.12)', text: '#0284c7' },
-  amber: { bg: 'rgba(245,158,11,0.14)', text: '#b45309' },
-  violet: { bg: 'rgba(139,92,246,0.14)', text: '#7c3aed' },
-  emerald: { bg: 'rgba(16,185,129,0.14)', text: '#059669' },
-  rose: { bg: 'rgba(244,63,94,0.12)', text: '#e11d48' },
-  slate: { bg: 'rgba(100,116,139,0.12)', text: '#475569' },
+  sky: { bg: 'var(--tone-info-bg)', text: 'var(--tone-info-fg)' },
+  amber: { bg: 'var(--tone-warning-bg)', text: 'var(--tone-warning-fg)' },
+  violet: { bg: 'var(--tone-accent-bg)', text: 'var(--tone-accent-fg)' },
+  emerald: { bg: 'var(--tone-success-bg)', text: 'var(--tone-success-fg)' },
+  rose: { bg: 'var(--tone-danger-bg)', text: 'var(--tone-danger-fg)' },
+  slate: { bg: 'var(--tone-neutral-bg)', text: 'var(--tone-neutral-fg)' },
 }
 
 export function StatusBadge({

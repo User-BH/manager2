@@ -73,7 +73,7 @@ export function UnitDossier({ unitId }: { unitId: number }) {
       {current.some((t) => t.relation === 'owner') && Math.abs(ownershipShare - 100) > 0.01 && (
         <p
           className="flex items-center gap-1.5 rounded-xl px-3 py-2 text-[12px]"
-          style={{ backgroundColor: 'rgba(245,158,11,0.12)', color: '#b45309' }}
+          style={{ backgroundColor: 'var(--tone-warning-bg)', color: 'var(--tone-warning-fg)' }}
         >
           <TriangleAlert size={13} />
           جمع سهم مالکان {formatNumber(ownershipShare)}٪ است، نه ۱۰۰٪.
@@ -173,7 +173,7 @@ function TenureRow({
         className="rounded-full px-2 py-0.5 text-[10.5px] font-semibold"
         style={{
           backgroundColor: isOwner ? 'rgba(16,185,129,0.14)' : 'rgba(14,165,233,0.12)',
-          color: isOwner ? '#059669' : '#0284c7',
+          color: isOwner ? 'var(--state-success)' : 'var(--state-info)',
         }}
       >
         {tenure.relationLabel}

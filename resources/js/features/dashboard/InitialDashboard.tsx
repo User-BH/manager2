@@ -44,7 +44,11 @@ function DemoBanner() {
       }}
       role="status"
     >
-      <ShieldAlert size={20} className="mt-0.5 shrink-0" style={{ color: '#d97706' }} />
+      <ShieldAlert
+        size={20}
+        className="mt-0.5 shrink-0"
+        style={{ color: 'var(--state-warning)' }}
+      />
       <div>
         <p className="text-sm font-bold" style={{ color: 'var(--text-primary)' }}>
           نسخه‌ی نمایشی

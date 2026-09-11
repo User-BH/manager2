@@ -288,7 +288,7 @@ export function ComplexesPage() {
                             className="flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-medium"
                             style={{
                               backgroundColor: 'rgba(244,63,94,0.14)',
-                              color: '#e11d48',
+                              color: 'var(--state-danger)',
                             }}
                           >
                             <PauseCircle size={10} />
@@ -298,7 +298,7 @@ export function ComplexesPage() {
                       </p>
 
                       {complex.isSuspended && complex.suspensionReason && (
-                        <p className="mt-0.5 text-[11px]" style={{ color: '#e11d48' }}>
+                        <p className="mt-0.5 text-[11px]" style={{ color: 'var(--state-danger)' }}>
                           {complex.suspensionReason}
                           {complex.suspendedAt && ` — ${complex.suspendedAt}`}
                         </p>
