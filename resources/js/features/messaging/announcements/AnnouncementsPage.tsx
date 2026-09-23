@@ -236,7 +236,29 @@ export function AnnouncementsPage() {
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.3, delay: Math.min(index * 0.04, 0.3) }}
                   onClick={() => void handleReadOne(announcement)}
-                  className="rounded-2xl border p-5"
+                  /*
+                   * 🔴 «خوانده‌شدن» فقط با ماوس ممکن بود (تکمیلِ فاز ۵ — بند ۳۳).
+                   *
+                   * کارت `onClick` داشت ولی نه `tabIndex` و نه کلید؛ کاربرِ کیبورد
+                   * هرگز نمی‌توانست اطلاعیه‌ای را خوانده علامت بزند و شمارنده‌اش
+                   * برای او هیچ‌وقت صفر نمی‌شد.
+                   *
+                   * ⚠️ فقط کارتِ **نخوانده** در مسیرِ Tab می‌آید: کارتِ خوانده‌شده
+                   * کاری برای انجام ندارد و توقفِ Tab رویش فقط شلوغی است.
+                   */
+                  tabIndex={announcement.isRead ? undefined : 0}
+                  aria-label={
+                    announcement.isRead ? undefined : `اطلاعیهٔ نخوانده: ${announcement.title}`
+                  }
+                  onKeyDown={(event) => {
+                    // ⚠️ کلیدِ دکمه‌های داخلِ کارت نباید کارت را هم فعال کند
+                    if (event.target !== event.currentTarget) return
+                    if (event.key !== 'Enter' && event.key !== ' ') return
+
+                    event.preventDefault()
+                    void handleReadOne(announcement)
+                  }}
+                  className="rounded-2xl border p-5 outline-none focus-visible:ring-2 focus-visible:ring-(--color-brand-500)"
                   style={{
                     // مرز پررنگ‌تر برای نخوانده‌ها؛ سنجاق‌شده‌ها هم مرز خودشان را دارند
                     borderColor: !announcement.isRead

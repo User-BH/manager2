@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 import { ChevronLeft, ChevronRight, Search, X } from 'lucide-react'
 import type { GalleryItem } from '@/shared/constants/images'
+import { useFocusTrap } from '@/shared/hooks/useFocusTrap'
 
 /** چند برابر شدنِ تصویر زیر ذره‌بین. */
 const ZOOM_FACTOR = 2.4
@@ -32,6 +33,16 @@ export function GalleryLightbox({
   const item = isOpen ? items[index] : null
 
   const frameRef = useRef<HTMLDivElement>(null)
+  const panelRef = useRef<HTMLDivElement>(null)
+
+  /*
+   * ⚠️ لایت‌باکس Escape و کلیدهای جهت را داشت، ولی Focus را نه (تکمیلِ فاز ۵).
+   *
+   * Tab از آن بیرون می‌رفت و پس از بستن Focus به تصویری که بازش کرده
+   * بود برنمی‌گشت — کاربرِ کیبورد جایش را در گالری گم می‌کرد. Escape را
+   * خودِ این کامپوننت دارد، پس هوک فقط نگه‌داشتن و بازگرداندن را می‌دهد.
+   */
+  useFocusTrap(panelRef, isOpen)
   /*
    * ⚠️ شماره‌ی تصویر **داخلِ خودِ حالت** نگه داشته می‌شود.
    *
@@ -104,6 +115,10 @@ export function GalleryLightbox({
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.96, y: 10 }}
             transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
+            ref={panelRef}
+            role="dialog"
+            aria-modal="true"
+            aria-label={item.title}
             // کلیک داخل کادر نباید لایت‌باکس را ببندد
             onClick={(event) => event.stopPropagation()}
             /*

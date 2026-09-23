@@ -1,5 +1,7 @@
+import { useEffect, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { ChevronsRight, X } from 'lucide-react'
+import { useFocusTrap } from '@/shared/hooks/useFocusTrap'
 import { useSidebar } from '@/shared/stores/sidebarStore'
 import { SidebarContent } from './SidebarContent'
 
@@ -8,6 +10,29 @@ const COLLAPSED_WIDTH = 76
 
 export function Sidebar() {
   const { collapsed, toggleCollapsed, mobileOpen, setMobileOpen } = useSidebar()
+  const drawerRef = useRef<HTMLElement>(null)
+
+  /*
+   * 🔴 کشوی موبایل همان رفتارِ مودال را می‌گیرد (مرحلهٔ ۵، تکمیلِ فاز ۵ — بند ۳۴).
+   *
+   * ─── چه چیزی جا مانده بود ─────────────────────────────────────────────
+   * فاز ۵ مدیریتِ Focus را به `Modal`ِ مشترک داد، ولی این کشو از آن
+   * استفاده نمی‌کند و هیچ‌کدام را نداشت: نه `role="dialog"`، نه Escape،
+   * نه نگه‌داشتنِ Focus. کاربرِ کیبورد منو را باز می‌کرد و Tab او را به
+   * صفحهٔ پشتِ روکش می‌برد، و تنها راهِ بستن پیداکردنِ دکمهٔ «بستن» بود.
+   *
+   * ⚠️ بندِ ۳۴ «Drawer» را صریحاً جدا از «Modal» نام برده است.
+   */
+  useFocusTrap(drawerRef, mobileOpen)
+
+  useEffect(() => {
+    if (!mobileOpen) return
+
+    const onKey = (event: KeyboardEvent) => event.key === 'Escape' && setMobileOpen(false)
+    document.addEventListener('keydown', onKey)
+
+    return () => document.removeEventListener('keydown', onKey)
+  }, [mobileOpen, setMobileOpen])
 
   return (
     <>
@@ -57,6 +82,10 @@ export function Sidebar() {
       <AnimatePresence>
         {mobileOpen && (
           <motion.aside
+            ref={drawerRef}
+            role="dialog"
+            aria-modal="true"
+            aria-label="منوی اصلی"
             initial={{ x: '100%' }}
             animate={{ x: 0 }}
             exit={{ x: '100%' }}
