@@ -9,7 +9,7 @@ import { SupportPage } from '@/features/landing/support/SupportPage'
  * این صفحه یک سندِ مستقل است، پس بازدیدش همین‌جا یک بار ثبت می‌شود
  * (برخلافِ SPA که ناوبریِ داخلی دارد و در روتر ثبت می‌کند).
  */
-initObservability()
+initObservability({ marketingTags: true })
 trackPageView(window.location.pathname)
 
 createRoot(document.getElementById('root')!).render(

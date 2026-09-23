@@ -54,6 +54,8 @@ class SecretScrubber implements ProcessorInterface
     private const SENSITIVE_KEYS = [
         'password', 'apikey', 'api_key', 'secret', 'token', 'authorization',
         'gateway_config', 'sms_config', 'private_key', 'credentials',
+        // مرحلهٔ ۵ · فاز ۷: کدِ یک‌بارمصرف و دادهٔ بانکی هم به نامِ کلید
+        'otp', 'card_number', 'sheba', 'iban',
     ];
 
     /** @var array<int, string>|null */
@@ -147,7 +149,71 @@ class SecretScrubber implements ProcessorInterface
             $text = str_replace($secret, self::MASK, $text);
         }
 
-        return $text;
+        return self::maskPersonalData($text);
+    }
+
+    /**
+     * دادهٔ شخصی و مالی که از **شکلِ** خودش شناخته می‌شود (مرحلهٔ ۵ · فاز ۷).
+     *
+     * 🔴 چرا لازم شد: رازهای بالا فقط کلیدهای شناخته‌شده‌اند، ولی متنِ
+     * استثنای دیتابیس مقدارهای خودِ کوئری را در خود دارد:
+     *
+     *     SQLSTATE[23000]: … (SQL: insert into users (phone, password)
+     *     values (09121234567, $2y$12$…))
+     *
+     * همین متن هم در `laravel.log` می‌رفت و هم در جدولِ `error_events` که
+     * سوپرادمین در پنل می‌بیند. نامِ کلید این‌جا کمکی نمی‌کند؛ باید خودِ
+     * مقدار را شناخت.
+     *
+     * ⚠️ از موبایل و کارت **چهار رقمِ آخر** می‌ماند: لاگی که هیچ ردی نداشته
+     * باشد روزِ حادثه بی‌فایده است، و چهار رقم برای یافتنِ یک تراکنش بس است.
+     */
+    private static function maskPersonalData(string $text): string
+    {
+        // هشِ رمز (bcrypt و argon2): خودِ هش هم نباید بیرون برود
+        $text = (string) preg_replace('/\$2[aby]\$\d{2}\$[.\/A-Za-z0-9]{53}|\$argon2(?:id|i|d)\$[^\s,)\'"]+/', '[هش پنهان شد]', $text);
+
+        // شبا: IR و ۲۴ رقم
+        $text = (string) preg_replace_callback('/\bIR\d{20}(\d{4})\b/i', fn (array $m) => '[شبا …'.$m[1].']', $text);
+
+        // موبایلِ ایران در همه‌ی شکل‌هایش: 09…، 989…، +989…، 00989…
+        $text = (string) preg_replace_callback(
+            '/(?<!\d)(?:\+98|0098|98|0)9\d{5}(\d{4})(?!\d)/',
+            fn (array $m) => '[موبایل …'.$m[1].']',
+            $text,
+        );
+
+        /*
+         * شماره‌ی کارت: ۱۶ رقم که آزمونِ Luhn را می‌گذراند.
+         *
+         * ⚠️ Luhn عمدی است: شناسه‌ی مرجعِ بانکی و شماره‌ی پیگیری هم گاهی
+         * ۱۶ رقمی‌اند و پنهان‌کردنشان لاگِ پرداخت را بی‌مصرف می‌کرد. کارتِ
+         * واقعی همیشه Luhn را می‌گذراند؛ عددِ تصادفی فقط یک بار در ده.
+         */
+        return (string) preg_replace_callback(
+            '/(?<![\d-])(\d{4})[ -]?(\d{4})[ -]?(\d{4})[ -]?(\d{4})(?![\d-])/',
+            fn (array $m) => self::passesLuhn($m[1].$m[2].$m[3].$m[4]) ? '[کارت …'.$m[4].']' : $m[0],
+            $text,
+        );
+    }
+
+    private static function passesLuhn(string $digits): bool
+    {
+        $sum = 0;
+        $double = false;
+
+        for ($i = strlen($digits) - 1; $i >= 0; $i--) {
+            $d = (int) $digits[$i];
+
+            if ($double && ($d *= 2) > 9) {
+                $d -= 9;
+            }
+
+            $sum += $d;
+            $double = ! $double;
+        }
+
+        return $sum % 10 === 0;
     }
 
     /**

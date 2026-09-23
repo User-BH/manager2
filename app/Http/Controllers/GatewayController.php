@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Enums\PaymentMethod;
 use App\Enums\PaymentStatus;
+use App\Http\Middleware\SecurityHeaders;
 use App\Models\AuditLog;
 use App\Models\Bill;
 use App\Models\Payment;
@@ -103,6 +104,9 @@ class GatewayController extends Controller
 
         // ملت و سامان به فرم POST خودکار نیاز دارند، نه ریدایرکت ساده.
         if (($redirect['method'] ?? 'GET') === 'POST') {
+            // ⚠️ بدونِ این، CSPِ همین صفحه فرمِ رفتن به بانک را بلاک می‌کند
+            SecurityHeaders::allowFormTarget(request(), $redirect['redirect_url']);
+
             return view('payments.redirect', [
                 'action' => $redirect['redirect_url'],
                 'fields' => $redirect['fields'] ?? [],

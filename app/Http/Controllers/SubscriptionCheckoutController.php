@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Enums\SubscriptionPlan;
 use App\Exceptions\DomainException;
+use App\Http\Middleware\SecurityHeaders;
 use App\Http\Requests\StartCheckoutRequest;
 use App\Models\AuditLog;
 use App\Models\Plan;
@@ -93,6 +94,13 @@ class SubscriptionCheckoutController extends Controller
         }
 
         if (($redirect['method'] ?? 'GET') === 'POST') {
+            /*
+             * ⚠️ بدونِ این، CSPِ همین صفحه فرمِ رفتن به بانک را بلاک می‌کند.
+             * `request()` و نه `$request`: FormRequest کپیِ جداگانه‌ای با
+             * کیسه‌ی attributesِ خودش است و میدل‌ور آن را نمی‌بیند.
+             */
+            SecurityHeaders::allowFormTarget(request(), $redirect['redirect_url']);
+
             return view('payments.redirect', [
                 'action' => $redirect['redirect_url'],
                 'fields' => $redirect['fields'] ?? [],

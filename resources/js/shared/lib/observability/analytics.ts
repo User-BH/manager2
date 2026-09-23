@@ -80,15 +80,49 @@ function initClarity(projectId: string): void {
 
 /* ── نمای عمومی ──────────────────────────────────────────────────────────── */
 
-/** راه‌اندازیِ هر سرویسی که شناسه دارد. صدا زدنِ دوباره بی‌اثر است. */
-export function initAnalytics(): void {
+/** آیا GTM در همین صفحه بار شده است؟ فقط آن‌وقت رویداد به `dataLayer`ش می‌رود. */
+let gtmActive = false
+
+/**
+ * راه‌اندازیِ هر سرویسی که شناسه دارد. صدا زدنِ دوباره بی‌اثر است.
+ *
+ * ─── 🔴 چرا Clarity و GTM فقط در صفحه‌های بازاریابی (مرحلهٔ ۵ · فاز ۷) ──────
+ * پیش از این هر سه سرویس در **همه‌ی** نقطه‌های ورود بار می‌شدند، از جمله
+ * داشبورد و صفحه‌ی ورود:
+ *
+ * - **Clarity ضبطِ جلسه است.** در داشبورد یعنی ضبطِ مانده‌حساب، قبض،
+ *   نام و شماره‌ی همسایه‌ها؛ در صفحه‌ی ورود یعنی ضبطِ شماره و فرمِ رمز.
+ * - **GTM هر اسکریپتی را اجرا می‌کند که صاحبِ حسابِ GTM بخواهد**، بی‌آنکه از
+ *   این مخزن رد شود. روی داشبورد، آن اسکریپت با کوکیِ نشستِ کاربر هم‌مبدأ
+ *   است — یعنی هر کاری که کاربر بتواند، او هم می‌تواند.
+ *
+ * پس این دو فقط وقتی بار می‌شوند که نقطه‌ی ورود صریحاً `marketingTags` بدهد
+ * (خانه، دمو، پشتیبانی). GA4 همه‌جا می‌ماند ولی فقط **مسیر** را می‌بیند.
+ */
+export function initAnalytics(marketingTags = false): void {
   if (!trackingEnabled()) return
 
   const config = getObservabilityConfig()
 
   if (config.ga4MeasurementId) initGa4(config.ga4MeasurementId)
-  if (config.gtmContainerId) initGtm(config.gtmContainerId)
+  if (!marketingTags) return
+
+  if (config.gtmContainerId) {
+    initGtm(config.gtmContainerId)
+    gtmActive = true
+  }
   if (config.clarityProjectId) initClarity(config.clarityProjectId)
+}
+
+/**
+ * آدرسی که به سرویسِ تحلیلی می‌رود: **بدونِ کوئری و hash**.
+ *
+ * 🔴 پیش از این `window.location.href` کامل می‌رفت. کوئری جایی است که دادهٔ
+ * خصوصی می‌نشیند: متنِ خطای درگاه در `/pay/…?error=`، عبارتِ جستجو، و هر
+ * پارامتری که فردا اضافه شود.
+ */
+function pageLocation(): string {
+  return window.location.origin + window.location.pathname
 }
 
 /**
@@ -97,21 +131,23 @@ export function initAnalytics(): void {
  * در SPA باید با هر تغییرِ مسیر دستی صدا زده شود؛ خودِ GA4 ناوبریِ داخلی را
  * نمی‌بیند.
  */
-export function trackPageView(path: string, title?: string): void {
+export function trackPageView(rawPath: string, title?: string): void {
   if (!trackingEnabled()) return
 
   const config = getObservabilityConfig()
+  // ⚠️ حتی اگر فراخوان کوئری بدهد، فقط مسیر می‌رود
+  const path = rawPath.split(/[?#]/)[0]
 
   if (config.ga4MeasurementId && window.gtag) {
     window.gtag('event', 'page_view', {
       page_path: path,
       page_title: title ?? document.title,
-      page_location: window.location.href,
+      page_location: pageLocation(),
     })
   }
 
   // GTM با رویدادِ سفارشی، تا تگ‌های داخلش بتوانند به آن واکنش نشان دهند
-  if (config.gtmContainerId) {
+  if (gtmActive) {
     window.dataLayer?.push({ event: 'spa_page_view', page_path: path })
   }
 }
@@ -120,7 +156,8 @@ export function trackPageView(path: string, title?: string): void {
  * رویدادِ دلخواه (مثل «قبض پرداخت شد»).
  *
  * عمداً هیچ داده‌ی هویتی نمی‌فرستد: نام، شماره‌ی موبایل و شناسه‌ی کاربر نباید
- * به سرویسِ تحلیلیِ بیرونی برود.
+ * به سرویسِ تحلیلیِ بیرونی برود. ⚠️ **مبلغ، مانده و هر عددِ مالی هم نه**
+ * (مرحلهٔ ۵ · فاز ۷): «پرداخت شد» کافی است؛ «چقدر» مالِ سرورِ خودمان است.
  */
 export function trackEvent(name: string, params: Record<string, string | number> = {}): void {
   if (!trackingEnabled()) return
@@ -128,5 +165,5 @@ export function trackEvent(name: string, params: Record<string, string | number>
   const config = getObservabilityConfig()
 
   if (config.ga4MeasurementId && window.gtag) window.gtag('event', name, params)
-  if (config.gtmContainerId) window.dataLayer?.push({ event: name, ...params })
+  if (gtmActive) window.dataLayer?.push({ event: name, ...params })
 }

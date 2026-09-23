@@ -7,8 +7,9 @@
  *
  * @example
  * initObservability()                       // یک بار، در نقطه‌ی ورود
+ * initObservability({ marketingTags: true }) // فقط صفحه‌های بازاریابیِ عمومی
  * trackPageView('/dashboard')               // با هر تغییرِ مسیر
- * trackEvent('bill_paid', { amount: 120 })  // رویدادِ تجاری
+ * trackEvent('bill_paid')                   // رویدادِ تجاری — بدونِ مبلغ
  * reportError(error)                        // در Error Boundary
  */
 
@@ -29,8 +30,13 @@ export type { ObservabilityConfig } from './config'
  * اگر هیچ شناسه‌ای تنظیم نشده باشد، این تابع عملاً هیچ کاری نمی‌کند و هیچ
  * درخواستِ شبکه‌ای نمی‌سازد.
  */
-export function initObservability(): void {
-  initAnalytics()
+export function initObservability(options: { marketingTags?: boolean } = {}): void {
+  /*
+   * ⚠️ `marketingTags` یعنی Clarity (ضبطِ جلسه) و GTM (اسکریپتِ دلخواه).
+   * فقط خانه، دمو و پشتیبانی می‌دهندش؛ داشبورد و صفحه‌ی ورود هرگز.
+   * محافظ: `tests/js/privacySurface.test.ts`.
+   */
+  initAnalytics(options.marketingTags === true)
   initErrorReporting()
   initWebVitals()
 }

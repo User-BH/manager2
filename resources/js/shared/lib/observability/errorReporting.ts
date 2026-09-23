@@ -17,6 +17,11 @@ import { getObservabilityConfig, trackingEnabled } from './config'
 
 let sentryReady: Promise<typeof import('@sentry/react')> | null = null
 
+/** آدرس بدونِ کوئری و hash — کوئری جایی است که دادهٔ خصوصی می‌نشیند. */
+export function withoutQuery(url: string): string {
+  return url.replace(/[?#].*$/s, '')
+}
+
 /** بارگذاریِ تنبلِ Sentry — فقط یک بار، و فقط اگر DSN باشد. */
 async function loadSentry() {
   const config = getObservabilityConfig()
@@ -28,14 +33,29 @@ async function loadSentry() {
       environment: config.sentryEnvironment ?? 'production',
       tracesSampleRate: config.sentryTracesSampleRate ?? 0,
       /*
-       * پاک‌سازیِ داده‌ی حساس پیش از ارسال. شماره‌ی موبایل و رمز نباید در
-       * گزارشِ خطا به سرویسِ بیرونی برود، حتی اگر اتفاقی در URL یا بدنه باشد.
+       * پاک‌سازیِ داده‌ی حساس پیش از ارسال به سرویسِ بیرونی.
+       *
+       * ⚠️ کلِ کوئری می‌رود، نه فقط `phone|password|token` (مرحلهٔ ۵ · فاز ۷):
+       * فهرستِ نام‌ها همیشه یک قدم عقب بود — عبارتِ جستجو و متنِ خطای درگاه
+       * از آن رد می‌شدند. ردِ ناوبری و درخواست‌ها (breadcrumb) هم همین آدرس‌ها
+       * را دارند.
        */
       beforeSend(event) {
-        if (event.request?.url) {
-          event.request.url = event.request.url.replace(/(phone|password|token)=[^&]*/gi, '$1=***')
+        if (event.request) {
+          if (event.request.url) event.request.url = withoutQuery(event.request.url)
+          delete event.request.query_string
         }
         return event
+      },
+      beforeBreadcrumb(breadcrumb) {
+        const data = breadcrumb.data
+        if (data) {
+          for (const key of ['url', 'from', 'to']) {
+            const value: unknown = data[key]
+            if (typeof value === 'string') data[key] = withoutQuery(value)
+          }
+        }
+        return breadcrumb
       },
     })
     return Sentry
@@ -51,7 +71,8 @@ function reportToServer(error: Error): void {
       type: error.name,
       message: error.message,
       stack: error.stack?.slice(0, 8000),
-      url: window.location.href,
+      // سرور هم کوئری را می‌بُرد؛ این‌جا تا اصلاً از مرورگر بیرون نرود
+      url: withoutQuery(window.location.href),
     })
 
     /*

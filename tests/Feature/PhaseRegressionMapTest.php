@@ -196,6 +196,35 @@ class PhaseRegressionMapTest extends TestCase
             'هیچ شکلِ ثبت‌شده‌ای پوچ نیست' => [
                 'ResponseShapeTest', 'test_no_recorded_shape_is_vacuous', '۵',
             ],
+
+            /* ── مرحلهٔ ۵، فاز ۷: حریمِ خصوصی، CSP و ایندکس ──────────────── */
+            'CSP فرمِ رفتن به بانک را بلاک نمی‌کند' => [
+                'GatewayFormActionTest', 'test_the_bill_payment_redirect_can_reach_the_bank', '۵',
+            ],
+            'خریدِ اشتراک هم به بانک می‌رسد' => [
+                'GatewayFormActionTest', 'test_the_subscription_redirect_can_reach_the_bank', '۵',
+            ],
+            'اجازهٔ فرمِ بیرونی فقط برای همان پاسخ' => [
+                'GatewayFormActionTest', 'test_every_other_page_still_submits_only_to_itself', '۵',
+            ],
+            'صفحهٔ خصوصی ایندکس نمی‌شود' => [
+                'PrivacyAndIndexingTest', 'test_every_private_surface_is_noindex', '۵',
+            ],
+            'robots نوایندکس را از خزنده پنهان نمی‌کند' => [
+                'PrivacyAndIndexingTest', 'test_robots_never_hides_a_noindex_page_from_the_crawler', '۵',
+            ],
+            'ضبطِ جلسه فقط در صفحهٔ عمومی' => [
+                'PrivacyAndIndexingTest', 'test_session_recording_is_allowed_only_on_public_pages', '۵',
+            ],
+            'جدولِ خطا کوئری و دادهٔ شخصی نگه نمی‌دارد' => [
+                'PrivacyAndIndexingTest', 'test_a_server_error_is_stored_without_query_or_personal_data', '۵',
+            ],
+            'لاگ موبایل را در هر شکلی پنهان می‌کند' => [
+                'PrivacyAndIndexingTest', 'test_every_form_of_a_mobile_number_is_masked', '۵',
+            ],
+            'کارت پنهان می‌شود، مرجعِ بانک نه' => [
+                'PrivacyAndIndexingTest', 'test_a_card_number_is_masked_but_a_bank_reference_is_not', '۵',
+            ],
         ];
     }
 
@@ -262,6 +291,34 @@ class PhaseRegressionMapTest extends TestCase
     }
 
     /**
+     * محافظ‌های JSِ مرحلهٔ پنجم (فازهای ۲ تا ۵ و ۷).
+     *
+     * 🔴 تا فاز ۷ این‌ها هیچ‌جای نقشه نبودند: پنج فاز محافظِ تازه ساخته بود
+     * و حذفِ هرکدام هیچ تستی را قرمز نمی‌کرد. مثلِ ردیف‌های PHP، هم فایل و
+     * هم نامِ `describe`ی که ادعا شده باید باشد — فایلِ خالی کافی نیست.
+     */
+    public function test_the_stage_five_javascript_guards_exist(): void
+    {
+        $guards = [
+            'importBoundaries' => ['۲', 'مرزهای وابستگی'],
+            'stateBoundaries' => ['۲', 'مرزهای حالت'],
+            'componentResponsibility' => ['۲', 'تفکیکِ مسئولیت'],
+            'typeSafety' => ['۳', 'ایمنیِ نوع'],
+            'externalInput' => ['۳', 'localStorage'],
+            'formsAndRoutes' => ['۴', 'پارامترِ آدرس'],
+            'keyboardReach' => ['۵', 'کشوی منوی موبایل'],
+            'privacySurface' => ['۷', 'لینکِ پنجره‌ی تازه'],
+        ];
+
+        foreach ($guards as $file => [$phase, $marker]) {
+            $path = base_path("tests/js/{$file}.test.".(file_exists(base_path("tests/js/{$file}.test.tsx")) ? 'tsx' : 'ts'));
+
+            $this->assertFileExists($path, "محافظِ JSِ فازِ {$phase} («{$file}») وجود ندارد.");
+            $this->assertStringContainsString($marker, (string) file_get_contents($path), "محافظِ فازِ {$phase} تهی شده: {$file}");
+        }
+    }
+
+    /**
      * 🔴 نقشه فقط بزرگ می‌شود، کوچک نه.
      *
      * ─── این را خرابکاری خواست ─────────────────────────────────────────────
@@ -278,7 +335,7 @@ class PhaseRegressionMapTest extends TestCase
     public function test_the_map_never_shrinks(): void
     {
         $this->assertGreaterThanOrEqual(
-            47,
+            56,
             count(self::fixes()),
             'ردیفی از نقشهٔ رگرسیون حذف شده؛ یعنی اصلاحی محافظش را از دست داده.',
         );

@@ -2,6 +2,7 @@
 
 namespace App\Http\Middleware;
 
+use App\Http\Controllers\SeoController;
 use App\Support\Observability;
 use Closure;
 use Illuminate\Http\Request;
@@ -26,6 +27,44 @@ class SecurityHeaders
 {
     /** کلیدِ ذخیره‌ی nonce روی درخواست، برای استفاده در Blade. */
     public const NONCE_KEY = 'csp_nonce';
+
+    /** مقصدهای مجازِ فرم در همین یک پاسخ — نگاه کنید به `allowFormTarget`. */
+    private const FORM_TARGETS_KEY = 'csp_form_targets';
+
+    /**
+     * اجازه‌ی ارسالِ فرم به یک مقصدِ بیرونی، **فقط در همین پاسخ**.
+     *
+     * 🔴 نقصی که مرحلهٔ ۵ فاز ۷ پیدا کرد: صفحه‌ی انتقال به درگاه
+     * (`payments/redirect.blade.php`) فرمی دارد که **مرورگر** آن را به
+     * `https://bpm.shaparak.ir` یا `https://sep.shaparak.ir` می‌فرستد، ولی
+     * همین صفحه `form-action 'self'` می‌گرفت. هر سه مرورگرِ اصلی این قاعده را
+     * اجرا می‌کنند؛ یعنی پرداختِ آنلاینِ واقعی درست در لحظه‌ی رفتن به بانک
+     * بی‌صدا متوقف می‌شد. تست‌ها نمی‌دیدند چون درگاهِ آزمایشی به همین دامنه
+     * برمی‌گردد.
+     *
+     * ⚠️ چرا فهرستِ سراسری نه: اگر بانک‌ها در `form-action` همه‌ی صفحه‌ها
+     * بودند، فرمِ تزریق‌شده در هر صفحه‌ای هم می‌توانست به آن‌ها برود. این‌جا
+     * فقط همان صفحه‌ای که واقعاً به بانک می‌رود، و فقط **مبدأِ همان** آدرس،
+     * اجازه می‌گیرد.
+     *
+     * فقط `https` پذیرفته می‌شود: درگاهی که روی http باشد پیکربندیِ غلط است
+     * و بهتر است همین‌جا بایستد تا این‌که فرمِ پرداخت روی ارتباطِ باز برود.
+     */
+    public static function allowFormTarget(Request $request, string $url): void
+    {
+        $parts = parse_url($url);
+
+        if (($parts['scheme'] ?? null) !== 'https' || empty($parts['host'])) {
+            return;
+        }
+
+        $origin = 'https://'.$parts['host'].(isset($parts['port']) ? ':'.$parts['port'] : '');
+
+        $targets = (array) $request->attributes->get(self::FORM_TARGETS_KEY, []);
+        $targets[] = $origin;
+
+        $request->attributes->set(self::FORM_TARGETS_KEY, array_values(array_unique($targets)));
+    }
 
     public function handle(Request $request, Closure $next): Response
     {
@@ -148,7 +187,11 @@ class SecurityHeaders
              */
             'Cross-Origin-Opener-Policy' => 'same-origin',
 
-            'Content-Security-Policy' => $this->contentSecurityPolicy($nonce),
+            'Content-Security-Policy' => $this->contentSecurityPolicy(
+                $nonce,
+                (array) $request->attributes->get(self::FORM_TARGETS_KEY, []),
+                SeoController::isIndexable($request->getPathInfo()),
+            ),
         ];
 
         /*
@@ -162,10 +205,27 @@ class SecurityHeaders
             $headers['Strict-Transport-Security'] = 'max-age=31536000; includeSubDomains';
         }
 
+        /*
+         * صفحه‌های خصوصی ایندکس نمی‌شوند (مرحلهٔ ۵ · فاز ۷).
+         *
+         * 🔴 پیش از این پوسته‌ی داشبورد (`spa.blade.php`) هیچ noindexی نداشت و
+         * robots.txt فقط `/dashboard` را می‌بست — در حالی که مسیرهای واقعی
+         * `/units`، `/bills`، `/settings/complex` و ده‌ها مسیرِ دیگرند.
+         *
+         * ⚠️ پیش‌فرض وارونه است: **همه‌چیز** noindex است مگر آنچه صریحاً در
+         * `SeoController::PUBLIC_PATHS` آمده. صفحه‌ی خصوصیِ تازه بدونِ این‌که
+         * کسی یادش بماند محافظت می‌شود. هدر و نه فقط `<meta>`، چون PDFِ قبض،
+         * JSONِ API و صفحه‌ی خطا `<head>` ندارند.
+         */
+        if (! SeoController::isIndexable($request->getPathInfo())) {
+            $headers['X-Robots-Tag'] = 'noindex, nofollow';
+        }
+
         return $headers;
     }
 
-    private function contentSecurityPolicy(string $nonce): string
+    /** @param  array<int, string>  $formTargets */
+    private function contentSecurityPolicy(string $nonce, array $formTargets, bool $indexable): string
     {
         /*
          * خواندنِ پیکربندی **هرگز** نباید پاسخ را بشکند.
@@ -205,7 +265,15 @@ class SecurityHeaders
             $imgSrc[] = 'https://www.google-analytics.com';
         }
 
-        if (! empty($config['clarityProjectId'])) {
+        /*
+         * ⚠️ ضبطِ جلسه فقط در صفحه‌های عمومیِ بازاریابی (مرحلهٔ ۵ · فاز ۷).
+         *
+         * فرانت فقط در خانه/دمو/پشتیبانی Clarity را بار می‌کند؛ این‌جا همان
+         * قاعده را **مرورگر** اجرا می‌کند. اگر روزی نقطه‌ی ورودی اشتباهی
+         * `marketingTags` بدهد، در داشبورد اسکریپتش بلاک می‌شود و مانده‌حساب
+         * و فرمِ ورود ضبط نمی‌شوند.
+         */
+        if (! empty($config['clarityProjectId']) && $indexable) {
             $scriptSrc[] = 'https://www.clarity.ms';
             $connectSrc[] = 'https://*.clarity.ms';
         }
@@ -242,8 +310,11 @@ class SecurityHeaders
             "font-src 'self' data:",
             'connect-src '.implode(' ', $connectSrc),
             'frame-src '.implode(' ', $frameSrc),
-            // فرم فقط به خودمان یا درگاه بانکی (که با POSTِ سمتِ سرور می‌رود)
-            "form-action 'self'",
+            /*
+             * فرم فقط به خودمان؛ و در صفحه‌ی انتقال به درگاه، به مبدأِ همان
+             * بانک (`allowFormTarget`). ⚠️ آن فرم را **مرورگر** می‌فرستد، نه سرور.
+             */
+            'form-action '.implode(' ', ["'self'", ...$formTargets]),
             // این سایت نباید داخلِ iframe کسی برود (نسخه‌ی مدرنِ X-Frame-Options)
             "frame-ancestors 'none'",
             "base-uri 'self'",

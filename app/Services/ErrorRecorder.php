@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Logging\SecretScrubber;
 use App\Models\ErrorEvent;
 use App\Support\RequestId;
 use App\Support\TenantContext;
@@ -97,6 +98,23 @@ class ErrorRecorder
     {
         try {
             /*
+             * 🔴 پیش از ثبت، دادهٔ حساس برداشته می‌شود (مرحلهٔ ۵ · فاز ۷).
+             *
+             * این جدول در پنلِ سوپرادمین دیده می‌شود و پیش از این سه راهِ نشت
+             * داشت: متنِ استثنای دیتابیس (با مقدارهای خودِ کوئری — موبایل،
+             * هشِ رمز)، استک، و **آدرسِ کامل با کوئری** (`fullUrl()` سمتِ سرور،
+             * `location.href` سمتِ مرورگر).
+             *
+             * ⚠️ کوئری کامل حذف می‌شود، نه فقط پارامترهای «حساسِ» شناخته‌شده:
+             * فهرستِ نام‌ها همیشه یک قدم عقب است، و برای یافتنِ یک خطا مسیر
+             * بس است. پیش از اثرِ انگشت، تا یک خطا با دو شماره‌ی موبایل دو
+             * ردیف نشود.
+             */
+            $data['message'] = SecretScrubber::clean((string) $data['message']);
+            $data['stack'] = SecretScrubber::clean((string) $data['stack']);
+            $data['url'] = self::withoutQuery($data['url'] ?? null);
+
+            /*
              * اثرِ انگشت از نوع + پیام + محل ساخته می‌شود، نه از استکِ کامل:
              * استک بین دو رخدادِ یکسان هم فرق می‌کند (شماره‌ی خط در فریم‌های
              * میانی) و آن‌وقت هر رخداد ردیفِ جدا می‌گرفت.
@@ -158,6 +176,11 @@ class ErrorRecorder
             // آخرین سنگر: لاگِ فایل. نباید هیچ‌وقت به بالا پرتاب شود.
             Log::warning('ثبت رویداد خطا ناموفق بود', ['reason' => $recordingError->getMessage()]);
         }
+    }
+
+    private static function withoutQuery(?string $url): ?string
+    {
+        return $url === null ? null : (string) preg_replace('/[?#].*$/s', '', $url);
     }
 
     private static function trimStack(string $stack): string

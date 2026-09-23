@@ -12,6 +12,9 @@
     <meta name="app-build" content="{{ \App\Support\AppBuild::current() }}">
 
     <meta name="description" content="{{ config('brand.description') }}">
+    {{-- داشبورد خصوصی است. هدرِ X-Robots-Tag هم همین را می‌گوید (SecurityHeaders)؛
+         این تگ برای وقتی است که پوسته از کشِ service worker بیاید. --}}
+    <meta name="robots" content="noindex,nofollow">
     <link rel="icon" href="/favicon-48.png" type="image/png">
     @include('partials.pwa')
 

@@ -13,23 +13,53 @@ use Illuminate\Http\Response;
  */
 class SeoController extends Controller
 {
-    /** آدرس‌های عمومیِ قابلِ ایندکس. /auth عمداً نیست (noindex است). */
-    private const PUBLIC_PATHS = [
+    /**
+     * آدرس‌های عمومیِ قابلِ ایندکس. /auth عمداً نیست (noindex است).
+     *
+     * ⚠️ این فهرست **تنها** منبعِ «قابلِ ایندکس» است: هم نقشه‌ی سایت از آن
+     * ساخته می‌شود و هم `SecurityHeaders` هر پاسخِ بیرون از آن را
+     * `X-Robots-Tag: noindex` می‌کند. صفحه‌ی عمومیِ تازه تا این‌جا نیاید،
+     * ایندکس نمی‌شود — پیش‌فرضِ امن همین است، نه برعکس.
+     */
+    public const PUBLIC_PATHS = [
         ['loc' => '/', 'priority' => '1.0', 'changefreq' => 'weekly'],
         ['loc' => '/demo', 'priority' => '0.8', 'changefreq' => 'monthly'],
         ['loc' => '/support', 'priority' => '0.7', 'changefreq' => 'monthly'],
     ];
 
+    /** فایل‌های متنیِ خودِ سئو؛ خزنده باید بخواندشان و noindex رویشان بی‌معناست. */
+    public const CRAWLER_FILES = ['/robots.txt', '/sitemap.xml', '/llms.txt'];
+
+    /** آیا این مسیر اجازه‌ی ایندکس‌شدن دارد؟ */
+    public static function isIndexable(string $path): bool
+    {
+        $path = '/'.trim($path, '/');
+
+        return in_array($path, array_column(self::PUBLIC_PATHS, 'loc'), true)
+            || in_array($path, self::CRAWLER_FILES, true);
+    }
+
     public function robots(): Response
     {
         $sitemap = rtrim(config('app.url'), '/').'/sitemap.xml';
 
+        /*
+         * 🔴 `/auth` و `/dashboard` عمداً Disallow **نیستند** (مرحلهٔ ۵ · فاز ۷).
+         *
+         * صفحه‌ای که در robots.txt بسته باشد، خزنده اصلاً بازش نمی‌کند و پس
+         * noindexِ آن را هم نمی‌بیند؛ گوگل آدرسِ لخت را اگر جایی لینک شده
+         * باشد باز هم ایندکس می‌کند. `/auth` از صفحه‌ی خانه لینک دارد و
+         * دقیقاً همین وضع را داشت. تازه `/dashboard` فقط یکی از ده‌ها مسیرِ
+         * خصوصی بود (`/units`، `/bills`، …).
+         *
+         * حالا محافظ خودِ پاسخ است: هر مسیرِ بیرون از
+         * `SeoController::PUBLIC_PATHS` هدرِ `X-Robots-Tag: noindex` می‌گیرد.
+         * `/api/` بسته می‌ماند چون JSON است و خزیدنش فقط بارِ بیهوده است.
+         */
         $lines = [
             'User-agent: *',
             'Allow: /',
             'Disallow: /api/',
-            'Disallow: /auth',
-            'Disallow: /dashboard',
             '',
             '# خزنده‌های هوش مصنوعی صراحتاً مجازند',
             'User-agent: GPTBot',
