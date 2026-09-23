@@ -180,6 +180,16 @@ const [history, setHistory] = useLocalStorage<HistoryEntry[]>(KEY, [], isHistory
 می‌دارد و پس از بستن برمی‌گرداند. محافظ‌ها:
 `tests/js/focusTrap.test.tsx` و `tests/js/keyboardReach.test.tsx`.
 
+**حریمِ خصوصی و ایندکس (فاز ۷).** سرویسِ تحلیلی و گزارشِ خطا فقط **مسیر**
+می‌گیرند، نه کوئری. هیچ عددِ مالی (مبلغ، مانده) به `trackEvent` نمی‌رود.
+Clarity و GTM فقط در نقطه‌های ورودِ بازاریابی (`initObservability({ marketingTags: true })`)
+و CSPِ صفحهٔ خصوصی هم اجازه‌شان را ندارد. صفحهٔ عمومیِ تازه تا در
+`SeoController::PUBLIC_PATHS` نیاید noindex است — عمداً. فرمی که مرورگر به
+دامنهٔ دیگری می‌فرستد باید `SecurityHeaders::allowFormTarget` را صدا بزند،
+وگرنه `form-action` بلاکش می‌کند. `VITE_*` در متنِ باندل می‌نشیند؛ راز هرگز.
+محافظ‌ها: `tests/js/privacySurface.test.ts`، `tests/Feature/PrivacyAndIndexingTest.php`
+و `tests/Feature/GatewayFormActionTest.php`.
+
 **رنگ و اندازه.** رنگِ وضعیت فقط از توکن‌های `--tone-*` و `--state-*` می‌آید
 (که در حالتِ تیره بازتعریف می‌شوند)، نه hex. اندازهٔ فونتِ دلخواهِ **تازه**
 پذیرفته نمی‌شود و شمارِ موجود فقط کم می‌شود. مبلغ و تاریخ را خودتان
