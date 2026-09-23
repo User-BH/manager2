@@ -46,8 +46,14 @@ resources/
 
 ## قواعد
 
-1. **کد مشترک در `shared/` است، نه در `features/`.** اگر چیزی را دو فیچر لازم دارند، به `shared/` می‌رود.
+1. **کد مشترک در `shared/` است، نه در `features/`.** اگر چیزی را دو فیچر لازم دارند، به `shared/` می‌رود. `shared/` هم هرگز از `features/` یا `app/` وارد نمی‌کند.
 2. **فیچرها به هم import نمی‌کنند** — استثنای عمدی: `landing/demo` و `landing/support` از `landing/home/components` استفاده می‌کنند (هدر و دکمه‌های شناور مشترک‌اند و همه زیر یک فیچرند).
+
+   ✅ از مرحلهٔ پنجم این دو قاعده **سلیقه نیستند و محافظ دارند**:
+   `tests/js/importBoundaries.test.ts` حلقه، نفوذِ لایه‌ها و importِ عمیق به
+   درونِ فیچرِ دیگر را قرمز می‌کند. همان محافظ `PollCard` را از
+   `features/messaging` به `shared/ui` برد، چون `dashboard` هم لازمش داشت.
+
 3. **منطق تکراری → کاستوم‌هوک در `shared/hooks/`.**
 4. **ثابت‌ها و تایپ‌ها جدا** (`shared/constants`, `shared/types`) و با import مصرف می‌شوند.
 5. `@/` به `resources/js` اشاره می‌کند.
