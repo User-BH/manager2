@@ -6,7 +6,6 @@ import { Card } from '@/shared/ui/Card'
 import { EmptyState, ErrorState } from '@/shared/ui/PageState'
 import { CardListSkeleton, TableSkeleton } from '@/shared/ui/Skeleton'
 import { api } from '@/shared/lib/api'
-import { errorMessage } from '@/shared/lib/queryClient'
 import { queryKeys } from '@/shared/lib/queryKeys'
 import { useDocumentTitle } from '@/shared/hooks'
 import { formatMoney } from '@/shared/lib/format'
@@ -49,7 +48,7 @@ export function WalletPage() {
   const activeUnit = selected ?? wallets[0]?.unitId ?? null
 
   if (isLoading) return <CardListSkeleton items={2} />
-  if (error) return <ErrorState message={errorMessage(error)} onRetry={() => void refetch()} />
+  if (error) return <ErrorState error={error} onRetry={() => void refetch()} />
 
   return (
     <div className="flex flex-col gap-5">
@@ -135,7 +134,7 @@ function Statement({ unitId }: { unitId: number }) {
   })
 
   if (isLoading) return <TableSkeleton rows={5} columns={4} />
-  if (error) return <ErrorState message={errorMessage(error)} onRetry={() => void refetch()} />
+  if (error) return <ErrorState error={error} onRetry={() => void refetch()} />
   if (!data) return null
 
   return (

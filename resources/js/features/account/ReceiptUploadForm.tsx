@@ -3,6 +3,8 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { Copy, Loader2, Upload } from 'lucide-react'
 import { TextField } from '@/shared/ui/Field'
 import { JalaliDatePicker } from '@/shared/ui/JalaliDatePicker'
+import { UploadProgress } from '@/shared/ui/UploadProgress'
+import { isUploadCancelled, useUpload } from '@/shared/hooks/useUpload'
 import { api, ApiError } from '@/shared/lib/api'
 import { alertError, toastSuccess } from '@/shared/lib/alert'
 import { formatMoney } from '@/shared/lib/format'
@@ -33,6 +35,8 @@ export function ReceiptUploadForm({
    * هم دیگر تصادفی نیست — پیش از این «فایل انتخاب نشده» **بعد از** «نوعِ
    * فایل نامعتبر» بررسی می‌شد.
    */
+  const upload = useUpload()
+
   const {
     control,
     handleSubmit,
@@ -75,11 +79,17 @@ export function ReceiptUploadForm({
       if (values.note) form.append('note', values.note)
       form.append('receipt', values.receipt)
 
-      await api('/subscription/receipt', { method: 'POST', body: form })
+      // پیشرفت و لغو (مرحلهٔ ۵ · فاز ۶)
+      await upload.send((options) =>
+        api('/subscription/receipt', { method: 'POST', body: form, ...options }),
+      )
 
       toastSuccess('رسید ثبت شد و در انتظار بررسی است.')
       onDone()
     } catch (error) {
+      // لغو خطا نیست؛ فایل در فرم مانده و همان دکمه دوباره می‌فرستد
+      if (isUploadCancelled(error)) return
+
       /*
        * خطای فیلدِ سرور زیر همان فیلد می‌نشیند.
        *
@@ -246,6 +256,8 @@ export function ReceiptUploadForm({
           </p>
         )}
       </div>
+
+      <UploadProgress upload={upload} />
 
       <button
         type="submit"

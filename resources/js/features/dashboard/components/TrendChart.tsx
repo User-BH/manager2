@@ -23,8 +23,33 @@ interface TrendPoint {
  * برند صفحه‌ی اصلی و هم با تم روشن/تاریک هماهنگ بماند.
  */
 export function TrendChart({ data, currency }: { data: TrendPoint[]; currency: string }) {
+  /*
+   * ⚠️ حالتِ خالی (مرحلهٔ ۵ · فاز ۶ · بندِ ۵۱). مجتمعِ تازه شش ماهِ صفر دارد
+   * و پیش از این دو خطِ صاف روی صفر می‌کشید — شبیهِ نموداری که بار نشده.
+   */
+  if (data.every((point) => point.income === 0 && point.expense === 0)) {
+    return (
+      <p className="py-24 text-center text-sm" style={{ color: 'var(--text-tertiary)' }}>
+        هنوز درآمد یا هزینه‌ای در شش ماهِ اخیر ثبت نشده است.
+      </p>
+    )
+  }
+
   return (
-    <div className="h-72 w-full" dir="ltr">
+    <figure className="h-72 w-full" dir="ltr">
+      {/*
+        جایگزینِ متنی برای صفحه‌خوان (بندِ ۵۱: Accessibility). SVGِ نمودار
+        برای صفحه‌خوان فقط شکل است؛ عددها همین‌جا خوانده می‌شوند.
+      */}
+      <figcaption className="sr-only" dir="rtl">
+        روندِ شش ماه:{' '}
+        {data
+          .map(
+            (point) =>
+              `${point.label}، درآمد ${formatMoney(point.income)} ${currency}، هزینه ${formatMoney(point.expense)} ${currency}`,
+          )
+          .join('؛ ')}
+      </figcaption>
       <ResponsiveContainer width="100%" height="100%">
         <AreaChart data={data} margin={{ top: 8, right: 8, left: 8, bottom: 0 }}>
           <defs>
@@ -96,7 +121,7 @@ export function TrendChart({ data, currency }: { data: TrendPoint[]; currency: s
           />
         </AreaChart>
       </ResponsiveContainer>
-    </div>
+    </figure>
   )
 }
 

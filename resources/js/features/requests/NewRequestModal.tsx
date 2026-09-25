@@ -6,11 +6,10 @@ import { Loader2, Paperclip, X } from 'lucide-react'
 import { Modal } from '@/shared/ui/Modal'
 import { api } from '@/shared/lib/api'
 import { alertError, toastSuccess } from '@/shared/lib/alert'
+import { ATTACHMENT_EXTENSIONS, acceptFor, uploadProblem } from '@/shared/lib/upload'
+import { isUploadCancelled, useUpload } from '@/shared/hooks/useUpload'
+import { UploadProgress } from '@/shared/ui/UploadProgress'
 import type { Option } from './types'
-
-/** همان قیدِ `StoreServiceRequestRequest`؛ اینجا فقط تا کاربر پیش از آپلود بفهمد. */
-const MAX_ATTACHMENT_BYTES = 4 * 1024 * 1024
-const ACCEPTED_TYPES = '.jpg,.jpeg,.png,.webp,.pdf'
 
 const schema = z.object({
   title: z.string().min(3, 'عنوان را کامل‌تر بنویسید').max(150, 'عنوان بیش از حد طولانی است'),
@@ -37,6 +36,7 @@ export function NewRequestModal({
   onClose: () => void
   onCreated: () => void
 }) {
+  const upload = useUpload()
   const [attachment, setAttachment] = useState<File | null>(null)
   const [fileError, setFileError] = useState<string | null>(null)
 
@@ -70,17 +70,21 @@ export function NewRequestModal({
     }
 
     try {
-      await api('/service-requests', { method: 'POST', body })
+      // پیشرفت و لغو (مرحلهٔ ۵ · فاز ۶) — بدونِ پیوست هم بی‌ضرر است
+      await upload.send((options) => api('/service-requests', { method: 'POST', body, ...options }))
       toastSuccess('درخواست شما ثبت شد.')
       onCreated()
     } catch (err) {
+      if (isUploadCancelled(err)) return
       alertError(err, 'ثبت درخواست ممکن نشد.')
     }
   }
 
   function pickFile(file: File | null) {
-    if (file && file.size > MAX_ATTACHMENT_BYTES) {
-      setFileError('حجم فایل باید کمتر از ۴ مگابایت باشد.')
+    // همان قاعده‌ی مشترکِ `upload.ts`: پیش‌تر فقط حجم سنجیده می‌شد، نه قالب
+    const problem = file ? uploadProblem(file, ATTACHMENT_EXTENSIONS) : null
+    if (problem) {
+      setFileError(problem)
       return
     }
 
@@ -184,7 +188,7 @@ export function NewRequestModal({
               افزودن عکس یا فایل (اختیاری)
               <input
                 type="file"
-                accept={ACCEPTED_TYPES}
+                accept={acceptFor(ATTACHMENT_EXTENSIONS)}
                 className="hidden"
                 onChange={(event) => pickFile(event.target.files?.[0] ?? null)}
               />
@@ -197,6 +201,8 @@ export function NewRequestModal({
             </span>
           )}
         </div>
+
+        <UploadProgress upload={upload} />
 
         <button
           type="submit"

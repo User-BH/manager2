@@ -8,7 +8,6 @@ import { CheckField, SelectField, TextField } from '@/shared/ui/Field'
 import { ErrorState } from '@/shared/ui/PageState'
 import { FormSkeleton } from '@/shared/ui/Skeleton'
 import { useQuery } from '@tanstack/react-query'
-import { errorMessage } from '@/shared/lib/queryClient'
 import { queryKeys } from '@/shared/lib/queryKeys'
 import { useDocumentTitle, useUnsavedChanges } from '@/shared/hooks'
 import { api, ApiError } from '@/shared/lib/api'
@@ -118,7 +117,7 @@ export function ComplexSettingsPage() {
   }
 
   if (isLoading) return <FormSkeleton fields={6} />
-  if (error) return <ErrorState message={errorMessage(error)} onRetry={() => void refetch()} />
+  if (error) return <ErrorState error={error} onRetry={() => void refetch()} />
   if (!data) return null
 
   return (

@@ -19,7 +19,6 @@ import { FormSkeleton } from '@/shared/ui/Skeleton'
 import { useDocumentTitle } from '@/shared/hooks'
 import { useApiAction } from '@/shared/hooks/useAction'
 import { api } from '@/shared/lib/api'
-import { errorMessage } from '@/shared/lib/queryClient'
 import { queryKeys } from '@/shared/lib/queryKeys'
 import { formatNumber } from '@/shared/lib/format'
 import { ErrorList } from './ErrorList'
@@ -115,7 +114,7 @@ export function ObservabilityPage() {
   })
 
   if (isLoading) return <FormSkeleton fields={7} />
-  if (error) return <ErrorState message={errorMessage(error)} onRetry={() => void refetch()} />
+  if (error) return <ErrorState error={error} onRetry={() => void refetch()} />
   if (!data) return null
 
   return (

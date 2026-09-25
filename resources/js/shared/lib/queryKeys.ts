@@ -28,14 +28,16 @@ export const queryKeys = {
   // ── واحدها و ساکنان ──────────────────────────────────────────────────────
   units: {
     all: () => ['units'] as const,
-    list: (params: { search?: string } = {}) => ['units', 'list', params] as const,
+    // `page` از فاز ۶ِ مرحلهٔ ۵: هر صفحه کشِ خودش؛ پیشوندِ `units` برای ابطال همان می‌ماند
+    list: (params: { search?: string; page?: number } = {}) => ['units', 'list', params] as const,
     // پرونده‌ی یک واحد با تاریخچه‌اش (R26)
     dossier: (id: number) => ['units', 'dossier', id] as const,
   },
 
   residents: {
     all: () => ['residents'] as const,
-    list: (params: { search?: string } = {}) => ['residents', 'list', params] as const,
+    list: (params: { search?: string; page?: number } = {}) =>
+      ['residents', 'list', params] as const,
   },
 
   managers: {
@@ -48,7 +50,7 @@ export const queryKeys = {
    */
   serviceRequests: {
     all: () => ['service-requests'] as const,
-    list: (params: { status?: string; category?: string; mine?: boolean } = {}) =>
+    list: (params: { status?: string; category?: string; mine?: boolean; page?: number } = {}) =>
       ['service-requests', 'list', params] as const,
     detail: (id: number) => ['service-requests', 'detail', id] as const,
   },
@@ -68,7 +70,7 @@ export const queryKeys = {
   bills: {
     all: () => ['bills'] as const,
     list: (params: { period?: string } = {}) => ['bills', 'list', params] as const,
-    mine: () => ['bills', 'mine'] as const,
+    mine: (page = 1) => ['bills', 'mine', page] as const,
   },
 
   chargeRules: {
@@ -95,6 +97,7 @@ export const queryKeys = {
   // ── ارتباطات ─────────────────────────────────────────────────────────────
   announcements: {
     all: () => ['announcements'] as const,
+    list: (page: number) => ['announcements', 'list', page] as const,
   },
 
   // ── حسابِ کاربر ──────────────────────────────────────────────────────────
@@ -118,7 +121,7 @@ export const queryKeys = {
   // ── پنلِ ادمینِ کل ────────────────────────────────────────────────────────
   members: {
     all: () => ['members'] as const,
-    list: (params: { q?: string } = {}) => ['members', 'list', params] as const,
+    list: (params: { q?: string; page?: number } = {}) => ['members', 'list', params] as const,
   },
 
   // دعوت‌های دریافتیِ کاربر در «حالتِ اولیه» (R21)

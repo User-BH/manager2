@@ -18,7 +18,6 @@ import { DashboardSkeleton } from '@/shared/ui/Skeleton'
 import { LazyVisible } from '@/shared/ui/LazyVisible'
 import { useQuery } from '@tanstack/react-query'
 import { api } from '@/shared/lib/api'
-import { errorMessage } from '@/shared/lib/queryClient'
 import { queryKeys } from '@/shared/lib/queryKeys'
 import { useDocumentTitle } from '@/shared/hooks'
 import { useAuth } from '@/shared/stores/authStore'
@@ -90,7 +89,7 @@ export function DashboardPage() {
   if (isInitial) return <InitialDashboard />
 
   if (isLoading) return <DashboardSkeleton />
-  if (error) return <ErrorState message={errorMessage(error)} onRetry={() => void refetch()} />
+  if (error) return <ErrorState error={error} onRetry={() => void refetch()} />
   if (!data) return null
 
   return (

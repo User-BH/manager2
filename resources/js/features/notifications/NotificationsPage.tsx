@@ -3,7 +3,6 @@ import { Link } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { Bell, Megaphone, Settings2 } from 'lucide-react'
 import { api } from '@/shared/lib/api'
-import { errorMessage } from '@/shared/lib/queryClient'
 import { queryKeys } from '@/shared/lib/queryKeys'
 import { useDocumentTitle } from '@/shared/hooks'
 import { Card } from '@/shared/ui/Card'
@@ -95,7 +94,7 @@ export function NotificationsPage() {
       ) : isLoading ? (
         <InlineSpinner />
       ) : error ? (
-        <ErrorState message={errorMessage(error)} onRetry={() => void refetch()} />
+        <ErrorState error={error} onRetry={() => void refetch()} />
       ) : !data || data.items.length === 0 ? (
         <EmptyState
           message="هنوز اعلانی ندارید"

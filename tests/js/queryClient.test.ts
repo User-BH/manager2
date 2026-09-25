@@ -1,7 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { ApiError } from '@/shared/lib/apiError'
-import { createQueryClient, errorMessage } from '@/shared/lib/queryClient'
+import { createQueryClient } from '@/shared/lib/queryClient'
 import { queryKeys } from '@/shared/lib/queryKeys'
 
 /**
@@ -38,17 +37,6 @@ describe('createQueryClient — پیش‌فرض‌ها', () => {
   it('staleTime و gcTime مقدارِ صریح دارند، نه پیش‌فرضِ کتابخانه', () => {
     expect(defaults.queries?.staleTime).toBe(30_000)
     expect(defaults.queries?.gcTime).toBe(300_000)
-  })
-})
-
-describe('errorMessage', () => {
-  it('پیامِ ApiError را همان‌طور که هست نشان می‌دهد', () => {
-    expect(errorMessage(new ApiError('شماره تکراری است', 422))).toBe('شماره تکراری است')
-  })
-
-  it('برای خطای ناشناس پیامِ عمومیِ فارسی می‌دهد', () => {
-    expect(errorMessage(new Error('Network Error'))).toBe('ارتباط با سرور برقرار نشد.')
-    expect(errorMessage(undefined)).toBe('ارتباط با سرور برقرار نشد.')
   })
 })
 

@@ -8,7 +8,6 @@ import { SelectField, TextField } from '@/shared/ui/Field'
 import { ErrorState } from '@/shared/ui/PageState'
 import { FormSkeleton } from '@/shared/ui/Skeleton'
 import { useQuery } from '@tanstack/react-query'
-import { errorMessage } from '@/shared/lib/queryClient'
 import { queryKeys } from '@/shared/lib/queryKeys'
 import { useDocumentTitle } from '@/shared/hooks'
 import { api, ApiError } from '@/shared/lib/api'
@@ -104,7 +103,7 @@ export function SmsPage() {
   }
 
   if (isLoading) return <FormSkeleton fields={5} />
-  if (error) return <ErrorState message={errorMessage(error)} onRetry={() => void refetch()} />
+  if (error) return <ErrorState error={error} onRetry={() => void refetch()} />
   if (!data) return null
 
   // ملی‌پیامک با نام کاربری/رمز کار می‌کند، بقیه با API key

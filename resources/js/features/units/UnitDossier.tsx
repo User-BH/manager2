@@ -11,7 +11,6 @@ import {
 } from 'lucide-react'
 import { api } from '@/shared/lib/api'
 import { alertError, toastSuccess } from '@/shared/lib/alert'
-import { errorMessage } from '@/shared/lib/queryClient'
 import { queryKeys } from '@/shared/lib/queryKeys'
 import { ErrorState, InlineSpinner } from '@/shared/ui/PageState'
 import { formatNumber } from '@/shared/lib/format'
@@ -46,7 +45,7 @@ export function UnitDossier({ unitId }: { unitId: number }) {
   })
 
   if (isLoading) return <InlineSpinner />
-  if (error) return <ErrorState message={errorMessage(error)} onRetry={() => void refetch()} />
+  if (error) return <ErrorState error={error} onRetry={() => void refetch()} />
   if (!data) return null
 
   const { unit, tenures, ownershipShare, history } = data

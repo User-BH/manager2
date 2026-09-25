@@ -26,7 +26,6 @@ import { ProfileEditForm } from './ProfileEditForm'
 import { PasswordCard } from './PasswordCard'
 import { useQuery } from '@tanstack/react-query'
 import { api } from '@/shared/lib/api'
-import { errorMessage } from '@/shared/lib/queryClient'
 import { queryKeys } from '@/shared/lib/queryKeys'
 import { useDocumentTitle } from '@/shared/hooks'
 import { formatMoney, formatNumber } from '@/shared/lib/format'
@@ -51,7 +50,7 @@ export function ProfilePage() {
   })
 
   if (isLoading) return <FormSkeleton fields={5} />
-  if (error) return <ErrorState message={errorMessage(error)} onRetry={() => void refetch()} />
+  if (error) return <ErrorState error={error} onRetry={() => void refetch()} />
   if (!data) return null
 
   const { profile, units, people, complexes, stats } = data

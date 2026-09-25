@@ -2,7 +2,6 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { CheckCircle2, Info, Loader2, Send, TriangleAlert } from 'lucide-react'
 import { api } from '@/shared/lib/api'
 import { alertError, toastSuccess } from '@/shared/lib/alert'
-import { errorMessage } from '@/shared/lib/queryClient'
 import { queryKeys } from '@/shared/lib/queryKeys'
 import { useDocumentTitle } from '@/shared/hooks'
 import { Card } from '@/shared/ui/Card'
@@ -63,7 +62,7 @@ export function SmsCampaignPage() {
   })
 
   if (isLoading) return <InlineSpinner />
-  if (error) return <ErrorState message={errorMessage(error)} onRetry={() => void refetch()} />
+  if (error) return <ErrorState error={error} onRetry={() => void refetch()} />
   if (!data) return null
 
   return (

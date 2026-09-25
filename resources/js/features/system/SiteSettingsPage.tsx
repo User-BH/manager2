@@ -12,7 +12,6 @@ import {
   BaleIcon,
 } from '@/shared/common/SocialIcons'
 import { useQuery } from '@tanstack/react-query'
-import { errorMessage } from '@/shared/lib/queryClient'
 import { queryKeys } from '@/shared/lib/queryKeys'
 import { useDocumentTitle } from '@/shared/hooks'
 import { api } from '@/shared/lib/api'
@@ -99,7 +98,7 @@ export function SiteSettingsPage() {
   }
 
   if (isLoading) return <FormSkeleton fields={6} />
-  if (error) return <ErrorState message={errorMessage(error)} onRetry={() => void refetch()} />
+  if (error) return <ErrorState error={error} onRetry={() => void refetch()} />
   if (!contact || !social) return null
 
   const setC = <K extends keyof Contact>(key: K, value: Contact[K]) =>

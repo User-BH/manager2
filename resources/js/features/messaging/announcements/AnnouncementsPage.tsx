@@ -20,9 +20,9 @@ import { Card } from '@/shared/ui/Card'
 import { Modal } from '@/shared/ui/Modal'
 import { CheckField, SelectField, TextField } from '@/shared/ui/Field'
 import { EmptyState, ErrorState } from '@/shared/ui/PageState'
+import { Pager } from '@/shared/ui/Pager'
 import { CardListSkeleton } from '@/shared/ui/Skeleton'
-import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { errorMessage } from '@/shared/lib/queryClient'
+import { keepPreviousData, useQuery, useQueryClient } from '@tanstack/react-query'
 import { queryKeys } from '@/shared/lib/queryKeys'
 import { useDocumentTitle } from '@/shared/hooks'
 import { useNotifications } from '@/shared/stores/notificationStore'
@@ -69,9 +69,19 @@ export function AnnouncementsPage() {
   useDocumentTitle('اطلاعیه‌ها')
 
   const queryClient = useQueryClient()
+  /*
+   * 🔴 صفحه‌بندی (مرحلهٔ ۵ · فاز ۶): سرور پانزده‌تا پانزده‌تا می‌دهد و پیش از
+   * این فقط صفحه‌ی اول خواسته می‌شد؛ اطلاعیه‌ی شانزدهم به بعد دیده نمی‌شد.
+   *
+   * ⚠️ نوشتنِ خوش‌بینانه (خوانده/حذف) روی کلیدِ **همین صفحه** است؛ ابطال‌ها
+   * پیشوندِ `announcements` را می‌زنند و همه‌ی صفحه‌ها را می‌گیرند.
+   */
+  const [page, setPage] = useState(1)
+
   const { data, error, isLoading, refetch } = useQuery({
-    queryKey: queryKeys.announcements.all(),
-    queryFn: ({ signal }) => api<AnnouncementsResponse>('/announcements', { signal }),
+    queryKey: queryKeys.announcements.list(page),
+    queryFn: ({ signal }) => api<AnnouncementsResponse>(`/announcements?page=${page}`, { signal }),
+    placeholderData: keepPreviousData,
   })
   const { markAnnouncementRead, markAllRead, refresh } = useNotifications()
 
@@ -95,14 +105,18 @@ export function AnnouncementsPage() {
     if (announcement.isRead) return
 
     // خوش‌بینانه: فوری «خوانده» علامت بخورد و از شمارنده کم شود
-    queryClient.setQueryData<AnnouncementsResponse>(queryKeys.announcements.all(), (current) =>
-      current
-        ? {
-            ...current,
-            data: current.data.map((a) => (a.id === announcement.id ? { ...a, isRead: true } : a)),
-            unreadCount: Math.max(0, current.unreadCount - 1),
-          }
-        : current,
+    queryClient.setQueryData<AnnouncementsResponse>(
+      queryKeys.announcements.list(page),
+      (current) =>
+        current
+          ? {
+              ...current,
+              data: current.data.map((a) =>
+                a.id === announcement.id ? { ...a, isRead: true } : a,
+              ),
+              unreadCount: Math.max(0, current.unreadCount - 1),
+            }
+          : current,
     )
 
     try {
@@ -149,16 +163,18 @@ export function AnnouncementsPage() {
     if (!ok) return
 
     // خوش‌بینانه: فوری از فهرست برداشته می‌شود؛ با شکست، از سرور بازمی‌گردد.
-    queryClient.setQueryData<AnnouncementsResponse>(queryKeys.announcements.all(), (current) =>
-      current
-        ? {
-            ...current,
-            data: current.data.filter((a) => a.id !== announcement.id),
-            unreadCount: announcement.isRead
-              ? current.unreadCount
-              : Math.max(0, current.unreadCount - 1),
-          }
-        : current,
+    queryClient.setQueryData<AnnouncementsResponse>(
+      queryKeys.announcements.list(page),
+      (current) =>
+        current
+          ? {
+              ...current,
+              data: current.data.filter((a) => a.id !== announcement.id),
+              unreadCount: announcement.isRead
+                ? current.unreadCount
+                : Math.max(0, current.unreadCount - 1),
+            }
+          : current,
     )
 
     try {
@@ -213,7 +229,7 @@ export function AnnouncementsPage() {
       </header>
 
       {isLoading && <CardListSkeleton items={4} />}
-      {error && <ErrorState message={errorMessage(error)} onRetry={() => void refetch()} />}
+      {error && <ErrorState error={error} onRetry={() => void refetch()} />}
 
       {data && !isLoading && (
         <>
@@ -395,6 +411,8 @@ export function AnnouncementsPage() {
               ))}
             </div>
           )}
+
+          <Pager meta={data.meta} onChange={setPage} noun="اطلاعیه" />
         </>
       )}
 

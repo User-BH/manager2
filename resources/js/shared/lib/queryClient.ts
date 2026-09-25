@@ -1,7 +1,5 @@
 import { QueryClient } from '@tanstack/react-query'
 
-import { ApiError } from './apiError'
-
 /**
  * پیکربندیِ TanStack Query.
  *
@@ -57,15 +55,4 @@ export function createQueryClient(): QueryClient {
       },
     },
   })
-}
-
-/**
- * پیامِ خطای قابلِ‌نمایش به کاربر.
- *
- * صفحه‌ها `error` را مستقیم به `<ErrorState />` می‌دهند و آن یک رشته می‌خواهد،
- * در حالی که TanStack Query شیءِ خطا می‌دهد. این تابع همان نگاشتی است که پیش‌تر
- * داخلِ `useApi` بود، تا رفتارِ پیام‌ها عوض نشود.
- */
-export function errorMessage(error: unknown): string {
-  return error instanceof ApiError ? error.message : 'ارتباط با سرور برقرار نشد.'
 }

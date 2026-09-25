@@ -1,13 +1,13 @@
 import { useState } from 'react'
-import { useQuery } from '@tanstack/react-query'
+import { keepPreviousData, useQuery } from '@tanstack/react-query'
 import { Paperclip, Plus, UserCog } from 'lucide-react'
 import { api } from '@/shared/lib/api'
-import { errorMessage } from '@/shared/lib/queryClient'
 import { queryKeys } from '@/shared/lib/queryKeys'
 import { useDocumentTitle } from '@/shared/hooks'
 import { Card } from '@/shared/ui/Card'
 import { Modal } from '@/shared/ui/Modal'
 import { EmptyState, ErrorState, InlineSpinner } from '@/shared/ui/PageState'
+import { Pager } from '@/shared/ui/Pager'
 import { cn } from '@/shared/lib/cn'
 import { StatusBadge } from './StatusBadge'
 import { NewRequestModal } from './NewRequestModal'
@@ -27,25 +27,32 @@ export function ServiceRequestsPage() {
   const [mine, setMine] = useState(false)
   const [openId, setOpenId] = useState<number | null>(null)
   const [isCreating, setIsCreating] = useState(false)
+  /*
+   * 🔴 صفحه‌بندی (مرحلهٔ ۵ · فاز ۶): پیش از این پایینِ فهرست «صفحه‌ی ۱ از ۳»
+   * نوشته می‌شد و هیچ راهی به صفحه‌ی ۲ نبود. تغییرِ هر فیلتر به صفحه‌ی اول
+   * برمی‌گرداند.
+   */
+  const [page, setPage] = useState(1)
 
   useDocumentTitle('درخواست‌ها')
 
-  const params = { status, category: category || undefined, mine: mine || undefined }
+  const params = { status, category: category || undefined, mine: mine || undefined, page }
 
   const { data, error, isLoading, refetch } = useQuery({
     queryKey: queryKeys.serviceRequests.list(params),
     queryFn: ({ signal }) => {
-      const query = new URLSearchParams()
+      const query = new URLSearchParams({ page: String(page) })
       if (status) query.set('status', status)
       if (category) query.set('category', category)
       if (mine) query.set('mine', '1')
 
       return api<RequestListResponse>(`/service-requests?${query.toString()}`, { signal })
     },
+    placeholderData: keepPreviousData,
   })
 
   if (isLoading) return <InlineSpinner />
-  if (error) return <ErrorState message={errorMessage(error)} onRetry={() => void refetch()} />
+  if (error) return <ErrorState error={error} onRetry={() => void refetch()} />
   if (!data) return null
 
   /*
@@ -92,7 +99,10 @@ export function ServiceRequestsPage() {
           <button
             key={tab.value}
             type="button"
-            onClick={() => setStatus(tab.value)}
+            onClick={() => {
+              setStatus(tab.value)
+              setPage(1)
+            }}
             className={cn(
               'rounded-full border px-3 py-1.5 text-[12px] transition-colors',
               status === tab.value && 'font-bold',
@@ -111,7 +121,10 @@ export function ServiceRequestsPage() {
 
         <select
           value={category}
-          onChange={(event) => setCategory(event.target.value)}
+          onChange={(event) => {
+            setCategory(event.target.value)
+            setPage(1)
+          }}
           className="rounded-lg border px-2.5 py-1.5 text-[12.5px] outline-none"
           style={{
             backgroundColor: 'var(--surface-sunken)',
@@ -132,7 +145,14 @@ export function ServiceRequestsPage() {
           className="flex items-center gap-1.5 text-[12px]"
           style={{ color: 'var(--text-secondary)' }}
         >
-          <input type="checkbox" checked={mine} onChange={(e) => setMine(e.target.checked)} />
+          <input
+            type="checkbox"
+            checked={mine}
+            onChange={(e) => {
+              setMine(e.target.checked)
+              setPage(1)
+            }}
+          />
           واگذارشده به من
         </label>
       </div>
@@ -191,11 +211,11 @@ export function ServiceRequestsPage() {
         </ul>
       )}
 
-      {data.lastPage > 1 && (
-        <p className="text-center text-[12px]" style={{ color: 'var(--text-tertiary)' }}>
-          {data.total} درخواست — صفحه‌ی {data.currentPage} از {data.lastPage}
-        </p>
-      )}
+      <Pager
+        meta={{ currentPage: data.currentPage, lastPage: data.lastPage, total: data.total }}
+        onChange={setPage}
+        noun="درخواست"
+      />
 
       {isCreating && (
         <NewRequestModal

@@ -6,7 +6,6 @@ import { StatCard } from '@/shared/ui/StatCard'
 import { EmptyState, ErrorState } from '@/shared/ui/PageState'
 import { TableSkeleton } from '@/shared/ui/Skeleton'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { errorMessage } from '@/shared/lib/queryClient'
 import { queryKeys } from '@/shared/lib/queryKeys'
 import { useDocumentTitle } from '@/shared/hooks'
 import { api, ApiError } from '@/shared/lib/api'
@@ -138,7 +137,7 @@ export function PaymentReviewPage() {
       )}
 
       {isLoading && <TableSkeleton rows={5} columns={5} />}
-      {error && <ErrorState message={errorMessage(error)} onRetry={() => void refetch()} />}
+      {error && <ErrorState error={error} onRetry={() => void refetch()} />}
 
       {data && !isLoading && (
         <>

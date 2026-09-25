@@ -40,6 +40,8 @@ interface RequestOptions {
   method?: Method
   body?: unknown
   signal?: AbortSignal
+  /** پیشرفتِ ارسالِ بدنه، از ۰ تا ۱ (مرحلهٔ ۵ · فاز ۶). فقط برای آپلود معنا دارد. */
+  onUploadProgress?: (fraction: number) => void
 }
 
 /**
@@ -70,7 +72,7 @@ function refuseWriteWhileOffline(method: Method): void {
 }
 
 function toConfig(path: string, options: RequestOptions, signal?: AbortSignal): AxiosRequestConfig {
-  const { method = 'GET', body } = options
+  const { method = 'GET', body, onUploadProgress } = options
 
   // آپلود فایل به‌صورت FormData می‌رود؛ در آن حالت Content-Type را دست نمی‌زنیم
   // تا axios خودش boundary درست را بگذارد.
@@ -83,6 +85,13 @@ function toConfig(path: string, options: RequestOptions, signal?: AbortSignal): 
     data: body,
     headers: body && !isFormData ? { 'Content-Type': 'application/json' } : undefined,
     ...(isFormData ? { timeout: UPLOAD_TIMEOUT_MS } : {}),
+    ...(onUploadProgress
+      ? {
+          onUploadProgress: (event: { loaded: number; total?: number }) => {
+            if (event.total) onUploadProgress(Math.min(1, event.loaded / event.total))
+          },
+        }
+      : {}),
   }
 }
 

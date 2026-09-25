@@ -14,10 +14,10 @@ import { Card } from '@/shared/ui/Card'
 import { Modal } from '@/shared/ui/Modal'
 import { SearchInput } from '@/shared/ui/SearchInput'
 import { EmptyState, ErrorState } from '@/shared/ui/PageState'
+import { Pager } from '@/shared/ui/Pager'
 import { TableSkeleton } from '@/shared/ui/Skeleton'
 import { ResidentForm } from './ResidentForm'
-import { useQuery } from '@tanstack/react-query'
-import { errorMessage } from '@/shared/lib/queryClient'
+import { keepPreviousData, useQuery } from '@tanstack/react-query'
 import { queryKeys } from '@/shared/lib/queryKeys'
 import { useDocumentTitle } from '@/shared/hooks'
 import { api } from '@/shared/lib/api'
@@ -33,13 +33,21 @@ export function ResidentsPage() {
 
   useDocumentTitle('ساکنین')
 
-  const query = search ? `/residents?search=${encodeURIComponent(search)}` : '/residents'
+  // 🔴 صفحه‌بندی (مرحلهٔ ۵ · فاز ۶) — همان نقصِ `UnitsPage`: ساکنِ بیست‌ویکم دیده نمی‌شد
+  const [page, setPage] = useState(1)
+  const params = new URLSearchParams({ page: String(page) })
+  if (search) params.set('search', search)
+
   const { data, error, isLoading, refetch } = useQuery({
-    queryKey: queryKeys.residents.list({ search }),
-    queryFn: ({ signal }) => api<ResidentsResponse>(query, { signal }),
+    queryKey: queryKeys.residents.list({ search, page }),
+    queryFn: ({ signal }) => api<ResidentsResponse>(`/residents?${params.toString()}`, { signal }),
+    placeholderData: keepPreviousData,
   })
 
-  const handleSearch = useCallback((value: string) => setSearch(value), [])
+  const handleSearch = useCallback((value: string) => {
+    setSearch(value)
+    setPage(1)
+  }, [])
 
   async function handleDelete(resident: Resident) {
     const ok = await confirmAction({
@@ -117,7 +125,7 @@ export function ResidentsPage() {
       <JoinRequestInbox />
 
       {isLoading && <TableSkeleton rows={6} columns={5} />}
-      {error && <ErrorState message={errorMessage(error)} onRetry={() => void refetch()} />}
+      {error && <ErrorState error={error} onRetry={() => void refetch()} />}
 
       {data && !isLoading && (
         <Card>
@@ -263,6 +271,8 @@ export function ResidentsPage() {
               </table>
             </div>
           )}
+
+          <Pager meta={data.meta} onChange={setPage} noun="ساکن" />
         </Card>
       )}
 

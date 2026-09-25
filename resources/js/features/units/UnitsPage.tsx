@@ -6,10 +6,10 @@ import { Modal } from '@/shared/ui/Modal'
 import { UnitDossier } from './UnitDossier'
 import { SearchInput } from '@/shared/ui/SearchInput'
 import { EmptyState, ErrorState } from '@/shared/ui/PageState'
+import { Pager } from '@/shared/ui/Pager'
 import { TableSkeleton } from '@/shared/ui/Skeleton'
 import { UnitForm } from './UnitForm'
-import { useQuery } from '@tanstack/react-query'
-import { errorMessage } from '@/shared/lib/queryClient'
+import { keepPreviousData, useQuery } from '@tanstack/react-query'
 import { queryKeys } from '@/shared/lib/queryKeys'
 import { useDocumentTitle } from '@/shared/hooks'
 import { api } from '@/shared/lib/api'
@@ -26,14 +26,28 @@ export function UnitsPage() {
 
   useDocumentTitle('واحدها')
 
-  const query = search ? `/units?search=${encodeURIComponent(search)}` : '/units'
+  /*
+   * 🔴 صفحه‌بندی (مرحلهٔ ۵ · فاز ۶): سرور بیست‌تا بیست‌تا می‌دهد. پیش از این
+   * فقط صفحه‌ی اول خواسته می‌شد و واحدِ بیست‌ویکم به بعد جز با جست‌وجو دیده
+   * نمی‌شد — در حالی که سربرگ «۴۰ واحد ثبت شده» می‌گفت.
+   */
+  const [page, setPage] = useState(1)
+  const params = new URLSearchParams({ page: String(page) })
+  if (search) params.set('search', search)
+
   const { data, error, isLoading, refetch } = useQuery({
-    queryKey: queryKeys.units.list({ search }),
-    queryFn: ({ signal }) => api<UnitsResponse>(query, { signal }),
+    queryKey: queryKeys.units.list({ search, page }),
+    queryFn: ({ signal }) => api<UnitsResponse>(`/units?${params.toString()}`, { signal }),
+    // صفحه‌ی قبلی تا رسیدنِ صفحه‌ی تازه می‌ماند؛ جدول با هر کلیک اسکلت نمی‌شود
+    placeholderData: keepPreviousData,
   })
 
   // بدون useCallback، SearchInput هر رندر یک تابع تازه می‌گیرد و debounce ریست می‌شود
-  const handleSearch = useCallback((value: string) => setSearch(value), [])
+  const handleSearch = useCallback((value: string) => {
+    setSearch(value)
+    // نتیجه‌ی جست‌وجوی تازه از صفحه‌ی اولش شروع می‌شود
+    setPage(1)
+  }, [])
 
   async function handleDelete(unit: Unit) {
     const ok = await confirmAction({
@@ -85,7 +99,7 @@ export function UnitsPage() {
       </header>
 
       {isLoading && <TableSkeleton rows={6} columns={5} />}
-      {error && <ErrorState message={errorMessage(error)} onRetry={() => void refetch()} />}
+      {error && <ErrorState error={error} onRetry={() => void refetch()} />}
 
       {data && !isLoading && (
         <Card>
@@ -202,6 +216,8 @@ export function UnitsPage() {
               </table>
             </div>
           )}
+
+          <Pager meta={data.meta} onChange={setPage} noun="واحد" />
         </Card>
       )}
 

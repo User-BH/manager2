@@ -6,9 +6,9 @@ import { Card } from '@/shared/ui/Card'
 import { StatCard } from '@/shared/ui/StatCard'
 import { Modal } from '@/shared/ui/Modal'
 import { EmptyState, ErrorState } from '@/shared/ui/PageState'
+import { Pager } from '@/shared/ui/Pager'
 import { TableSkeleton } from '@/shared/ui/Skeleton'
-import { useQuery } from '@tanstack/react-query'
-import { errorMessage } from '@/shared/lib/queryClient'
+import { keepPreviousData, useQuery } from '@tanstack/react-query'
 import { queryKeys } from '@/shared/lib/queryKeys'
 import { useDocumentTitle } from '@/shared/hooks'
 import { api } from '@/shared/lib/api'
@@ -66,9 +66,17 @@ export function MyBillsPage() {
 
   useDocumentTitle('صورت‌حساب‌های من')
 
+  /*
+   * 🔴 صفحه‌بندی (مرحلهٔ ۵ · فاز ۶): سرور پانزده‌تا پانزده‌تا می‌دهد و پیش از
+   * این فقط صفحه‌ی اول خواسته می‌شد — یعنی ساکن قبض‌های بیش از پانزده ماه
+   * پیش را هرگز نمی‌دید، حتی اگر هنوز بدهکار بود.
+   */
+  const [page, setPage] = useState(1)
+
   const { data, error, isLoading, refetch } = useQuery({
-    queryKey: queryKeys.bills.mine(),
-    queryFn: ({ signal }) => api<MyBillsResponse>('/my-bills', { signal }),
+    queryKey: queryKeys.bills.mine(page),
+    queryFn: ({ signal }) => api<MyBillsResponse>(`/my-bills?page=${page}`, { signal }),
+    placeholderData: keepPreviousData,
   })
 
   /*
@@ -141,7 +149,7 @@ export function MyBillsPage() {
       </header>
 
       {isLoading && <TableSkeleton rows={4} columns={4} />}
-      {error && <ErrorState message={errorMessage(error)} onRetry={() => void refetch()} />}
+      {error && <ErrorState error={error} onRetry={() => void refetch()} />}
 
       {data && !isLoading && (
         <>
@@ -271,6 +279,8 @@ export function MyBillsPage() {
               ))}
             </div>
           )}
+
+          <Pager meta={data.meta} onChange={setPage} noun="قبض" />
         </>
       )}
 

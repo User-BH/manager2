@@ -5,7 +5,6 @@ import { BackupList, type BackupRow } from '@/shared/ui/BackupList'
 import { ErrorState } from '@/shared/ui/PageState'
 import { TableSkeleton } from '@/shared/ui/Skeleton'
 import { useQuery } from '@tanstack/react-query'
-import { errorMessage } from '@/shared/lib/queryClient'
 import { queryKeys } from '@/shared/lib/queryKeys'
 import { useDocumentTitle } from '@/shared/hooks'
 import { api } from '@/shared/lib/api'
@@ -70,7 +69,7 @@ export function ComplexBackupPage() {
       </Card>
 
       {isLoading && <TableSkeleton rows={4} columns={3} />}
-      {error && <ErrorState message={errorMessage(error)} onRetry={() => void refetch()} />}
+      {error && <ErrorState error={error} onRetry={() => void refetch()} />}
 
       {data && !isLoading && (
         <BackupList

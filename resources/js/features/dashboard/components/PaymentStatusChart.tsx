@@ -25,7 +25,12 @@ export function PaymentStatusChart({ counts }: { counts: Record<BillStatus, numb
   }
 
   return (
-    <div className="relative h-64 w-full" dir="ltr">
+    <figure className="relative h-64 w-full" dir="ltr">
+      {/* جایگزینِ متنی برای صفحه‌خوان (مرحلهٔ ۵ · فاز ۶ · بندِ ۵۱) */}
+      <figcaption className="sr-only" dir="rtl">
+        وضعیتِ {formatNumber(total)} قبضِ دوره:{' '}
+        {data.map((row) => `${row.name} ${formatNumber(row.value)}`).join('، ')}
+      </figcaption>
       <ResponsiveContainer width="100%" height="100%">
         <PieChart>
           <Pie
@@ -73,7 +78,7 @@ export function PaymentStatusChart({ counts }: { counts: Record<BillStatus, numb
           کل قبوض دوره
         </span>
       </div>
-    </div>
+    </figure>
   )
 }
 

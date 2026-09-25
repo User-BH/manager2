@@ -10,7 +10,6 @@ import {
   Wallet,
 } from 'lucide-react'
 import { api } from '@/shared/lib/api'
-import { errorMessage } from '@/shared/lib/queryClient'
 import { queryKeys } from '@/shared/lib/queryKeys'
 import { useDocumentTitle } from '@/shared/hooks'
 import { Card } from '@/shared/ui/Card'
@@ -59,7 +58,7 @@ export function PlatformStatsPage() {
   })
 
   if (isLoading) return <InlineSpinner />
-  if (error) return <ErrorState message={errorMessage(error)} onRetry={() => void refetch()} />
+  if (error) return <ErrorState error={error} onRetry={() => void refetch()} />
   if (!data) return null
 
   const peak = Math.max(1, ...data.trend.map((m) => Math.max(m.complexes, m.users)))

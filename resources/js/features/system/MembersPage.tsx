@@ -2,12 +2,12 @@ import { useDeferredValue, useState } from 'react'
 import { Loader2, Search, ShieldCheck, Trash2, UserCog } from 'lucide-react'
 import { Card } from '@/shared/ui/Card'
 import { ErrorState } from '@/shared/ui/PageState'
+import { Pager } from '@/shared/ui/Pager'
 import { TableSkeleton } from '@/shared/ui/Skeleton'
-import { useQuery } from '@tanstack/react-query'
+import { keepPreviousData, useQuery } from '@tanstack/react-query'
 import { useDebounce, useDocumentTitle } from '@/shared/hooks'
 import { useApiAction } from '@/shared/hooks/useAction'
 import { api } from '@/shared/lib/api'
-import { errorMessage } from '@/shared/lib/queryClient'
 import { queryKeys } from '@/shared/lib/queryKeys'
 
 interface Member {
@@ -43,10 +43,19 @@ export function MembersPage() {
    * کلید شاملِ عبارتِ جست‌وجو است، پس هر عبارت کشِ خودش را دارد: برگشتن به
    * جست‌وجوی قبلی آنی است و دوباره به سرور نمی‌رود.
    */
+  /*
+   * 🔴 صفحه‌بندی (مرحلهٔ ۵ · فاز ۶): سرور بیست‌تا بیست‌تا می‌دهد و پیش از این
+   * فقط صفحه‌ی اول خواسته می‌شد؛ عضوِ بیست‌ویکم جز با جست‌وجو دیده نمی‌شد.
+   */
+  const [page, setPage] = useState(1)
+
   const { data, error, isLoading, refetch } = useQuery({
-    queryKey: queryKeys.members.list({ q: deferredQuery }),
+    queryKey: queryKeys.members.list({ q: deferredQuery, page }),
     queryFn: ({ signal }) =>
-      api<MembersResponse>(`/system/members?q=${encodeURIComponent(deferredQuery)}`, { signal }),
+      api<MembersResponse>(`/system/members?q=${encodeURIComponent(deferredQuery)}&page=${page}`, {
+        signal,
+      }),
+    placeholderData: keepPreviousData,
   })
 
   // تایید، وضعیتِ ارسال، توست، ابطالِ کش و مدیریت خطا همه در همین هوک است
@@ -127,7 +136,10 @@ export function MembersPage() {
         />
         <input
           value={q}
-          onChange={(e) => setQ(e.target.value)}
+          onChange={(e) => {
+            setQ(e.target.value)
+            setPage(1)
+          }}
           placeholder="جست‌وجو با شماره موبایل یا نام…"
           className="w-full rounded-xl border py-3 pr-11 pl-4 text-[13.5px] outline-none focus:ring-2"
           style={{
@@ -140,7 +152,7 @@ export function MembersPage() {
       </div>
 
       {isLoading && <TableSkeleton rows={6} columns={4} />}
-      {error && <ErrorState message={errorMessage(error)} onRetry={() => void refetch()} />}
+      {error && <ErrorState error={error} onRetry={() => void refetch()} />}
 
       {data && (
         <Card
@@ -238,6 +250,16 @@ export function MembersPage() {
               </div>
             ))}
           </div>
+
+          <Pager
+            meta={{
+              currentPage: data.meta.page,
+              lastPage: data.meta.lastPage,
+              total: data.meta.total,
+            }}
+            onChange={setPage}
+            noun="عضو"
+          />
         </Card>
       )}
     </div>

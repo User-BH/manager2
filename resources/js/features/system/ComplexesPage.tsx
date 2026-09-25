@@ -17,9 +17,9 @@ import { Card } from '@/shared/ui/Card'
 import { Modal } from '@/shared/ui/Modal'
 import { SelectField, TextField } from '@/shared/ui/Field'
 import { EmptyState, ErrorState } from '@/shared/ui/PageState'
+import { Pager } from '@/shared/ui/Pager'
 import { TableSkeleton } from '@/shared/ui/Skeleton'
 import { useQuery } from '@tanstack/react-query'
-import { errorMessage } from '@/shared/lib/queryClient'
 import { queryKeys } from '@/shared/lib/queryKeys'
 import { useDocumentTitle } from '@/shared/hooks'
 import { useAuth } from '@/shared/stores/authStore'
@@ -223,7 +223,7 @@ export function ComplexesPage() {
       </header>
 
       {isLoading && <TableSkeleton rows={5} columns={4} />}
-      {error && <ErrorState message={errorMessage(error)} onRetry={() => void refetch()} />}
+      {error && <ErrorState error={error} onRetry={() => void refetch()} />}
 
       {data && !isLoading && (
         <Card>
@@ -358,36 +358,8 @@ export function ComplexesPage() {
             </ul>
           )}
 
-          {/*
-            صفحه‌بند فقط وقتی دیده می‌شود که واقعاً بیش از یک صفحه باشد؛ برای
-            پلتفرمی با پنج مجتمع، دکمه‌های همیشه‌خاموش فقط شلوغی است.
-          */}
-          {data.meta.lastPage > 1 && (
-            <div className="mt-4 flex items-center justify-center gap-3">
-              <button
-                onClick={() => setPage((p) => Math.max(1, p - 1))}
-                disabled={page <= 1}
-                className="rounded-lg border px-3 py-1.5 text-[12.5px] disabled:opacity-40"
-                style={{ borderColor: 'var(--border-subtle)', color: 'var(--text-secondary)' }}
-              >
-                قبلی
-              </button>
-
-              <span className="text-[12px] tabular-nums" style={{ color: 'var(--text-tertiary)' }}>
-                {formatNumber(data.meta.currentPage)} از {formatNumber(data.meta.lastPage)} ·{' '}
-                {formatNumber(data.meta.total)} مجتمع
-              </span>
-
-              <button
-                onClick={() => setPage((p) => p + 1)}
-                disabled={page >= data.meta.lastPage}
-                className="rounded-lg border px-3 py-1.5 text-[12.5px] disabled:opacity-40"
-                style={{ borderColor: 'var(--border-subtle)', color: 'var(--text-secondary)' }}
-              >
-                بعدی
-              </button>
-            </div>
-          )}
+          {/* صفحه‌بندِ مشترک (مرحلهٔ ۵ · فاز ۶) — پیش‌تر همین‌جا درون‌خطی بود */}
+          <Pager meta={data.meta} onChange={setPage} noun="مجتمع" />
         </Card>
       )}
 

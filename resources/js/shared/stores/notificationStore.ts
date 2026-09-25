@@ -129,6 +129,19 @@ function bootstrapNotifications(): void {
   window.setInterval(() => {
     if (document.visibilityState === 'visible') void useNotificationStore.getState().refresh()
   }, POLL_MS)
+
+  /*
+   * ⚠️ بازگشت به تب و وصل‌شدنِ دوباره (مرحلهٔ ۵ · فاز ۶ · بندِ ۵۳).
+   *
+   * polling در تبِ پنهان عمداً می‌خوابد؛ ولی پس از بازگشت تا شصت ثانیه عددِ
+   * کهنه نشان داده می‌شد — همان لحظه‌ای که کاربر آمده ببیند چه خبر است.
+   * همین‌طور پس از قطعیِ اینترنت.
+   */
+  const refreshIfVisible = () => {
+    if (document.visibilityState === 'visible') void useNotificationStore.getState().refresh()
+  }
+  document.addEventListener('visibilitychange', refreshIfVisible)
+  window.addEventListener('online', refreshIfVisible)
 }
 
 /** رابطِ سازگار با نسخه‌ی قبلی؛ راه‌اندازی را یک‌بار انجام می‌دهد. */

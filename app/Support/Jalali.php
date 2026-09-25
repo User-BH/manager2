@@ -20,6 +20,36 @@ class Jalali
         9 => 'آذر', 10 => 'دی', 11 => 'بهمن', 12 => 'اسفند',
     ];
 
+    /**
+     * منطقه‌ی زمانیِ **نمایش** (مرحلهٔ ۵ · فاز ۶ · بندِ ۵۱: Timezone).
+     *
+     * 🔴 نقصی که اندازه‌گیری نشان داد: تصمیمِ مکتوب درست بود — ذخیره UTC،
+     * تبدیل فقط هنگامِ نمایش — ولی تبدیلِ منطقه‌ی زمانی هرگز انجام نمی‌شد؛
+     * `Jalalian::fromCarbon` همان UTC را شمسی می‌کرد. سنجش:
+     *
+     *     ذخیره (UTC):   2026-09-22 21:00
+     *     نمایش:          ۱۴۰۵/۰۶/۳۱ ۲۱:۰۰     ← سه ساعت و نیم عقب
+     *     تهران، واقعی:   1405/07/01 00:30
+     *     دوره:           1405-06             ← ماهِ غلط
+     *
+     * یعنی هر ساعتی که سرور نشان می‌داد عقب بود، و در سه ساعت و نیمِ اولِ هر
+     * ماه، گزارش‌ها و نمودارها و حتی «صدورِ شارژِ این ماه» ماهِ قبل را می‌دیدند.
+     *
+     * ⚠️ ذخیره همچنان UTC است (`config('app.timezone')` دست نخورده)؛ فقط
+     * خروجیِ این کلاس به وقتِ محلی است. ستونِ `date` (نیمه‌شبِ UTC) با این
+     * تبدیل ساعت ۳:۳۰ همان روز می‌شود — تاریخش جابه‌جا نمی‌شود.
+     */
+    public static function zone(): string
+    {
+        return (string) config('app.display_timezone', 'Asia/Tehran');
+    }
+
+    /** همان لحظه، به وقتِ محلی — بدونِ دست‌زدن به شیءِ ورودی. */
+    private static function local(Carbon $moment): Carbon
+    {
+        return $moment->copy()->setTimezone(self::zone());
+    }
+
     /** Convert a Gregorian datetime to a formatted Jalali string. */
     public static function date(Carbon|string|null $date, string $format = 'Y/m/d'): string
     {
@@ -28,7 +58,7 @@ class Jalali
         }
         $carbon = $date instanceof Carbon ? $date : Carbon::parse($date);
 
-        return self::digits(Jalalian::fromCarbon($carbon)->format($format));
+        return self::digits(Jalalian::fromCarbon(self::local($carbon))->format($format));
     }
 
     public static function dateTime(Carbon|string|null $date): string
@@ -39,7 +69,8 @@ class Jalali
     /** Current Jalali period as `YYYY-MM` (e.g. 1404-03). */
     public static function currentPeriod(): string
     {
-        $now = Jalalian::now();
+        // ⚠️ «امروز» به وقتِ تهران، نه UTC: ساعت ۱ بامدادِ اولِ مهر، مهر است
+        $now = Jalalian::fromCarbon(Carbon::now(self::zone()));
 
         return sprintf('%04d-%02d', $now->getYear(), $now->getMonth());
     }
@@ -58,7 +89,7 @@ class Jalali
             return self::currentPeriod();
         }
 
-        $jalali = Jalalian::fromCarbon($date instanceof Carbon ? $date : Carbon::parse($date));
+        $jalali = Jalalian::fromCarbon(self::local($date instanceof Carbon ? $date : Carbon::parse($date)));
 
         return sprintf('%04d-%02d', $jalali->getYear(), $jalali->getMonth());
     }

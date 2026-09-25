@@ -5,7 +5,6 @@ import { SelectField, TextField } from '@/shared/ui/Field'
 import { ErrorState } from '@/shared/ui/PageState'
 import { CardListSkeleton } from '@/shared/ui/Skeleton'
 import { useQuery } from '@tanstack/react-query'
-import { errorMessage } from '@/shared/lib/queryClient'
 import { queryKeys } from '@/shared/lib/queryKeys'
 import { useDocumentTitle } from '@/shared/hooks'
 import { api } from '@/shared/lib/api'
@@ -113,7 +112,7 @@ export function PlansPage() {
   }
 
   if (isLoading) return <CardListSkeleton items={3} />
-  if (error) return <ErrorState message={errorMessage(error)} onRetry={() => void refetch()} />
+  if (error) return <ErrorState error={error} onRetry={() => void refetch()} />
   if (!data) return null
 
   return (

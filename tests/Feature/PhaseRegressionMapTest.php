@@ -257,6 +257,17 @@ class PhaseRegressionMapTest extends TestCase
             'کندیِ فراگیر هشدار می‌دهد' => [
                 'SlowRequestMonitoringTest', 'test_widespread_slowness_raises_an_alert', '۵',
             ],
+
+            /* ── مرحلهٔ ۵، فاز ۶: جدول، نمودار، آپلود، اعلان، Error UX ────── */
+            'هر فهرستِ صفحه‌بندی‌شده در رابط ورق می‌خورد' => [
+                'PaginationContractTest', 'test_every_paginated_list_is_actually_pageable_in_the_ui', '۵',
+            ],
+            'ساعتِ نمایش به وقتِ تهران است' => [
+                'JalaliTimezoneTest', 'test_a_moment_is_shown_in_tehran_time', '۵',
+            ],
+            'ماهِ شمسی نیمه‌شبِ تهران عوض می‌شود' => [
+                'JalaliTimezoneTest', 'test_the_current_period_turns_at_tehran_midnight', '۵',
+            ],
         ];
     }
 
@@ -341,6 +352,7 @@ class PhaseRegressionMapTest extends TestCase
             'keyboardReach' => ['۵', 'کشوی منوی موبایل'],
             'privacySurface' => ['۷', 'لینکِ پنجره‌ی تازه'],
             'maintenanceMode' => ['۹', 'چه کسی واکنش را ثبت می‌کند'],
+            'dataSurfaces' => ['۶', 'صفحه‌ی واحدها با بیش از بیست واحد'],
         ];
 
         foreach ($guards as $file => [$phase, $marker]) {
@@ -368,7 +380,7 @@ class PhaseRegressionMapTest extends TestCase
     public function test_the_map_never_shrinks(): void
     {
         $this->assertGreaterThanOrEqual(
-            66,
+            69,
             count(self::fixes()),
             'ردیفی از نقشهٔ رگرسیون حذف شده؛ یعنی اصلاحی محافظش را از دست داده.',
         );

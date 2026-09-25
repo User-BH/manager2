@@ -16,8 +16,10 @@ import { Card } from '@/shared/ui/Card'
 import { TextField } from '@/shared/ui/Field'
 import { ErrorState } from '@/shared/ui/PageState'
 import { FormSkeleton } from '@/shared/ui/Skeleton'
+import { UploadProgress } from '@/shared/ui/UploadProgress'
+import { isUploadCancelled, useUpload } from '@/shared/hooks/useUpload'
+import { RECEIPT_EXTENSIONS, acceptFor, uploadProblem } from '@/shared/lib/upload'
 import { useQuery } from '@tanstack/react-query'
-import { errorMessage } from '@/shared/lib/queryClient'
 import { queryKeys } from '@/shared/lib/queryKeys'
 import { useDocumentTitle } from '@/shared/hooks'
 import { api, ApiError } from '@/shared/lib/api'
@@ -58,6 +60,8 @@ export function PayBillPage() {
   const [done, setDone] = useState<string | null>(null)
   const [formError, setFormError] = useState<string | null>(null)
   const fileRef = useRef<HTMLInputElement>(null)
+  // پیشرفت و لغوِ ارسالِ رسید (مرحلهٔ ۵ · فاز ۶)
+  const upload = useUpload()
 
   const [payingFromWallet, setPayingFromWallet] = useState(false)
 
@@ -132,6 +136,13 @@ export function PayBillPage() {
       return
     }
 
+    // 🔴 پیش از فرستادن (مرحلهٔ ۵ · فاز ۶): عکسِ ۸ مگابایتیِ دوربین کامل آپلود و بعد رد می‌شد
+    const problem = uploadProblem(file, RECEIPT_EXTENSIONS)
+    if (problem) {
+      setFormError(problem)
+      return
+    }
+
     setFormError(null)
 
     const form = new FormData()
@@ -141,12 +152,21 @@ export function PayBillPage() {
     form.append('receipt', file)
 
     try {
-      const result = await api<{ message: string }>(`/pay/${billId}/receipt`, {
-        method: 'POST',
-        body: form,
-      })
+      const result = await upload.send((options) =>
+        api<{ message: string }>(`/pay/${billId}/receipt`, {
+          method: 'POST',
+          body: form,
+          ...options,
+        }),
+      )
       setDone(result.message)
     } catch (err) {
+      if (isUploadCancelled(err)) {
+        // لغو خطا نیست؛ فایل در فرم مانده و همان دکمه دوباره می‌فرستد
+        setFormError('ارسال لغو شد. هر وقت خواستید دوباره بفرستید.')
+        return
+      }
+
       if (err instanceof ApiError) {
         let handled = false
         for (const [field, messages] of Object.entries(err.errors)) {
@@ -186,7 +206,7 @@ export function PayBillPage() {
   }
 
   if (isLoading) return <FormSkeleton fields={3} />
-  if (error) return <ErrorState message={errorMessage(error)} onRetry={() => void refetch()} />
+  if (error) return <ErrorState error={error} onRetry={() => void refetch()} />
   if (!data) return null
 
   const csrf = document.querySelector<HTMLMetaElement>('meta[name="csrf-token"]')?.content ?? ''
@@ -396,7 +416,7 @@ export function PayBillPage() {
                 id="pay-receipt-file"
                 ref={fileRef}
                 type="file"
-                accept=".jpg,.jpeg,.png,.pdf"
+                accept={acceptFor(RECEIPT_EXTENSIONS)}
                 className="w-full rounded-xl border px-3 py-2.5 text-[13px] file:ml-3 file:rounded-lg file:border-0 file:px-3 file:py-1.5 file:text-white"
                 style={{
                   backgroundColor: 'var(--surface-sunken)',
@@ -408,6 +428,8 @@ export function PayBillPage() {
                 تصویر یا PDF، حداکثر ۴ مگابایت
               </p>
             </div>
+
+            <UploadProgress upload={upload} />
 
             <button
               type="submit"

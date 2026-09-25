@@ -21,7 +21,6 @@ import { SelectField, TextField } from '@/shared/ui/Field'
 import { EmptyState, ErrorState } from '@/shared/ui/PageState'
 import { DashboardSkeleton } from '@/shared/ui/Skeleton'
 import { useQuery } from '@tanstack/react-query'
-import { errorMessage } from '@/shared/lib/queryClient'
 import { queryKeys } from '@/shared/lib/queryKeys'
 import { useDocumentTitle } from '@/shared/hooks'
 import { ExportBar } from '@/shared/ui/ExportBar'
@@ -173,7 +172,7 @@ export function FinancePage() {
       </header>
 
       {isLoading && <DashboardSkeleton />}
-      {error && <ErrorState message={errorMessage(error)} onRetry={() => void refetch()} />}
+      {error && <ErrorState error={error} onRetry={() => void refetch()} />}
 
       {data && !isLoading && (
         <>

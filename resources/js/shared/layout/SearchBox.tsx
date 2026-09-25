@@ -72,7 +72,11 @@ export function SearchBox() {
         }}
       />
 
-      <div className="absolute left-2 top-1/2 flex -translate-y-1/2 items-center gap-1">
+      {/* ⚠️ `aria-live`: شمارِ نتیجه بی‌صدا عوض می‌شد و صفحه‌خوان نمی‌فهمید (فاز ۶) */}
+      <div
+        className="absolute left-2 top-1/2 flex -translate-y-1/2 items-center gap-1"
+        aria-live="polite"
+      >
         {/* فقط تعداد؛ خودِ نتایج اینجا باز نمی‌شوند */}
         <AnimatePresence>
           {total !== null && !isSearching && (
