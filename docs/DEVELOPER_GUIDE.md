@@ -200,6 +200,15 @@ Clarity و GTM فقط در نقطه‌های ورودِ بازاریابی (`ini
 بماند، در `EnsureNotInMaintenance::OPEN_ROUTES` می‌آید. محافظ‌ها:
 `GatewayForgeryTest`، `AbusePreventionTest` و `MaintenanceModeTest`.
 
+**فهرست، خطا، آپلود و تاریخ (فاز ۶).** مسیری که `paginate()` می‌دهد، در
+صفحه‌اش `<Pager>` و `page` در آدرس می‌خواهد — `PaginationContractTest`
+مسیرها را از کدِ کنترلر کشف می‌کند. خطای صفحه با `<ErrorState error={error} />`
+نه رشته، تا از نگاشتِ مرکزیِ `errorUx` بگذرد. آپلود با `useUpload` و
+`<UploadProgress>`، و فایل پیش از ارسال با `uploadProblem` و همان فهرستِ
+قالبِ سرور (`RECEIPT_EXTENSIONS` یا `ATTACHMENT_EXTENSIONS`). هر تاریخ و
+ساعتِ شمسی از `App\Support\Jalali` می‌گذرد که به وقتِ تهران تبدیل می‌کند؛
+ذخیره همیشه UTC است.
+
 **رنگ و اندازه.** رنگِ وضعیت فقط از توکن‌های `--tone-*` و `--state-*` می‌آید
 (که در حالتِ تیره بازتعریف می‌شوند)، نه hex. اندازهٔ فونتِ دلخواهِ **تازه**
 پذیرفته نمی‌شود و شمارِ موجود فقط کم می‌شود. مبلغ و تاریخ را خودتان
