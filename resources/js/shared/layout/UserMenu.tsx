@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { ChevronDown, LogOut, Settings, UserRound, type LucideIcon } from 'lucide-react'
 import { useToggle, useClickOutside } from '@/shared/hooks'
+import { leaveToAuth } from '@/shared/lib/leaveToAuth'
 import { useAuth } from '@/shared/stores/authStore'
 
 export function UserMenu() {
@@ -40,8 +41,9 @@ export function UserMenu() {
     }
 
     setOpen(false)
-    // ورود یک سندِ MPAِ جداست؛ خروج با ناوبریِ واقعیِ مرورگر انجام می‌شود
-    window.location.assign('/auth')
+    // ورود یک سندِ MPAِ جداست؛ خروج با ناوبریِ واقعیِ مرورگر انجام می‌شود —
+    // و فقط یک بار، چون ProtectedRoute هم با پاک‌شدنِ کاربر همین را می‌خواهد
+    leaveToAuth()
   }
 
   return (

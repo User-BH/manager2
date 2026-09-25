@@ -1,5 +1,6 @@
 import { Navigate, Outlet } from 'react-router-dom'
 import { Loader2 } from 'lucide-react'
+import { leaveToAuth } from '@/shared/lib/leaveToAuth'
 import { useAuth } from '@/shared/stores/authStore'
 import type { UserRole } from '@/shared/types'
 
@@ -37,7 +38,7 @@ export function ProtectedRoute({ roles }: ProtectedRouteProps) {
   if (!isAuthenticated) {
     // صفحه‌ی ورود یک سندِ MPAِ جداست؛ با ناوبریِ واقعیِ مرورگر می‌رویم، نه
     // مسیریابیِ داخلِ داشبورد.
-    window.location.replace('/auth')
+    leaveToAuth()
     return null
   }
 

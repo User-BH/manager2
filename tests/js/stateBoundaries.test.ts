@@ -51,7 +51,9 @@ describe('مرزهای حالت', () => {
   it('خروج سندِ صفحه را واقعاً عوض می‌کند', () => {
     const code = codeOf('resources/js/shared/layout/UserMenu.tsx')
 
-    expect(code).toContain('window.location.assign')
+    // از فاز ۸ِ مرحلهٔ ۵ از راهِ `leaveToAuth` تا خروج فقط یک ناوبری بسازد
+    expect(code).toContain('leaveToAuth()')
+    expect(codeOf('resources/js/shared/lib/leaveToAuth.ts')).toContain('window.location.replace')
 
     // ⚠️ و نباید با ناوبریِ درون‌برنامه‌ای جایگزین شده باشد
     expect(code).not.toMatch(/navigate\(\s*['"]\/auth/)

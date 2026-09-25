@@ -27,6 +27,7 @@ import axios, { type AxiosError, type AxiosRequestConfig } from 'axios'
 import { ApiError, isRetryable, parseRetryAfter } from './apiError'
 import { definitelyOffline, markOffline } from '@/shared/pwa/connection'
 import { dedupe } from './dedupe'
+import { leaveToAuth } from './leaveToAuth'
 import { MAX_ATTEMPTS, backoffDelay, sleep } from './retry'
 import { UPLOAD_TIMEOUT_MS, http, refreshCsrfToken, setCsrfToken } from './http'
 
@@ -145,7 +146,7 @@ async function send<T>(
      * پاک می‌کند.
      */
     if (payload?.accountDisabled) {
-      window.location.href = `/auth?reason=${encodeURIComponent(payload.message ?? '')}`
+      leaveToAuth(payload.message ?? '')
     }
 
     // حالتِ تعمیر — فقط اگر نقطه‌ی ورود رفتاری ثبت کرده باشد (`onMaintenance`)

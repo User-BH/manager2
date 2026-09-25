@@ -35,12 +35,16 @@ export interface ServiceWorkerHandle {
  * نسخه‌ی تازه کنترل را می‌گیرد در حالی که تکه‌های تنبلِ نسخه‌ی قبل هنوز
  * بار نشده‌اند و دیگر در کش نیستند. نتیجه‌اش صفحه‌ی سفید وسطِ کار است.
  */
-export function registerServiceWorker(url = '/sw.js'): ServiceWorkerHandle | null {
+export function registerServiceWorker(
+  url = '/sw.js',
+  reload: () => void = () => window.location.reload(),
+): ServiceWorkerHandle | null {
   if (!serviceWorkerSupported()) return null
 
   let waiting: ServiceWorker | null = null
   let notify: (() => void) | null = null
   let reloading = false
+  let controlled = Boolean(navigator.serviceWorker.controller)
 
   const announce = (worker: ServiceWorker) => {
     waiting = worker
@@ -89,9 +93,26 @@ export function registerServiceWorker(url = '/sw.js'): ServiceWorkerHandle | nul
     })
 
   navigator.serviceWorker.addEventListener('controllerchange', () => {
+    /*
+     * 🔴 نصبِ اول هم `controllerchange` می‌دهد (مرحلهٔ ۵ · فاز ۸).
+     *
+     * `sw.js` در `activate` خودش `clients.claim()` می‌کند، پس صفحه‌ای که
+     * تا حالا کنترل‌کننده نداشت یکی پیدا می‌کند. بدونِ این شرط، داشبوردِ
+     * هر کاربرِ تازه چند لحظه پس از باز شدن **خودبه‌خود دوباره بار
+     * می‌شد** — آزمونِ مرورگر دو بار بارشدنِ `/dashboard` را شمرد — و
+     * هرچه کاربر شروع به نوشتن کرده بود از دست می‌رفت.
+     *
+     * بارگذاریِ دوباره فقط وقتی لازم است که کنترل از نسخه‌ای **به نسخه‌ی
+     * دیگر** برود؛ یعنی به‌روزرسانی.
+     */
+    if (!controlled) {
+      controlled = true
+      return
+    }
+
     if (reloading) return
     reloading = true
-    window.location.reload()
+    reload()
   })
 
   return {

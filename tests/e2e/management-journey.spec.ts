@@ -199,11 +199,36 @@ test.describe('سفرِ مدیریت', () => {
   test('خروج از منوی کاربر، و بسته‌شدنِ نشستِ سرور', async ({ page }, testInfo) => {
     expect(await signIn(page, phoneFor('0936', testInfo.project.name), PASSWORD)).toBe(200)
 
+    /*
+     * 🔴 بارشدن‌های سند شمرده می‌شوند. اجرای اولِ این تست در CI روی Firefox
+     * با `NS_BINDING_ABORTED` شکست: خروج دو ناوبری به `/auth` می‌ساخت
+     * (ProtectedRoute و UserMenu) و Firefox اولی را لغو می‌کرد. شمارش در
+     * Chromium دو نقص نشان داد: `/auth` دو بار، و `/dashboard` هم دو بار —
+     * نصبِ اولِ service worker صفحه را خودبه‌خود دوباره بار می‌کرد.
+     */
+    const documents: string[] = []
+    page.on('request', (request) => {
+      if (request.resourceType() === 'document') documents.push(new URL(request.url()).pathname)
+    })
+
     await page.goto('/dashboard')
+    // فرصتِ نصبِ service worker؛ نسخه‌ی خراب همین‌جا دوباره بار می‌کرد
+    await page.waitForTimeout(2_000)
     await page.getByRole('button', { name: /مدیرِ سرتاسری/ }).click()
     await page.getByText('خروج از حساب').click()
 
-    await page.waitForURL(/\/auth/, { timeout: 15_000 })
+    await expect(page).toHaveURL(/\/auth/, { timeout: 15_000 })
+    await page.waitForLoadState('load')
+    await page.waitForTimeout(1_000)
+
+    expect(
+      documents.filter((path) => path === '/dashboard'),
+      'داشبورد دوباره بار شد',
+    ).toHaveLength(1)
+    expect(
+      documents.filter((path) => path === '/auth'),
+      'خروج بیش از یک ناوبری ساخت',
+    ).toHaveLength(1)
 
     /*
      * ⚠️ `/me` عمداً عمومی است و برای مهمان ۲۰۰ با `user: null` می‌دهد (SPA با

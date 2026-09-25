@@ -5,6 +5,7 @@ import { createElement } from 'react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import { copyText } from '@/shared/lib/clipboard'
+import { leaveToAuth, resetLeaveToAuth } from '@/shared/lib/leaveToAuth'
 import { Modal } from '@/shared/ui/Modal'
 
 /**
@@ -90,5 +91,51 @@ describe('ارتفاعِ مودال روی موبایل', () => {
 
     expect(panel).toContain('supports-[max-height:1dvh]:max-h-[92dvh]')
     expect(panel).toContain('max-h-[92vh]')
+  })
+})
+
+/**
+ * 🔴 خروج دو ناوبری به `/auth` می‌ساخت (ProtectedRoute و UserMenu)؛ Firefox
+ * اولی را با `NS_BINDING_ABORTED` لغو می‌کرد.
+ */
+describe('رفتن به صفحه‌ی ورود', () => {
+  afterEach(() => resetLeaveToAuth())
+
+  it('چند درخواستِ هم‌زمان فقط یک ناوبری می‌سازند', () => {
+    const navigate = vi.fn()
+    leaveToAuth(undefined, navigate)
+    leaveToAuth(undefined, navigate)
+
+    expect(navigate).toHaveBeenCalledTimes(1)
+    expect(navigate).toHaveBeenCalledWith('/auth')
+  })
+
+  it('ناوبریِ اول برنده است و دلیلِ خروج گم نمی‌شود', () => {
+    const navigate = vi.fn()
+    leaveToAuth('حساب غیرفعال شد', navigate)
+    leaveToAuth(undefined, navigate)
+
+    expect(navigate).toHaveBeenCalledTimes(1)
+    expect(navigate).toHaveBeenCalledWith(`/auth?reason=${encodeURIComponent('حساب غیرفعال شد')}`)
+  })
+
+  it('هیچ کدی جز همین تابع مستقیم به `/auth` نمی‌رود', () => {
+    const JS = join(__dirname, '../../resources/js')
+    const walk = (dir: string): string[] =>
+      readdirSync(dir).flatMap((name) => {
+        const path = join(dir, name)
+        return statSync(path).isDirectory() ? walk(path) : [path]
+      })
+
+    const direct = walk(JS)
+      .filter((f) => /\.(ts|tsx)$/.test(f))
+      .filter((f) =>
+        /location(\.href\s*=|\.(replace|assign)\()\s*[`'"]\/auth/.test(
+          readFileSync(f, 'utf8').replace(/\/\*[\s\S]*?\*\//g, ''),
+        ),
+      )
+      .map((f) => relative(JS, f).replace(/\\/g, '/'))
+
+    expect(direct).toEqual([])
   })
 })

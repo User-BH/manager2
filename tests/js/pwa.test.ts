@@ -231,6 +231,43 @@ describe('اعلانِ نسخه‌ی تازه', () => {
   })
 })
 
+/**
+ * 🔴 نصبِ اول صفحه را دوباره بار نمی‌کند (مرحلهٔ ۵ · فاز ۸).
+ *
+ * `sw.js` در `activate` خودش `clients.claim()` می‌کند، پس صفحه‌ی بی‌کنترل‌کننده
+ * هم `controllerchange` می‌گیرد. آزمونِ مرورگر نشان داد داشبوردِ کاربرِ تازه
+ * چند لحظه پس از باز شدن دوباره بار می‌شد.
+ */
+describe('بارگذاریِ دوباره پس از تغییرِ کنترل‌کننده', () => {
+  function fireControllerChange(controller: unknown) {
+    const reload = vi.fn()
+    installNavigator({ controller })
+    registerServiceWorker('/sw.js', reload)
+
+    const listen = (navigator.serviceWorker.addEventListener as ReturnType<typeof vi.fn>).mock.calls
+    const onChange = listen.find(([type]) => type === 'controllerchange')?.[1] as () => void
+
+    return { reload, onChange }
+  }
+
+  it('نصبِ اول (بی‌کنترل‌کننده) صفحه را بار نمی‌کند', () => {
+    const { reload, onChange } = fireControllerChange(null)
+    onChange()
+    expect(reload).not.toHaveBeenCalled()
+
+    // ولی به‌روزرسانیِ بعدی در همان صفحه بار می‌کند
+    onChange()
+    expect(reload).toHaveBeenCalledTimes(1)
+  })
+
+  it('به‌روزرسانی (از نسخه‌ای به نسخه‌ی دیگر) یک بار بار می‌کند', () => {
+    const { reload, onChange } = fireControllerChange({ scriptURL: '/sw.js' })
+    onChange()
+    onChange()
+    expect(reload).toHaveBeenCalledTimes(1)
+  })
+})
+
 describe('تشخیصِ نصب‌بودن', () => {
   beforeEach(() => {
     Reflect.deleteProperty(window.navigator, 'standalone')

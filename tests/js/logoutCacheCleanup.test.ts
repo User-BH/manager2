@@ -139,6 +139,6 @@ describe('خروج، کشِ دستگاه را پاک می‌کند', () => {
     ).replace(/\/\*[\s\S]*?\*\//g, '')
 
     expect(source).toMatch(/try\s*\{\s*await logout\(\)\s*\}\s*catch/)
-    expect(source).toContain("window.location.assign('/auth')")
+    expect(source).toContain('leaveToAuth()')
   })
 })
