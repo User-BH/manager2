@@ -65,7 +65,31 @@ class MellatGateway implements PaymentGateway
             return null;
         }
 
-        $saleOrderId = $callback['SaleOrderId'] ?? $order->gatewayOrderId();
+        /*
+         * 🔴 فروش باید مالِ **همین** سفارش باشد (مرحلهٔ ۵ · فاز ۹).
+         *
+         * پیش از این `SaleOrderId` از خودِ بازگشت خوانده می‌شد — یعنی از
+         * مرورگرِ کاربر. کسی که قبضِ ارزانی را پرداخت می‌کرد و بازگشتش را
+         * رها می‌کرد، می‌توانست `SaleOrderId`/`SaleReferenceId`ِ همان فروش را
+         * به بازگشتِ قبضِ گران بفرستد؛ `bpVerifyRequest` آن فروش را تأیید
+         * می‌کرد و قبضِ گران با پولِ ارزان تسویه می‌شد.
+         *
+         * ملت در تأیید مبلغ برنمی‌گرداند؛ ولی شماره‌ی سفارش را **خودمان** در
+         * `bpPayRequest` با مبلغِ خودمان فرستاده‌ایم. پس گره‌زدنِ فروش به
+         * شماره‌ی سفارشِ خودمان، مبلغ را هم گره می‌زند. ناهمخوانی پیش از
+         * تأیید رد می‌شود، پس فروشِ بیگانه اصلاً تأیید نمی‌شود.
+         */
+        $saleOrderId = (string) $order->gatewayOrderId();
+
+        if (isset($callback['SaleOrderId']) && (string) $callback['SaleOrderId'] !== $saleOrderId) {
+            Log::warning('[Mellat] callback carries another order', [
+                'order' => $saleOrderId,
+                'sale_order_id' => (string) $callback['SaleOrderId'],
+            ]);
+
+            return null;
+        }
+
         $saleReferenceId = $callback['SaleReferenceId'] ?? '';
 
         $args = [

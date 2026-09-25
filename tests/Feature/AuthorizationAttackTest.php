@@ -616,6 +616,7 @@ class AuthorizationAttackTest extends TestCase
         'app/Http/Controllers/Api/PaymentController.php' => [1, 'بازخوانیِ قبض داخلِ قفل؛ مجوزش بالاتر سنجیده شده'],
         'app/Http/Controllers/GatewayController.php' => [4, 'بازگشتِ بانک نشست ندارد؛ اصالت با شناسه‌ی مرجع'],
         'app/Services/Payment/PaymentService.php' => [5, 'بازخوانی داخلِ قفل، روی رکوردِ ازپیش‌مجازشده'],
+        'app/Services/Payment/TrackingCodes.php' => [2, 'کدِ رهگیریِ بانک در همه‌ی مجتمع‌ها یکتاست؛ فقط exists، هیچ داده‌ای برنمی‌گرداند (فاز ۹)'],
         'app/Services/Wallet/WalletService.php' => [4, 'همان الگو، روی کیفِ پول'],
         'app/Services/Charge/BillGenerator.php' => [4, 'تولیدِ قبض با مجتمعِ صریح در پارامتر'],
 

@@ -11,9 +11,11 @@ use App\Models\Payment;
 use App\Services\Payment\GatewayManager;
 use App\Services\Payment\GatewayUnreachable;
 use App\Services\Payment\PaymentService;
+use App\Services\Payment\TrackingCodes;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 
 /**
  * پل بین اپلیکیشن و درگاه بانکی.
@@ -174,17 +176,28 @@ class GatewayController extends Controller
          * درگاه عمداً بیرون از قفل انجام می‌شود تا تراکنش دیتابیس پشت یک تماس
          * شبکه‌ای باز نماند.
          */
-        $settled = DB::transaction(function () use ($payment, $tracking): bool {
+        $outcome = TrackingCodes::exclusively($tracking, fn (): string => DB::transaction(function () use ($payment, $tracking): string {
             $fresh = Payment::withoutGlobalScopes()->lockForUpdate()->find($payment->id);
 
             if (! $fresh || $fresh->status !== PaymentStatus::Pending) {
-                return false;
+                return 'already';
+            }
+
+            /*
+             * 🔴 یک کدِ رهگیری، یک پرداخت (مرحلهٔ ۵ · فاز ۹). سامان تراکنشِ
+             * «از قبل تأییدشده» را هم تأیید می‌کند؛ بدونِ این، رهگیریِ قبضِ A
+             * قبضِ B با همان مبلغ را هم تسویه می‌کرد.
+             */
+            if (TrackingCodes::claimedElsewhere($tracking, $fresh)) {
+                $fresh->update(['status' => PaymentStatus::Failed]);
+
+                return 'replayed';
             }
 
             $fresh->update(['tracking_code' => $tracking]);
             $this->payments->settle($fresh);
 
-            return true;
+            return 'settled';
             /*
              * ⚠️ `attempts: 3` اینجا اجباری است و نبودش یک شکافِ واقعی بود (R50).
              *
@@ -211,7 +224,18 @@ class GatewayController extends Controller
              * `Bill → Unit` یا `Bill → Payment` نمی‌گیرد، پس چرخه‌ی بن‌بست
              * وجود ندارد؛ ولی رقابت روی خودِ `Bill` همچنان ممکن است.
              */
-        }, attempts: 3);
+        }, attempts: 3));
+
+        if ($outcome === 'replayed') {
+            Log::warning('[gateway] tracking code already settled another payment', [
+                'payment' => $payment->id,
+                'tracking' => $tracking,
+            ]);
+
+            return redirect('/my-bills?payment=failed');
+        }
+
+        $settled = $outcome === 'settled';
 
         // بازگشت به صفحه‌ی SPA؛ نتیجه از روی پارامترها نمایش داده می‌شود.
         return redirect('/my-bills?payment=success&tracking='.urlencode(

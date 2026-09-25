@@ -33,7 +33,7 @@ class ScanAnomalies extends Command
 {
     protected $signature = 'alerts:scan {--quiet-when-ok : اگر چیزی اعلام نشد چیزی چاپ نکن}';
 
-    protected $description = 'سنجشِ جهشِ خطا، شکستِ پرداخت، شکستِ پیامک و شکستِ بکاپ';
+    protected $description = 'سنجشِ جهشِ خطا، شکستِ پرداخت، شکستِ پیامک، شکستِ بکاپ و کندیِ API';
 
     public function handle(AnomalyReport $anomalies, HealthAlerter $alerter): int
     {

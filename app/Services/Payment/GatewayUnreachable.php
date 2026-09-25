@@ -65,6 +65,24 @@ class GatewayUnreachable extends RuntimeException
         );
     }
 
+    /**
+     * بانک تراکنشی را تأیید کرد که با این سفارش نمی‌خواند — یا نمی‌شود فهمید
+     * که می‌خواند (مرحلهٔ ۵ · فاز ۹).
+     *
+     * 🔴 «ناموفق» نیست: بانک «بله» گفته و پولی روی ترمینالِ ما جابه‌جا شده.
+     * «موفق» هم نیست: شاید تراکنشِ ارزانِ دیگری است که به این سفارش چسبانده
+     * شده. تنها پاسخِ درست بررسیِ دستی است.
+     */
+    public static function unmatched(string $gateway, string $detail): self
+    {
+        return new self(
+            'بانک تراکنشی را تأیید کرد که با این سفارش نمی‌خواند ('.$detail.'). '
+            .'این پرداخت تسویه نشد و باید در پنلِ بانک بررسی شود.',
+            $gateway,
+            'match',
+        );
+    }
+
     public static function transport(string $gateway, string $stage, string $detail): self
     {
         return new self(

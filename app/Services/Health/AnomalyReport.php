@@ -58,6 +58,7 @@ class AnomalyReport
             'payments' => $this->paymentFailures(),
             'sms' => $this->smsDelivery(),
             'backups' => $this->backupPipeline(),
+            'latency' => $this->slowRequests(),
         ];
 
         return [
@@ -137,6 +138,29 @@ class AnomalyReport
                 'detail' => sprintf('%d خطا در %d دقیقه (معادلِ %d در ساعت، سقف %d)', $delta, $minutes, $perHour, $limit),
                 'per_hour' => $perHour,
                 'delta' => $delta,
+            ];
+        }, HealthReport::DEGRADED);
+    }
+
+    /**
+     * کندیِ فراگیرِ API (مرحلهٔ ۵ · فاز ۹ · بندِ ۷۸).
+     *
+     * ⚠️ یک گزارشِ PDFِ سنگین کند است و باید باشد؛ پس معیار **تعداد** در
+     * ساعت است نه یک مورد. شمارنده را `RecordSlowRequests` پر می‌کند.
+     *
+     * @return array<string, mixed>
+     */
+    private function slowRequests(): array
+    {
+        return $this->timed(function (): array {
+            $count = SlowRequests::lastHour();
+            $limit = max(1, (int) config('alerts.latency.slow_per_hour', 30));
+            $threshold = (int) config('alerts.latency.slow_ms', 2000);
+
+            return [
+                'status' => $count > $limit ? HealthReport::DEGRADED : HealthReport::OK,
+                'detail' => sprintf('%d درخواستِ کندتر از %d میلی‌ثانیه در ساعتِ گذشته (سقف %d)', $count, $threshold, $limit),
+                'slow' => $count,
             ];
         }, HealthReport::DEGRADED);
     }

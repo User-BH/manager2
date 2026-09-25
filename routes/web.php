@@ -123,11 +123,12 @@ Route::middleware('auth')->group(function () {
         ->name('bills.export');
 
     // شروع پرداخت آنلاین: مرورگر باید واقعاً به سایت بانک برود
-    Route::post('pay/{bill}/online', [GatewayController::class, 'start'])->name('payments.online');
+    Route::post('pay/{bill}/online', [GatewayController::class, 'start'])
+        ->middleware('throttle:payment-start')->name('payments.online');
 
     // خرید اشتراک — درگاهش از درگاه مجتمع جداست (config/subscription.php)
     Route::post('subscription/checkout', [SubscriptionCheckoutController::class, 'start'])
-        ->name('subscription.checkout');
+        ->middleware('throttle:payment-start')->name('subscription.checkout');
 });
 
 /*

@@ -4,6 +4,7 @@ import { BrowserRouter } from 'react-router-dom'
 import { QueryClientProvider } from '@tanstack/react-query'
 import { MotionConfig } from 'framer-motion'
 
+import { onMaintenance } from '@/shared/lib/api'
 import { initObservability, reportError } from '@/shared/lib/observability'
 import { createQueryClient } from '@/shared/lib/queryClient'
 import { ErrorBoundary, RootErrorFallback } from '@/shared/ui/ErrorBoundary'
@@ -33,6 +34,12 @@ import { AppRouter } from './AppRouter'
  * اگر هیچ شناسه‌ای تنظیم نشده باشد این فراخوانی عملاً بی‌اثر است.
  */
 initObservability()
+
+/*
+ * حالتِ تعمیر: پوسته‌ی داشبورد را سرور در این حالت نمی‌دهد، پس بارگذاریِ
+ * دوباره صفحه‌ی ۵۰۳ِ فارسی را می‌آورد و حلقه‌ای نمی‌سازد.
+ */
+onMaintenance(() => window.location.reload())
 
 const queryClient = createQueryClient()
 

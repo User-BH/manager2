@@ -8,8 +8,10 @@ use App\Http\Middleware\AuthenticateTrustedDevice;
 use App\Http\Middleware\EnsureActive;
 use App\Http\Middleware\EnsureComplexActive;
 use App\Http\Middleware\EnsureFeatureEnabled;
+use App\Http\Middleware\EnsureNotInMaintenance;
 use App\Http\Middleware\EnsureRole;
 use App\Http\Middleware\LockInitialAccount;
+use App\Http\Middleware\RecordSlowRequests;
 use App\Http\Middleware\SecurityHeaders;
 use App\Http\Middleware\SetCurrentComplex;
 use App\Services\Auth\TrustedDeviceService;
@@ -55,12 +57,18 @@ return Application::configure(basePath: dirname(__DIR__))
             | نام‌های مسیر فقط یک بار (روی v1) ثبت می‌شوند تا `route()` مبهم
             | نشود؛ نامِ مستعار بی‌نام می‌ماند.
             */
-            Route::middleware('web')
+            /*
+            | `throttle:api` سقفِ سراسری است (مرحلهٔ ۵ · فاز ۹): هر مسیرِ API،
+            | حتی آن‌که فردا اضافه شود و کسی یادش نرود سقفِ ویژه بدهد.
+            | ⚠️ کلیدِ آن به کاربر بسته است نه به مسیر، پس دو پیشوند یک شمارنده
+            | دارند و با عوض‌کردنِ `/api` و `/api/v1` دور زده نمی‌شود.
+            */
+            Route::middleware(['web', 'throttle:api'])
                 ->prefix('api/v1')
                 ->name('api.')
                 ->group(__DIR__.'/../routes/api.php');
 
-            Route::middleware('web')
+            Route::middleware(['web', 'throttle:api'])
                 ->prefix('api')
                 ->group(__DIR__.'/../routes/api.php');
         },
@@ -150,6 +158,8 @@ return Application::configure(basePath: dirname(__DIR__))
              * خطوطی که روزِ حادثه بیشتر لازم می‌شوند بی‌شناسه بمانند.
              */
             AssignRequestId::class,
+            // شمارشِ درخواستِ کند (مرحلهٔ ۵ · فاز ۹)؛ زود، تا تقریباً کلِ درخواست را بسنجد
+            RecordSlowRequests::class,
             /*
              * هدرهای امنیتی روی همه‌ی پاسخ‌های web (شاملِ API، چون API هم روی
              * همین گروه سوار است). عمداً در لاراول و نه nginx: کانفیگِ nginx
@@ -169,6 +179,11 @@ return Application::configure(basePath: dirname(__DIR__))
             AppBuildHeader::class,
             AuthenticateTrustedDevice::class,
             EnsureActive::class,
+            /*
+             * حالتِ تعمیر از پنل (مرحلهٔ ۵ · فاز ۹). پس از `EnsureActive` تا
+             * کاربرِ واردشده شناخته شده باشد و سوپرادمین رد شود.
+             */
+            EnsureNotInMaintenance::class,
             SetCurrentComplex::class,
             /*
              * تعلیقِ مجتمع (R29). پس از `SetCurrentComplex` می‌آید چون به

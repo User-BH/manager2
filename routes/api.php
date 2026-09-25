@@ -147,7 +147,7 @@ Route::middleware('auth')->group(function () {
     Route::get('messenger', [MessengerController::class, 'index'])
         ->middleware(['throttle:messenger', 'feature:messenger'])->name('messenger.index');
     Route::post('messenger', [MessengerController::class, 'store'])
-        ->middleware('feature:messenger')->name('messenger.store');
+        ->middleware(['throttle:messenger-send', 'feature:messenger'])->name('messenger.store');
     Route::patch('messenger/{message}/toggle-hide', [MessengerController::class, 'toggleHide'])
         ->name('messenger.toggle-hide');
 
@@ -176,7 +176,7 @@ Route::middleware('auth')->group(function () {
     Route::get('service-requests', [ServiceRequestController::class, 'index'])
         ->name('service-requests.index');
     Route::post('service-requests', [ServiceRequestController::class, 'store'])
-        ->name('service-requests.store');
+        ->middleware('throttle:service-requests')->name('service-requests.store');
     Route::get('service-requests/{serviceRequest}', [ServiceRequestController::class, 'show'])
         ->name('service-requests.show');
     Route::get('service-requests/{serviceRequest}/attachment', [ServiceRequestController::class, 'attachment'])
@@ -188,7 +188,7 @@ Route::middleware('auth')->group(function () {
     Route::patch('service-requests/{serviceRequest}/priority', [ServiceRequestController::class, 'setPriority'])
         ->name('service-requests.priority');
     Route::post('service-requests/{serviceRequest}/comments', [ServiceRequestController::class, 'comment'])
-        ->name('service-requests.comment');
+        ->middleware('throttle:service-requests')->name('service-requests.comment');
 
     Route::get('announcements', [AnnouncementController::class, 'index'])->name('announcements.index');
     Route::post('announcements', [AnnouncementController::class, 'store'])->name('announcements.store');
@@ -285,7 +285,8 @@ Route::middleware('auth')->group(function () {
     // پروفایل و حساب کاربری — همیشه دربارهٔ خودِ کاربر واردشده
     Route::get('profile', [ProfileController::class, 'show'])->name('profile.show');
     Route::put('profile', [ProfileController::class, 'update'])->name('profile.update');
-    Route::put('profile/password', [ProfileController::class, 'updatePassword'])->name('profile.password');
+    Route::put('profile/password', [ProfileController::class, 'updatePassword'])
+        ->middleware('throttle:password-change')->name('profile.password');
 
     Route::get('subscription', [SubscriptionController::class, 'show'])->name('subscription.show');
     // خرید با واریز و آپلود رسید — تنها راه خرید تا وقتی درگاه اشتراک فعال نشده
@@ -423,7 +424,8 @@ Route::middleware('auth')->group(function () {
 
         Route::get('sms', [SmsController::class, 'show'])->name('sms.show');
         Route::put('sms', [SmsController::class, 'update'])->name('sms.update');
-        Route::post('sms/test', [SmsController::class, 'test'])->name('sms.test');
+        Route::post('sms/test', [SmsController::class, 'test'])
+            ->middleware('throttle:sms-test')->name('sms.test');
 
         // تنظیماتِ فوترِ سایت: تماس و شبکه‌های اجتماعی
         Route::get('site-settings', [SiteSettingsController::class, 'show'])->name('site-settings.show');

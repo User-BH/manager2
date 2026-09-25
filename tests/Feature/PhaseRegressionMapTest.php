@@ -225,6 +225,38 @@ class PhaseRegressionMapTest extends TestCase
             'کارت پنهان می‌شود، مرجعِ بانک نه' => [
                 'PrivacyAndIndexingTest', 'test_a_card_number_is_masked_but_a_bank_reference_is_not', '۵',
             ],
+
+            /* ── مرحلهٔ ۵، فاز ۹: سخت‌سازیِ بک‌اند و عملیات ─────────────────── */
+            'فروشِ سفارشِ دیگر در ملت تأیید نمی‌شود' => [
+                'GatewayForgeryTest', 'test_mellat_refuses_a_sale_from_another_order_without_asking_the_bank', '۵',
+            ],
+            'مبلغِ تأییدشده‌ی سامان سنجیده می‌شود' => [
+                'GatewayForgeryTest', 'test_saman_does_not_settle_when_the_verified_amount_differs', '۵',
+            ],
+            'یک تراکنشِ بانک دو قبض را نمی‌پردازد' => [
+                'GatewayForgeryTest', 'test_one_bank_transaction_never_pays_two_bills', '۵',
+            ],
+            'هر مسیرِ API سقفِ سراسری دارد' => [
+                'AbusePreventionTest', 'test_every_api_route_carries_the_global_cap', '۵',
+            ],
+            'پیام‌رسان سیل‌پذیر نیست' => [
+                'AbusePreventionTest', 'test_a_user_cannot_flood_the_messenger', '۵',
+            ],
+            'رمزِ فعلی حدس‌زدنی نیست' => [
+                'AbusePreventionTest', 'test_the_current_password_cannot_be_guessed', '۵',
+            ],
+            'حالتِ تعمیر کاربر را می‌بندد' => [
+                'MaintenanceModeTest', 'test_a_regular_user_sees_the_persian_page_and_a_clear_api_answer', '۵',
+            ],
+            'بازگشتِ بانک در تعمیر باز است' => [
+                'MaintenanceModeTest', 'test_a_real_bank_return_still_settles_during_maintenance', '۵',
+            ],
+            'کندی سرور را از مدار بیرون نمی‌کند' => [
+                'SlowRequestMonitoringTest', 'test_slowness_never_takes_the_server_out_of_rotation', '۵',
+            ],
+            'کندیِ فراگیر هشدار می‌دهد' => [
+                'SlowRequestMonitoringTest', 'test_widespread_slowness_raises_an_alert', '۵',
+            ],
         ];
     }
 
@@ -308,6 +340,7 @@ class PhaseRegressionMapTest extends TestCase
             'formsAndRoutes' => ['۴', 'پارامترِ آدرس'],
             'keyboardReach' => ['۵', 'کشوی منوی موبایل'],
             'privacySurface' => ['۷', 'لینکِ پنجره‌ی تازه'],
+            'maintenanceMode' => ['۹', 'چه کسی واکنش را ثبت می‌کند'],
         ];
 
         foreach ($guards as $file => [$phase, $marker]) {
@@ -335,7 +368,7 @@ class PhaseRegressionMapTest extends TestCase
     public function test_the_map_never_shrinks(): void
     {
         $this->assertGreaterThanOrEqual(
-            56,
+            66,
             count(self::fixes()),
             'ردیفی از نقشهٔ رگرسیون حذف شده؛ یعنی اصلاحی محافظش را از دست داده.',
         );

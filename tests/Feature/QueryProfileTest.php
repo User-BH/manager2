@@ -125,7 +125,8 @@ class QueryProfileTest extends TestCase
             fn () => $this->actingAs($this->admin)->getJson('/api/v1/bills')->assertOk(),
         );
 
-        $this->assertQueryBudget($profile, 6, 'GET /bills');
+        // +۱ از فاز ۹ِ مرحلهٔ ۵: خواندنِ ثابتِ پرچمِ حالتِ تعمیر (توضیح در PerformanceBaselineTest)
+        $this->assertQueryBudget($profile, 7, 'GET /bills');
     }
 
     public function test_dashboard_does_not_scale_queries_with_rows(): void
@@ -143,7 +144,8 @@ class QueryProfileTest extends TestCase
             fn () => $this->actingAs($this->admin)->getJson('/api/v1/announcements')->assertOk(),
         );
 
-        $this->assertQueryBudget($profile, 8, 'GET /announcements');
+        // +۱ از فاز ۹ِ مرحلهٔ ۵: خواندنِ ثابتِ پرچمِ حالتِ تعمیر
+        $this->assertQueryBudget($profile, 9, 'GET /announcements');
     }
 
     public function test_payments_review_list_does_not_scale_queries_with_rows(): void

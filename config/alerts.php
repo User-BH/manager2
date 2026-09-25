@@ -122,4 +122,19 @@ return [
         'pending_minutes' => (int) env('ALERT_BACKUP_PENDING_MINUTES', 60),
     ],
 
+    /*
+    | کندیِ API (مرحلهٔ ۵ · فاز ۹ · بندِ ۷۸).
+    |
+    | `slow_ms`: درخواستی که از این کندتر باشد شمرده و لاگ می‌شود.
+    | `slow_per_hour`: بیش از این در ساعت یعنی کندیِ فراگیر، نه یک گزارشِ سنگین.
+    |
+    | ⚠️ CPU و حافظه عمداً اینجا نیستند: از داخلِ PHP بارِ **کلِ ماشین** دیده
+    | می‌شود که برنامه‌ی دیگری (PHP 7.4) هم رویش است. دلیل و جایگزین در
+    | docs/ALERTING.md، بخشِ «سه چیزی که از داخلِ PHP سنجیده نمی‌شوند».
+    */
+    'latency' => [
+        'slow_ms' => (int) env('ALERT_SLOW_REQUEST_MS', 2000),
+        'slow_per_hour' => (int) env('ALERT_SLOW_REQUESTS_PER_HOUR', 30),
+    ],
+
 ];

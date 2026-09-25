@@ -352,7 +352,7 @@ class LoadReadinessTest extends TestCase
         return DIRECTORY_SEPARATOR === '\\' ? 'NUL' : '/dev/null';
     }
 
-    /** بخشِ «همه‌ی شانزده سقفِ سامانه» از سند. */
+    /** بخشِ «همه‌ی سقف‌های سامانه» از سند (از مرحلهٔ ۵ · فاز ۹ بیش از شانزده). */
     private function limitTable(): string
     {
         $runbook = (string) file_get_contents(base_path(self::RUNBOOK));

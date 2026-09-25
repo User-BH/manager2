@@ -26,6 +26,10 @@ on:
   pull_request:
   # اجرای دستی، برای وقتی که می‌خواهید بدونِ کامیتِ تازه دوباره بسنجید
   workflow_dispatch:
+  # ⚠️ هفتگی (مرحلهٔ ۵ · فاز ۹ · بندِ ۷۱): آسیب‌پذیریِ تازه بی‌کامیت هم
+  # منتشر می‌شود. بدونِ این، مخزنی که یک ماه دست نخورد یک ماه ممیزی نمی‌شد.
+  schedule:
+    - cron: '30 3 * * 1'
 
 # ⚠️ اجرای قبلیِ همان شاخه لغو می‌شود.
 #
@@ -381,8 +385,16 @@ jobs:
       - name: آسیب‌پذیریِ وابستگی‌های PHP
         run: composer audit --locked --no-interaction
 
-      # `--omit=dev` چون ابزارِ توسعه در محصول اجرا نمی‌شود؛ آسیب‌پذیریِ
-      # یک پکیجِ تست، ریسکِ کاربر نیست
+      # سه سطح (مرحلهٔ ۵ · فاز ۹):
+      #   ① وابستگی‌های محصول، از «بالا» به بعد → شکست
+      #   ② ابزارِ توسعه، «بحرانی» → شکست
+      #   ③ ابزارِ توسعه، «متوسط» به بعد → هشدار
+      #
+      # 🔴 چرا ابزارِ توسعه دیگر نادیده نمی‌ماند: نسخه‌ی قبلی فقط
+      # `--omit=dev` می‌سنجید با این استدلال که «ابزارِ توسعه در محصول اجرا
+      # نمی‌شود». ولی اجرا می‌شود — در `deploy.yml`، روی رانری که کلیدِ SSHِ
+      # سرورِ محصول را دارد (`npm ci` و `vite build`). در فاز ۹ همین نقطهٔ
+      # کور ۹ آسیب‌پذیری با ۲ «بحرانی» داشت و CI سبز بود.
       #
       # ⚠️ چرا تلاشِ دوباره، و چرا این دروازه را ضعیف نمی‌کند:
       # `npm audit` برای **دو چیزِ کاملاً متفاوت** کدِ ۱ می‌دهد — «آسیب‌پذیری
@@ -397,22 +409,43 @@ jobs:
       # آسیب‌پذیری گزارش کند، همان بارِ اول شکست می‌دهد.
       - name: آسیب‌پذیریِ وابستگی‌های Node
         run: |
-          for attempt in 1 2 3; do
-            if output=$(npm audit --omit=dev --audit-level=high 2>&1); then
+          # ۰ = پاک · ۱ = آسیب‌پذیری · ۲ = سرویس پس از سه تلاش پاسخ نداد
+          audit() {
+            for attempt in 1 2 3; do
+              if output=$(npm audit "$@" 2>&1); then
+                echo "$output"
+                return 0
+              fi
+
               echo "$output"
-              exit 0
-            fi
 
-            echo "$output"
+              if ! grep -qE 'audit endpoint returned an error|Service Unavailable|ENOTFOUND|ETIMEDOUT' <<<"$output"; then
+                return 1
+              fi
 
-            if ! grep -qE 'audit endpoint returned an error|Service Unavailable|ENOTFOUND|ETIMEDOUT' <<<"$output"; then
-              echo '::error::آسیب‌پذیری پیدا شد.'
-              exit 1
-            fi
+              echo "::warning::سرویسِ مشاوره‌های npm در دسترس نبود (تلاشِ $attempt از ۳)."
+              sleep $((attempt * 20))
+            done
 
-            echo "::warning::سرویسِ مشاوره‌های npm در دسترس نبود (تلاشِ $attempt از ۳)."
-            sleep $((attempt * 20))
-          done
+            return 2
+          }
 
-          echo '::error::سرویسِ مشاوره‌های npm پس از سه تلاش پاسخ نداد.'
-          exit 1
+          # ⚠️ `|| code=$?` و نه `; code=$?`: شلِ Actions با `-e` اجرا می‌شود و
+          # خروجِ غیرِصفر پیش از خوانده‌شدنِ کد، کلِ گام را می‌بست.
+          code=0; audit --omit=dev --audit-level=high || code=$?
+          [ $code -eq 1 ] && { echo '::error::آسیب‌پذیری در وابستگی‌های محصول.'; exit 1; }
+          [ $code -eq 2 ] && { echo '::error::سرویسِ مشاوره‌های npm پس از سه تلاش پاسخ نداد.'; exit 1; }
+
+          code=0; audit --audit-level=critical || code=$?
+          [ $code -eq 1 ] && { echo '::error::آسیب‌پذیریِ بحرانی در ابزارِ توسعه — همان‌که در استقرار کنارِ کلیدِ SSH اجرا می‌شود.'; exit 1; }
+
+          audit --audit-level=moderate >/dev/null || echo '::warning::ابزارِ توسعه آسیب‌پذیریِ غیرِبحرانی دارد؛ `npm audit` را ببینید.'
+          exit 0
+
+      # ⚠️ «پکیجِ مخرب» (بندِ ۷۱): امضای رجیستریِ هر پکیجِ نصب‌شده. پکیجی که
+      # پس از انتشار دست‌کاری شده یا از رجیستریِ دیگری آمده، امضا ندارد.
+      # `--ignore-scripts` چون همین‌جا هنوز نمی‌دانیم کدام پکیج قابلِ اعتماد است.
+      - name: امضای پکیج‌ها
+        run: |
+          npm ci --ignore-scripts --no-audit --no-fund
+          npm audit signatures

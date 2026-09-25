@@ -10,9 +10,11 @@ use App\Models\AuditLog;
 use App\Models\Plan;
 use App\Models\Subscription;
 use App\Services\Payment\GatewayUnreachable;
+use App\Services\Payment\TrackingCodes;
 use App\Services\Subscription\SubscriptionGatewayManager;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Log;
 
 /**
  * رفت‌وبرگشت بانکی خرید اشتراک.
@@ -168,13 +170,37 @@ class SubscriptionCheckoutController extends Controller
             return redirect('/account?checkout=failed');
         }
 
-        $subscription->update([
-            'status' => 'active',
-            'tracking_code' => $tracking,
-            'paid_at' => now(),
-            'starts_at' => now(),
-            'ends_at' => now()->addMonths($subscription->months),
-        ]);
+        /*
+         * 🔴 یک کدِ رهگیری، یک پرداخت (مرحلهٔ ۵ · فاز ۹) — همان قاعده‌ی
+         * `GatewayController`. بدونِ آن، رهگیریِ یک خریدِ ثبت‌شده اشتراکِ
+         * دیگری را هم فعال می‌کرد.
+         */
+        $activated = TrackingCodes::exclusively($tracking, function () use ($subscription, $tracking): bool {
+            if (TrackingCodes::claimedElsewhere($tracking, $subscription)) {
+                $subscription->update(['status' => 'failed']);
+
+                return false;
+            }
+
+            $subscription->update([
+                'status' => 'active',
+                'tracking_code' => $tracking,
+                'paid_at' => now(),
+                'starts_at' => now(),
+                'ends_at' => now()->addMonths($subscription->months),
+            ]);
+
+            return true;
+        });
+
+        if (! $activated) {
+            Log::warning('[subscription] tracking code already used elsewhere', [
+                'subscription' => $subscription->id,
+                'tracking' => $tracking,
+            ]);
+
+            return redirect('/account?checkout=failed');
+        }
 
         return redirect('/account?checkout=success&tracking='.urlencode($tracking));
     }

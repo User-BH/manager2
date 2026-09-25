@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\UpdateFeatureFlagRequest;
 use App\Services\Features\FeatureFlags;
+use App\Support\Audit;
 use Illuminate\Http\JsonResponse;
 use InvalidArgumentException;
 
@@ -48,6 +49,15 @@ class FeatureFlagController extends Controller
             // پرچمِ تعریف‌نشده خطای کاربر است، نه خطای سرور
             return response()->json(['message' => $e->getMessage()], 422);
         }
+
+        /*
+         * ⚠️ ممیزی (مرحلهٔ ۵ · فاز ۹): پرچم‌ها سامانه را برای همه عوض می‌کنند —
+         * حالا حتی کلِ سایت را می‌بندند. «چه کسی و کِی» باید بماند.
+         */
+        Audit::log('feature.toggled', 'تغییرِ پرچمِ قابلیتِ «'.$flag.'»', null, [
+            'flag' => $flag,
+            'enabled' => (bool) $validated['enabled'],
+        ]);
 
         return response()->json([
             'message' => $validated['enabled']

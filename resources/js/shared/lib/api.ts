@@ -114,6 +114,7 @@ async function send<T>(
       errors?: Record<string, string[]>
       csrfToken?: string
       accountDisabled?: boolean
+      maintenance?: boolean
       requestId?: string
     }>
 
@@ -137,6 +138,9 @@ async function send<T>(
     if (payload?.accountDisabled) {
       window.location.href = `/auth?reason=${encodeURIComponent(payload.message ?? '')}`
     }
+
+    // حالتِ تعمیر — فقط اگر نقطه‌ی ورود رفتاری ثبت کرده باشد (`onMaintenance`)
+    if (payload?.maintenance) maintenanceHandler?.()
 
     const retryAfterMs = parseRetryAfter(
       axiosError.response?.headers?.['retry-after'] as string | undefined,
@@ -177,6 +181,21 @@ async function send<T>(
       requestId,
     )
   }
+}
+
+let maintenanceHandler: (() => void) | null = null
+
+/**
+ * واکنش به حالتِ تعمیرِ سرور (مرحلهٔ ۵ · فاز ۹).
+ *
+ * ⚠️ عمداً پیش‌فرض ندارد و فقط داشبورد ثبتش می‌کند. واکنشِ درست «بارگذاریِ
+ * دوباره» است تا سرور صفحه‌ی ۵۰۳ را نشان دهد — ولی صفحه‌های عمومی و ورود
+ * در حالتِ تعمیر **باز** می‌مانند؛ اگر آن‌ها هم بار می‌شدند، بارگذاریِ
+ * دوباره همان صفحه را می‌آورد و همان درخواست دوباره ۵۰۳ می‌گرفت: حلقه‌ی
+ * بی‌پایان. آن‌جا کاربر پیامِ خودِ سرور را می‌بیند.
+ */
+export function onMaintenance(handler: () => void): void {
+  maintenanceHandler = handler
 }
 
 /** حلقه‌ی تلاشِ دوباره. تصمیمِ «آیا تلاش کنم؟» یک‌جا در `isRetryable` است. */

@@ -184,6 +184,8 @@ class AppServiceProvider extends ServiceProvider
         // ثبت‌نام: جلوگیری از ساخت انبوه حساب
         RateLimiter::for('register', fn (Request $request) => [
             Limit::perHour(5)->by($request->ip()),
+            // ⚠️ فاز ۹: پنج در ساعت یعنی ۱۲۰ حساب در روز از یک IP
+            Limit::perDay(20)->by('day:'.$request->ip()),
         ]);
 
         /*
@@ -298,6 +300,72 @@ class AppServiceProvider extends ServiceProvider
          */
         RateLimiter::for('dashboard', fn (Request $request) => [
             Limit::perMinute(60)->by($request->user()?->id ?: $request->ip()),
+        ]);
+
+        /*
+        | سقفِ سراسری و جلوگیری از سوءاستفاده (مرحلهٔ ۵ · فاز ۹ · بندهای ۷۲ و ۷۳).
+        |
+        | 🔴 تا این فاز ۱۵۹ مسیرِ تغییردهنده هیچ سقفی نداشتند؛ از جمله ارسالِ
+        | پیام، ثبتِ درخواستِ خدمات با پیوست، تغییرِ رمز، شروعِ پرداخت، پیامکِ
+        | آزمایشی و همه‌ی APIهای مدیریتی. یک ساکنِ واردشده می‌توانست با یک حلقه
+        | هزاران پیام برای همه‌ی همسایه‌ها بفرستد.
+        |
+        | ⚠️ دو لایه: سقفِ **سراسری** برای هر درخواستِ API (پیش‌فرضِ امن برای
+        | مسیرِ تازه‌ای که کسی یادش نرود)، و سقفِ **ویژه** برای کارهایی که
+        | هزینه یا آسیبشان به دیگران می‌رسد.
+        */
+
+        /*
+         * سراسری. ۲۴۰ در دقیقه یعنی چهار در ثانیه: بارگذاریِ داشبورد حدودِ
+         * ده درخواست است و polling چند در دقیقه، پس کاربرِ واقعی به آن
+         * نمی‌رسد. نوشتن جدا و تنگ‌تر است چون هر نوشتن تراکنش و ممیزی دارد.
+         *
+         * ⚠️ کلیدها پیشوندِ جدا دارند: دو Limit با یک کلید در یک محدودکننده
+         * یک شمارنده را می‌شمارند و سقفِ تنگ‌تر عملاً سقفِ هر دو می‌شد.
+         */
+        RateLimiter::for('api', function (Request $request): array {
+            $who = $request->user()?->id ?: $request->ip();
+            $limits = [Limit::perMinute(240)->by('all:'.$who)];
+
+            if (! $request->isMethodSafe()) {
+                $limits[] = Limit::perMinute(60)->by('write:'.$who);
+            }
+
+            return $limits;
+        });
+
+        // پیام به همه‌ی همسایه‌ها می‌رسد: ده در دقیقه برای گفت‌وگو کافی است، سیصد در روز برای هر آدمی
+        RateLimiter::for('messenger-send', fn (Request $request) => [
+            Limit::perMinute(10)->by('min:'.$request->user()?->id),
+            Limit::perDay(300)->by('day:'.$request->user()?->id),
+        ]);
+
+        // درخواستِ خدمات و نظرش به صفِ کارِ مدیر می‌رود و پیوست دارد
+        RateLimiter::for('service-requests', fn (Request $request) => [
+            Limit::perMinute(5)->by('min:'.$request->user()?->id),
+            Limit::perDay(50)->by('day:'.$request->user()?->id),
+        ]);
+
+        /*
+         * تغییرِ رمز رمزِ فعلی را می‌خواهد. بدونِ سقف، کسی که نشستِ باز را
+         * دزدیده می‌توانست رمزِ فعلی را حدس بزند و حساب را برای همیشه بگیرد.
+         */
+        RateLimiter::for('password-change', fn (Request $request) => [
+            Limit::perMinutes(15, 5)->by($request->user()?->id ?: $request->ip()),
+        ]);
+
+        /*
+         * شروعِ پرداخت هر بار یک درخواستِ بیرونی به بانک و یک `ref_id` تازه
+         * است (همان نقصِ فاز ۴). کاربرِ واقعی در دقیقه یکی دو بار می‌زند.
+         */
+        RateLimiter::for('payment-start', fn (Request $request) => [
+            Limit::perMinute(6)->by('min:'.($request->user()?->id ?: $request->ip())),
+            Limit::perHour(30)->by('hour:'.($request->user()?->id ?: $request->ip())),
+        ]);
+
+        // پیامکِ آزمایشی پیامکِ واقعی است و پولِ واقعی
+        RateLimiter::for('sms-test', fn (Request $request) => [
+            Limit::perHour(10)->by($request->user()?->id ?: $request->ip()),
         ]);
     }
 

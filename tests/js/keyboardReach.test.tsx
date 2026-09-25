@@ -2,7 +2,7 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { MemoryRouter } from 'react-router-dom'
 import { useState } from 'react'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 
 /**
  * سه جایی که فازِ ۵ از قلم انداخته بود (مرحلهٔ ۵، تکمیلِ فاز ۵ — بندهای ۳۳ تا ۳۵).
@@ -37,6 +37,18 @@ function tab(shift = false) {
 }
 
 describe('کشوی منوی موبایل', () => {
+  /*
+   * ⚠️ بارگذاریِ ماژول‌ها پیش از تست‌ها (مرحلهٔ ۵ · فاز ۹).
+   *
+   * اولین تستِ این بخش هزینه‌ی importِ `Sidebar` و وابستگی‌هایش را می‌داد —
+   * حدودِ دو ثانیه روی ماشینِ آزاد، و زیرِ بارِ قلابِ pre-commit بیش از
+   * پنج ثانیه، یعنی timeoutِ پیش‌فرض. تست درست بود و ناپایدار. بارگذاری
+   * این‌جا انجام می‌شود، با سقفِ زمانیِ خودش، تا زمانِ هر تست فقط کارِ خودش باشد.
+   */
+  beforeAll(async () => {
+    await import('@/shared/layout/Sidebar')
+  }, 30_000)
+
   beforeEach(async () => {
     const { useSidebarStore } = await import('@/shared/stores/sidebarStore')
     // ⚠️ حالتِ استور بینِ تست‌ها می‌ماند؛ هر تست از کشوی بسته شروع می‌کند

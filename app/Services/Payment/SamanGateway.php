@@ -63,6 +63,28 @@ class SamanGateway implements PaymentGateway
 
         $refNum = $callback['RefNum'] ?? null;
 
+        /*
+         * 🔴 تراکنشِ بانک باید مالِ **همین** سفارش باشد (مرحلهٔ ۵ · فاز ۹).
+         *
+         * همه‌ی مقادیرِ بازگشتی از مرورگرِ کاربر می‌آیند. پیش از این `RefNum`
+         * هر چه بود تأیید می‌شد: کسی که قبضِ ارزانی را پرداخت می‌کرد و
+         * بازگشتش را رها می‌کرد، می‌توانست همان `RefNum` را به بازگشتِ قبضِ
+         * گران بفرستد و بانک «تأیید شد» می‌گفت — چون آن تراکنش واقعاً روی
+         * همین ترمینال انجام شده بود.
+         *
+         * ① `ResNum`ِ بازگشتی، اگر هست، باید شماره‌ی سفارشِ خودمان باشد —
+         *   پیش از تأیید، تا تراکنشِ بیگانه اصلاً تأیید نشود.
+         * ② مبلغِ تأییدشده (پایین) باید مبلغِ همین سفارش باشد.
+         */
+        if (isset($callback['ResNum']) && (string) $callback['ResNum'] !== (string) $order->gatewayOrderId()) {
+            Log::warning('[Saman] callback carries another order', [
+                'order' => $order->gatewayOrderId(),
+                'res_num' => (string) $callback['ResNum'],
+            ]);
+
+            return null;
+        }
+
         try {
             $response = Http::connectTimeout(5)->timeout(30)->post(self::VERIFY_URL, [
                 'RefNum' => $refNum,
@@ -90,6 +112,38 @@ class SamanGateway implements PaymentGateway
 
         // ResultCode 0 (or 2 already-verified) means success.
         if (in_array((int) $response->json('ResultCode'), [0, 2], true)) {
+            /*
+             * ② مبلغِ تراکنشی که بانک تأیید کرد = مبلغِ همین سفارش.
+             *
+             * ⚠️ نبودِ مبلغ در پاسخ «ناموفق» نیست، «نامعلوم» است: بانک
+             * تأیید کرده و پول شاید کسر شده. ناموفق‌خواندنش همان خطای R59
+             * بود — پولی که از دفترها ناپدید می‌شد. نامعلوم به بررسیِ دستی
+             * می‌رود (`payments:stale`).
+             *
+             * 🔴 ناهمخوانی هم به همان دلیل نامعلوم است نه ناموفق: تراکنشِ
+             * دیگری روی ترمینالِ ما همین حالا تأیید شد و پولش باید پیدا شود.
+             */
+            $amount = $response->json('TransactionDetail.OrginalAmount')
+                ?? $response->json('TransactionDetail.AffectiveAmount');
+
+            if ($amount === null) {
+                throw GatewayUnreachable::unmatched('saman', 'مبلغ در پاسخِ تأییدِ بانک نیامد');
+            }
+
+            if ((int) $amount !== $this->toRial($order->gatewayAmount())) {
+                Log::warning('[Saman] verified amount does not match the order', [
+                    'order' => $order->gatewayOrderId(),
+                    'verified' => (int) $amount,
+                    'expected' => $this->toRial($order->gatewayAmount()),
+                ]);
+
+                throw GatewayUnreachable::unmatched('saman', sprintf(
+                    'مبلغِ تأییدشده %d ریال، مبلغِ سفارش %d ریال',
+                    (int) $amount,
+                    $this->toRial($order->gatewayAmount()),
+                ));
+            }
+
             return (string) $refNum;
         }
 

@@ -362,6 +362,13 @@ class EnvironmentTest extends TestCase
             'public_registration' => true,
             // R61: کلیدِ خاموشیِ service worker — قابلیت نیست، راهِ بازگشت است
             'pwa' => true,
+            /*
+             * مرحلهٔ ۵ · فاز ۹: تنها پرچمی که «روشن» یعنی **محدودیت**. پس
+             * پیش‌فرضِ امنش خاموش است — سایتی که تازه مستقر شده نباید بسته
+             * بالا بیاید. قاعده‌ی این تست همان است: هیچ‌چیز با استقرار
+             * بی‌صدا بسته نمی‌شود.
+             */
+            'maintenance_mode' => false,
         ];
 
         $this->assertSame($expected, app(FeatureFlags::class)->all());
