@@ -59,7 +59,12 @@ export function Modal({ open, title, onClose, children }: ModalProps) {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 24, scale: 0.98 }}
             transition={{ type: 'spring', stiffness: 340, damping: 30 }}
-            className="scrollbar-thin relative max-h-[92vh] w-full max-w-lg overflow-y-auto rounded-t-3xl border sm:rounded-3xl"
+            /*
+             * ⚠️ `dvh` (مرحلهٔ ۵ · فاز ۸): در Safariِ iOS، `vh` نوارِ ابزارِ
+             * مرورگر را هم حساب می‌کند و تهِ مودالِ بلند — همان‌جا که دکمه‌ی
+             * ذخیره است — زیرِ نوار می‌رفت. `vh` برای مرورگرِ قدیمی می‌ماند.
+             */
+            className="scrollbar-thin relative max-h-[92vh] w-full max-w-lg overflow-y-auto rounded-t-3xl border supports-[max-height:1dvh]:max-h-[92dvh] sm:rounded-3xl"
             style={{ backgroundColor: 'var(--surface-base)', borderColor: 'var(--border-subtle)' }}
           >
             <header

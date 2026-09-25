@@ -6,7 +6,8 @@ import { JalaliDatePicker } from '@/shared/ui/JalaliDatePicker'
 import { UploadProgress } from '@/shared/ui/UploadProgress'
 import { isUploadCancelled, useUpload } from '@/shared/hooks/useUpload'
 import { api, ApiError } from '@/shared/lib/api'
-import { alertError, toastSuccess } from '@/shared/lib/alert'
+import { alertError, toastError, toastSuccess } from '@/shared/lib/alert'
+import { copyText } from '@/shared/lib/clipboard'
 import { formatMoney } from '@/shared/lib/format'
 import { MAX_RECEIPT_MB, receiptSchema, type ReceiptFormValues } from './schemas/receiptSchema'
 import type { BankInfo, SubscriptionPlanOption } from './types'
@@ -108,9 +109,11 @@ export function ReceiptUploadForm({
   }
 
   function copy(value: string, label: string) {
-    void navigator.clipboard?.writeText(value).then(
-      () => toastSuccess(`${label} کپی شد.`),
-      () => undefined,
+    // ⚠️ شکست دیگر بی‌صدا نیست (فاز ۸): کسی که فکر کند کارت کپی شده، به کارتِ دیگری پول می‌زند
+    void copyText(value).then((copied) =>
+      copied
+        ? toastSuccess(`${label} کپی شد.`)
+        : toastError(`${label} کپی نشد؛ آن را انتخاب و دستی کپی کنید.`),
     )
   }
 

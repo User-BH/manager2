@@ -227,3 +227,82 @@ test.describe('اندازه‌ها', () => {
     ).toEqual([])
   })
 })
+
+/*
+ * موبایلِ واقعی، نه فقط «واکنش‌گرا» (مرحلهٔ ۵ · فاز ۸ · بندِ ۶۷).
+ *
+ * این دو رفتار را فقط مرورگرِ واقعی با نمای لمسی نشان می‌دهد؛ jsdom نه
+ * `pointer: coarse` می‌فهمد نه `overscroll-behavior` را حساب می‌کند.
+ */
+test.describe('موبایلِ واقعی', () => {
+  /**
+   * 🔴 Safariِ iOS با فوکوس روی فیلدِ زیرِ ۱۶ پیکسل کلِ صفحه را بزرگ می‌کند
+   * و برنمی‌گرداند. همه‌ی فیلدها ۱۳٫۵ پیکسل بودند.
+   */
+  test('فیلدهای ورود در نمای لمسی دستِ‌کم ۱۶ پیکسل‌اند و در دسکتاپ دست نخورده‌اند', async ({
+    page,
+    isMobile,
+  }) => {
+    await page.goto('/auth')
+    // ⚠️ فرم را React می‌سازد؛ در WebKit دیرتر از رویدادِ load. بدونِ صبر، شمارش صفر بود
+    await expect(
+      page.locator('input[type=password]').filter({ visible: true }).first(),
+    ).toBeVisible()
+
+    const sizes = await page.evaluate(() =>
+      Array.from(document.querySelectorAll('input:not([type=checkbox]):not([type=hidden])'))
+        .filter((element) => (element as HTMLElement).offsetParent !== null)
+        .map((element) => parseFloat(getComputedStyle(element).fontSize)),
+    )
+
+    // ضدِ پوچی: صفحه‌ی ورود دستِ‌کم دو فیلدِ دیدنی دارد
+    expect(sizes.length).toBeGreaterThanOrEqual(2)
+
+    if (isMobile) {
+      expect(
+        Math.min(...sizes),
+        'فیلدی زیرِ ۱۶ پیکسل؛ iOS صفحه را بزرگ می‌کند.',
+      ).toBeGreaterThanOrEqual(16)
+    } else {
+      expect(Math.max(...sizes), 'قاعده‌ی لمسی به دسکتاپ نشت کرده است.').toBeLessThan(16)
+    }
+  })
+
+  /**
+   * 🔴 کشیدن به پایین در بالای فهرستِ درونی به صفحه می‌رسید و در Chromeِ
+   * اندروید کلِ صفحه را دوباره بار می‌کرد. خودِ `<main>` عمداً مستثناست.
+   */
+  test('ناحیه‌ی اسکرولِ درونی زنجیره نمی‌سازد، ولی صفحه‌ی اصلی تازه‌سازی را نگه می‌دارد', async ({
+    page,
+  }) => {
+    await page.goto('/auth')
+    // ⚠️ فرم را React می‌سازد؛ در WebKit دیرتر از رویدادِ load. بدونِ صبر، شمارش صفر بود
+    await expect(
+      page.locator('input[type=password]').filter({ visible: true }).first(),
+    ).toBeVisible()
+
+    /*
+     * ⚠️ WebKitِ Playwright روی ویندوز این ویژگی را ندارد (Safariِ واقعی از
+     * نسخه‌ی ۱۶ دارد). آن‌جا صریحاً رد می‌شود و Safariِ واقعی در فهرستِ
+     * «نیازمندِ دستگاه» می‌ماند — نه سبزِ جعلی، نه قرمزِ بی‌ربط.
+     */
+    const supported = await page.evaluate(() => CSS.supports('overscroll-behavior', 'contain'))
+    test.skip(!supported, 'این نسخه‌ی موتور overscroll-behavior ندارد')
+
+    const behaviour = await page.evaluate(() => {
+      const inner = document.querySelector('.overflow-y-auto:not(main)')
+      const main = document.createElement('main')
+      main.className = 'overflow-y-auto'
+      document.body.appendChild(main)
+      const result = {
+        inner: inner ? getComputedStyle(inner).overscrollBehaviorY : null,
+        main: getComputedStyle(main).overscrollBehaviorY,
+      }
+      main.remove()
+      return result
+    })
+
+    expect(behaviour.inner, 'ناحیه‌ی اسکرولِ درونی در صفحه‌ی ورود پیدا نشد.').toBe('contain')
+    expect(behaviour.main).toBe('auto')
+  })
+})

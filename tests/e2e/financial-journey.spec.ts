@@ -215,6 +215,58 @@ test.describe('سفرِ مالی', () => {
     expect(forbidden).toBe(403)
   })
 
+  /**
+   * پرداخت از کیفِ پول (مرحلهٔ ۵ · فاز ۸ · بندِ ۶۴: Wallet).
+   *
+   * ⚠️ کیف فقط از اضافه‌پرداخت یا اصلاحِ مدیر پر می‌شود؛ پس `E2eSeeder`
+   * پیش‌تر اعتبار گذاشته است. بی‌آن، کارتِ کیف اصلاً رسم نمی‌شود و تست با
+   * پیامِ روشن قرمز می‌شود — نه سبزِ بی‌معنا.
+   */
+  test('قبض از کیفِ پول پرداخت می‌شود', async ({ page }, testInfo) => {
+    const login = await signIn(page, testInfo.project.name)
+    expect(login.status, `ورود ناموفق: ${login.body}`).toBe(200)
+
+    const unpaid = await page.evaluate(async () => {
+      const res = await fetch('/api/v1/my-bills', {
+        credentials: 'include',
+        headers: { Accept: 'application/json' },
+      })
+      const body = (await res.json()) as { data: { id: number; remaining: number }[] }
+      return body.data.find((bill) => bill.remaining > 0)?.id ?? null
+    })
+
+    expect(
+      unpaid,
+      'قبضِ پرداخت‌نشده‌ای برای کیف نماند؛ DemoSeeder دو قبض برای هر مالک می‌سازد.',
+    ).not.toBeNull()
+
+    await page.goto(`/pay/${unpaid}`)
+
+    await expect(
+      page.getByText(/موجودی کیف پول شما/),
+      'کیف خالی است؛ E2eSeeder اجرا نشده.',
+    ).toBeVisible()
+
+    // دکمه مبلغ را با رقمِ فارسی نشان می‌دهد: «پرداخت ۲۵۰٬۰۰۰»
+    await page.getByRole('button', { name: /^پرداخت\s+[۰-۹]/ }).click()
+
+    // 🔴 ادعای اصلی از خودِ سرور: مانده‌ی قبض صفر شد
+    await expect
+      .poll(
+        () =>
+          page.evaluate(async (id) => {
+            const res = await fetch('/api/v1/my-bills', {
+              credentials: 'include',
+              headers: { Accept: 'application/json' },
+            })
+            const body = (await res.json()) as { data: { id: number; remaining: number }[] }
+            return body.data.find((bill) => bill.id === id)?.remaining ?? -1
+          }, unpaid),
+        { timeout: 15_000 },
+      )
+      .toBe(0)
+  })
+
   test('پس از خروج، مسیرِ مالی دیگر باز نمی‌شود', async ({ page }, testInfo) => {
     const login = await signIn(page, testInfo.project.name)
     expect(login.status, `ورود ناموفق: ${login.body}`).toBe(200)

@@ -1,4 +1,4 @@
-import { readdirSync, readFileSync, statSync } from 'node:fs'
+import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs'
 import { join, relative } from 'node:path'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
@@ -263,5 +263,31 @@ describe('چه چیزی به باندلِ مرورگر می‌رود', () => {
 
     expect(config).not.toMatch(/envPrefix/)
     expect(config).not.toMatch(/process\.env/)
+  })
+
+  /**
+   * 🔴 Source Map در محصول (مرحلهٔ ۵ · فاز ۸ · بندِ ۶۸).
+   *
+   * امروز خاموش است (پیش‌فرضِ Vite) و بیلد هیچ `.map`ی ندارد. ولی یک خطِ
+   * `sourcemap: true` کلِ کدِ منبع — کامنت‌ها، نامِ مسیرهای داخلی، منطقِ
+   * نقش‌ها — را برای هر بازدیدکننده‌ای منتشر می‌کرد، و هیچ تستی نمی‌دید.
+   * ⚠️ `hidden` هم پذیرفته نیست: فایل را می‌سازد و استقرار (rsync) همه‌ی
+   * `public/build` را بالا می‌برد.
+   */
+  it('بیلدِ محصول Source Map نمی‌سازد و منتشر نمی‌کند', () => {
+    const config = readFileSync(join(ROOT, 'vite.config.js'), 'utf8')
+    expect(config).not.toMatch(/sourcemap\s*:\s*(true|['"](hidden|inline)['"])/)
+
+    const buildDir = join(ROOT, 'public/build/assets')
+    if (!existsSync(buildDir)) return // بیلد نشده؛ قاعده‌ی پیکربندی بالا همچنان سنجیده شد
+
+    const files = readdirSync(buildDir)
+    expect(files.length).toBeGreaterThan(10)
+    expect(files.filter((name) => name.endsWith('.map'))).toEqual([])
+
+    const pointing = files
+      .filter((name) => name.endsWith('.js'))
+      .filter((name) => readFileSync(join(buildDir, name), 'utf8').includes('sourceMappingURL='))
+    expect(pointing).toEqual([])
   })
 })

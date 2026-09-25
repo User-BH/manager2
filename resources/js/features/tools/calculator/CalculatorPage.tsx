@@ -2,7 +2,8 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Calculator as CalculatorIcon } from 'lucide-react'
 import { Card } from '@/shared/ui/Card'
 import { useDocumentTitle, useLocalStorage } from '@/shared/hooks'
-import { confirmAction, toastSuccess } from '@/shared/lib/alert'
+import { confirmAction, toastError, toastSuccess } from '@/shared/lib/alert'
+import { copyText } from '@/shared/lib/clipboard'
 import { CalculationError, evaluate, formatResult, type AngleMode } from '@/shared/lib/calculator'
 import { Display, MemoryRow } from './Display'
 import { Keypad } from './Keypad'
@@ -213,9 +214,8 @@ export function CalculatorPage() {
     const value = result || preview
     if (!value) return
 
-    void navigator.clipboard?.writeText(value).then(
-      () => toastSuccess('نتیجه کپی شد.'),
-      () => undefined,
+    void copyText(value).then((copied) =>
+      copied ? toastSuccess('نتیجه کپی شد.') : toastError('کپی ممکن نشد؛ نتیجه را دستی کپی کنید.'),
     )
   }
 

@@ -268,6 +268,17 @@ class PhaseRegressionMapTest extends TestCase
             'ماهِ شمسی نیمه‌شبِ تهران عوض می‌شود' => [
                 'JalaliTimezoneTest', 'test_the_current_period_turns_at_tehran_midnight', '۵',
             ],
+
+            /* ── مرحلهٔ ۵، فاز ۸: سفرهای مرورگر و سازگاری ──────────────────── */
+            'پیش‌شرطِ کیفِ آزمونِ سرتاسری روی محصول اجرا نمی‌شود' => [
+                'E2eSeederTest', 'test_it_refuses_to_run_in_production', '۵',
+            ],
+            'اجرای دوباره‌ی پیش‌شرطِ کیف اعتبار را دوبرابر نمی‌کند' => [
+                'E2eSeederTest', 'test_running_it_again_does_not_double_the_credit', '۵',
+            ],
+            'مالک‌های پیش‌شرطِ کیف همان مالک‌های سفرِ مرورگرند' => [
+                'E2eSeederTest', 'test_the_owners_match_the_browser_journey', '۵',
+            ],
         ];
     }
 
@@ -334,7 +345,7 @@ class PhaseRegressionMapTest extends TestCase
     }
 
     /**
-     * محافظ‌های JSِ مرحلهٔ پنجم (فازهای ۲ تا ۵ و ۷).
+     * محافظ‌های JSِ مرحلهٔ پنجم (فازهای ۲ تا ۹).
      *
      * 🔴 تا فاز ۷ این‌ها هیچ‌جای نقشه نبودند: پنج فاز محافظِ تازه ساخته بود
      * و حذفِ هرکدام هیچ تستی را قرمز نمی‌کرد. مثلِ ردیف‌های PHP، هم فایل و
@@ -353,7 +364,11 @@ class PhaseRegressionMapTest extends TestCase
             'privacySurface' => ['۷', 'لینکِ پنجره‌ی تازه'],
             'maintenanceMode' => ['۹', 'چه کسی واکنش را ثبت می‌کند'],
             'dataSurfaces' => ['۶', 'صفحه‌ی واحدها با بیش از بیست واحد'],
+            'browserCompat' => ['۸', 'وقتی هیچ راهی نیست'],
         ];
+
+        // 🔴 مثلِ ردیف‌های PHP، این فهرست هم فقط بزرگ می‌شود (خرابکاریِ فاز ۸)
+        $this->assertGreaterThanOrEqual(11, count($guards), 'محافظی از فهرستِ JS حذف شده.');
 
         foreach ($guards as $file => [$phase, $marker]) {
             $path = base_path("tests/js/{$file}.test.".(file_exists(base_path("tests/js/{$file}.test.tsx")) ? 'tsx' : 'ts'));
@@ -380,7 +395,7 @@ class PhaseRegressionMapTest extends TestCase
     public function test_the_map_never_shrinks(): void
     {
         $this->assertGreaterThanOrEqual(
-            69,
+            72,
             count(self::fixes()),
             'ردیفی از نقشهٔ رگرسیون حذف شده؛ یعنی اصلاحی محافظش را از دست داده.',
         );

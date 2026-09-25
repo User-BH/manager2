@@ -223,6 +223,9 @@ jobs:
           # پیامک هنوز آماده نیست»)، نه دور زدنِ امنیت در تست. خودِ OTP
           # پوششِ جدا دارد: PhoneLoginTest و SessionSecurityTest.
           php artisan tinker --execute="App\Support\SystemSettings::set('otp_disabled', true);"
+          # مرحلهٔ ۵ · فاز ۸: موجودیِ کیف برای سفرِ «پرداخت از کیف» — از خودِ
+          # WalletService، نه درجِ مستقیم؛ روی محصول اجرا نمی‌شود.
+          php artisan db:seed --class=E2eSeeder --force --no-interaction
         env:
           DB_CONNECTION: sqlite
           DB_DATABASE: database/database.sqlite
@@ -245,6 +248,10 @@ jobs:
         env:
           DB_CONNECTION: sqlite
           DB_DATABASE: database/database.sqlite
+          # مرحلهٔ ۵ · فاز ۸: سفرِ خریدِ اشتراک با درگاهِ آزمایشی. سرورِ
+          # `php artisan serve` این متغیرها را از همین گام به ارث می‌برد.
+          SUBSCRIPTION_GATEWAY: sandbox
+          PAYMENT_SANDBOX_ENABLED: 'true'
 
       - name: نگه‌داشتنِ گزارشِ شکست
         if: failure()
