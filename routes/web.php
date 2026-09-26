@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\AdvertisementImageController;
+use App\Http\Controllers\BlogController;
 use App\Http\Controllers\DownloadController;
 use App\Http\Controllers\GatewayController;
 use App\Http\Controllers\HealthController;
@@ -97,6 +98,21 @@ Route::view('/auth/forgot', 'public.auth', $authView);
 // تصویر بنر تبلیغاتی؛ بدون احراز هویت، چون روی صفحه‌ی فرود عمومی است.
 Route::get('ads/{advertisement}/image', AdvertisementImageController::class)->name('ads.image');
 
+/*
+| بلاگِ عمومی (مرحلهٔ ۶ · فاز ۱۱) — Blade، ایندکس‌شدنی، بی‌نیاز به ورود.
+|
+| ⚠️ ترتیب مهم است: `category`، `tag` و `media` پیش از `{slug}` می‌آیند تا
+| مقاله‌ای با نامکِ «category» جای فهرستِ دسته را نگیرد. قاعده‌ی نامِ فایلِ
+| تصویر همان خروجیِ `store()` است (۴۰ نویسه + پسوندِ تصویر) — مسیرِ دلخواه و
+| `..` از این‌جا رد نمی‌شوند.
+*/
+Route::get('/blog', [BlogController::class, 'index'])->name('blog.index');
+Route::get('/blog/category/{slug}', [BlogController::class, 'category'])->name('blog.category');
+Route::get('/blog/tag/{slug}', [BlogController::class, 'tag'])->name('blog.tag');
+Route::get('/blog/media/{file}', [BlogController::class, 'media'])
+    ->where('file', '[A-Za-z0-9]{40}\.(jpg|jpeg|png|webp)')->name('blog.media');
+Route::get('/blog/{slug}', [BlogController::class, 'show'])->name('blog.show');
+
 Route::middleware('auth')->group(function () {
     // خروجی‌ها
     Route::get('bills/{bill}/invoice.pdf', [DownloadController::class, 'billInvoice'])
@@ -186,6 +202,10 @@ Route::get('/up', HealthController::class)->name('health');
 | هر مسیری که صفحه‌ی عمومیِ بالا، /api یا فایلِ ساخته‌شده نباشد (مثل /dashboard
 | و /units و /settings/complex) همین یک ویو را می‌گیرد و react-router سمتِ
 | کلاینت صفحه‌ی داشبوردیِ درست را رندر می‌کند. باید آخرین روتِ فایل باشد.
+|
+| ⚠️ `blog/` هم بیرون است (مرحلهٔ ۶ · فاز ۱۱): آدرسِ ناشناخته‌ی بلاگ باید ۴۰۴ِ
+| واقعی بگیرد، نه پوسته‌ی داشبورد با ۲۰۰ («۴۰۴ِ نرم») — آن هم زیرِ پیشوندی که
+| ایندکس‌شدنی است.
 */
 Route::get('/{path}', fn () => view('spa'))
-    ->where('path', '^(?!api|build|storage)[^?]*$');
+    ->where('path', '^(?!api|build|storage|blog(?:/|$))[^?]*$');

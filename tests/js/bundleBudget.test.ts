@@ -24,6 +24,8 @@ const BUDGET: Record<string, number> = {
   'resources/js/app/entries/demo.tsx': 178 * 1024,
   'resources/js/app/entries/support.tsx': 176 * 1024,
   'resources/js/app/main.tsx': 174 * 1024,
+  // بلاگ (مرحلهٔ ۶ · فاز ۱۱): اندازه‌گیری ‎۱۶۴٫۶KB، به‌اضافه‌ی حدودِ ۱۰٪
+  'resources/js/app/entries/blog.tsx': 181 * 1024,
 }
 
 /** بیشینه‌ی بایتِ **یکتا** در کلِ نشست (کاربری که هر پنج صفحه را ببیند). */
@@ -50,7 +52,13 @@ const MAX_TINY_CHUNKS = 24
  * یکتا در نشستِ پنج‌صفحه‌ای.
  */
 const MAX_CHUNKS_PER_ENTRY = 17
-const MAX_SESSION_FILES = 26
+/*
+ * ⚠️ ۲۶ → ۳۰ (مرحلهٔ ۶ · فاز ۱۱) با دلیلِ سنجیده، نه برای سبز شدن: بلاگ
+ * **ششمین** صفحه است (خودِ ورودی)، و `HomeFooter` و `clipboard` که حالا دو
+ * صفحه مصرفشان می‌کنند چانکِ مشترکِ خودشان شدند. اندازه‌گیری: ۲۹ فایل؛
+ * بایتِ یکتای نشست (‎۲۵۸٫۶KB) هنوز زیرِ سقفِ ۲۷۲KB است.
+ */
+const MAX_SESSION_FILES = 30
 
 interface Report {
   entry: string

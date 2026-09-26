@@ -359,6 +359,14 @@ class AppServiceProvider extends ServiceProvider
          * دزدیده دارد می‌توانست رمز را از همین راه حدس بزند — بی‌آنکه به سقفِ
          * صفحه‌ی ورود بخورد.
          */
+        /*
+         * تصویرِ بلاگ (مرحلهٔ ۶ · فاز ۱۱): فقط سوپرادمین، ولی هر بارگذاری فایلی
+         * روی دیسک است؛ سقف جلوی پرشدنِ دیسک از نشستِ دزدیده را می‌گیرد.
+         */
+        RateLimiter::for('blog-images', fn (Request $request) => [
+            Limit::perHour(60)->by('blog-images:'.($request->user()?->id ?: $request->ip())),
+        ]);
+
         RateLimiter::for('reauth', fn (Request $request) => [
             Limit::perMinutes(15, 5)->by('reauth:'.($request->user()?->id ?: $request->ip())),
         ]);

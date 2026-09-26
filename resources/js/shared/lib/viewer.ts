@@ -28,3 +28,16 @@ export function isViewerAuthenticated(): boolean {
     return false
   }
 }
+
+/**
+ * آیا بلاگ روشن است؟ (مرحلهٔ ۶ · فاز ۱۱)
+ *
+ * سرور `<meta name="blog-enabled">` را فقط وقتی پرچمش روشن است می‌گذارد، تا
+ * سرصفحه و پاصفحه پیوندی به صفحه‌ی ۴۰۴ نشان ندهند. مثلِ وضعیتِ ورود، در
+ * همان اولین رنگ‌آمیزی درست است.
+ */
+export function isBlogEnabled(): boolean {
+  if (typeof document === 'undefined') return false
+
+  return document.querySelector('meta[name="blog-enabled"]')?.getAttribute('content') === '1'
+}

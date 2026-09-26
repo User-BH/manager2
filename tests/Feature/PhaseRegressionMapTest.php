@@ -305,6 +305,32 @@ class PhaseRegressionMapTest extends TestCase
             'ورود از دستگاهِ تازه هشدار می‌دهد' => [
                 'LoginHistoryTest', 'test_a_login_from_a_new_device_raises_an_alert_and_a_known_one_does_not', '۵',
             ],
+
+            /* ── مرحلهٔ ۶، فاز ۱۱: بلاگ ────────────────────────────────────── */
+            'متنِ مقاله اسکریپت و پیوندِ ناامن اجرا نمی‌کند' => [
+                'BlogTest', 'test_raw_html_and_dangerous_links_never_execute', '۶',
+            ],
+            'تصویرِ بیرونی (ردیاب) از مقاله حذف می‌شود' => [
+                'BlogTest', 'test_external_links_and_images_are_handled_safely', '۶',
+            ],
+            'پیش‌نویس با حدسِ آدرس خوانده نمی‌شود' => [
+                'BlogTest', 'test_a_draft_is_invisible_to_the_public', '۶',
+            ],
+            'مقاله‌ی زمان‌بندی‌شده پیش از زمانش دیده نمی‌شود' => [
+                'BlogTest', 'test_a_scheduled_post_waits_for_its_time', '۶',
+            ],
+            'آدرسِ متعارفِ مقاله از هدرِ Host نمی‌آید' => [
+                'BlogTest', 'test_the_canonical_url_ignores_a_forged_host', '۶',
+            ],
+            'نقشه‌ی سایت فقط مقاله‌ی منتشرشده دارد' => [
+                'BlogTest', 'test_the_sitemap_lists_only_visible_posts', '۶',
+            ],
+            'مسیرِ تصویرِ بلاگ فقط فایلِ بارگذاری‌شده را می‌دهد' => [
+                'BlogTest', 'test_an_uploaded_image_is_served_and_nothing_else_is', '۶',
+            ],
+            'ویرایشِ مقاله از پشتِ کش بلافاصله دیده می‌شود' => [
+                'BlogTest', 'test_an_edit_is_visible_immediately_despite_the_cache', '۶',
+            ],
         ];
     }
 
@@ -392,10 +418,11 @@ class PhaseRegressionMapTest extends TestCase
             'dataSurfaces' => ['۶', 'صفحه‌ی واحدها با بیش از بیست واحد'],
             'browserCompat' => ['۸', 'وقتی هیچ راهی نیست'],
             'sessionLifecycle' => ['۱۰', 'پیامِ کانالِ بینِ تب‌ها'],
+            'blog' => ['۱۱', 'شکستِ کپی را هم می‌گوید'],
         ];
 
         // 🔴 مثلِ ردیف‌های PHP، این فهرست هم فقط بزرگ می‌شود (خرابکاریِ فاز ۸)
-        $this->assertGreaterThanOrEqual(12, count($guards), 'محافظی از فهرستِ JS حذف شده.');
+        $this->assertGreaterThanOrEqual(13, count($guards), 'محافظی از فهرستِ JS حذف شده.');
 
         foreach ($guards as $file => [$phase, $marker]) {
             $path = base_path("tests/js/{$file}.test.".(file_exists(base_path("tests/js/{$file}.test.tsx")) ? 'tsx' : 'ts'));
@@ -422,7 +449,7 @@ class PhaseRegressionMapTest extends TestCase
     public function test_the_map_never_shrinks(): void
     {
         $this->assertGreaterThanOrEqual(
-            80,
+            88,
             count(self::fixes()),
             'ردیفی از نقشهٔ رگرسیون حذف شده؛ یعنی اصلاحی محافظش را از دست داده.',
         );

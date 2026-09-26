@@ -13,7 +13,7 @@ import {
   BaleIcon,
 } from '@/shared/common/SocialIcons'
 import { BRAND_NAME, contactInfo, socialHover, socialLinks } from '@/shared/config/brand'
-import { isViewerAuthenticated } from '@/shared/lib/viewer'
+import { isBlogEnabled, isViewerAuthenticated } from '@/shared/lib/viewer'
 import { TrustSeal } from './TrustSeal'
 
 const socialIconMap = {
@@ -58,8 +58,13 @@ function telHref(phone: string): string {
   return 'tel:' + toAsciiDigits(phone).replace(/[^\d+]/g, '')
 }
 
-export function HomeFooter() {
+/**
+ * `page`: روی صفحه‌ای جز خانه (بلاگ، فاز ۱۱) پیوندهای «بخش‌های همین صفحه»
+ * جایی ندارند که به آن اسکرول کنند؛ همان قاعده‌ی سرصفحه — نشان داده نمی‌شوند.
+ */
+export function HomeFooter({ page = 'home' }: { page?: 'home' | 'blog' } = {}) {
   const authenticated = isViewerAuthenticated()
+  const onHome = page === 'home'
 
   // تماس و شبکه‌ها از پنلِ مدیرِ کل می‌آیند؛ تا رسیدنشان، پیش‌فرض نشان داده می‌شود.
   const [contact, setContact] = useState<FooterContact>(DEFAULT_CONTACT)
@@ -133,10 +138,15 @@ export function HomeFooter() {
           <FooterLinkGroup
             title="دسترسی سریع"
             links={[
-              { label: 'ویژگی‌ها', section: 'features' },
-              { label: 'گالری', section: 'gallery' },
-              { label: 'نظرات کاربران', section: 'testimonials' },
+              ...(onHome
+                ? [
+                    { label: 'ویژگی‌ها', section: 'features' },
+                    { label: 'گالری', section: 'gallery' },
+                    { label: 'نظرات کاربران', section: 'testimonials' },
+                  ]
+                : [{ label: 'صفحه‌ی اصلی', to: '/' }]),
               { label: 'مشاهده دمو', to: '/demo' },
+              ...(isBlogEnabled() && page !== 'blog' ? [{ label: 'بلاگ', to: '/blog' }] : []),
               authenticated
                 ? { label: 'ورود به داشبورد', to: '/dashboard' }
                 : { label: 'ورود به پنل', to: '/auth' },

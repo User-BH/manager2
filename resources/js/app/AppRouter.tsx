@@ -106,6 +106,13 @@ const AdvertisementsPage = lazy(() =>
     default: m.AdvertisementsPage,
   })),
 )
+// بلاگ (فاز ۱۱)
+const BlogPostsPage = lazy(() =>
+  import('@/features/system/blog/BlogPostsPage').then((m) => ({ default: m.BlogPostsPage })),
+)
+const BlogEditorPage = lazy(() =>
+  import('@/features/system/blog/BlogEditorPage').then((m) => ({ default: m.BlogEditorPage })),
+)
 const SiteSettingsPage = lazy(() =>
   import('@/features/system/SiteSettingsPage').then((m) => ({ default: m.SiteSettingsPage })),
 )
@@ -265,6 +272,9 @@ export function AppRouter() {
             <Route path="/system/stats" element={<PlatformStatsPage />} />
             <Route path="/system/subscriptions" element={<SystemSubscriptionsPage />} />
             <Route path="/system/ads" element={<AdvertisementsPage />} />
+            <Route path="/system/blog" element={<BlogPostsPage />} />
+            <Route path="/system/blog/new" element={<BlogEditorPage />} />
+            <Route path="/system/blog/:id" element={<BlogEditorPage />} />
             <Route path="/system/site" element={<SiteSettingsPage />} />
             <Route path="/system/members" element={<MembersPage />} />
             <Route path="/system/plans" element={<PlansPage />} />

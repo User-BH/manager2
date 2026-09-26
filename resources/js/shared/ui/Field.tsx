@@ -4,6 +4,7 @@ import {
   type InputHTMLAttributes,
   type ReactNode,
   type SelectHTMLAttributes,
+  type TextareaHTMLAttributes,
 } from 'react'
 
 /**
@@ -124,6 +125,31 @@ export const TextField = forwardRef<HTMLInputElement, TextFieldProps>(
   },
 )
 TextField.displayName = 'TextField'
+
+interface TextAreaFieldProps extends TextareaHTMLAttributes<HTMLTextAreaElement> {
+  label: string
+  error?: string
+}
+
+/** متنِ چندخطی با همان برچسب و اعلامِ خطا (مرحلهٔ ۶ · فاز ۱۱). */
+export const TextAreaField = forwardRef<HTMLTextAreaElement, TextAreaFieldProps>(
+  ({ label, error, ...props }, ref) => {
+    const { id, errorId, control } = useFieldIds(Boolean(error))
+
+    return (
+      <Wrapper id={id} errorId={errorId} label={label} error={error}>
+        <textarea
+          ref={ref}
+          className={`${baseInput} leading-7`}
+          style={fieldStyle(Boolean(error))}
+          {...control}
+          {...props}
+        />
+      </Wrapper>
+    )
+  },
+)
+TextAreaField.displayName = 'TextAreaField'
 
 interface SelectFieldProps extends SelectHTMLAttributes<HTMLSelectElement> {
   label: string

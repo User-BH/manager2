@@ -70,6 +70,11 @@ final class BackupManifest
         'subscriptions',
         'sms_campaigns',
         'advertisements',
+        // بلاگ (مرحلهٔ ۶ · فاز ۱۱) — دسته و برچسب پیش از مقاله، جدولِ واسط پس از آن
+        'blog_categories',
+        'blog_tags',
+        'blog_posts',
+        'blog_post_tag',
         'notification_settings',
         'notifications',
         'audit_logs',
@@ -122,6 +127,7 @@ final class BackupManifest
         'messages' => 'پیوستِ پیام‌ها',
         'requests' => 'پیوستِ درخواست‌های خدمات',
         'ads' => 'تصویرِ آگهی‌ها',
+        'blog' => 'تصویرهای بلاگ',
     ];
 
     /**
@@ -150,6 +156,7 @@ final class BackupManifest
         'messages.attachment_path' => 'messages',
         'service_requests.attachment_path' => 'requests',
         'advertisements.image_path' => 'ads',
+        'blog_posts.cover_path' => 'blog',
         'generated_documents.path' => 'documents',
         'backups.path' => 'backups',
     ];

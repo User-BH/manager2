@@ -1251,3 +1251,358 @@ html {
     color: var(--text-primary);
     font-weight: 600;
 }
+
+/* ==================================================================
+   بلاگ (مرحلهٔ ۶ · فاز ۱۱).
+
+   مثلِ مسیرِ راهنما، این گره‌ها در HTMLِ خامِ سرورند و باید بدونِ باندلِ
+   React هم درست دیده شوند؛ پس CSSِ ساده با همان توکن‌ها.
+
+   ⚠️ هیچ چیزی نباید صفحه را افقی سرریز کند: جدول و کد اسکرولِ خودشان را
+   دارند، تصویر از ستون بزرگ‌تر نمی‌شود و واژه‌ی بلند (پیوند) می‌شکند.
+   ================================================================== */
+.blog-main {
+    max-width: 72rem;
+    margin: 0 auto;
+    padding: 1.25rem 1rem 3rem;
+    color: var(--text-primary);
+}
+
+@media (min-width: 640px) {
+    .blog-main {
+        padding-inline: 1.5rem;
+    }
+}
+
+.blog-header h1,
+.blog-article-header h1 {
+    margin: 0.5rem 0;
+    font-size: clamp(1.4rem, 1.1rem + 1.4vw, 2.1rem);
+    font-weight: 800;
+    line-height: 1.6;
+}
+
+.blog-header p {
+    color: var(--text-secondary);
+}
+
+.blog-search {
+    display: flex;
+    gap: 0.5rem;
+    max-width: 32rem;
+    margin: 1rem 0;
+}
+
+.blog-search input {
+    flex: 1;
+    min-width: 0;
+    padding: 0.55rem 0.9rem;
+    border: 1px solid var(--border-default);
+    border-radius: 0.75rem;
+    background: var(--surface-base);
+    color: var(--text-primary);
+}
+
+.blog-search button,
+.blog-share-actions button {
+    padding: 0.5rem 1rem;
+    border: 0;
+    border-radius: 0.75rem;
+    background: var(--color-brand-500);
+    color: #fff;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.blog-categories,
+.blog-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin: 0.75rem 0;
+    padding: 0;
+    list-style: none;
+}
+
+.blog-chip {
+    display: inline-block;
+    padding: 0.2rem 0.75rem;
+    border-radius: 999px;
+    background: var(--surface-sunken);
+    color: var(--text-secondary);
+    font-size: 0.8rem;
+    text-decoration: none;
+}
+
+.blog-chip:hover {
+    color: var(--tone-brand-fg);
+}
+
+.blog-grid {
+    display: grid;
+    gap: 1.25rem;
+    margin-top: 1.5rem;
+    grid-template-columns: repeat(auto-fill, minmax(min(100%, 18rem), 1fr));
+}
+
+.blog-card {
+    display: flex;
+    flex-direction: column;
+    overflow-wrap: anywhere;
+    overflow: hidden;
+    border: 1px solid var(--border-subtle);
+    border-radius: 1rem;
+    background: var(--surface-base);
+}
+
+.blog-card-cover img,
+.blog-cover {
+    display: block;
+    width: 100%;
+    height: auto;
+    aspect-ratio: 16 / 9;
+    object-fit: cover;
+}
+
+.blog-cover {
+    margin-top: 1rem;
+    border-radius: 1rem;
+}
+
+.blog-card-body {
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+    padding: 1rem;
+}
+
+.blog-card-title {
+    margin: 0;
+    font-size: 1.05rem;
+    line-height: 1.8;
+}
+
+.blog-card-title a {
+    color: var(--text-primary);
+    text-decoration: none;
+}
+
+.blog-card-title a:hover {
+    color: var(--tone-brand-fg);
+}
+
+.blog-card-excerpt {
+    margin: 0;
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+    line-height: 1.9;
+}
+
+.blog-meta {
+    margin: 0;
+    color: var(--text-tertiary);
+    font-size: 0.8rem;
+}
+
+.blog-empty,
+.blog-result-count {
+    margin: 2rem 0;
+    color: var(--text-secondary);
+}
+
+.blog-pager {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 1rem;
+    margin-top: 2rem;
+    color: var(--text-tertiary);
+}
+
+.blog-pager a {
+    padding: 0.4rem 1rem;
+    border: 1px solid var(--border-subtle);
+    border-radius: 0.75rem;
+    color: var(--text-secondary);
+    text-decoration: none;
+}
+
+.blog-article {
+    max-width: 46rem;
+    margin: 0 auto;
+}
+
+.blog-preview-banner {
+    max-width: 46rem;
+    margin: 0 auto 1rem;
+    padding: 0.6rem 1rem;
+    border-radius: 0.75rem;
+    background: var(--tone-warning-bg);
+    color: var(--text-primary);
+}
+
+.blog-toc {
+    margin: 1.5rem 0;
+    padding: 0.75rem 1rem;
+    border: 1px solid var(--border-subtle);
+    border-radius: 1rem;
+    background: var(--surface-base);
+}
+
+.blog-toc summary {
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.blog-toc ol {
+    margin: 0.5rem 0 0;
+    padding-inline-start: 1.25rem;
+    line-height: 2;
+}
+
+.blog-toc-level-3 {
+    margin-inline-start: 1rem;
+    font-size: 0.9rem;
+}
+
+.blog-toc a {
+    color: var(--text-secondary);
+}
+
+.blog-prose {
+    font-size: 1rem;
+    line-height: 2.1;
+    overflow-wrap: anywhere;
+}
+
+.blog-prose h2,
+.blog-prose h3 {
+    margin: 2rem 0 0.75rem;
+    line-height: 1.7;
+    /* عنوانِ پیوندشده زیرِ سرصفحه‌ی ثابت نرود */
+    scroll-margin-top: 5.5rem;
+}
+
+/* ⚠️ پیش‌فرضِ Tailwind اندازه و وزنِ عنوان و نشانه‌ی فهرست را صفر می‌کند؛
+   متنِ مقاله HTMLِ سرور است و کلاسِ Tailwind ندارد، پس این‌جا برمی‌گردند */
+.blog-prose h2 {
+    font-size: 1.35rem;
+    font-weight: 800;
+}
+
+.blog-prose h3 {
+    font-size: 1.12rem;
+    font-weight: 700;
+}
+
+.blog-prose p {
+    margin: 0 0 1rem;
+}
+
+.blog-prose ul,
+.blog-prose ol {
+    margin: 0 0 1rem;
+    padding-inline-start: 1.5rem;
+}
+
+.blog-prose ul {
+    list-style: disc;
+}
+
+.blog-prose ol {
+    list-style: decimal;
+}
+
+.blog-prose strong {
+    font-weight: 700;
+}
+
+.blog-prose hr {
+    margin: 2rem 0;
+    border-color: var(--border-subtle);
+}
+
+.blog-prose a {
+    color: var(--tone-brand-fg);
+}
+
+.blog-prose img {
+    max-width: 100%;
+    height: auto;
+    border-radius: 0.75rem;
+}
+
+.blog-prose table {
+    display: block;
+    max-width: 100%;
+    margin: 0 0 1rem;
+    overflow-x: auto;
+    border-collapse: collapse;
+}
+
+.blog-prose th,
+.blog-prose td {
+    padding: 0.4rem 0.75rem;
+    border: 1px solid var(--border-subtle);
+}
+
+.blog-prose pre {
+    max-width: 100%;
+    overflow-x: auto;
+    padding: 1rem;
+    border-radius: 0.75rem;
+    background: var(--surface-sunken);
+    direction: ltr;
+    text-align: left;
+}
+
+.blog-prose blockquote {
+    margin: 1.25rem 0;
+    padding-inline-start: 1rem;
+    border-inline-start: 3px solid var(--color-brand-500);
+    color: var(--text-secondary);
+}
+
+.blog-share {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.75rem;
+    margin: 2rem 0;
+    padding-top: 1rem;
+    border-top: 1px solid var(--border-subtle);
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+}
+
+.blog-share a {
+    color: var(--text-secondary);
+}
+
+.blog-share-actions {
+    display: inline-flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.blog-share-actions button {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    padding: 0.3rem 0.8rem;
+    font-size: 0.85rem;
+}
+
+.blog-share-status {
+    font-size: 0.8rem;
+}
+
+.blog-related {
+    max-width: 72rem;
+    margin: 3rem auto 0;
+}
+
+.blog-related > h2 {
+    font-size: 1.2rem;
+}

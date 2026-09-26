@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers;
 
+use App\Services\Blog\PublicBlog;
+use App\Services\Features\FeatureFlags;
 use Illuminate\Http\Response;
 
 /**
@@ -36,7 +38,13 @@ class SeoController extends Controller
         $path = '/'.trim($path, '/');
 
         return in_array($path, array_column(self::PUBLIC_PATHS, 'loc'), true)
-            || in_array($path, self::CRAWLER_FILES, true);
+            || in_array($path, self::CRAWLER_FILES, true)
+            /*
+             * بلاگ (مرحلهٔ ۶ · فاز ۱۱): پیشوندی، چون هر مقاله نامکِ خودش را
+             * دارد. پیش‌نویس و نتیجه‌ی جست‌وجو استثنا را خودشان می‌گذارند
+             * (`X-Robots-Tag` و `<meta robots>`)، نه این فهرست.
+             */
+            || $path === '/blog' || str_starts_with($path, '/blog/');
     }
 
     public function robots(): Response
@@ -99,6 +107,18 @@ class SeoController extends Controller
                 ."  </url>\n";
         }
 
+        /*
+         * بلاگ (مرحلهٔ ۶ · فاز ۱۱): فقط اگر پرچمش روشن است، و فقط مقاله‌های
+         * **منتشرشده‌ی زمان‌رسیده** — پیش‌نویس از نقشه‌ی سایت هم لو نمی‌رود.
+         */
+        if (app(FeatureFlags::class)->enabled('blog')) {
+            $urls .= "  <url>\n    <loc>{$base}/blog</loc>\n    <lastmod>{$today}</lastmod>\n    <changefreq>daily</changefreq>\n    <priority>0.8</priority>\n  </url>\n";
+
+            foreach (app(PublicBlog::class)->sitemap() as $post) {
+                $urls .= "  <url>\n    <loc>{$base}{$post['loc']}</loc>\n    <lastmod>{$post['lastmod']}</lastmod>\n    <changefreq>monthly</changefreq>\n    <priority>0.6</priority>\n  </url>\n";
+            }
+        }
+
         $xml = '<?xml version="1.0" encoding="UTF-8"?>'."\n"
             .'<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">'."\n"
             .$urls
@@ -149,6 +169,19 @@ class SeoController extends Controller
 راه‌اندازی و ثبت‌نام رایگان است؛ برای امکانات پیشرفته پلن‌های اشتراکی وجود دارد.
 
 MD;
+
+        /*
+         * بلاگ (مرحلهٔ ۶ · فاز ۱۱): پیوندِ بلاگ و تازه‌ترین مقاله‌ها — همان چیزی
+         * که دستیار باید هنگامِ پاسخ به «چطور شارژ را حساب کنم؟» پیدا کند.
+         */
+        if (app(FeatureFlags::class)->enabled('blog')) {
+            $latest = app(PublicBlog::class)->page(1)['items'];
+
+            $body .= "\n## بلاگ\n- [بلاگ]({$base}/blog): راهنما و تجربه‌ی مدیریتِ ساختمان\n";
+            foreach (array_slice($latest, 0, 10) as $post) {
+                $body .= "- [{$post['title']}]({$base}{$post['url']})\n";
+            }
+        }
 
         return response($body, 200)->header('Content-Type', 'text/plain; charset=UTF-8');
     }

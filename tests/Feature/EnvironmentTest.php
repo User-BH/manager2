@@ -361,6 +361,7 @@ class EnvironmentTest extends TestCase
             'polls' => true,
             'online_payment' => true,
             'support_bot' => true,
+            'blog' => true,
             'public_registration' => true,
             // R61: کلیدِ خاموشیِ service worker — قابلیت نیست، راهِ بازگشت است
             'pwa' => true,

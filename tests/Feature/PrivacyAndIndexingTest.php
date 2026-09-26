@@ -82,7 +82,14 @@ class PrivacyAndIndexingTest extends TestCase
     {
         preg_match_all('#<loc>https?://[^/]+(/[^<]*)</loc>#', (string) $this->get('/sitemap.xml')->getContent(), $m);
 
-        $this->assertSame(array_column(SeoController::PUBLIC_PATHS, 'loc'), $m[1]);
+        // بلاگ (مرحلهٔ ۶ · فاز ۱۱) آدرس‌های پویا دارد؛ صفحه‌های ثابت همان فهرست‌اند
+        $static = array_values(array_filter($m[1], fn (string $p) => $p !== '/blog' && ! str_starts_with($p, '/blog/')));
+        $this->assertSame(array_column(SeoController::PUBLIC_PATHS, 'loc'), $static);
+
+        // و هر آدرسِ نقشه — ثابت یا پویا — ایندکس‌شدنی است
+        foreach ($m[1] as $path) {
+            $this->assertTrue(SeoController::isIndexable(rawurldecode($path)), "{$path} در نقشه هست ولی noindex می‌گیرد.");
+        }
     }
 
     /**

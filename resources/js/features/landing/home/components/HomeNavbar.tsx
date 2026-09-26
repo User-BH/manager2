@@ -6,7 +6,7 @@ import { useToggle } from '@/shared/hooks'
 import { ThemeToggle } from '@/shared/layout/ThemeToggle'
 import { Logo } from '@/shared/common/Logo'
 import { scrollToSection } from '@/shared/lib/scroll'
-import { isViewerAuthenticated } from '@/shared/lib/viewer'
+import { isBlogEnabled, isViewerAuthenticated } from '@/shared/lib/viewer'
 
 /** به‌جای href لنگری، شناسه‌ی بخش؛ حرکت با اسکرول نرم انجام می‌شود و آدرس
     سایت دست‌نخورده می‌ماند. */
@@ -16,7 +16,7 @@ const sectionLinks = [
   { label: 'نظرات', section: 'testimonials' },
 ]
 
-export type NavbarPage = 'home' | 'demo' | 'support'
+export type NavbarPage = 'home' | 'demo' | 'support' | 'blog'
 
 /**
  * مقصدهایی که در **هر سه** صفحه دیده می‌شوند (R31).
@@ -27,6 +27,7 @@ export type NavbarPage = 'home' | 'demo' | 'support'
  */
 const pageLinks: Array<{ id: NavbarPage; label: string; to: string }> = [
   { id: 'demo', label: 'دمو', to: '/demo' },
+  { id: 'blog', label: 'بلاگ', to: '/blog' },
   { id: 'support', label: 'سوالات متداول', to: '/support?topic=faq' },
 ]
 
@@ -52,7 +53,10 @@ export function HomeNavbar({ page = 'home' }: { page?: NavbarPage } = {}) {
   const authenticated = isViewerAuthenticated()
 
   // لینکِ صفحه‌ی جاری حذف می‌شود؛ بقیه می‌مانند
-  const links = pageLinks.filter((link) => link.id !== page)
+  // بلاگ فقط وقتی پرچمش روشن است (فاز ۱۱)
+  const links = pageLinks.filter(
+    (link) => link.id !== page && (link.id !== 'blog' || isBlogEnabled()),
+  )
 
   useEffect(() => {
     function handleScroll() {

@@ -40,7 +40,7 @@ const BURGER_BREAKPOINT = 600
 const MIN_TOUCH_TARGET = 43.5
 
 /** صفحه‌های عمومی که مهمان می‌بیند؛ بیشترین ترافیک را دارند. */
-const PUBLIC_PAGES = ['/', '/demo', '/support', '/auth'] as const
+const PUBLIC_PAGES = ['/', '/demo', '/support', '/auth', '/blog'] as const
 
 test.describe('اندازه‌ها', () => {
   /**

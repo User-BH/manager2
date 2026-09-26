@@ -34,6 +34,8 @@ use App\Http\Controllers\Api\SupportChatController;
 use App\Http\Controllers\Api\System\AdvertisementController as SystemAdvertisementController;
 use App\Http\Controllers\Api\System\AuditLogController;
 use App\Http\Controllers\Api\System\BackupController as SystemBackupController;
+use App\Http\Controllers\Api\System\BlogCategoryController;
+use App\Http\Controllers\Api\System\BlogPostController;
 use App\Http\Controllers\Api\System\ComplexController as SystemComplexController;
 use App\Http\Controllers\Api\System\MemberController;
 use App\Http\Controllers\Api\System\ObservabilityController;
@@ -497,6 +499,26 @@ Route::middleware('auth')->group(function () {
             ->name('ads.toggle');
         Route::delete('ads/{advertisement}', [SystemAdvertisementController::class, 'destroy'])
             ->name('ads.destroy');
+
+        /*
+         * بلاگ (مرحلهٔ ۶ · فاز ۱۱). `images` پیش از `{post}` تا شناسه‌ی عددی
+         * جایش را نگیرد. پیش‌نمایش مسیرِ جدا ندارد: سوپرادمین صفحه‌ی واقعیِ
+         * پیش‌نویس را می‌بیند (`/blog/{slug}`، noindex) — دقیقاً همان که
+         * منتشر خواهد شد، بی‌آنکه رابط HTML را خودش در DOM بنویسد.
+         */
+        Route::get('blog/posts', [BlogPostController::class, 'index'])->name('blog.posts.index');
+        Route::post('blog/posts', [BlogPostController::class, 'store'])->name('blog.posts.store');
+        Route::post('blog/images', [BlogPostController::class, 'image'])
+            ->middleware('throttle:blog-images')->name('blog.images');
+        Route::get('blog/posts/{post}', [BlogPostController::class, 'show'])->name('blog.posts.show');
+        Route::put('blog/posts/{post}', [BlogPostController::class, 'update'])->name('blog.posts.update');
+        Route::delete('blog/posts/{post}', [BlogPostController::class, 'destroy'])->name('blog.posts.destroy');
+        Route::get('blog/categories', [BlogCategoryController::class, 'index'])->name('blog.categories.index');
+        Route::post('blog/categories', [BlogCategoryController::class, 'store'])->name('blog.categories.store');
+        Route::put('blog/categories/{category}', [BlogCategoryController::class, 'update'])
+            ->name('blog.categories.update');
+        Route::delete('blog/categories/{category}', [BlogCategoryController::class, 'destroy'])
+            ->name('blog.categories.destroy');
 
         // لاگ فعالیت فقط خواندنی است؛ رویداد ثبت‌شده نباید از رابط کاربری
         // قابل حذف باشد، وگرنه ارزش ردیابی‌اش را از دست می‌دهد.

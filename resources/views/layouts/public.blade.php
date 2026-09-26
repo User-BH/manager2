@@ -9,8 +9,9 @@
      *   `curl -H "Host: evil.example.com" …` → canonical به evil اشاره کرد.
      */
     $base = \App\Support\CanonicalUrl::base();
-    $current = \App\Support\CanonicalUrl::forRequest(request());
-    $ogImage = \App\Support\CanonicalUrl::asset('images/og-cover.png');
+    // بلاگ (فاز ۱۱) آدرسِ متعارفِ خودش را می‌دهد: صفحه‌ی ۲ِ فهرست `?page=2` دارد
+    $current = $seo['canonical'] ?? \App\Support\CanonicalUrl::forRequest(request());
+    $ogImage = $seo['og_image'] ?? \App\Support\CanonicalUrl::asset('images/og-cover.png');
     $sameAs = array_values(array_map(fn ($s) => $s['href'], $brand['socials'] ?? []));
 
     // JSON-LDِ سطحِ سازمان و محصول: به موتورهای جستجو و هوش‌مصنوعی‌ها می‌گوید
@@ -72,12 +73,15 @@
      * ⚠️ `item` باید آدرسِ **مطلق** باشد و با `canonical` یکی؛ اگر فرق کنند
      * گوگل مسیر را نامعتبر می‌داند و اصلاً نشانش نمی‌دهد.
      */
-    $breadcrumbs = isset($seo['breadcrumb'])
-        ? [
+    $breadcrumbs = match (true) {
+        // مسیرِ چندمرحله‌ای (بلاگ › دسته › مقاله) — مرحلهٔ ۶ · فاز ۱۱
+        isset($seo['breadcrumbs']) => [['name' => 'خانه', 'url' => $base.'/'], ...$seo['breadcrumbs']],
+        isset($seo['breadcrumb']) => [
             ['name' => 'خانه', 'url' => $base.'/'],
             ['name' => $seo['breadcrumb'], 'url' => $current],
-        ]
-        : [];
+        ],
+        default => [],
+    };
 
     $graph = ['@context' => 'https://schema.org', '@graph' => [$organization, $website, $product]];
 
@@ -116,6 +120,12 @@
     @endisset
     <meta name="author" content="{{ $brand['name'] }}">
     <link rel="canonical" href="{{ $current }}">
+    @isset($seo['prev'])
+        <link rel="prev" href="{{ $seo['prev'] }}">
+    @endisset
+    @isset($seo['next'])
+        <link rel="next" href="{{ $seo['next'] }}">
+    @endisset
     <meta name="robots" content="{{ $seo['robots'] ?? 'index,follow,max-image-preview:large,max-snippet:-1' }}">
 
     {{-- Open Graph (فیسبوک، تلگرام، لینکدین، …) --}}
@@ -136,9 +146,12 @@
         پیش‌نمایش را بی‌خیال می‌شوند.
     --}}
     <meta property="og:image:secure_url" content="{{ $ogImage }}">
-    <meta property="og:image:type" content="image/png">
-    <meta property="og:image:width" content="1200">
-    <meta property="og:image:height" content="630">
+    {{-- جلدِ مقاله (فاز ۱۱) ابعاد و نوعِ ثابت ندارد؛ آن‌ها فقط برای تصویرِ پیش‌فرض‌اند --}}
+    @unless (isset($seo['og_image']))
+        <meta property="og:image:type" content="image/png">
+        <meta property="og:image:width" content="1200">
+        <meta property="og:image:height" content="630">
+    @endunless
     <meta property="og:image:alt" content="{{ $brand['name'] }} — {{ $brand['tagline'] }}">
 
     {{-- Twitter Card --}}
@@ -161,6 +174,13 @@
         `msapplication-TileImage` هم برای پیش‌نمایشِ ویندوز است و هزینه‌اش
         یک خط است.
     --}}
+    @stack('head')
+
+    {{-- پیوندِ «بلاگ» در سرصفحه و پاصفحه فقط وقتی پرچمش روشن است (فاز ۱۱) --}}
+    @if (app(\App\Services\Features\FeatureFlags::class)->enabled('blog'))
+        <meta name="blog-enabled" content="1">
+    @endif
+
     <meta name="msapplication-TileImage" content="{{ $ogImage }}">
     <meta name="msapplication-TileColor" content="{{ $brand['color'] ?? '#0f6e56' }}">
 
@@ -229,6 +249,9 @@
     @endif
 
     <div id="root"></div>
+
+    {{-- محتوای سرورسایدِ صفحه (بلاگ): خزنده بدونِ جاوااسکریپت همین را می‌خواند --}}
+    @yield('content')
 
     {{-- جای اتصال برای چیزهایی که باید در HTMLِ سرور باشند (مثلِ نشانِ اینماد) --}}
     @stack('body_end')

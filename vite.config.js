@@ -10,7 +10,7 @@ export default defineConfig({
       /*
        * چند entry:
        *  - main.tsx: داشبوردِ SPA (روت‌های محافظت‌شده با react-router).
-       *  - entries/{home,demo,support,auth}.tsx: صفحه‌های عمومیِ MPA؛ هر
+       *  - entries/{home,demo,support,auth,blog}.tsx: صفحه‌های عمومیِ MPA؛ هر
        *    کدام یک island است که لاراول به‌صورت یک سندِ HTMLِ مستقل سرو
        *    می‌کند. جداکردنِ entryها یعنی هر صفحه فقط کدِ خودش را می‌گیرد و
        *    خزنده‌ها/هوش‌مصنوعی‌ها HTMLِ واقعیِ همان صفحه را با هدرِ مخصوصش می‌بینند.
@@ -22,6 +22,8 @@ export default defineConfig({
         'resources/js/app/entries/demo.tsx',
         'resources/js/app/entries/support.tsx',
         'resources/js/app/entries/auth.tsx',
+        // بلاگ (فاز ۱۱): محتوا در HTMLِ سرور است؛ این فقط سرصفحه/پاصفحه و اشتراک
+        'resources/js/app/entries/blog.tsx',
       ],
       refresh: true,
     }),

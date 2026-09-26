@@ -112,6 +112,15 @@ export const queryKeys = {
     all: () => ['subscription'] as const,
   },
 
+  // ── بلاگ (فاز ۱۱) ────────────────────────────────────────────────────────
+  blog: {
+    all: () => ['blog'] as const,
+    posts: (params: { q?: string; status?: string; page?: number } = {}) =>
+      ['blog', 'posts', params] as const,
+    post: (id: number) => ['blog', 'post', id] as const,
+    categories: () => ['blog', 'categories'] as const,
+  },
+
   // ── تنظیماتِ مجتمع ───────────────────────────────────────────────────────
   settings: {
     all: () => ['settings'] as const,
