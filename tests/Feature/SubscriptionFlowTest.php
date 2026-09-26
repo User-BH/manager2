@@ -34,6 +34,8 @@ class SubscriptionFlowTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
+        // موضوعِ این تست خودِ عملیات است، نه نگهبانِ تأییدِ دوباره (فاز ۱۰)
+        $this->withConfirmedPassword();
 
         $this->complex = Complex::create(['type' => 'residential',
             'name' => 'مجتمع آزمون', 'slug' => 'sub-'.uniqid(), 'currency' => 'toman',

@@ -2,6 +2,7 @@
 
 namespace Tests;
 
+use App\Services\Auth\PasswordConfirmation;
 use App\Support\SystemSettings;
 use Illuminate\Foundation\Testing\TestCase as BaseTestCase;
 
@@ -20,5 +21,17 @@ abstract class TestCase extends BaseTestCase
          * بعدی نشت می‌کرد — و بدتر، نتیجه به ترتیبِ اجرای تست‌ها وابسته می‌شد.
          */
         SystemSettings::forget();
+    }
+
+    /**
+     * رمز «همین حالا» تأیید شده است (مرحلهٔ ۵ · فاز ۱۰).
+     *
+     * ⚠️ فقط برای تست‌هایی که موضوعشان **خودِ** آن عملیات است (بازیابی،
+     * پرچم، مدیر) و نه نگهبانِ تأییدِ دوباره. خودِ نگهبان در
+     * `ReauthenticationTest` بدونِ این سنجیده می‌شود.
+     */
+    protected function withConfirmedPassword(): static
+    {
+        return $this->withSession([PasswordConfirmation::KEY => now()->timestamp]);
     }
 }

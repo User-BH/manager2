@@ -706,6 +706,10 @@ class AuthorizationAttackTest extends TestCase
      *
      * ⚠️ **وضعیت: رفتار NOT VERIFIED است.** آنچه اثبات می‌شود این است که
      * فراخوانی سرِ جایش هست، نه اینکه در زمانِ اجرا اثرِ دلخواه را دارد.
+     *
+     * ✅ از مرحلهٔ ۵ · فاز ۱۰ رفتار هم سنجیده می‌شود: `SessionLifecycleTest`
+     * درایورِ database را فقط برای خودش روشن می‌کند و کوکی را بینِ دو
+     * «مرورگر» جابه‌جا می‌کند — بدونِ دست‌زدن به درایورِ بقیه‌ی تست‌ها.
      */
     public function test_the_authentication_path_regenerates_the_session(): void
     {

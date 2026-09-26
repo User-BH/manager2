@@ -27,7 +27,7 @@ import axios, { type AxiosError, type AxiosRequestConfig } from 'axios'
 import { ApiError, isRetryable, parseRetryAfter } from './apiError'
 import { definitelyOffline, markOffline } from '@/shared/pwa/connection'
 import { dedupe } from './dedupe'
-import { leaveToAuth } from './leaveToAuth'
+import { leaveToAuth, type AuthLeaveReason } from './leaveToAuth'
 import { MAX_ATTEMPTS, backoffDelay, sleep } from './retry'
 import { UPLOAD_TIMEOUT_MS, http, refreshCsrfToken, setCsrfToken } from './http'
 
@@ -121,6 +121,7 @@ async function send<T>(
 
     const axiosError = error as AxiosError<{
       message?: string
+      code?: string
       errors?: Record<string, string[]>
       csrfToken?: string
       accountDisabled?: boolean
@@ -146,11 +147,22 @@ async function send<T>(
      * پاک می‌کند.
      */
     if (payload?.accountDisabled) {
-      leaveToAuth(payload.message ?? '')
+      leaveToAuth('account_disabled')
     }
 
     // حالتِ تعمیر — فقط اگر نقطه‌ی ورود رفتاری ثبت کرده باشد (`onMaintenance`)
     if (payload?.maintenance) maintenanceHandler?.()
+
+    /*
+     * نشست از سمتِ سرور بسته شد (مرحلهٔ ۵ · فاز ۱۰): سقفِ عمر، «خروج از همه‌جا»
+     * از دستگاهِ دیگر، یا تغییرِ رمز. بدونِ این، صفحه با داده‌ی کهنه باز
+     * می‌ماند و هر کلیک خطای «باید وارد شوید» می‌داد.
+     */
+    if (status === 401) {
+      sessionEndedHandler?.(
+        payload?.code === 'auth.session_expired' ? 'session_expired' : 'session_ended',
+      )
+    }
 
     const retryAfterMs = parseRetryAfter(
       axiosError.response?.headers?.['retry-after'] as string | undefined,
@@ -175,6 +187,7 @@ async function send<T>(
         payload.errors ?? {},
         retryAfterMs,
         requestId,
+        payload.code,
       )
     }
 
@@ -206,6 +219,35 @@ let maintenanceHandler: (() => void) | null = null
  */
 export function onMaintenance(handler: () => void): void {
   maintenanceHandler = handler
+}
+
+let sessionEndedHandler: ((reason: AuthLeaveReason) => void) | null = null
+
+/**
+ * واکنش به ۴۰۱ — نشستی که سرور بسته است (مرحلهٔ ۵ · فاز ۱۰).
+ *
+ * ⚠️ مثلِ `onMaintenance` فقط داشبورد ثبتش می‌کند: صفحه‌ی ورود و صفحه‌های
+ * عمومی نشستی ندارند که تمام شود.
+ */
+export function onSessionEnded(handler: (reason: AuthLeaveReason) => void): void {
+  sessionEndedHandler = handler
+}
+
+let reauthHandler: (() => Promise<boolean>) | null = null
+
+/**
+ * پنجره‌ی «رمزتان را دوباره بزنید» (مرحلهٔ ۵ · فاز ۱۰).
+ *
+ * سرور پیش از عملیاتِ حساس `auth.reauth_required` می‌دهد؛ این واکنش رمز را
+ * می‌گیرد و `true` برمی‌گرداند اگر تأیید شد. آن‌وقت **همان** درخواست یک بار
+ * دیگر فرستاده می‌شود — بی‌خطر، چون سرور پیش از کنترلر ردش کرده بود.
+ */
+export function onReauthRequired(handler: () => Promise<boolean>): void {
+  reauthHandler = handler
+}
+
+function needsReauth(error: unknown): boolean {
+  return error instanceof ApiError && error.code === 'auth.reauth_required'
 }
 
 /** حلقه‌ی تلاشِ دوباره. تصمیمِ «آیا تلاش کنم؟» یک‌جا در `isRetryable` است. */
@@ -247,7 +289,17 @@ export async function api<T>(path: string, options: RequestOptions = {}): Promis
 
   // فقط خواندن یکی می‌شود؛ نوشتن هرگز (دو پرداختِ یکسان ممکن است واقعاً دو
   // قصدِ جدا باشند).
-  if (method !== 'GET') return run(options.signal)
+  const attempt = () =>
+    method !== 'GET'
+      ? run(options.signal)
+      : dedupe<T>(`GET ${path}`, (signal) => run(signal), options.signal)
 
-  return dedupe<T>(`GET ${path}`, (signal) => run(signal), options.signal)
+  try {
+    return await attempt()
+  } catch (error) {
+    // ⚠️ فقط یک بار: اگر پس از تأیید هم رد شد، خطا به کاربر می‌رسد، نه حلقه
+    if (!needsReauth(error) || !reauthHandler || !(await reauthHandler())) throw error
+
+    return attempt()
+  }
 }

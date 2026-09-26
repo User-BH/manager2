@@ -29,6 +29,8 @@ class ObservabilityTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
+        // موضوعِ این تست خودِ عملیات است، نه نگهبانِ تأییدِ دوباره (فاز ۱۰)
+        $this->withConfirmedPassword();
         Cache::flush();
     }
 

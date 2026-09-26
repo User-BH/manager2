@@ -24,6 +24,7 @@ import { ErrorState } from '@/shared/ui/PageState'
 import { FormSkeleton } from '@/shared/ui/Skeleton'
 import { ProfileEditForm } from './ProfileEditForm'
 import { PasswordCard } from './PasswordCard'
+import { SecurityCard } from './SecurityCard'
 import { useQuery } from '@tanstack/react-query'
 import { api } from '@/shared/lib/api'
 import { queryKeys } from '@/shared/lib/queryKeys'
@@ -118,6 +119,7 @@ export function ProfilePage() {
             </Card>
 
             <PasswordCard />
+            <SecurityCard />
           </div>
 
           <div className="flex flex-col gap-5">

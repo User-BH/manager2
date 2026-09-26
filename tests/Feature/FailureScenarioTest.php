@@ -42,6 +42,8 @@ class FailureScenarioTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
+        // موضوعِ این تست خودِ عملیات است، نه نگهبانِ تأییدِ دوباره (فاز ۱۰)
+        $this->withConfirmedPassword();
 
         // ⚠️ بدونِ این، فایل‌های آزمونِ بازیابی در storageِ واقعی می‌نشینند
         Storage::fake(PrivateFiles::name());

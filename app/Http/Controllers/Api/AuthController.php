@@ -13,10 +13,15 @@ use App\Http\Requests\LoginVerifyRequest;
 use App\Http\Requests\RegisterRequest;
 use App\Http\Requests\RegisterVerifyRequest;
 use App\Http\Requests\ResetPasswordRequest;
+use App\Listeners\StartAuthenticatedSession;
 use App\Models\Complex;
 use App\Models\ComplexInvitation;
+use App\Models\LoginEvent;
 use App\Models\User;
+use App\Services\Auth\LoginRecorder;
 use App\Services\Auth\OtpService;
+use App\Services\Auth\PasswordConfirmation;
+use App\Services\Auth\SessionRegistry;
 use App\Services\Auth\TrustedDeviceService;
 use App\Support\Phone;
 use App\Support\SystemSettings;
@@ -35,7 +40,12 @@ use Illuminate\Validation\ValidationException;
  */
 class AuthController extends Controller
 {
-    public function __construct(protected TrustedDeviceService $devices) {}
+    public function __construct(
+        protected TrustedDeviceService $devices,
+        protected LoginRecorder $recorder,
+        protected PasswordConfirmation $confirmation,
+        protected SessionRegistry $sessions,
+    ) {}
 
     /** کاربر واردشده‌ی فعلی، یا null برای مهمان. */
     public function me(Request $request): JsonResponse
@@ -68,6 +78,11 @@ class AuthController extends Controller
 
         // پیامِ یکسان برای «کاربر نیست» و «رمز غلط» تا نشود شماره‌ها را شمارش کرد.
         if (! $user || ! Hash::check($request->input('password'), $user->password)) {
+            // فقط برای حسابِ موجود ثبت می‌شود؛ صاحبش در تاریخچه‌ی ورود می‌بیندش
+            if ($user) {
+                $this->recorder->failure($user, $request, LoginEvent::FAILED_PASSWORD);
+            }
+
             throw ValidationException::withMessages([
                 'phone' => 'شماره تلفن یا رمز عبور نادرست است.',
             ]);
@@ -136,6 +151,8 @@ class AuthController extends Controller
         }
 
         if (! $otp->verify($user->phone, $request->input('code'))) {
+            $this->recorder->failure($user, $request, LoginEvent::FAILED_OTP);
+
             throw ValidationException::withMessages([
                 'code' => 'کد واردشده نادرست یا منقضی شده است.',
             ]);
@@ -294,14 +311,26 @@ class AuthController extends Controller
         $request->session()->forget('reset.pending');
 
         /*
+         * 🔴 همه‌ی نشست‌های قبلیِ این حساب بسته می‌شوند (مرحلهٔ ۵ · فاز ۱۰).
+         *
+         * بازیابیِ رمز رایج‌ترین واکنش به «حسابم دستِ کسی افتاده» است؛ تا
+         * پیش از این، دستگاه‌های مورداعتماد باطل می‌شدند ولی نشستِ بازِ مهاجم
+         * زنده می‌ماند و با رمزِ تازه کاری نداشت. نشستِ همین درخواست هنوز
+         * مهمان است، پس «همه جز این» یعنی همه.
+         */
+        $this->sessions->endOthers($user, $request->session()->getId());
+
+        /*
          * ورودِ خودکار پس از بازیابی.
          *
          * کاربر همین حالا با کد پیامکی ثابت کرده که صاحب این شماره است و رمز
          * تازه را هم خودش گذاشته؛ فرستادنش به فرم ورود و یک پیامکِ دومرحله‌ایِ
          * دیگر، بدون افزودن امنیت فقط اصطکاک است.
          */
+        $request->attributes->set(StartAuthenticatedSession::EVENT_ATTRIBUTE, LoginEvent::PASSWORD_RESET);
         Auth::login($user);
         $request->session()->regenerate();
+        $this->confirmation->confirm($request);
 
         return response()->json([
             'message' => 'رمز عبور با موفقیت تغییر کرد.',
@@ -456,6 +485,9 @@ class AuthController extends Controller
         // وارد شود، «فاصله‌ی ارسال مجدد» جلوی کدِ تازه را نگیرد و پیامِ «کمی صبر
         // کنید» زیر شماره‌ی موبایل ظاهر نشود.
         $otp?->clear($user->phone);
+
+        // رمز همین حالا زده شد؛ پنجره‌ی «تأییدِ دوباره» از همین لحظه باز است
+        $this->confirmation->confirm($request);
 
         if ($remember) {
             $this->devices->remember($user, $request);

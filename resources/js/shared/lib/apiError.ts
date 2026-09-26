@@ -41,12 +41,20 @@ export class ApiError extends Error {
    */
   requestId?: string
 
+  /**
+   * کدِ ماشین‌خوانِ سرور، مثلِ `auth.reauth_required` (مرحلهٔ ۵ · فاز ۱۰).
+   *
+   * رفتارِ خاصِ رابط به این بسته است، نه به متنِ فارسیِ پیام.
+   */
+  code?: string
+
   constructor(
     message: string,
     status: number,
     errors: Record<string, string[]> = {},
     retryAfterMs?: number,
     requestId?: string,
+    code?: string,
   ) {
     super(message)
     this.name = 'ApiError'
@@ -54,6 +62,7 @@ export class ApiError extends Error {
     this.errors = errors
     this.retryAfterMs = retryAfterMs
     this.requestId = requestId
+    this.code = code
   }
 
   /** اولین پیام خطای یک فیلد، برای نشاندن زیر همان ورودی در فرم. */

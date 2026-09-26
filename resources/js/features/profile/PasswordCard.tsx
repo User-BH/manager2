@@ -52,7 +52,11 @@ export function PasswordCard() {
   }
 
   return (
-    <Card title="تغییر رمز عبور" subtitle="پس از تغییر، نشست فعلی باز می‌ماند." delay={0.1}>
+    <Card
+      title="تغییر رمز عبور"
+      subtitle="پس از تغییر، این دستگاه وارد می‌ماند و همه‌ی دستگاه‌های دیگر خارج می‌شوند."
+      delay={0.1}
+    >
       <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4">
         <TextField
           label="رمز عبور فعلی"

@@ -65,3 +65,34 @@ export interface ProfileResponse {
     totalDebt: number
   }
 }
+
+/** نشست‌ها و دستگاه‌های مورداعتماد (مرحلهٔ ۵ · فاز ۱۰) — شکلِ `/profile/sessions`. */
+export interface SecurityOverview {
+  /** درایورِ نشست database است و فهرست واقعی است. */
+  supported: boolean
+  sessions: {
+    /** HMACِ شناسه‌ی نشست؛ خودِ شناسه راز است و هرگز به مرورگر نمی‌آید. */
+    id: string
+    device: string
+    ip: string | null
+    lastActiveAt: string
+    current: boolean
+  }[]
+  devices: {
+    id: number
+    device: string
+    lastUsedAt: string | null
+    expiresAt: string
+    current: boolean
+  }[]
+  absoluteLifetimeMinutes: number
+}
+
+export interface LoginEventRow {
+  id: number
+  event: string
+  failed: boolean
+  device: string
+  ip: string | null
+  at: string
+}

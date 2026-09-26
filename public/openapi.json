@@ -4467,6 +4467,229 @@
                 }
             }
         },
+        "/api/v1/profile/confirm-password": {
+            "get": {
+                "summary": "api.profile.confirm-password.status",
+                "tags": [
+                    "profile"
+                ],
+                "parameters": [],
+                "responses": {
+                    "200": {
+                        "description": "موفق"
+                    },
+                    "422": {
+                        "description": "خطای اعتبارسنجی",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    },
+                    "429": {
+                        "description": "عبور از محدودیتِ نرخ",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "وارد نشده‌اید",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "دسترسی ندارید",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "post": {
+                "summary": "api.profile.confirm-password",
+                "tags": [
+                    "profile"
+                ],
+                "parameters": [],
+                "responses": {
+                    "200": {
+                        "description": "موفق"
+                    },
+                    "422": {
+                        "description": "خطای اعتبارسنجی",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    },
+                    "429": {
+                        "description": "عبور از محدودیتِ نرخ",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "وارد نشده‌اید",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "دسترسی ندارید",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/profile/devices/{device}": {
+            "delete": {
+                "summary": "api.profile.devices.destroy",
+                "tags": [
+                    "profile"
+                ],
+                "parameters": [
+                    {
+                        "name": "device",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "موفق"
+                    },
+                    "422": {
+                        "description": "خطای اعتبارسنجی",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    },
+                    "429": {
+                        "description": "عبور از محدودیتِ نرخ",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "وارد نشده‌اید",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "دسترسی ندارید",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/profile/login-history": {
+            "get": {
+                "summary": "api.profile.login-history",
+                "tags": [
+                    "profile"
+                ],
+                "parameters": [],
+                "responses": {
+                    "200": {
+                        "description": "موفق"
+                    },
+                    "422": {
+                        "description": "خطای اعتبارسنجی",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    },
+                    "429": {
+                        "description": "عبور از محدودیتِ نرخ",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "وارد نشده‌اید",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "دسترسی ندارید",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/api/v1/profile/password": {
             "put": {
                 "summary": "api.profile.password",
@@ -4539,6 +4762,177 @@
                                     "current_password",
                                     "password"
                                 ]
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/profile/sessions": {
+            "get": {
+                "summary": "api.profile.sessions",
+                "tags": [
+                    "profile"
+                ],
+                "parameters": [],
+                "responses": {
+                    "200": {
+                        "description": "موفق"
+                    },
+                    "422": {
+                        "description": "خطای اعتبارسنجی",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    },
+                    "429": {
+                        "description": "عبور از محدودیتِ نرخ",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "وارد نشده‌اید",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "دسترسی ندارید",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/profile/sessions/end-others": {
+            "post": {
+                "summary": "api.profile.sessions.end-others",
+                "tags": [
+                    "profile"
+                ],
+                "parameters": [],
+                "responses": {
+                    "200": {
+                        "description": "موفق"
+                    },
+                    "422": {
+                        "description": "خطای اعتبارسنجی",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    },
+                    "429": {
+                        "description": "عبور از محدودیتِ نرخ",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "وارد نشده‌اید",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "دسترسی ندارید",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/profile/sessions/{session}": {
+            "delete": {
+                "summary": "api.profile.sessions.destroy",
+                "tags": [
+                    "profile"
+                ],
+                "parameters": [
+                    {
+                        "name": "session",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "موفق"
+                    },
+                    "422": {
+                        "description": "خطای اعتبارسنجی",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    },
+                    "429": {
+                        "description": "عبور از محدودیتِ نرخ",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "وارد نشده‌اید",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "دسترسی ندارید",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
                             }
                         }
                     }
@@ -7276,6 +7670,7 @@
                                 },
                                 "required": [
                                     "name",
+                                    "type",
                                     "admin_name",
                                     "admin_phone",
                                     "admin_password"

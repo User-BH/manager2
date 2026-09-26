@@ -62,6 +62,21 @@ class DomainException extends Exception
         return new self($message, $errorCode, 409);
     }
 
+    /**
+     * عملیاتِ حساس تأییدِ دوباره‌ی رمز می‌خواهد (۴۰۳ · مرحلهٔ ۵ · فاز ۱۰).
+     *
+     * کدِ ماشین‌خوان همان چیزی است که فرانت با آن پنجره‌ی رمز را باز می‌کند و
+     * پس از تأیید، همان درخواست را دوباره می‌فرستد.
+     */
+    public static function reauthRequired(): self
+    {
+        return new self(
+            'برای این کار رمز عبورتان را دوباره وارد کنید.',
+            'auth.reauth_required',
+            403,
+        );
+    }
+
     /** پیش‌نیازی فراهم نیست (مثلاً مجتمعی انتخاب نشده). */
     public static function precondition(string $message, ?string $errorCode = null): self
     {

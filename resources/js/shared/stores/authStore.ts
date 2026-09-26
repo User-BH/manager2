@@ -1,6 +1,8 @@
 import { create } from 'zustand'
 import { api } from '@/shared/lib/api'
 import { ApiError } from '@/shared/lib/apiError'
+import { announceAuth } from '@/shared/lib/authChannel'
+import { leaveToAuth, type AuthLeaveReason } from '@/shared/lib/leaveToAuth'
 import { clearApiCache } from '@/shared/pwa/registerServiceWorker'
 import type { CurrentUser } from '@/shared/types'
 
@@ -20,6 +22,8 @@ interface AuthState {
   setUser: (user: CurrentUser | null) => void
   refresh: () => Promise<void>
   logout: () => Promise<void>
+  /** نشستی که سرور بسته است: پاک‌سازیِ محلی و رفتن به ورود (مرحلهٔ ۵ · فاز ۱۰). */
+  expire: (reason?: AuthLeaveReason) => Promise<void>
 }
 
 export const useAuthStore = create<AuthState>((set) => ({
@@ -30,6 +34,9 @@ export const useAuthStore = create<AuthState>((set) => ({
     try {
       const { user } = await api<{ user: CurrentUser | null }>('/me')
       set({ user, isLoading: false })
+
+      // تبِ دیگری که هنوز حسابِ قبلی را نشان می‌دهد باید بفهمد (فاز ۱۰)
+      if (user) announceAuth({ type: 'login', userId: user.id })
     } catch (error) {
       /*
        * ⚠️ «نرسیدم» با «بیرونت کردند» یکی نیست (R60).
@@ -75,7 +82,18 @@ export const useAuthStore = create<AuthState>((set) => ({
        * بستنِ فوری روی دستگاهِ مشترک) کار نمی‌کرد.
        */
       await clearApiCache()
+
+      // تب‌های دیگرِ همین مرورگر هم بیرون می‌روند (فاز ۱۰)
+      announceAuth({ type: 'logout' })
     }
+  },
+  expire: async (reason) => {
+    set({ user: null })
+
+    // ⚠️ همان پاک‌سازیِ خروج: نشستی که از دستگاهِ دیگر بسته شده هم کشِ این
+    // دستگاه را پشتِ سر نمی‌گذارد
+    await clearApiCache()
+    leaveToAuth(reason)
   },
 }))
 

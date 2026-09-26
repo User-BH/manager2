@@ -103,6 +103,9 @@ export const queryKeys = {
   // ── حسابِ کاربر ──────────────────────────────────────────────────────────
   profile: {
     all: () => ['profile'] as const,
+    // امنیتِ حساب (فاز ۱۰)
+    sessions: () => ['profile', 'sessions'] as const,
+    loginHistory: () => ['profile', 'login-history'] as const,
   },
 
   subscription: {

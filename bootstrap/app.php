@@ -5,6 +5,7 @@ use App\Http\Middleware\ApiCacheHeaders;
 use App\Http\Middleware\AppBuildHeader;
 use App\Http\Middleware\AssignRequestId;
 use App\Http\Middleware\AuthenticateTrustedDevice;
+use App\Http\Middleware\EnforceSessionLifetime;
 use App\Http\Middleware\EnsureActive;
 use App\Http\Middleware\EnsureComplexActive;
 use App\Http\Middleware\EnsureFeatureEnabled;
@@ -12,6 +13,7 @@ use App\Http\Middleware\EnsureNotInMaintenance;
 use App\Http\Middleware\EnsureRole;
 use App\Http\Middleware\LockInitialAccount;
 use App\Http\Middleware\RecordSlowRequests;
+use App\Http\Middleware\RequirePasswordConfirmation;
 use App\Http\Middleware\SecurityHeaders;
 use App\Http\Middleware\SetCurrentComplex;
 use App\Services\Auth\TrustedDeviceService;
@@ -178,6 +180,11 @@ return Application::configure(basePath: dirname(__DIR__))
              */
             AppBuildHeader::class,
             AuthenticateTrustedDevice::class,
+            /*
+             * سقفِ مطلقِ عمرِ نشست (مرحلهٔ ۵ · فاز ۱۰). پس از ورودِ خودکارِ
+             * دستگاهِ مورداعتماد، تا نشستِ تازه‌ی آن هم ساعت بگیرد.
+             */
+            EnforceSessionLifetime::class,
             EnsureActive::class,
             /*
              * حالتِ تعمیر از پنل (مرحلهٔ ۵ · فاز ۹). پس از `EnsureActive` تا
@@ -252,6 +259,8 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->alias([
             'role' => EnsureRole::class,
             'feature' => EnsureFeatureEnabled::class,
+            // عملیاتِ حساس: تأییدِ تازه‌ی رمز (مرحلهٔ ۵ · فاز ۱۰)
+            'reauth' => RequirePasswordConfirmation::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

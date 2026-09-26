@@ -450,6 +450,8 @@ class MassAssignmentTest extends TestCase
         'RegisterRequest.php' => ['password'],
         'ResetPasswordRequest.php' => ['password'],
         'UpdatePasswordRequest.php' => ['password'],
+        // تأییدِ دوباره پیش از عملیاتِ حساس؛ فقط سنجیده می‌شود، ذخیره نه (فاز ۱۰)
+        'ConfirmPasswordRequest.php' => ['password'],
         'StoreManagerRequest.php' => ['password'],
 
         // ⚠️ رمزِ **پنلِ پیامک** است، نه رمزِ کاربر

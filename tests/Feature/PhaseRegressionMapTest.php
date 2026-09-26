@@ -279,6 +279,32 @@ class PhaseRegressionMapTest extends TestCase
             'مالک‌های پیش‌شرطِ کیف همان مالک‌های سفرِ مرورگرند' => [
                 'E2eSeederTest', 'test_the_owners_match_the_browser_journey', '۵',
             ],
+
+            /* ── مرحلهٔ ۵، فاز ۱۰: چرخه‌ی نشست ─────────────────────────────── */
+            'تغییرِ رمز نشستِ دزدیده را می‌بندد' => [
+                'SessionLifecycleTest', 'test_changing_the_password_signs_out_a_stolen_session', '۵',
+            ],
+            'شناسه‌ی قبلیِ نشست پس از تغییرِ رمز مرده است' => [
+                'SessionLifecycleTest', 'test_the_old_session_id_is_destroyed_by_a_password_change', '۵',
+            ],
+            'بازیابیِ رمز همه‌ی نشست‌ها را می‌بندد' => [
+                'SessionLifecycleTest', 'test_resetting_the_password_signs_out_every_session', '۵',
+            ],
+            'نشستِ فعال هم سقفِ مطلقِ عمر دارد' => [
+                'SessionLifecycleTest', 'test_an_active_session_still_ends_at_the_absolute_lifetime', '۵',
+            ],
+            'سوپرادمین دستگاهِ مورداعتماد ندارد' => [
+                'SessionLifecycleTest', 'test_a_super_admin_never_rides_a_trusted_device', '۵',
+            ],
+            'هر مسیرِ حساس تأییدِ دوباره‌ی رمز می‌خواهد' => [
+                'ReauthenticationTest', 'test_every_sensitive_route_carries_the_guard', '۵',
+            ],
+            'شماره‌کارتِ مجتمع بدونِ رمز عوض نمی‌شود' => [
+                'ReauthenticationTest', 'test_changing_the_card_number_needs_the_password_but_a_plain_save_does_not', '۵',
+            ],
+            'ورود از دستگاهِ تازه هشدار می‌دهد' => [
+                'LoginHistoryTest', 'test_a_login_from_a_new_device_raises_an_alert_and_a_known_one_does_not', '۵',
+            ],
         ];
     }
 
@@ -365,10 +391,11 @@ class PhaseRegressionMapTest extends TestCase
             'maintenanceMode' => ['۹', 'چه کسی واکنش را ثبت می‌کند'],
             'dataSurfaces' => ['۶', 'صفحه‌ی واحدها با بیش از بیست واحد'],
             'browserCompat' => ['۸', 'وقتی هیچ راهی نیست'],
+            'sessionLifecycle' => ['۱۰', 'پیامِ کانالِ بینِ تب‌ها'],
         ];
 
         // 🔴 مثلِ ردیف‌های PHP، این فهرست هم فقط بزرگ می‌شود (خرابکاریِ فاز ۸)
-        $this->assertGreaterThanOrEqual(11, count($guards), 'محافظی از فهرستِ JS حذف شده.');
+        $this->assertGreaterThanOrEqual(12, count($guards), 'محافظی از فهرستِ JS حذف شده.');
 
         foreach ($guards as $file => [$phase, $marker]) {
             $path = base_path("tests/js/{$file}.test.".(file_exists(base_path("tests/js/{$file}.test.tsx")) ? 'tsx' : 'ts'));
@@ -395,7 +422,7 @@ class PhaseRegressionMapTest extends TestCase
     public function test_the_map_never_shrinks(): void
     {
         $this->assertGreaterThanOrEqual(
-            72,
+            80,
             count(self::fixes()),
             'ردیفی از نقشهٔ رگرسیون حذف شده؛ یعنی اصلاحی محافظش را از دست داده.',
         );

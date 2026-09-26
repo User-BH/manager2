@@ -252,6 +252,8 @@ jobs:
           # `php artisan serve` این متغیرها را از همین گام به ارث می‌برد.
           SUBSCRIPTION_GATEWAY: sandbox
           PAYMENT_SANDBOX_ENABLED: 'true'
+          # پنجره‌ی کوتاهِ تأییدِ رمز تا سفرِ امنیت پنجره‌ی رمز را واقعاً ببیند (فاز ۱۰)
+          AUTH_PASSWORD_TIMEOUT: '5'
 
       - name: نگه‌داشتنِ گزارشِ شکست
         if: failure()

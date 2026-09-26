@@ -18,6 +18,14 @@ class ManagementApiTest extends TestCase
 {
     use RefreshDatabase;
 
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        // موضوعِ این تست خودِ عملیات است، نه نگهبانِ تأییدِ دوباره (فاز ۱۰)
+        $this->withConfirmedPassword();
+    }
+
     private function admin(): User
     {
         $complex = Complex::create(['type' => 'residential', 'name' => 'مجتمع مدیریت', 'slug' => 'mgmt-'.uniqid()]);

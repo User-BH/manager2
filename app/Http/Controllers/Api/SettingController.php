@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\UpdateComplexSettingsRequest;
 use App\Models\Complex;
+use App\Services\Auth\PasswordConfirmation;
 use App\Services\Payment\Sandbox;
 use App\Services\Subscription\PlanGate;
 use App\Support\Audit;
@@ -84,9 +85,25 @@ class SettingController extends Controller
         ]);
     }
 
-    public function update(UpdateComplexSettingsRequest $request, PlanGate $plans): JsonResponse
-    {
+    public function update(
+        UpdateComplexSettingsRequest $request,
+        PlanGate $plans,
+        PasswordConfirmation $confirmation,
+    ): JsonResponse {
         $complex = $this->requireComplex();
+
+        /*
+         * 🔴 مسیرِ پول: تأییدِ دوباره‌ی رمز (مرحلهٔ ۵ · فاز ۱۰).
+         *
+         * شماره‌کارت همان جایی است که ساکنین کارت‌به‌کارت پول می‌زنند، و درگاه
+         * و اعتبارنامه‌اش همان جایی که پرداختِ آنلاین می‌رود. کسی که نشستِ
+         * مدیر را دزدیده بود با یک ذخیره پولِ ماهِ بعدِ همه را به کارتِ خودش
+         * می‌برد. بقیه‌ی تنظیمات (نام، جریمه، مهلت) رمز نمی‌خواهند تا مدیر
+         * برای هر ذخیره‌ی ساده رمز نزند.
+         */
+        if ($this->touchesMoneyRoute($complex, $request)) {
+            $confirmation->ensure($request);
+        }
 
         /*
          * اتصال درگاه بانکیِ واقعی از امکانات پرو است. «سندباکس» و «بدون
@@ -156,5 +173,20 @@ class SettingController extends Controller
         }
 
         return response()->json(['message' => 'تنظیمات مجتمع ذخیره شد.']);
+    }
+
+    /** آیا این ذخیره مقصدِ پول (کارت، درگاه، اعتبارنامه‌ی درگاه) را عوض می‌کند؟ */
+    private function touchesMoneyRoute(Complex $complex, UpdateComplexSettingsRequest $request): bool
+    {
+        $settings = $complex->settings ?? [];
+        $gateway = $complex->gateway_config ?? [];
+
+        return (string) $request->input('card_number') !== (string) ($settings['card_number'] ?? '')
+            || (string) $request->input('card_holder') !== (string) ($settings['card_holder'] ?? '')
+            || $request->input('payment_gateway') !== $complex->payment_gateway
+            || (string) $request->input('gw_terminal_id') !== (string) ($gateway['terminal_id'] ?? '')
+            || (string) $request->input('gw_username') !== (string) ($gateway['username'] ?? '')
+            // رمزِ خالی یعنی «دست نزن»
+            || filled($request->input('gw_password'));
     }
 }

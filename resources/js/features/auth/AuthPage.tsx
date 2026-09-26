@@ -11,6 +11,7 @@ import { useAuth } from '@/shared/stores/authStore'
 import { safeInternalPath } from '@/shared/lib/safeRedirect'
 import { useDocumentTitle } from '@/shared/hooks'
 import { BRAND_NAME } from '@/shared/config/brand'
+import { authLeaveMessage } from '@/shared/lib/leaveToAuth'
 
 type AuthTab = 'login' | 'register'
 
@@ -63,7 +64,8 @@ export function AuthPage() {
   }
 
   const isLogin = tab === 'login'
-  const reason = searchParams.get('reason')
+  // ⚠️ فقط کدِ شناخته؛ متنِ دلخواه در آدرس نمایش داده نمی‌شود (فاز ۱۰)
+  const reason = authLeaveMessage(searchParams.get('reason'))
 
   const heading = (
     <div className="mb-2 text-center">

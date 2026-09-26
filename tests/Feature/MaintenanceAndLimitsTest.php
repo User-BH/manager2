@@ -39,6 +39,8 @@ class MaintenanceAndLimitsTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
+        // موضوعِ این تست خودِ عملیات است، نه نگهبانِ تأییدِ دوباره (فاز ۱۰)
+        $this->withConfirmedPassword();
 
         $this->complex = Complex::create(['type' => 'residential',
             'name' => 'مجتمع نگهداری', 'slug' => 'mnt-'.uniqid(), 'currency' => 'toman',

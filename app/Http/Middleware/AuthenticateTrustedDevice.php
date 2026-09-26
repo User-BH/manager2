@@ -2,6 +2,8 @@
 
 namespace App\Http\Middleware;
 
+use App\Listeners\StartAuthenticatedSession;
+use App\Models\LoginEvent;
 use App\Services\Auth\TrustedDeviceService;
 use Closure;
 use Illuminate\Http\Request;
@@ -26,6 +28,14 @@ class AuthenticateTrustedDevice
             $device = $this->devices->resolve($request);
 
             if ($device) {
+                $request->attributes->set(StartAuthenticatedSession::EVENT_ATTRIBUTE, LoginEvent::TRUSTED_DEVICE);
+                /*
+                 * ⚠️ شناسه‌ی نشست همین‌جا عوض و قبلی نابود می‌شود: `login()`ِ
+                 * نگهبانِ لاراول خودش `regenerate(true)` می‌کند. پس کاشتنِ
+                 * شناسه‌ی مهمان (session fixation) از این راه کار نمی‌کند —
+                 * خرابکاریِ فاز ۱۰ همین را نشان داد و `SessionLifecycleTest`
+                 * قفلش کرده است.
+                 */
                 Auth::loginUsingId($device->user_id);
                 $this->devices->touch($device);
             }

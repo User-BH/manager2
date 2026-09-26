@@ -5,7 +5,7 @@ import { createElement } from 'react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import { copyText } from '@/shared/lib/clipboard'
-import { leaveToAuth, resetLeaveToAuth } from '@/shared/lib/leaveToAuth'
+import { authLeaveMessage, leaveToAuth, resetLeaveToAuth } from '@/shared/lib/leaveToAuth'
 import { Modal } from '@/shared/ui/Modal'
 
 /**
@@ -112,11 +112,24 @@ describe('رفتن به صفحه‌ی ورود', () => {
 
   it('ناوبریِ اول برنده است و دلیلِ خروج گم نمی‌شود', () => {
     const navigate = vi.fn()
-    leaveToAuth('حساب غیرفعال شد', navigate)
+    leaveToAuth('account_disabled', navigate)
     leaveToAuth(undefined, navigate)
 
     expect(navigate).toHaveBeenCalledTimes(1)
-    expect(navigate).toHaveBeenCalledWith(`/auth?reason=${encodeURIComponent('حساب غیرفعال شد')}`)
+    expect(navigate).toHaveBeenCalledWith('/auth?reason=account_disabled')
+  })
+
+  /**
+   * 🔴 متنِ دلخواه در آدرس نمایش داده نمی‌شود (مرحلهٔ ۵ · فاز ۱۰).
+   *
+   * پیش از این `/auth?reason=<هر متنی>` پیامِ مهاجم را با نشانِ هشدار روی
+   * دامنه‌ی خودمان نشان می‌داد.
+   */
+  it('صفحه‌ی ورود فقط پیامِ کدهای شناخته را نشان می‌دهد', () => {
+    expect(authLeaveMessage('session_expired')).toContain('زمانِ نشست')
+    expect(authLeaveMessage('حساب مسدود شد، با ۰۹۱۲۰۰۰۰۰۰۰ تماس بگیرید')).toBeNull()
+    expect(authLeaveMessage('toString')).toBeNull()
+    expect(authLeaveMessage(null)).toBeNull()
   })
 
   it('هیچ کدی جز همین تابع مستقیم به `/auth` نمی‌رود', () => {

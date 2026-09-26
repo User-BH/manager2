@@ -82,6 +82,13 @@ return [
          * معمولاً ماه‌ها بعد است.
          */
         [
+            // تاریخچه‌ی ورود (مرحلهٔ ۵ · فاز ۱۰): شش ماه برای دیدنِ الگوی مشکوک بس است
+            'table' => 'login_events',
+            'column' => 'created_at',
+            'days' => 180,
+            'label' => 'تاریخچه‌ی ورود',
+        ],
+        [
             'table' => 'audit_logs',
             'column' => 'created_at',
             'days' => 365,

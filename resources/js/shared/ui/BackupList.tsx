@@ -3,6 +3,8 @@ import { AlertTriangle, Database, Download, Loader2 } from 'lucide-react'
 import { Card } from '@/shared/ui/Card'
 import { EmptyState } from '@/shared/ui/PageState'
 import { formatNumber } from '@/shared/lib/format'
+import { alertError } from '@/shared/lib/alert'
+import { ensureRecentPassword } from '@/shared/stores/reauthStore'
 
 export interface BackupRow {
   id: number
@@ -122,6 +124,10 @@ export function BackupList({
               {backup.status === 'completed' ? (
                 <a
                   href={backup.downloadUrl}
+                  onClick={(event) => {
+                    event.preventDefault()
+                    void downloadAfterConfirmation(backup.downloadUrl)
+                  }}
                   className="flex shrink-0 items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-medium"
                   style={{ borderColor: 'var(--border-default)', color: 'var(--text-secondary)' }}
                 >
@@ -137,4 +143,17 @@ export function BackupList({
       )}
     </Card>
   )
+}
+
+/**
+ * دانلودِ بکاپ کلِ داده است؛ سرور بدونِ تأییدِ تازه‌ی رمز نمی‌دهدش (مرحلهٔ ۵ ·
+ * فاز ۱۰). پیوند درخواستِ JSON نیست که پنجره‌ی رمز خودکار باز شود، پس پیش
+ * از رفتن تأیید گرفته می‌شود.
+ */
+async function downloadAfterConfirmation(url: string): Promise<void> {
+  try {
+    if (await ensureRecentPassword()) window.location.assign(url)
+  } catch (error) {
+    alertError(error, 'دانلود ممکن نشد.')
+  }
 }

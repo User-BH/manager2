@@ -46,6 +46,8 @@ class DisasterRecoveryTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
+        // موضوعِ این تست خودِ عملیات است، نه نگهبانِ تأییدِ دوباره (فاز ۱۰)
+        $this->withConfirmedPassword();
 
         /*
          * ⚠️ دیسک جعل می‌شود تا تست در storageِ واقعی ننویسد.
@@ -337,6 +339,9 @@ class DisasterRecoveryTest extends TestCase
         // فاجعه، این بار پس از بازیابی
         DB::table('bills')->delete();
         DB::table('complexes')->delete();
+
+        // ⚠️ بازیابی همه‌ی نشست‌ها را می‌بندد، تأییدِ رمز هم با آن‌ها (فاز ۱۰)
+        $this->withConfirmedPassword();
 
         $this->restore(UploadedFile::fake()->createWithContent('safety.json', $contents))->assertOk();
 

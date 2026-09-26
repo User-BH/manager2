@@ -33,6 +33,17 @@ class TrustedDeviceService
      */
     public function remember(User $user, Request $request): void
     {
+        /*
+         * 🔴 سوپرادمین دستگاهِ مورداعتماد نمی‌گیرد (مرحلهٔ ۵ · فاز ۱۰).
+         *
+         * این کوکی ده روز بدونِ رمز و بدونِ کد وارد می‌کند. برای ساکن راحتی
+         * است؛ برای حسابی که به همه‌ی مجتمع‌ها و بکاپ‌ها دسترسی دارد یعنی
+         * عاملِ دوم عملاً خاموش است. سوپرادمین هر بار رمز و کد می‌زند.
+         */
+        if ($user->isSuperAdmin()) {
+            return;
+        }
+
         $plain = Str::random(48);
         $expiresAt = now()->addDays($this->days());
 
@@ -72,7 +83,9 @@ class TrustedDeviceService
         if (! $device
             || ! hash_equals($device->token_hash, hash('sha256', $plain))
             || ! $device->user
-            || ! $device->user->is_active) {
+            || ! $device->user->is_active
+            // دستگاهی که پیش از این قاعده برای سوپرادمین ساخته شده هم پذیرفته نمی‌شود
+            || $device->user->isSuperAdmin()) {
             return null;
         }
 

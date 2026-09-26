@@ -4,11 +4,16 @@ import { BrowserRouter } from 'react-router-dom'
 import { QueryClientProvider } from '@tanstack/react-query'
 import { MotionConfig } from 'framer-motion'
 
-import { onMaintenance } from '@/shared/lib/api'
+import { onMaintenance, onReauthRequired, onSessionEnded } from '@/shared/lib/api'
+import { listenForAuthChanges } from '@/shared/lib/authChannel'
+import { leaveToAuth } from '@/shared/lib/leaveToAuth'
 import { initObservability, reportError } from '@/shared/lib/observability'
 import { createQueryClient } from '@/shared/lib/queryClient'
+import { useAuthStore } from '@/shared/stores/authStore'
+import { requestReauth } from '@/shared/stores/reauthStore'
 import { ErrorBoundary, RootErrorFallback } from '@/shared/ui/ErrorBoundary'
 import { ConnectionBanner } from '@/shared/pwa/ConnectionBanner'
+import { ReauthHost } from '@/shared/ui/ReauthHost'
 import { PwaPrompts } from '@/shared/pwa/PwaPrompts'
 import { AppRouter } from './AppRouter'
 
@@ -40,6 +45,28 @@ initObservability()
  * دوباره صفحه‌ی ۵۰۳ِ فارسی را می‌آورد و حلقه‌ای نمی‌سازد.
  */
 onMaintenance(() => window.location.reload())
+
+/*
+ * چرخه‌ی نشست (مرحلهٔ ۵ · فاز ۱۰) — مثلِ حالتِ تعمیر فقط در داشبورد.
+ *
+ * - ۴۰۱ یعنی سرور نشست را بسته (سقفِ عمر، «خروج از همه‌جا» از دستگاهِ دیگر،
+ *   تغییرِ رمز): کش پاک و کاربر به ورود برده می‌شود.
+ * - `auth.reauth_required` پنجره‌ی رمز را باز می‌کند و درخواست پس از تأیید
+ *   دوباره می‌رود.
+ * - خروج در یک تب، تب‌های دیگر را هم بیرون می‌برد؛ ورود با حسابِ دیگر در
+ *   تبِ دیگر، این تب را از نو بار می‌کند تا داده‌ی نفرِ قبلی نماند.
+ */
+onSessionEnded((reason) => void useAuthStore.getState().expire(reason))
+onReauthRequired(requestReauth)
+listenForAuthChanges((message) => {
+  if (message.type === 'logout') {
+    leaveToAuth()
+    return
+  }
+
+  const current = useAuthStore.getState().user
+  if (current && current.id !== message.userId) window.location.reload()
+})
 
 const queryClient = createQueryClient()
 
@@ -90,6 +117,7 @@ createRoot(document.getElementById('root')!).render(
         */}
           <ConnectionBanner />
           <PwaPrompts />
+          <ReauthHost />
           {DevTools && (
             <Suspense fallback={null}>
               <DevTools initialIsOpen={false} buttonPosition="bottom-left" />

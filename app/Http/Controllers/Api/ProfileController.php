@@ -12,6 +12,7 @@ use App\Models\Complex;
 use App\Models\Payment;
 use App\Models\Unit;
 use App\Models\User;
+use App\Services\Auth\SessionRegistry;
 use App\Services\Auth\TrustedDeviceService;
 use App\Support\Jalali;
 use App\Support\Phone;
@@ -28,7 +29,10 @@ use Illuminate\Validation\ValidationException;
  */
 class ProfileController extends Controller
 {
-    public function __construct(private readonly TrustedDeviceService $devices) {}
+    public function __construct(
+        private readonly TrustedDeviceService $devices,
+        private readonly SessionRegistry $sessions,
+    ) {}
 
     public function show(): JsonResponse
     {
@@ -94,10 +98,16 @@ class ProfileController extends Controller
         $this->devices->forget($request);
 
         /*
-         * شناسه‌ی نشست عوض می‌شود تا اگر کسی شناسه‌ی نشست را دزدیده باشد،
-         * با همان رمزِ عوض‌شده بیرون بیفتد. خودِ کاربر واردشده می‌ماند.
+         * 🔴 نشست‌های دیگر بسته می‌شوند و شناسه‌ی همین نشست عوض و **نابود**
+         * می‌شود (مرحلهٔ ۵ · فاز ۱۰).
+         *
+         * توضیحِ قبلیِ این‌جا می‌گفت «اگر کسی شناسه‌ی نشست را دزدیده باشد،
+         * بیرون می‌افتد» — و درست نبود. `regenerate()` بدونِ `true` ردیفِ
+         * نشستِ قبلی را در جدول واردشده نگه می‌داشت، و نشست‌های دستگاه‌های
+         * دیگر اصلاً دست نمی‌خوردند.
          */
-        $request->session()->regenerate();
+        $this->sessions->endOthers($user, $request->session()->getId());
+        $request->session()->regenerate(true);
 
         return response()->json([
             'message' => 'رمز عبور تغییر کرد. برای ورود بعدی دوباره کد پیامکی لازم است.',

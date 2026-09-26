@@ -24,6 +24,7 @@ use App\Http\Controllers\Api\PaymentReviewController;
 use App\Http\Controllers\Api\ProfileController;
 use App\Http\Controllers\Api\ResidentController;
 use App\Http\Controllers\Api\SearchController;
+use App\Http\Controllers\Api\SecurityController;
 use App\Http\Controllers\Api\ServiceRequestController;
 use App\Http\Controllers\Api\SettingController;
 use App\Http\Controllers\Api\SiteContentController;
@@ -288,6 +289,26 @@ Route::middleware('auth')->group(function () {
     Route::put('profile/password', [ProfileController::class, 'updatePassword'])
         ->middleware('throttle:password-change')->name('profile.password');
 
+    /*
+     * امنیتِ حساب: نشست‌ها، دستگاه‌ها، تاریخچه‌ی ورود، تأییدِ دوباره
+     * (مرحلهٔ ۵ · فاز ۱۰). زیرِ `profile/` تا قفلِ حالتِ اولیه هم بازشان
+     * بگذارد — حسابِ تازه هم باید بتواند نشستِ مشکوک را ببندد.
+     */
+    Route::get('profile/sessions', [SecurityController::class, 'index'])->name('profile.sessions');
+    Route::get('profile/login-history', [SecurityController::class, 'history'])->name('profile.login-history');
+    Route::get('profile/confirm-password', [SecurityController::class, 'confirmationStatus'])
+        ->name('profile.confirm-password.status');
+    Route::post('profile/confirm-password', [SecurityController::class, 'confirmPassword'])
+        ->middleware('throttle:reauth')->name('profile.confirm-password');
+    Route::middleware('reauth')->group(function () {
+        Route::delete('profile/sessions/{session}', [SecurityController::class, 'destroySession'])
+            ->name('profile.sessions.destroy');
+        Route::post('profile/sessions/end-others', [SecurityController::class, 'endOthers'])
+            ->name('profile.sessions.end-others');
+        Route::delete('profile/devices/{device}', [SecurityController::class, 'destroyDevice'])
+            ->whereNumber('device')->name('profile.devices.destroy');
+    });
+
     Route::get('subscription', [SubscriptionController::class, 'show'])->name('subscription.show');
     // خرید با واریز و آپلود رسید — تنها راه خرید تا وقتی درگاه اشتراک فعال نشده
     Route::post('subscription/receipt', [SubscriptionController::class, 'uploadReceipt'])
@@ -349,8 +370,11 @@ Route::middleware('auth')->group(function () {
             ->middleware('throttle:bills-generate')->name('bills.generate');
 
         Route::get('managers', [ManagerController::class, 'index'])->name('managers.index');
-        Route::post('managers', [ManagerController::class, 'store'])->name('managers.store');
-        Route::delete('managers/{manager}', [ManagerController::class, 'destroy'])->name('managers.destroy');
+        // 🔴 دادن و گرفتنِ نقشِ مدیر: تأییدِ دوباره‌ی رمز (مرحلهٔ ۵ · فاز ۱۰)
+        Route::post('managers', [ManagerController::class, 'store'])
+            ->middleware('reauth')->name('managers.store');
+        Route::delete('managers/{manager}', [ManagerController::class, 'destroy'])
+            ->middleware('reauth')->name('managers.destroy');
 
         Route::get('charge-rules', [ChargeRuleController::class, 'index'])->name('charge-rules.index');
         Route::post('charge-rules', [ChargeRuleController::class, 'store'])->name('charge-rules.store');
@@ -386,8 +410,9 @@ Route::middleware('auth')->group(function () {
         Route::get('backups', [BackupController::class, 'index'])->name('backups.index');
         Route::post('backups', [BackupController::class, 'store'])
             ->middleware('throttle:backups')->name('backups.store');
+        // کلِ داده‌ی مجتمع در یک فایل: تأییدِ دوباره (مرحلهٔ ۵ · فاز ۱۰)
         Route::get('backups/{backup}/download', [BackupController::class, 'download'])
-            ->name('backups.download');
+            ->middleware('reauth')->name('backups.download');
     });
 
     // --- بخش سیستم: فقط ادمین کل ---
@@ -416,14 +441,18 @@ Route::middleware('auth')->group(function () {
 
         // پایش و تحلیل: شناسه‌ها از همین‌جا یا از .env می‌آیند (پنل مقدم است)
         Route::get('observability', [ObservabilityController::class, 'show'])->name('observability.show');
-        Route::put('observability', [ObservabilityController::class, 'update'])->name('observability.update');
+        // DSNِ Sentry و شناسه‌ی GTM: مقصدِ داده و اسکریپت روی صفحه‌ها (فاز ۱۰)
+        Route::put('observability', [ObservabilityController::class, 'update'])
+            ->middleware('reauth')->name('observability.update');
         Route::get('observability/errors', [ObservabilityController::class, 'errors'])
             ->name('observability.errors');
         Route::patch('observability/errors/{errorEvent}/resolve', [ObservabilityController::class, 'resolve'])
             ->name('observability.errors.resolve');
 
         Route::get('sms', [SmsController::class, 'show'])->name('sms.show');
-        Route::put('sms', [SmsController::class, 'update'])->name('sms.update');
+        // اعتبارنامه‌ی پنلِ پیامک و خاموش‌کردنِ کدِ ورود (فاز ۱۰)
+        Route::put('sms', [SmsController::class, 'update'])
+            ->middleware('reauth')->name('sms.update');
         Route::post('sms/test', [SmsController::class, 'test'])
             ->middleware('throttle:sms-test')->name('sms.test');
 
@@ -433,8 +462,11 @@ Route::middleware('auth')->group(function () {
 
         // همه‌ی اعضای ثبت‌نام‌شده: جست‌وجو، مشاهده و تغییر نقش
         Route::get('members', [MemberController::class, 'index'])->name('members.index');
-        Route::patch('members/{user}', [MemberController::class, 'update'])->name('members.update');
-        Route::delete('members/{user}', [MemberController::class, 'destroy'])->name('members.destroy');
+        // نقش و حذفِ هر کاربرِ سامانه (فاز ۱۰)
+        Route::patch('members/{user}', [MemberController::class, 'update'])
+            ->middleware('reauth')->name('members.update');
+        Route::delete('members/{user}', [MemberController::class, 'destroy'])
+            ->middleware('reauth')->name('members.destroy');
 
         // پکیج‌های اشتراک: تعریف/ویرایش + فعال‌سازیِ دستی برای مجتمع
         Route::get('plans', [PlanController::class, 'index'])->name('plans.index');
@@ -474,10 +506,10 @@ Route::middleware('auth')->group(function () {
         Route::post('backups', [SystemBackupController::class, 'store'])
             ->middleware('throttle:backups')->name('backups.store');
         Route::get('backups/{backup}/download', [SystemBackupController::class, 'download'])
-            ->name('backups.download');
+            ->middleware('reauth')->name('backups.download');
         // مخرب‌ترین عملیات سامانه؛ حتی برای ادمین کل هم سقف داشته باشد
         Route::post('backups/restore', [SystemBackupController::class, 'restore'])
-            ->middleware('throttle:system-restore')->name('backups.restore');
+            ->middleware(['reauth', 'throttle:system-restore'])->name('backups.restore');
 
         /*
          * ⚠️ تغییرِ پرچم فقط از این مسیر ممکن است و کلید باید در
@@ -486,6 +518,8 @@ Route::middleware('auth')->group(function () {
          * ندارد.
          */
         Route::get('features', [FeatureFlagController::class, 'catalogue'])->name('features.index');
-        Route::put('features/{flag}', [FeatureFlagController::class, 'update'])->name('features.update');
+        // حالتِ تعمیر، ثبت‌نامِ عمومی و بقیه‌ی کلیدها (فاز ۱۰)
+        Route::put('features/{flag}', [FeatureFlagController::class, 'update'])
+            ->middleware('reauth')->name('features.update');
     });
 });

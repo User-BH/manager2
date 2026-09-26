@@ -24,6 +24,14 @@ class InputOutputSecurityTest extends TestCase
 {
     use RefreshDatabase;
 
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        // موضوعِ این تست خودِ عملیات است، نه نگهبانِ تأییدِ دوباره (فاز ۱۰)
+        $this->withConfirmedPassword();
+    }
+
     /* ── XSS: خروج از تگِ script ────────────────────────────────────────── */
 
     public function test_json_for_script_cannot_break_out_of_the_tag(): void
