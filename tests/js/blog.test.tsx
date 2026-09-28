@@ -7,6 +7,7 @@ import {
   toLocalInput,
 } from '@/features/system/blog/schema'
 import { ShareButton } from '@/features/landing/blog/ShareButton'
+import { HomeNavbar } from '@/features/landing/home/components/HomeNavbar'
 import { isBlogEnabled } from '@/shared/lib/viewer'
 
 /**
@@ -104,9 +105,12 @@ describe('دکمه‌ی اشتراک', () => {
 })
 
 describe('پیوندِ بلاگ در منو', () => {
-  it('فقط وقتی سرور گفته بلاگ روشن است', async () => {
-    const { HomeNavbar } = await import('@/features/landing/home/components/HomeNavbar')
-
+  /*
+   * ⚠️ import ایستا، نه `await import()` درونِ تست: بارگذاریِ پویای نوار و
+   * همه‌ی وابستگی‌هایش در زمانِ خودِ تست حساب می‌شد و زیرِ بارِ کلِ مجموعه از
+   * سقفِ ۵ ثانیه‌ی Vitest می‌گذشت (۲ از ۴ اجرا قرمز، هنگامِ کامیتِ فاز ۱۳).
+   */
+  it('فقط وقتی سرور گفته بلاگ روشن است', () => {
     const { unmount } = render(<HomeNavbar />)
     expect(isBlogEnabled()).toBe(false)
     expect(screen.queryByRole('button', { name: 'بلاگ' })).not.toBeInTheDocument()
@@ -118,8 +122,7 @@ describe('پیوندِ بلاگ در منو', () => {
     expect(screen.getByRole('button', { name: 'بلاگ' })).toBeInTheDocument()
   })
 
-  it('روی خودِ بلاگ، پیوندِ «بلاگ» نیست', async () => {
-    const { HomeNavbar } = await import('@/features/landing/home/components/HomeNavbar')
+  it('روی خودِ بلاگ، پیوندِ «بلاگ» نیست', () => {
     enableBlog()
 
     render(<HomeNavbar page="blog" />)
