@@ -11,6 +11,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 
 /**
+ * @property int|null $conversation_id
+ * @property string|null $client_id
  * @property MessageAudience $audience
  * @property int|null $unit_id
  * @property string|null $attachment_path
@@ -22,7 +24,7 @@ class Message extends Model
     use BelongsToComplex;
 
     protected $fillable = [
-        'complex_id', 'user_id', 'body', 'audience', 'unit_id',
+        'complex_id', 'conversation_id', 'user_id', 'client_id', 'body', 'audience', 'unit_id',
         'attachment_path', 'attachment_name', 'attachment_kind',
         'author_name', 'author_role', 'unit_label',
         'is_hidden', 'hidden_by',
@@ -78,18 +80,22 @@ class Message extends Model
     }
 
     /**
-     * پیام‌هایی که این کاربر حق دیدنشان را دارد (R23).
+     * پیام‌هایی که این کاربر حق دیدنشان را دارد (R23؛ گفت‌وگومحور از مرحلهٔ ۶ ·
+     * فاز ۱۲).
      *
      * ─── چرا اینجا و نه در کنترلر ──────────────────────────────────────────
-     * این تنها جایی است که تصمیم می‌گیرد چه کسی چه پیامی را می‌بیند. اگر در
-     * کنترلر می‌ماند، هر مسیرِ تازه‌ای که روزی پیام‌ها را بخواند (جست‌وجو،
-     * خروجی، اعلان) باید همین شرط را دوباره و درست می‌نوشت — و یکی‌شان
-     * نمی‌نوشت.
+     * این تنها جایی است که تصمیم می‌گیرد چه کسی چه پیامی را می‌بیند؛ داشبورد،
+     * جست‌وجو، زنگوله و نظرسنجی همه از همین می‌گذرند.
      *
-     * مدیر همه‌ی مجتمعِ خودش را می‌بیند. ساکن سه چیز می‌بیند:
-     *   ۱. پیام‌های عمومی
-     *   ۲. رشته‌ی گفت‌وگوی واحدهای خودش با مدیریت
-     *   ۳. پیام‌هایی که مدیر مشخصاً به واحدهای او فرستاده
+     * ─── دو شاخه، در دوره‌ی گذار ────────────────────────────────────────────
+     * پیامِ دارای گفت‌وگو: همان قاعده‌ی `Conversation::visibleTo`. پیامی که هنوز
+     * گفت‌وگو ندارد (کدِ قدیمی در فاصله‌ی استقرار نوشته، پیش از
+     * `messenger:backfill-conversations`): قاعده‌ی مخاطب‌محورِ قبلی. شاخه‌ی دوم
+     * با گامِ Contract حذف می‌شود.
+     *
+     * 🔴 در هر دو شاخه فقط واحدهای **فعلی**. پیش از این `units()` بود و
+     * مستأجرِ رفته رشته‌ی خصوصیِ واحدِ قبلی‌اش با مدیریت را — با پیام‌های
+     * مستأجرِ تازه — می‌خواند.
      *
      * @param  Builder<Message>  $query
      */
@@ -99,30 +105,38 @@ class Message extends Model
             return;
         }
 
-        $unitIds = $user->units()->pluck('units.id')->all();
+        $unitIds = $user->currentUnits()->pluck('units.id')->all();
 
-        $query->where(function (Builder $inner) use ($unitIds, $user): void {
-            $inner->where('audience', MessageAudience::All->value);
+        $query->where(function (Builder $outer) use ($user, $unitIds): void {
+            $outer->where(fn (Builder $q) => $q
+                ->whereNotNull('conversation_id')
+                ->whereIn('conversation_id', Conversation::query()->visibleTo($user)->select('id')));
 
-            /*
-             * هرکس پیامِ **خودش** را می‌بیند، حتی اگر به هیچ واحدی وصل نباشد.
-             * بدونِ این، ساکنِ بدونِ واحد پیام می‌فرستاد و بلافاصله ناپدید
-             * می‌شد — از دیدِ خودش انگار اصلاً ارسال نشده.
-             */
-            $inner->orWhere('user_id', $user->id);
+            $outer->orWhere(function (Builder $legacy) use ($user, $unitIds): void {
+                $legacy->whereNull('conversation_id')->where(function (Builder $inner) use ($user, $unitIds): void {
+                    $inner->where('audience', MessageAudience::All->value)
+                        ->orWhere('user_id', $user->id);
 
-            if ($unitIds === []) {
-                return;
-            }
+                    if ($unitIds === []) {
+                        return;
+                    }
 
-            $inner
-                ->orWhere(fn (Builder $q) => $q
-                    ->where('audience', MessageAudience::Management->value)
-                    ->whereIn('unit_id', $unitIds))
-                ->orWhere(fn (Builder $q) => $q
-                    ->where('audience', MessageAudience::Units->value)
-                    ->whereHas('recipientUnits', fn ($r) => $r->whereIn('units.id', $unitIds)));
+                    $inner
+                        ->orWhere(fn (Builder $q) => $q
+                            ->where('audience', MessageAudience::Management->value)
+                            ->whereIn('unit_id', $unitIds))
+                        ->orWhere(fn (Builder $q) => $q
+                            ->where('audience', MessageAudience::Units->value)
+                            ->whereHas('recipientUnits', fn ($r) => $r->whereIn('units.id', $unitIds)));
+                });
+            });
         });
+    }
+
+    /** @return BelongsTo<Conversation, $this> */
+    public function conversation(): BelongsTo
+    {
+        return $this->belongsTo(Conversation::class);
     }
 
     /** @return BelongsTo<User, $this> */

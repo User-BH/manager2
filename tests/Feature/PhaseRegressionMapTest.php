@@ -331,6 +331,44 @@ class PhaseRegressionMapTest extends TestCase
             'ویرایشِ مقاله از پشتِ کش بلافاصله دیده می‌شود' => [
                 'BlogTest', 'test_an_edit_is_visible_immediately_despite_the_cache', '۶',
             ],
+
+            /* ── مرحلهٔ ۶، فاز ۱۲: پیام‌رسانِ گفت‌وگومحور ──────────────────── */
+            'مستأجرِ رفته رشته‌ی واحدِ قبلی را نمی‌بیند' => [
+                'MessengerConversationTest', 'test_a_former_tenant_loses_the_old_units_thread', '۶',
+            ],
+            'رشته‌ی خصوصیِ واحدِ دیگر بسته است' => [
+                'MessengerConversationTest', 'test_a_resident_cannot_reach_another_units_private_thread', '۶',
+            ],
+            'ساکن در کانالِ مجتمع نمی‌نویسد' => [
+                'MessengerConversationTest', 'test_a_resident_cannot_post_to_the_channel', '۶',
+            ],
+            'ارسالِ دوباره پیامِ تکراری نمی‌سازد' => [
+                'MessengerConversationTest', 'test_a_retried_send_does_not_duplicate', '۶',
+            ],
+            'client_idِ مصرف‌شده چیزی لو نمی‌دهد' => [
+                'MessengerConversationTest', 'test_a_reused_client_id_elsewhere_reveals_nothing', '۶',
+            ],
+            'متنِ پیامِ پنهان به ساکن نمی‌رسد' => [
+                'MessengerConversationTest', 'test_a_hidden_message_body_never_reaches_residents', '۶',
+            ],
+            'عضویت و حقِ نوشتنِ گروه' => [
+                'MessengerConversationTest', 'test_group_membership_and_posting_rights_are_enforced', '۶',
+            ],
+            'فیلدهای جعلی در بدنه‌ی پیام نادیده‌اند' => [
+                'MessengerConversationTest', 'test_forged_fields_in_the_payload_are_ignored', '۶',
+            ],
+            'رسیدِ خواندن از گفت‌وگو بیرون نمی‌زند' => [
+                'MessengerConversationTest', 'test_read_receipts_never_leak_across_conversations', '۶',
+            ],
+            'پیامِ منتظرِ انتقال همان حریم را دارد' => [
+                'MessengerConversationTest', 'test_a_message_still_awaiting_backfill_keeps_the_same_privacy', '۶',
+            ],
+            'خواندنِ خودِ نویسنده «خوانده شد» نیست' => [
+                'MessengerConversationTest', 'test_reading_your_own_message_does_not_mark_it_read', '۶',
+            ],
+            'مهاجرت همه‌ی پیام‌های قبلی را نگه می‌دارد' => [
+                'MessengerConversationTest', 'test_the_backfill_preserves_every_existing_message', '۶',
+            ],
         ];
     }
 
@@ -419,10 +457,11 @@ class PhaseRegressionMapTest extends TestCase
             'browserCompat' => ['۸', 'وقتی هیچ راهی نیست'],
             'sessionLifecycle' => ['۱۰', 'پیامِ کانالِ بینِ تب‌ها'],
             'blog' => ['۱۱', 'شکستِ کپی را هم می‌گوید'],
+            'messengerThread' => ['۱۲', 'دوباره همان client_id'],
         ];
 
         // 🔴 مثلِ ردیف‌های PHP، این فهرست هم فقط بزرگ می‌شود (خرابکاریِ فاز ۸)
-        $this->assertGreaterThanOrEqual(13, count($guards), 'محافظی از فهرستِ JS حذف شده.');
+        $this->assertGreaterThanOrEqual(14, count($guards), 'محافظی از فهرستِ JS حذف شده.');
 
         foreach ($guards as $file => [$phase, $marker]) {
             $path = base_path("tests/js/{$file}.test.".(file_exists(base_path("tests/js/{$file}.test.tsx")) ? 'tsx' : 'ts'));
@@ -449,7 +488,7 @@ class PhaseRegressionMapTest extends TestCase
     public function test_the_map_never_shrinks(): void
     {
         $this->assertGreaterThanOrEqual(
-            88,
+            100,
             count(self::fixes()),
             'ردیفی از نقشهٔ رگرسیون حذف شده؛ یعنی اصلاحی محافظش را از دست داده.',
         );

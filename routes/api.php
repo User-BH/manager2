@@ -7,6 +7,7 @@ use App\Http\Controllers\Api\BackupController;
 use App\Http\Controllers\Api\BillController;
 use App\Http\Controllers\Api\ChargeRuleController;
 use App\Http\Controllers\Api\ClientErrorController;
+use App\Http\Controllers\Api\ConversationController;
 use App\Http\Controllers\Api\DashboardController;
 use App\Http\Controllers\Api\DiscountController;
 use App\Http\Controllers\Api\DocumentController;
@@ -153,6 +154,24 @@ Route::middleware('auth')->group(function () {
         ->middleware(['throttle:messenger-send', 'feature:messenger'])->name('messenger.store');
     Route::patch('messenger/{message}/toggle-hide', [MessengerController::class, 'toggleHide'])
         ->name('messenger.toggle-hide');
+
+    /*
+     * پیام‌رسانِ گفت‌وگومحور (مرحلهٔ ۶ · فاز ۱۲). دو مسیرِ بالا (`GET/POST
+     * messenger`) فقط برای تب‌های بازِ نسخه‌ی قبل می‌مانند و با گامِ Contract
+     * حذف می‌شوند (`API_COMPATIBILITY.md`). سقفِ نرخِ همان‌هاست.
+     */
+    Route::middleware('feature:messenger')->group(function () {
+        Route::get('messenger/conversations', [ConversationController::class, 'index'])
+            ->middleware('throttle:messenger')->name('messenger.conversations.index');
+        Route::post('messenger/conversations', [ConversationController::class, 'store'])
+            ->middleware('throttle:messenger-send')->name('messenger.conversations.store');
+        Route::get('messenger/conversations/{conversation}/messages', [ConversationController::class, 'messages'])
+            ->middleware('throttle:messenger')->name('messenger.conversations.messages');
+        Route::post('messenger/conversations/{conversation}/messages', [ConversationController::class, 'send'])
+            ->middleware('throttle:messenger-send')->name('messenger.conversations.send');
+        Route::post('messenger/conversations/{conversation}/read', [ConversationController::class, 'read'])
+            ->middleware('throttle:messenger')->name('messenger.conversations.read');
+    });
 
     /*
      * پیوست، رسیدِ خواندن و رأیِ نظرسنجی (R23b).

@@ -87,8 +87,18 @@ class MessageModerationTest extends TestCase
         $response->assertJsonPath('messages.0.isHidden', true)
             ->assertJsonPath('messages.0.body', null);
 
-        // و متن هیچ‌جای پاسخ پیدا نمی‌شود، حتی در فیلدی دیگر
-        $response->assertDontSee('متن حساسی که باید پنهان شود');
+        /*
+         * و متن هیچ‌جای پاسخ پیدا نمی‌شود، حتی در فیلدی دیگر.
+         *
+         * ⚠️ پیش از مرحلهٔ ۶ · فاز ۱۲ این `assertDontSee` بود و **پوچ**: پاسخِ
+         * JSON فارسی را با گریزِ یونیکد می‌نویسد و متنِ فارسی هرگز در آن «دیده»
+         * نمی‌شد — تست با نشتِ واقعی هم سبز می‌ماند. متنِ رمزگشایی‌شده سنجیده
+         * می‌شود.
+         */
+        $this->assertStringNotContainsString(
+            'متن حساسی که باید پنهان شود',
+            (string) json_encode($response->json(), JSON_UNESCAPED_UNICODE),
+        );
     }
 
     public function test_an_admin_still_sees_the_text_so_they_can_undo(): void

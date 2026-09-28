@@ -112,6 +112,12 @@ export const queryKeys = {
     all: () => ['subscription'] as const,
   },
 
+  // ── پیام‌رسان (فاز ۱۲) ────────────────────────────────────────────────────
+  messenger: {
+    all: () => ['messenger'] as const,
+    conversations: () => ['messenger', 'conversations'] as const,
+  },
+
   // ── بلاگ (فاز ۱۱) ────────────────────────────────────────────────────────
   blog: {
     all: () => ['blog'] as const,

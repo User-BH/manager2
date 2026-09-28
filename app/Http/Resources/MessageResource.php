@@ -46,13 +46,14 @@ class MessageResource extends JsonResource
 
         $hidden = (bool) $message->is_hidden;
         $mayReadHidden = $this->viewer->isAdmin();
+        $isMine = $message->user_id === $this->viewer->id;
 
         return [
             'id' => $message->id,
             'body' => $hidden && ! $mayReadHidden ? null : $message->body,
             'authorName' => $message->author_name,
             'unitLabel' => $message->unit_label,
-            'isMine' => $message->user_id === $this->viewer->id,
+            'isMine' => $isMine,
             'isHidden' => $hidden,
             'sentAt' => Jalali::dateTime($message->created_at),
 
@@ -77,6 +78,21 @@ class MessageResource extends JsonResource
              * پیامِ گروهی بفهمد چند همسایه‌ی دیگر آن را باز کرده‌اند.
              */
             'readCount' => $this->viewer->isAdmin() ? $message->readers->count() : null,
+
+            /*
+             * گفت‌وگو و وضعیتِ تحویل (مرحلهٔ ۶ · فاز ۱۲) — افزوده، پس کلاینتِ قدیم
+             * نمی‌شکند.
+             *
+             * `clientId` فقط برای پیامِ خودِ بیننده: کلاینت با آن نسخه‌ی
+             * خوش‌بینانه‌اش را با پاسخِ سرور یکی می‌کند. `status` هم فقط برای
+             * پیامِ خود: «خوانده شد» یعنی **کسِ دیگری** رسیدِ خواندن زده — بی‌آنکه
+             * بگوید چه کسی یا چند نفر (آن فقط `readCount`ِ مدیر است).
+             */
+            'conversationId' => $message->conversation_id,
+            'clientId' => $isMine ? $message->client_id : null,
+            'status' => $isMine
+                ? ($message->readers->contains(fn ($reader) => $reader->id !== $message->user_id) ? 'read' : 'sent')
+                : null,
 
             'poll' => $this->poll($message),
         ];

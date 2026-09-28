@@ -12,6 +12,7 @@ use App\Models\Announcement;
 use App\Models\Bill;
 use App\Models\ChargeRule;
 use App\Models\Complex;
+use App\Models\Conversation;
 use App\Models\Discount;
 use App\Models\Expense;
 use App\Models\Income;
@@ -147,6 +148,10 @@ class TenantIsolationTest extends TestCase
                 'title' => 'خرابیِ آسانسور', 'description' => 'شرح',
                 'attachment_path' => 'service-requests/x.jpg', 'attachment_name' => 'x.jpg',
             ]),
+            // گفت‌وگوی خصوصیِ واحد با مدیریت (مرحلهٔ ۶ · فاز ۱۲)
+            'conversation' => Conversation::withoutGlobalScopes()->create([
+                'complex_id' => $complex->id, 'type' => 'unit', 'key' => 'unit:'.$unit->id, 'unit_id' => $unit->id,
+            ]),
             'message' => Message::withoutGlobalScopes()->create([
                 'complex_id' => $complex->id, 'user_id' => $resident->id, 'body' => 'پیام',
                 'author_name' => 'ساکن', 'author_role' => 'owner', 'unit_label' => '۱',
@@ -217,6 +222,10 @@ class TenantIsolationTest extends TestCase
             // 🔴 پرداختِ قبضِ مجتمعِ دیگر از کیفِ پول
             'پرداختِ قبضِ دیگری از کیف' => ['POST', 'wallet/pay/%d', 'bill', []],
             'پیوستِ پیامِ مجتمعِ دیگر' => ['GET', 'messenger/%d/attachment', 'message', []],
+            // پیام‌رسانِ گفت‌وگومحور (مرحلهٔ ۶ · فاز ۱۲)
+            'خواندنِ گفت‌وگوی مجتمعِ دیگر' => ['GET', 'messenger/conversations/%d/messages', 'conversation', []],
+            'نوشتن در گفت‌وگوی مجتمعِ دیگر' => ['POST', 'messenger/conversations/%d/messages', 'conversation', ['body' => 'نفوذ']],
+            'رسیدِ خواندن در گفت‌وگوی مجتمعِ دیگر' => ['POST', 'messenger/conversations/%d/read', 'conversation', ['up_to' => 1]],
             'خواندنِ اطلاعیهٔ دیگری' => ['POST', 'notifications/%d/read', 'announcement', []],
         ];
     }

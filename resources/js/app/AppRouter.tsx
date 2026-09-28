@@ -221,6 +221,7 @@ export function AppRouter() {
             <Route path="/dashboard" element={<DashboardPage />} />
             <Route path="/announcements" element={<AnnouncementsPage />} />
             <Route path="/messenger" element={<MessengerPage />} />
+            <Route path="/messenger/:id" element={<MessengerPage />} />
 
             {/* درخواست‌ها زیر روت مشترک است: ساکن ثبت می‌کند، مسئول پیگیری
                 می‌کند و مدیر واگذار — همه در یک صفحه با دامنه‌ی دیدِ متفاوت. */}

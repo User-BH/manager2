@@ -618,6 +618,9 @@ class AuthorizationAttackTest extends TestCase
         'app/Services/Payment/PaymentService.php' => [5, 'بازخوانی داخلِ قفل، روی رکوردِ ازپیش‌مجازشده'],
         'app/Services/Payment/TrackingCodes.php' => [2, 'کدِ رهگیریِ بانک در همه‌ی مجتمع‌ها یکتاست؛ فقط exists، هیچ داده‌ای برنمی‌گرداند (فاز ۹)'],
         'app/Services/Wallet/WalletService.php' => [4, 'همان الگو، روی کیفِ پول'],
+        // پیام‌رسانِ گفت‌وگومحور (مرحلهٔ ۶ · فاز ۱۲)
+        'app/Services/Messenger/ConversationDirectory.php' => [1, 'یافتنِ گفت‌وگو با مجتمعِ صریح و کلیدِ یکتا، پس از خطای یکتاییِ ساختِ هم‌زمان'],
+        'app/Services/Messenger/MessageSender.php' => [2, 'پیامِ پیشینِ همان کاربر با همان client_id، و جلو بردنِ آخرین پیامِ گفت‌وگویی که از قبل مجاز شده'],
         'app/Services/Charge/BillGenerator.php' => [4, 'تولیدِ قبض با مجتمعِ صریح در پارامتر'],
 
         // ── شمارشِ سهمیه با مجتمعِ صریح ──

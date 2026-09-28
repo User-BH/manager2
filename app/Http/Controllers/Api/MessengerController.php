@@ -3,8 +3,6 @@
 namespace App\Http\Controllers\Api;
 
 use App\Enums\MessageAudience;
-use App\Enums\PollVoterScope;
-use App\Enums\PollWeightMode;
 use App\Exceptions\DomainException;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreMessageRequest;
@@ -16,14 +14,14 @@ use App\Models\MessageRead;
 use App\Models\PollOption;
 use App\Models\Unit;
 use App\Models\User;
+use App\Services\Messenger\ConversationDirectory;
+use App\Services\Messenger\MessageSender;
 use App\Services\Poll\PollService;
 use App\Support\Notifications;
 use App\Support\Uploads;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\DB;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 /**
@@ -109,106 +107,42 @@ class MessengerController extends Controller
         ]);
     }
 
-    public function store(StoreMessageRequest $request): JsonResponse
+    /**
+     * ارسال از API قدیم (پیش از فاز ۱۲) — ⚠️ فقط برای تب‌های بازی که هنوز
+     * جاوااسکریپتِ قبل را دارند (`API_COMPATIBILITY.md`). با گامِ Contract حذف
+     * می‌شود.
+     *
+     * مخاطبِ قدیم به گفت‌وگوی متناظرش نگاشت می‌شود و نوشتن از همان
+     * `MessageSender`ِ API تازه می‌گذرد؛ پس پیامِ نسخه‌ی قدیم هم گفت‌وگو دارد و
+     * در رابطِ تازه دیده می‌شود.
+     */
+    public function store(StoreMessageRequest $request, ConversationDirectory $directory, MessageSender $sender): JsonResponse
     {
         $user = Auth::user();
-        $complex = $this->messengerComplex();
 
         // همان پیش‌نیاز، ولی با کدِ ماشین‌خوان تا فرانت انتخابگرِ مجتمع را باز کند
         $complex = $this->requireComplex();
 
-        if (! $complex->messenger_enabled || ! $user->can_message) {
-            abort(403, 'امکان ارسال پیام برای شما فعال نیست.');
-        }
-
         $data = $request->validated();
-
         $audience = $this->resolveAudience($user, $data);
 
-        /*
-         * پیامِ ساکن به رشته‌ی **واحدِ خودش** بسته می‌شود، نه به خودش.
-         * بقیه‌ی سامانه هم واحد-محور است و مالک/مستاجرِ یک واحد باید یک
-         * گفت‌وگوی مشترک با مدیریت داشته باشند، نه دو رشته‌ی جدا که مدیر
-         * باید حدس بزند کدام را جواب بدهد.
-         *
-         * ⚠️ ساکنی که هنوز واحدی به او تخصیص نیافته `null` می‌گیرد و **باز
-         * هم می‌تواند پیام بدهد**. اول جلویش گرفته شده بود، ولی تستِ موجودِ
-         * R21 نشان داد کسی که با پذیرشِ دعوت عضو شده و هنوز واحد نگرفته،
-         * اصلاً نمی‌تواند با مدیریت حرف بزند — یعنی همان کسی که بیشتر از همه
-         * به تماس با مدیر نیاز دارد. پیامش به مدیریت می‌رسد و رشته‌ی واحد
-         * ندارد.
-         */
-        $senderUnitId = $audience === MessageAudience::Management
-            ? $user->units()->value('units.id')
-            : null;
-
-        $attachment = $request->file('attachment');
-
-        $write = function (?string $path) use ($complex, $user, $data, $audience, $senderUnitId, $attachment, $request) {
-            $message = Message::create([
-                'complex_id' => $complex->id,
-                'user_id' => $user->id,
-                'body' => $data['body'] ?? '',
-                'audience' => $audience,
-                'unit_id' => $senderUnitId,
-                'attachment_path' => $path,
-                'attachment_name' => $attachment ? Uploads::safeOriginalName($attachment) : null,
-                'attachment_kind' => $attachment ? $this->attachmentKind($attachment) : null,
-                'author_name' => $user->name,
-                'author_role' => $user->role->value,
-                'unit_label' => $this->unitLabel($user),
-            ]);
-
-            /*
-             * نظرسنجی خودش پیام است (R23b) — پس مخاطب‌دهی، مخفی‌کردن و رسیدِ
-             * خواندنش همان مسیرِ پیام را می‌رود و دوباره نوشته نمی‌شود.
-             */
-            if ($request->filled('poll_question') && $user->role->isAdmin()) {
-                $poll = $message->poll()->create([
-                    'question' => $request->string('poll_question')->trim()->value(),
-                    'voter_scope' => $request->input('poll_voter_scope', PollVoterScope::Residents->value),
-                    'weight_mode' => $request->input('poll_weight_mode', PollWeightMode::PerPerson->value),
-                    'quorum_percent' => $request->input('poll_quorum_percent'),
-                    'allow_change' => $request->boolean('poll_allow_change', true),
-                    'closes_at' => $request->input('poll_closes_at'),
-                ]);
-
-                foreach (array_values($request->input('poll_options', [])) as $index => $label) {
-                    $poll->options()->create([
-                        'label' => (string) $label,
-                        'sort_order' => $index,
-                    ]);
-                }
-            }
-
-            return $message;
+        $conversation = match ($audience) {
+            MessageAudience::All => $directory->channel($complex),
+            MessageAudience::Units => $directory->groupForUnits(
+                $complex,
+                // دامنه‌ی مستأجر: واحدِ مجتمعِ دیگر اینجا پیدا نمی‌شود
+                Unit::whereIn('id', $data['unit_ids'])->pluck('id')->map(fn ($id) => (int) $id)->all(),
+                $user,
+            ),
+            // ساکن: رشته‌ی واحدِ فعلی‌اش؛ مدیرِ «به مدیریت»: رشته‌ی خودش با مدیریت
+            MessageAudience::Management => $user->role->isAdmin()
+                ? $directory->userThread($complex, $user)
+                : $directory->ownThreads($complex, $user)->first(),
         };
 
-        $message = DB::transaction(function () use ($write, $attachment, $audience, $data, $complex) {
-            /*
-             * `keepIf` تضمین می‌کند فایلِ پیوست بدونِ پیامِ متناظر روی دیسک
-             * نماند (درسِ R19). دیسک خصوصی است و پیوست فقط از مسیرِ
-             * کنترل‌شده سرو می‌شود — پیوستِ یک گفت‌وگوی خصوصی نباید مستقیم
-             * از public خوانده شود.
-             */
-            $message = $attachment
-                ? Uploads::keepIf($attachment, 'messages/'.$complex->id, $write)
-                : $write(null);
+        [$message] = $sender->send($complex, $conversation, $user, $data, $request->file('attachment'));
 
-            if ($audience === MessageAudience::Units) {
-                /*
-                 * شناسه‌ها از `Unit` خوانده می‌شوند که دامنه‌ی مستأجر دارد،
-                 * پس واحدِ مجتمعِ دیگری حتی اگر در درخواست بیاید، اینجا پیدا
-                 * نمی‌شود و ضمیمه نمی‌گردد.
-                 */
-                $units = Unit::whereIn('id', $data['unit_ids'])->pluck('id');
-                $message->recipientUnits()->sync($units);
-            }
-
-            return $message;
-        }, attempts: 3);
-
-        return response()->json(['message' => $this->present($message, $user)], 201);
+        return response()->json(['message' => $this->present($message->fresh(['recipientUnits', 'readers', 'poll.options', 'poll.votes']), $user)], 201);
     }
 
     /**
@@ -343,12 +277,6 @@ class MessengerController extends Controller
         return Uploads::serve($message->attachment_path);
     }
 
-    /** `image` درون‌خطی نشان داده می‌شود؛ بقیه دانلود می‌شوند. */
-    private function attachmentKind(UploadedFile $file): string
-    {
-        return str_starts_with((string) $file->getMimeType(), 'image/') ? 'image' : 'file';
-    }
-
     /** مخفی/آشکار کردن پیام توسط مدیر. */
     public function toggleHide(Message $message): JsonResponse
     {
@@ -394,14 +322,5 @@ class MessengerController extends Controller
         return $user->isSuperAdmin()
             ? (session('active_complex_id') ? Complex::find(session('active_complex_id')) : null)
             : $user->complex;
-    }
-
-    private function unitLabel(User $user): string
-    {
-        if ($user->isAdmin()) {
-            return 'مدیریت';
-        }
-
-        return $user->currentUnits()->first()?->label() ?? '-';
     }
 }

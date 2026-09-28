@@ -56,7 +56,7 @@ class CrossDocumentFactsTest extends TestCase
     {
         $sources = [
             'resources/js/shared/stores/notificationStore.ts' => '/const POLL_MS = ([0-9_]+)/',
-            'resources/js/features/messaging/messenger/MessengerPage.tsx' => '/const POLL_INTERVAL = ([0-9_]+)/',
+            'resources/js/features/messaging/messenger/ConversationThread.tsx' => '/const POLL_INTERVAL = ([0-9_]+)/',
             'resources/js/features/settings/ComplexBackupPage.tsx' => "/'pending'\\) \\? ([0-9_]+)/",
         ];
 

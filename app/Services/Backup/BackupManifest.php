@@ -58,6 +58,9 @@ final class BackupManifest
         'discounts',
         'announcements',
         'announcement_reads',
+        // گفت‌وگو پیش از پیام: پیام به آن اشاره می‌کند (مرحلهٔ ۶ · فاز ۱۲)
+        'conversations',
+        'conversation_units',
         'messages',
         'message_units',
         'message_reads',

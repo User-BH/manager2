@@ -86,7 +86,7 @@ class DocumentedNumbersTest extends TestCase
     public static function pollingSources(): iterable
     {
         yield 'زنگولهٔ اعلان' => ['resources/js/shared/stores/notificationStore.ts', 'POLL_MS', 60_000];
-        yield 'پیام‌رسان' => ['resources/js/features/messaging/messenger/MessengerPage.tsx', 'POLL_INTERVAL', 8_000];
+        yield 'پیام‌رسان' => ['resources/js/features/messaging/messenger/ConversationThread.tsx', 'POLL_INTERVAL', 8_000];
     }
 
     public function test_the_polling_intervals_match_the_code(): void
