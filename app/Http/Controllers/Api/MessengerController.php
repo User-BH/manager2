@@ -15,6 +15,7 @@ use App\Models\PollOption;
 use App\Models\Unit;
 use App\Models\User;
 use App\Services\Messenger\ConversationDirectory;
+use App\Services\Messenger\MessageActions;
 use App\Services\Messenger\MessageSender;
 use App\Services\Poll\PollService;
 use App\Support\Notifications;
@@ -55,7 +56,7 @@ class MessengerController extends Controller
          * می‌بیند (R23). پیش از این پیام‌رسان یک کانالِ واحد بود و هر پیام
          * به همه می‌رسید.
          */
-        $base = Message::where('complex_id', $complex->id)->visibleTo($user)->with(['recipientUnits:id,unit_number', 'readers:id', 'poll.options', 'poll.votes']);
+        $base = Message::where('complex_id', $complex->id)->visibleTo($user)->with(MessageResource::RELATIONS);
         $total = (clone $base)->count();
 
         if ($since = $request->integer('since')) {
@@ -287,6 +288,9 @@ class MessengerController extends Controller
             'is_hidden' => ! $message->is_hidden,
             'hidden_by' => $user->id,
         ]);
+
+        // نقلِ این پیام در پاسخ‌ها هم باید با پنهان‌شدنش عوض شود (فاز ۱۴)
+        app(MessageActions::class)->touchReplies($message->id);
 
         return response()->json(['message' => $this->present($message->fresh(), $user)]);
     }

@@ -1,33 +1,16 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { useForm } from 'react-hook-form'
-import { zodResolver } from '@hookform/resolvers/zod'
 import { useQueryClient } from '@tanstack/react-query'
-import {
-  AlertCircle,
-  BarChart3,
-  Check,
-  CheckCheck,
-  Clock,
-  Eye,
-  EyeOff,
-  FileText,
-  Loader2,
-  Lock,
-  Paperclip,
-  RotateCcw,
-  Send,
-  X,
-} from 'lucide-react'
-import { z } from 'zod'
+import { Loader2, Lock, Pin, Search } from 'lucide-react'
 import { ErrorState, InlineSpinner } from '@/shared/ui/PageState'
-import { PollCard } from '@/shared/ui/PollCard'
 import { api, ApiError } from '@/shared/lib/api'
-import { alertError, toastSuccess } from '@/shared/lib/alert'
+import { alertError, confirmAction, promptText, toastSuccess } from '@/shared/lib/alert'
 import { cn } from '@/shared/lib/cn'
 import { queryKeys } from '@/shared/lib/queryKeys'
 import { useAuth } from '@/shared/stores/authStore'
-import { EmojiPicker } from './EmojiPicker'
-import { PollComposer, emptyPoll, type PollDraft } from './PollComposer'
+import { Composer, type ComposeTarget, type OutgoingDraft } from './Composer'
+import { MessageBubble, type BubbleHandlers } from './MessageBubble'
+import { messageActions } from './messageActions'
+import { ThreadSearch } from './ThreadSearch'
 import {
   applyReadUpTo,
   markFailed,
@@ -37,34 +20,32 @@ import {
   newestId,
   removeByClientId,
 } from './threadState'
-import type { ChatMessage, ConversationSummary, DeliveryStatus, MessagesResponse } from './types'
+import type { ChatMessage, ConversationSummary, MessagesResponse } from './types'
 
-/** همان قیدِ سرور؛ اینجا فقط تا کاربر پیش از آپلود بفهمد. */
-const MAX_ATTACHMENT_BYTES = 4 * 1024 * 1024
-const ACCEPTED_TYPES = '.jpg,.jpeg,.png,.webp,.pdf'
 const POLL_INTERVAL = 8000
 
-const messageSchema = z.object({ body: z.string().max(1000, 'پیام بیش از حد طولانی است') })
-type MessageFormValues = z.infer<typeof messageSchema>
+/** هم‌پوشانیِ `changed_after`: ساعتِ سرور ثانیه‌ای است و تغییرِ همان ثانیه نباید جا بماند. */
+const CHANGE_OVERLAP_SECONDS = 2
 
-/** همان داده‌ای که فرستاده شد، تا «دوباره» عیناً همان را — با همان شناسه — بفرستد. */
-interface Outgoing {
-  body: string
-  attachment: File | null
-  poll: PollDraft | null
+interface ThreadInfo {
+  conversation: ConversationSummary | null
+  canSend: boolean
+  isAdmin: boolean
+  pinned: ChatMessage | null
 }
 
 /**
- * یک گفت‌وگو (مرحلهٔ ۶ · فاز ۱۲).
+ * یک گفت‌وگو (مرحلهٔ ۶ · فاز ۱۲ و ۱۴).
  *
  * ─── بی‌درنگ نیست (تصمیمِ ۲) ────────────────────────────────────────────────
- * پیامِ تازه با پرسشِ دوره‌ای (`since`) می‌رسد — فقط وقتی تب دیده می‌شود.
+ * پیامِ تازه با پرسشِ دوره‌ای (`since`) می‌رسد — فقط وقتی تب دیده می‌شود. همان
+ * پرسش ویرایش، حذف، واکنش و پنهان‌شدنِ پیام‌های از قبل رسیده را هم می‌آورد
+ * (`changed_after`، فاز ۱۴).
  *
  * ─── تاریخچه ─────────────────────────────────────────────────────────────
  * صفحه‌ی آخر اول می‌آید و قدیمی‌تر با نشانگر، بی‌آنکه جای اسکرول بپرد. کلِ
  * تاریخچه هرگز یک‌جا بار نمی‌شود، و ردیف‌های بیرون از قاب با
- * `content-visibility: auto` رندر نمی‌شوند (`.chat-row` در CSS) — مجازی‌سازیِ
- * بی‌کتابخانه برای ردیف‌های هم‌ارتفاع‌نبودنِ گفت‌وگو.
+ * `content-visibility: auto` رندر نمی‌شوند (`.chat-row` در CSS).
  *
  * ─── تحویل ───────────────────────────────────────────────────────────────
  * ارسال خوش‌بینانه است و `client_id` دارد: پیامِ ناموفق با متنش می‌ماند و
@@ -76,41 +57,38 @@ export function ConversationThread({ conversationId }: { conversationId: number 
   const queryClient = useQueryClient()
 
   const [messages, setMessages] = useState<ChatMessage[]>([])
-  const [conversation, setConversation] = useState<ConversationSummary | null>(null)
-  const [meta, setMeta] = useState({ canSend: false, isAdmin: false })
+  const [info, setInfo] = useState<ThreadInfo>({
+    conversation: null,
+    canSend: false,
+    isAdmin: false,
+    pinned: null,
+  })
   const [older, setOlder] = useState<{ has: boolean; cursor: number | null; loading: boolean }>({
     has: false,
     cursor: null,
     loading: false,
   })
-  const [isLoading, setIsLoading] = useState(true)
-  const [loadError, setLoadError] = useState<unknown>(null)
+  const [load, setLoad] = useState<{ loading: boolean; error: unknown }>({
+    loading: true,
+    error: null,
+  })
   const [notice, setNotice] = useState<string | null>(null)
-  const [attachment, setAttachment] = useState<File | null>(null)
-  const [pollDraft, setPollDraft] = useState<PollDraft | null>(null)
+  const [compose, setCompose] = useState<ComposeTarget>(null)
+  // یک منوی باز در هر لحظه، و جعبه‌ی جست‌وجو
+  const [ui, setUi] = useState<{ menu: number | null; search: boolean }>({
+    menu: null,
+    search: false,
+  })
 
   const listRef = useRef<HTMLDivElement>(null)
-  const fileInputRef = useRef<HTMLInputElement>(null)
-  const textareaRef = useRef<HTMLTextAreaElement | null>(null)
-  const outgoingRef = useRef(new Map<string, Outgoing>())
+  const outgoingRef = useRef(new Map<string, OutgoingDraft>())
   const readUpToRef = useRef(0)
+  const serverTimeRef = useRef(0)
   // آخرین فهرست برای تایمر، بی‌آنکه هر پیام تایمر را از نو بسازد
   const messagesRef = useRef<ChatMessage[]>([])
   useEffect(() => {
     messagesRef.current = messages
   }, [messages])
-
-  const {
-    register,
-    handleSubmit,
-    reset,
-    setValue,
-    setError: setFormError,
-    formState: { errors, isSubmitting },
-  } = useForm<MessageFormValues>({
-    resolver: zodResolver(messageSchema),
-    defaultValues: { body: '' },
-  })
 
   const scrollToBottom = useCallback((force = false) => {
     const el = listRef.current
@@ -120,15 +98,30 @@ export function ConversationThread({ conversationId }: { conversationId: number 
   }, [])
 
   const apply = useCallback((data: MessagesResponse) => {
-    setConversation(data.conversation)
-    setMeta({ canSend: data.canSend, isAdmin: data.isAdmin })
+    if (data.serverTime) serverTimeRef.current = data.serverTime
+    setInfo({
+      conversation: data.conversation,
+      canSend: data.canSend,
+      isAdmin: data.isAdmin,
+      pinned: data.pinned ?? null,
+    })
     setMessages((current) =>
       applyReadUpTo(
-        mergeMessages(current, data.messages, data.hiddenIds, data.isAdmin),
+        mergeMessages(
+          current,
+          [...(data.changed ?? []), ...data.messages],
+          data.hiddenIds,
+          data.isAdmin,
+        ),
         data.readUpTo,
       ),
     )
   }, [])
+
+  const replace = useCallback(
+    (updated: ChatMessage) => setMessages((current) => mergeMessages(current, [updated])),
+    [],
+  )
 
   // بارِ اول: تازه‌ترین صفحه
   useEffect(() => {
@@ -139,24 +132,25 @@ export function ConversationThread({ conversationId }: { conversationId: number 
         if (cancelled) return
         apply(data)
         setOlder({ has: data.hasOlder, cursor: data.nextCursor, loading: false })
-        setLoadError(null)
+        setLoad({ loading: false, error: null })
         scrollToBottom(true)
       })
-      .catch((error: unknown) => !cancelled && setLoadError(error))
-      .finally(() => !cancelled && setIsLoading(false))
+      .catch((error: unknown) => !cancelled && setLoad({ loading: false, error }))
 
     return () => {
       cancelled = true
     }
   }, [conversationId, apply, scrollToBottom])
 
-  // پیام‌های تازه، فقط وقتی تب دیده می‌شود
+  // پیام‌های تازه و تغییرها، فقط وقتی تب دیده می‌شود
   useEffect(() => {
-    if (isLoading) return
+    if (load.loading) return
 
-    const poll = () =>
+    const poll = () => {
+      const changedAfter = Math.max(0, serverTimeRef.current - CHANGE_OVERLAP_SECONDS)
+
       void api<MessagesResponse>(
-        `/messenger/conversations/${conversationId}/messages?since=${newestId(messagesRef.current)}`,
+        `/messenger/conversations/${conversationId}/messages?since=${newestId(messagesRef.current)}&changed_after=${changedAfter}`,
       )
         .then((data) => {
           apply(data)
@@ -165,6 +159,7 @@ export function ConversationThread({ conversationId }: { conversationId: number 
         .catch(() => {
           // خطای گذرا؛ تیکِ بعدی دوباره می‌پرسد
         })
+    }
 
     let timer: ReturnType<typeof setInterval> | null = null
     const start = () => {
@@ -190,7 +185,7 @@ export function ConversationThread({ conversationId }: { conversationId: number 
       stop()
       document.removeEventListener('visibilitychange', onVisibility)
     }
-  }, [conversationId, isLoading, apply, scrollToBottom])
+  }, [conversationId, load.loading, apply, scrollToBottom])
 
   /*
    * رسیدِ خواندن: «تا این پیام خواندم» — یک درخواست برای کلِ گفت‌وگو، نه یکی
@@ -238,36 +233,14 @@ export function ConversationThread({ conversationId }: { conversationId: number 
     }
   }
 
-  function insertEmoji(emoji: string) {
-    const field = textareaRef.current
-    if (!field) return
-    const start = field.selectionStart ?? field.value.length
-    const end = field.selectionEnd ?? start
-    setValue('body', field.value.slice(0, start) + emoji + field.value.slice(end), {
-      shouldValidate: true,
-    })
-    requestAnimationFrame(() => {
-      field.focus()
-      field.setSelectionRange(start + emoji.length, start + emoji.length)
-    })
-  }
-
-  function pickAttachment(file: File | null) {
-    if (file && file.size > MAX_ATTACHMENT_BYTES) {
-      setNotice('حجم فایل باید کمتر از ۴ مگابایت باشد.')
-      return
-    }
-    setNotice(null)
-    setAttachment(file)
-  }
-
   async function deliver(clientId: string) {
     const outgoing = outgoingRef.current.get(clientId)
     if (!outgoing) return
 
     const payload: Record<string, string | string[]> = { client_id: clientId, body: outgoing.body }
+    if (outgoing.replyTo) payload.reply_to_id = String(outgoing.replyTo.id)
 
-    if (outgoing.poll && meta.isAdmin) {
+    if (outgoing.poll && info.isAdmin) {
       const poll = outgoing.poll
       payload.poll_question = poll.question.trim()
       payload.poll_options = poll.options.map((o) => o.text.trim()).filter(Boolean)
@@ -281,7 +254,8 @@ export function ConversationThread({ conversationId }: { conversationId: number 
     let body: unknown = payload
     if (outgoing.attachment) {
       const form = new FormData()
-      form.append('attachment', outgoing.attachment)
+      // پیامِ صوتی فیلدِ خودش را دارد؛ سرور نوعش را از همین می‌فهمد، نه از حدس
+      form.append(outgoing.voice ? 'voice' : 'attachment', outgoing.attachment)
       for (const [key, value] of Object.entries(payload)) {
         if (Array.isArray(value)) value.forEach((item) => form.append(`${key}[]`, item))
         else form.append(key, value)
@@ -297,7 +271,7 @@ export function ConversationThread({ conversationId }: { conversationId: number 
         { method: 'POST', body },
       )
       outgoingRef.current.delete(clientId)
-      setMessages((current) => mergeMessages(current, [message]))
+      replace(message)
       void queryClient.invalidateQueries({ queryKey: queryKeys.messenger.all() })
     } catch (error) {
       setMessages((current) => markFailed(current, clientId))
@@ -305,55 +279,42 @@ export function ConversationThread({ conversationId }: { conversationId: number 
     }
   }
 
-  function submitForm(event: React.FormEvent<HTMLFormElement>) {
-    void handleSubmit(onSubmit)(event)
-  }
-
-  /*
-   * ⚠️ منتظرِ تحویل می‌ماند تا دکمه در این فاصله خاموش باشد: دوبار-کلیک همان
-   * متن را با دو شناسه‌ی جدا دو بار می‌فرستاد (قراردادِ فرم‌ها).
-   */
-  async function onSubmit(values: MessageFormValues) {
-    const hasPoll = Boolean(pollDraft?.question.trim())
-
-    if (!values.body.trim() && !attachment && !hasPoll) {
-      setFormError('body', { message: 'متن پیام را وارد کنید' })
-      return
-    }
-    if (hasPoll && pollDraft!.options.filter((o) => o.text.trim()).length < 2) {
-      setNotice('نظرسنجی باید دست‌کم دو گزینه داشته باشد.')
-      return
-    }
-
+  async function send(draft: OutgoingDraft) {
     const clientId = newClientId()
-    outgoingRef.current.set(clientId, {
-      body: values.body,
-      attachment,
-      poll: hasPoll ? pollDraft : null,
-    })
+    outgoingRef.current.set(clientId, draft)
+    setCompose(null)
 
     setMessages((current) => [
       ...current,
       {
         id: -Date.now(),
         clientId,
-        body: values.body || (attachment ? attachment.name : ''),
+        body: draft.body || (draft.voice ? 'پیامِ صوتی' : (draft.attachment?.name ?? '')),
         authorName: user?.name ?? 'شما',
         unitLabel: '',
         isMine: true,
         isHidden: false,
         sentAt: '',
         status: 'pending',
+        replyTo: draft.replyTo
+          ? {
+              id: draft.replyTo.id,
+              authorName: draft.replyTo.authorName,
+              excerpt: draft.replyTo.body,
+              isDeleted: false,
+            }
+          : null,
       },
     ])
-
-    setNotice(null)
-    reset()
-    setAttachment(null)
-    setPollDraft(null)
     scrollToBottom(true)
 
     await deliver(clientId)
+  }
+
+  async function edit(message: ChatMessage, body: string) {
+    const { message: updated } = await messageActions.edit(conversationId, message.id, body)
+    replace(updated)
+    setCompose(null)
   }
 
   function discard(clientId: string) {
@@ -361,26 +322,80 @@ export function ConversationThread({ conversationId }: { conversationId: number 
     setMessages((current) => removeByClientId(current, clientId))
   }
 
-  async function toggleHide(message: ChatMessage) {
-    try {
-      const { message: updated } = await api<{ message: ChatMessage }>(
-        `/messenger/${message.id}/toggle-hide`,
-        { method: 'PATCH' },
-      )
-      setMessages((current) => current.map((m) => (m.id === updated.id ? updated : m)))
-      toastSuccess(
-        updated.isHidden ? 'پیام برای ساکنین پنهان شد.' : 'پیام دوباره نمایش داده می‌شود.',
-      )
-    } catch (error) {
-      alertError(error, 'تغییر وضعیت پیام ممکن نشد.')
+  /** پرش به پیامی که در فهرستِ بارشده هست؛ وگرنه همین را می‌گوید، نه سکوت. */
+  function jumpTo(id: number) {
+    const row = listRef.current?.querySelector<HTMLElement>(`[data-message-id="${id}"]`)
+    if (!row) {
+      setNotice('این پیام در بخشِ بارشده نیست؛ «پیام‌های قدیمی‌تر» را بزنید.')
+      return
+    }
+    row.scrollIntoView({ block: 'center' })
+    row.classList.add('chat-row-flash')
+    setTimeout(() => row.classList.remove('chat-row-flash'), 1600)
+  }
+
+  function handlersFor(message: ChatMessage): BubbleHandlers {
+    const act = (task: () => Promise<{ message: ChatMessage }>, failure: string) => () =>
+      void task()
+        .then(({ message: updated }) => replace(updated))
+        .catch((error: unknown) => alertError(error, failure))
+
+    const isPinned = info.pinned?.id === message.id
+
+    return {
+      onReply: () => setCompose({ mode: 'reply', message }),
+      onEdit: () => setCompose({ mode: 'edit', message }),
+      onReact: (emoji) =>
+        act(() => messageActions.react(conversationId, message.id, emoji), 'واکنش ثبت نشد.')(),
+      onDelete: () =>
+        void confirmAction({
+          title: 'حذفِ پیام',
+          text: 'متن و پیوستِ این پیام برای همه پاک می‌شود و برنمی‌گردد.',
+          confirmLabel: 'حذف',
+          danger: true,
+        }).then((ok) => {
+          if (ok) act(() => messageActions.remove(conversationId, message.id), 'حذف انجام نشد.')()
+        }),
+      onPin: () =>
+        void messageActions
+          .pin(conversationId, isPinned ? null : message.id)
+          .then(({ pinned }) => setInfo((current) => ({ ...current, pinned })))
+          .catch((error: unknown) => alertError(error, 'سنجاق ثبت نشد.')),
+      onReport: () =>
+        void promptText({
+          title: 'گزارش به مدیریت',
+          text: 'مدیریت پیام را می‌بیند، نه نامِ شما را.',
+          placeholder: 'دلیل (اختیاری)',
+          confirmLabel: 'گزارش',
+        }).then((reason) => {
+          if (reason === null) return
+          messageActions
+            .report(conversationId, message.id, reason.trim() || null)
+            .then(({ message: text }) => toastSuccess(text))
+            .catch((error: unknown) => alertError(error, 'گزارش ثبت نشد.'))
+        }),
+      onHide: () =>
+        void api<{ message: ChatMessage }>(`/messenger/${message.id}/toggle-hide`, {
+          method: 'PATCH',
+        })
+          .then(({ message: updated }) => {
+            replace(updated)
+            toastSuccess(
+              updated.isHidden ? 'پیام برای ساکنین پنهان شد.' : 'پیام دوباره نمایش داده می‌شود.',
+            )
+          })
+          .catch((error: unknown) => alertError(error, 'تغییر وضعیت پیام ممکن نشد.')),
+      onRetry: () => message.clientId && void deliver(message.clientId),
+      onDiscard: () => message.clientId && discard(message.clientId),
+      onJump: jumpTo,
+      onPollChange: (poll) => replace({ ...message, poll }),
     }
   }
 
-  const bodyField = register('body')
+  if (load.loading) return <InlineSpinner />
+  if (load.error) return <ErrorState error={load.error} />
 
-  if (isLoading) return <InlineSpinner />
-  if (loadError) return <ErrorState error={loadError} />
-
+  const { conversation, pinned } = info
   const readOnlyGroup = conversation && !conversation.canPost
 
   return (
@@ -389,15 +404,49 @@ export function ConversationThread({ conversationId }: { conversationId: number 
         <h2 className="text-body font-bold" style={{ color: 'var(--text-primary)' }}>
           {conversation?.title}
         </h2>
-        {conversation?.type === 'unit' || conversation?.type === 'user' ? (
-          <span
-            className="flex items-center gap-1 text-tiny"
+        <div className="flex items-center gap-3">
+          {conversation?.type === 'unit' || conversation?.type === 'user' ? (
+            <span
+              className="flex items-center gap-1 text-tiny"
+              style={{ color: 'var(--text-tertiary)' }}
+            >
+              <Lock size={12} /> خصوصی
+            </span>
+          ) : null}
+          <button
+            type="button"
+            onClick={() => setUi((current) => ({ ...current, search: !current.search }))}
+            aria-label="جست‌وجو در این گفت‌وگو"
+            aria-pressed={ui.search}
             style={{ color: 'var(--text-tertiary)' }}
           >
-            <Lock size={12} /> خصوصی
-          </span>
-        ) : null}
+            <Search size={16} />
+          </button>
+        </div>
       </header>
+
+      {ui.search && (
+        <ThreadSearch
+          conversationId={conversationId}
+          onPick={jumpTo}
+          onClose={() => setUi((current) => ({ ...current, search: false }))}
+        />
+      )}
+
+      {pinned && (
+        <button
+          type="button"
+          onClick={() => jumpTo(pinned.id)}
+          className="flex items-center gap-2 rounded-xl border px-3 py-2 text-right text-small"
+          style={{ borderColor: 'var(--border-subtle)', backgroundColor: 'var(--surface-base)' }}
+        >
+          <Pin size={14} style={{ color: 'var(--color-brand-500)' }} aria-hidden="true" />
+          <span className="sr-only">پیامِ سنجاق‌شده:</span>
+          <span className="min-w-0 flex-1 truncate" style={{ color: 'var(--text-primary)' }}>
+            {pinned.body || pinned.attachment?.name || 'نظرسنجی'}
+          </span>
+        </button>
+      )}
 
       <div
         ref={listRef}
@@ -428,19 +477,22 @@ export function ConversationThread({ conversationId }: { conversationId: number 
             {messages.map((message) => (
               <li
                 key={message.clientId && message.id < 0 ? message.clientId : message.id}
-                className={cn('chat-row flex', message.isMine ? 'justify-start' : 'justify-end')}
+                data-message-id={message.id > 0 ? message.id : undefined}
+                className={cn(
+                  'chat-row flex',
+                  message.isMine ? 'justify-start' : 'justify-end',
+                  ui.menu === message.id && 'chat-row-active',
+                )}
               >
-                <Bubble
+                <MessageBubble
                   message={message}
-                  isAdmin={meta.isAdmin}
-                  onHide={() => void toggleHide(message)}
-                  onRetry={() => message.clientId && void deliver(message.clientId)}
-                  onDiscard={() => message.clientId && discard(message.clientId)}
-                  onPollChange={(poll) =>
-                    setMessages((current) =>
-                      current.map((m) => (m.id === message.id ? { ...m, poll } : m)),
-                    )
+                  isAdmin={info.isAdmin}
+                  isPinned={pinned?.id === message.id}
+                  menuOpen={ui.menu === message.id}
+                  onToggleMenu={(open) =>
+                    setUi((current) => ({ ...current, menu: open ? message.id : null }))
                   }
+                  handlers={handlersFor(message)}
                 />
               </li>
             ))}
@@ -454,101 +506,15 @@ export function ConversationThread({ conversationId }: { conversationId: number 
         </p>
       )}
 
-      {meta.canSend ? (
-        <div className="flex flex-col">
-          {pollDraft && meta.isAdmin && (
-            <PollComposer
-              draft={pollDraft}
-              onChange={setPollDraft}
-              onClose={() => setPollDraft(null)}
-            />
-          )}
-
-          {attachment && (
-            <div
-              className="mb-2 flex items-center gap-2 rounded-lg px-3 py-2 text-small"
-              style={{ backgroundColor: 'var(--surface-sunken)', color: 'var(--text-secondary)' }}
-            >
-              <Paperclip size={13} />
-              <span className="flex-1 truncate">{attachment.name}</span>
-              <button type="button" onClick={() => pickAttachment(null)} aria-label="حذف پیوست">
-                <X size={14} />
-              </button>
-            </div>
-          )}
-
-          <form onSubmit={submitForm} className="flex items-start gap-2">
-            <div className="flex-1">
-              <textarea
-                rows={1}
-                aria-label="متنِ پیام"
-                placeholder="پیام خود را بنویسید…"
-                className="w-full resize-none rounded-xl border px-3.5 py-3 text-body outline-none focus:ring-2"
-                style={{
-                  backgroundColor: 'var(--surface-sunken)',
-                  borderColor: errors.body ? 'var(--color-danger)' : 'var(--border-subtle)',
-                  color: 'var(--text-primary)',
-                  ['--tw-ring-color' as string]: 'var(--ring-focus)',
-                }}
-                {...bodyField}
-                ref={(element) => {
-                  bodyField.ref(element)
-                  textareaRef.current = element
-                }}
-              />
-
-              <div className="mt-1 flex items-center gap-1">
-                <EmojiPicker onPick={insertEmoji} />
-                <button
-                  type="button"
-                  onClick={() => fileInputRef.current?.click()}
-                  aria-label="پیوست فایل"
-                  className="flex h-9 w-9 items-center justify-center rounded-lg"
-                  style={{ color: 'var(--text-tertiary)' }}
-                >
-                  <Paperclip size={16} />
-                </button>
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  accept={ACCEPTED_TYPES}
-                  className="hidden"
-                  onChange={(event) => {
-                    pickAttachment(event.target.files?.[0] ?? null)
-                    event.target.value = ''
-                  }}
-                />
-                {meta.isAdmin && (
-                  <button
-                    type="button"
-                    onClick={() => setPollDraft((draft) => (draft ? null : emptyPoll()))}
-                    aria-label="ساخت نظرسنجی"
-                    aria-pressed={pollDraft !== null}
-                    className="flex h-9 w-9 items-center justify-center rounded-lg"
-                    style={{ color: pollDraft ? 'var(--color-brand-500)' : 'var(--text-tertiary)' }}
-                  >
-                    <BarChart3 size={16} />
-                  </button>
-                )}
-              </div>
-              {errors.body && (
-                <p className="mt-1 text-small" style={{ color: 'var(--color-danger)' }}>
-                  {errors.body.message}
-                </p>
-              )}
-            </div>
-
-            <button
-              type="submit"
-              disabled={isSubmitting}
-              aria-label="ارسال پیام"
-              className="flex h-[46px] w-[46px] shrink-0 items-center justify-center rounded-xl text-white disabled:opacity-60"
-              style={{ backgroundColor: 'var(--color-brand-500)' }}
-            >
-              {isSubmitting ? <Loader2 size={17} className="animate-spin" /> : <Send size={17} />}
-            </button>
-          </form>
-        </div>
+      {info.canSend ? (
+        <Composer
+          isAdmin={info.isAdmin}
+          target={compose}
+          onCancelTarget={() => setCompose(null)}
+          onSend={send}
+          onEdit={edit}
+          onNotice={setNotice}
+        />
       ) : (
         <div
           className="flex items-center gap-2 rounded-xl px-4 py-3 text-small"
@@ -560,155 +526,6 @@ export function ConversationThread({ conversationId }: { conversationId: number 
             : 'امکان ارسال پیام برای شما فعال نیست.'}
         </div>
       )}
-    </div>
-  )
-}
-
-const STATUS_LABEL: Record<DeliveryStatus, string> = {
-  pending: 'در حال ارسال',
-  failed: 'ارسال نشد',
-  sent: 'ارسال شد',
-  read: 'خوانده شد',
-}
-
-function StatusIcon({ status }: { status: DeliveryStatus }) {
-  const Icon = { pending: Clock, failed: AlertCircle, sent: Check, read: CheckCheck }[status]
-
-  return (
-    <span className="flex items-center" title={STATUS_LABEL[status]}>
-      <Icon size={12} aria-hidden="true" />
-      <span className="sr-only">{STATUS_LABEL[status]}</span>
-    </span>
-  )
-}
-
-function Bubble({
-  message,
-  isAdmin,
-  onHide,
-  onRetry,
-  onDiscard,
-  onPollChange,
-}: {
-  message: ChatMessage
-  isAdmin: boolean
-  onHide: () => void
-  onRetry: () => void
-  onDiscard: () => void
-  onPollChange: (poll: NonNullable<ChatMessage['poll']>) => void
-}) {
-  const muted = message.isMine ? 'rgba(255,255,255,0.75)' : 'var(--text-tertiary)'
-
-  return (
-    <div
-      className={cn(
-        'max-w-[80%] rounded-2xl px-4 py-2.5 text-body',
-        message.isHidden && 'opacity-50',
-        message.status === 'pending' && 'opacity-70',
-      )}
-      style={
-        message.isMine
-          ? { backgroundColor: 'var(--color-brand-500)', color: '#fff' }
-          : { backgroundColor: 'var(--surface-sunken)', color: 'var(--text-primary)' }
-      }
-    >
-      <div className="mb-1 flex items-center gap-2 text-tiny" style={{ color: muted }}>
-        <span className="font-semibold">{message.authorName}</span>
-        {message.unitLabel && (
-          <>
-            <span>·</span>
-            <span>{message.unitLabel}</span>
-          </>
-        )}
-      </div>
-
-      {message.body === null ? (
-        <p className="flex items-center gap-1.5 text-small italic opacity-80">
-          <EyeOff size={12} /> این پیام توسط مدیر پنهان شده است.
-        </p>
-      ) : (
-        <>
-          {message.body && <p className="whitespace-pre-line leading-6">{message.body}</p>}
-
-          {message.attachment &&
-            (message.attachment.kind === 'image' ? (
-              /* cls-safe: ابعاد از ظرفِ ثابت می‌آید */
-              <a
-                href={message.attachment.url}
-                target="_blank"
-                rel="noreferrer"
-                className="mt-2 block h-64 w-full max-w-xs"
-              >
-                <img
-                  src={message.attachment.url}
-                  alt={message.attachment.name}
-                  loading="lazy"
-                  decoding="async"
-                  className="h-full w-full rounded-lg object-contain object-right"
-                />
-              </a>
-            ) : (
-              <a
-                href={message.attachment.url}
-                target="_blank"
-                rel="noreferrer"
-                className="mt-2 flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-small underline"
-                style={{
-                  backgroundColor: message.isMine
-                    ? 'rgba(255,255,255,0.18)'
-                    : 'var(--surface-base)',
-                }}
-              >
-                <FileText size={13} />
-                {message.attachment.name}
-              </a>
-            ))}
-
-          {message.poll && (
-            <PollCard
-              poll={message.poll}
-              isMine={message.isMine}
-              isAdmin={isAdmin}
-              onVoted={onPollChange}
-            />
-          )}
-        </>
-      )}
-
-      <div className="mt-1.5 flex items-center gap-2 text-tiny" style={{ color: muted }}>
-        {message.sentAt && <span className="tabular-nums">{message.sentAt}</span>}
-        {message.isMine && message.status && <StatusIcon status={message.status} />}
-
-        {typeof message.readCount === 'number' && message.readCount > 0 && (
-          <span className="flex items-center gap-0.5 tabular-nums" title="شمارِ خواننده‌ها">
-            <Eye size={11} />
-            {message.readCount}
-          </span>
-        )}
-
-        {message.status === 'failed' && (
-          <>
-            <button type="button" onClick={onRetry} className="flex items-center gap-1 underline">
-              <RotateCcw size={11} /> دوباره
-            </button>
-            <button type="button" onClick={onDiscard} className="underline">
-              حذف
-            </button>
-          </>
-        )}
-
-        {isAdmin && message.id > 0 && (
-          <button
-            type="button"
-            onClick={onHide}
-            className="flex items-center gap-1 underline"
-            title={message.isHidden ? 'نمایش پیام' : 'مخفی کردن پیام'}
-          >
-            {message.isHidden ? <Eye size={11} /> : <EyeOff size={11} />}
-            {message.isHidden ? 'نمایش' : 'مخفی'}
-          </button>
-        )}
-      </div>
     </div>
   )
 }

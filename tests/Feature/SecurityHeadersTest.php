@@ -29,6 +29,22 @@ class SecurityHeadersTest extends TestCase
         $this->assertNotNull($response->headers->get('Content-Security-Policy'));
     }
 
+    /**
+     * میکروفون فقط برای خودِ این مبدأ (پیامِ صوتی، مرحلهٔ ۶ · فاز ۱۴)؛ بقیه‌ی
+     * سخت‌افزار همچنان خاموش. ⚠️ `*` یا حذفِ سرآیند، میکروفون را به هر iframe
+     * هم می‌داد.
+     */
+    public function test_only_this_origin_may_ask_for_the_microphone(): void
+    {
+        $policy = (string) $this->get('/')->headers->get('Permissions-Policy');
+
+        $this->assertStringContainsString('microphone=(self)', $policy);
+        foreach (['camera=()', 'geolocation=()', 'payment=()', 'usb=()'] as $off) {
+            $this->assertStringContainsString($off, $policy);
+        }
+        $this->assertStringNotContainsString('*', $policy);
+    }
+
     public function test_api_responses_carry_the_headers_too(): void
     {
         // مسیرهای API روی همان گروهِ web سوارند، پس نباید جا بیفتند

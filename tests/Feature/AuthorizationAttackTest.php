@@ -620,6 +620,7 @@ class AuthorizationAttackTest extends TestCase
         'app/Services/Wallet/WalletService.php' => [4, 'همان الگو، روی کیفِ پول'],
         // پیام‌رسانِ گفت‌وگومحور (مرحلهٔ ۶ · فاز ۱۲)
         'app/Services/Messenger/ConversationDirectory.php' => [1, 'یافتنِ گفت‌وگو با مجتمعِ صریح و کلیدِ یکتا، پس از خطای یکتاییِ ساختِ هم‌زمان'],
+        'app/Services/Messenger/MessageActions.php' => [1, 'برداشتنِ سنجاقِ همان گفت‌وگویی که پیش‌تر دیده‌شدنش سنجیده شده، با شناسه‌ی صریح'],
         'app/Services/Messenger/MessageSender.php' => [2, 'پیامِ پیشینِ همان کاربر با همان client_id، و جلو بردنِ آخرین پیامِ گفت‌وگویی که از قبل مجاز شده'],
         'app/Services/Charge/BillGenerator.php' => [4, 'تولیدِ قبض با مجتمعِ صریح در پارامتر'],
 

@@ -8,7 +8,9 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
+use Illuminate\Support\Carbon;
 
 /**
  * @property int|null $conversation_id
@@ -18,6 +20,10 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
  * @property string|null $attachment_path
  * @property string|null $attachment_name
  * @property string|null $attachment_kind
+ * @property int|null $reply_to_id
+ * @property Carbon|null $edited_at
+ * @property Carbon|null $deleted_at
+ * @property Carbon|null $created_at
  */
 class Message extends Model
 {
@@ -27,13 +33,24 @@ class Message extends Model
         'complex_id', 'conversation_id', 'user_id', 'client_id', 'body', 'audience', 'unit_id',
         'attachment_path', 'attachment_name', 'attachment_kind',
         'author_name', 'author_role', 'unit_label',
-        'is_hidden', 'hidden_by',
+        'is_hidden', 'hidden_by', 'reply_to_id', 'edited_at', 'deleted_at',
     ];
+
+    /**
+     * پنجره‌ی ویرایشِ پیامِ خود (فاز ۱۴).
+     *
+     * پیام‌رسانِ ساختمان جای قرار و اعلامِ خرابی است؛ پیامی که ساعت‌ها بعد
+     * بی‌صدا عوض شود، سابقه را بی‌اعتبار می‌کند. ربعِ ساعت برای غلطِ تایپی کافی
+     * است و نشانه‌ی «ویرایش‌شده» همیشه می‌ماند.
+     */
+    public const EDIT_WINDOW_MINUTES = 15;
 
     protected function casts(): array
     {
         return [
             'is_hidden' => 'boolean',
+            'edited_at' => 'datetime',
+            'deleted_at' => 'datetime',
             'audience' => MessageAudience::class,
         ];
     }
@@ -72,6 +89,31 @@ class Message extends Model
     public function poll(): HasOne
     {
         return $this->hasOne(MessagePoll::class);
+    }
+
+    /** @return BelongsTo<self, $this> */
+    public function replyTo(): BelongsTo
+    {
+        return $this->belongsTo(self::class, 'reply_to_id');
+    }
+
+    /** @return HasMany<MessageReaction, $this> */
+    public function reactions(): HasMany
+    {
+        return $this->hasMany(MessageReaction::class);
+    }
+
+    public function isDeleted(): bool
+    {
+        return $this->deleted_at !== null;
+    }
+
+    public function isEditableBy(User $user): bool
+    {
+        return $this->user_id === $user->id
+            && ! $this->isDeleted()
+            && $this->created_at !== null
+            && $this->created_at->gt(now()->subMinutes(self::EDIT_WINDOW_MINUTES));
     }
 
     public function hasAttachment(): bool

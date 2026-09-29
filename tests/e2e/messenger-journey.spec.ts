@@ -97,3 +97,81 @@ test('ساکن می‌نویسد، مدیر پاسخ می‌دهد، ساکن «
   await resident.context().close()
   await manager.context().close()
 })
+
+/**
+ * غنی‌سازی (مرحلهٔ ۶ · فاز ۱۴): پاسخ، واکنش، ویرایش و حذف — و اینکه همه با
+ * همان پرسشِ دوره‌ای به طرفِ مقابل می‌رسند، بی‌بارگذاریِ دوباره.
+ */
+test('پاسخ، واکنش، ویرایش و حذف به طرفِ مقابل می‌رسند', async ({ browser }, testInfo) => {
+  test.setTimeout(120_000)
+
+  const phone = RESIDENTS[testInfo.project.name] ?? '09121111101'
+  const tag = `${RUN}-${testInfo.project.name}`
+  const first = `کلیدِ انباری کجاست ${tag}`
+  const fixed = `کلیدِ انباری کجاست؟ ${tag}`
+  const reply = `پیشِ نگهبانی ${tag}`
+
+  const resident = await signedIn(browser, phone)
+  await resident.goto('/messenger')
+  await resident
+    .getByRole('navigation', { name: 'گفت‌وگوها' })
+    .getByRole('button', { name: /مدیریتِ ساختمان/ })
+    .click()
+  await resident.getByLabel('متنِ پیام').fill(first)
+  await resident.getByRole('button', { name: 'ارسال پیام' }).click()
+
+  const residentRow = (text: string) =>
+    resident.getByRole('list', { name: 'پیام‌ها' }).getByRole('listitem').filter({ hasText: text })
+  await expect(residentRow(first).getByText('ارسال شد')).toBeAttached({ timeout: 15_000 })
+
+  // ── مدیر: پاسخ و واکنش از منوی پیام ──
+  const manager = await signedIn(browser, MANAGER)
+  await manager.goto('/messenger')
+  await manager
+    .getByRole('navigation', { name: 'گفت‌وگوها' })
+    .getByRole('button')
+    .filter({ hasText: first })
+    .click()
+
+  const managerRow = (text: string) =>
+    manager.getByRole('list', { name: 'پیام‌ها' }).getByRole('listitem').filter({ hasText: text })
+
+  await managerRow(first).getByRole('button', { name: 'کارهای پیام' }).click()
+  await manager.getByRole('menuitem', { name: 'پاسخ' }).click()
+  await manager.getByLabel('متنِ پیام').fill(reply)
+  await manager.getByRole('button', { name: 'ارسال پیام' }).click()
+  await expect(managerRow(reply)).toBeVisible()
+
+  await managerRow(first).first().getByRole('button', { name: 'کارهای پیام' }).click()
+  await manager.getByRole('menuitem', { name: 'واکنش 👍' }).click()
+
+  // ── ساکن: پاسخ با تکه‌متنِ پیامِ خودش، و واکنش روی پیامش ──
+  await expect(residentRow(reply)).toBeVisible({ timeout: 25_000 })
+  await expect(residentRow(reply).getByRole('button', { name: new RegExp(first) })).toBeVisible()
+  await expect(residentRow(first).first().getByRole('button', { name: '👍 1' })).toBeVisible({
+    timeout: 25_000,
+  })
+
+  // ── ساکن ویرایش می‌کند؛ مدیر متنِ تازه و «ویرایش‌شده» را می‌بیند ──
+  await residentRow(first).first().getByRole('button', { name: 'کارهای پیام' }).click()
+  await resident.getByRole('menuitem', { name: 'ویرایش' }).click()
+  await resident.getByLabel('متنِ پیام').fill(fixed)
+  await resident.getByRole('button', { name: 'ذخیره‌ی ویرایش' }).click()
+  await expect(managerRow(fixed).getByText('ویرایش‌شده')).toBeVisible({ timeout: 25_000 })
+
+  // ── ساکن حذف می‌کند؛ متن برای مدیر هم می‌رود ──
+  await residentRow(fixed).first().getByRole('button', { name: 'کارهای پیام' }).click()
+  await resident.getByRole('menuitem', { name: 'حذف' }).click()
+  await resident.getByRole('button', { name: 'حذف' }).click()
+  await expect(residentRow('این پیام حذف شد').first()).toBeVisible()
+
+  await expect(
+    manager.getByRole('list', { name: 'پیام‌ها' }).getByText(fixed, { exact: true }),
+  ).toHaveCount(0, { timeout: 25_000 })
+  await expect(managerRow('این پیام حذف شد').first()).toBeVisible()
+  // 🔴 نقلِ همان پیام در پاسخِ مدیر هم پاک شد — نه فقط خودِ پیام
+  await expect(managerRow(reply).getByText('این پیام حذف شد')).toBeVisible({ timeout: 25_000 })
+
+  await resident.context().close()
+  await manager.context().close()
+})

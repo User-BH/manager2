@@ -369,6 +369,41 @@ class PhaseRegressionMapTest extends TestCase
             'مهاجرت همه‌ی پیام‌های قبلی را نگه می‌دارد' => [
                 'MessengerConversationTest', 'test_the_backfill_preserves_every_existing_message', '۶',
             ],
+
+            /* ── مرحلهٔ ۶، فاز ۱۴: غنی‌سازیِ پیام‌رسان ─────────────────────────── */
+            '🔴 جست‌وجوی سراسری پیامِ خصوصیِ واحدِ دیگر را نشان نمی‌دهد' => [
+                'MessageSearchPrivacyTest', 'test_a_private_unit_thread_is_not_searchable_by_other_residents', '۶',
+            ],
+            'جست‌وجوی سراسری: مستأجرِ رفته' => [
+                'MessageSearchPrivacyTest', 'test_a_former_tenant_cannot_search_the_old_units_thread', '۶',
+            ],
+            'پاسخ راهِ دیدنِ پیامِ نادیدنی نیست' => [
+                'MessengerEnrichmentTest', 'test_a_reply_cannot_reach_outside_what_the_writer_can_see', '۶',
+            ],
+            'نقلِ پاسخ پس از پنهان‌شدنِ هدف پاک می‌شود' => [
+                'MessengerEnrichmentTest', 'test_a_reply_stops_quoting_a_target_that_was_hidden_later', '۶',
+            ],
+            'حذف یعنی محتوا واقعاً رفته' => [
+                'MessengerEnrichmentTest', 'test_deleting_removes_the_content_not_just_the_view', '۶',
+            ],
+            'ویرایش فقط پیامِ خود، در پنجره، نه پیامِ پنهان‌شده' => [
+                'MessengerEnrichmentTest', 'test_nobody_edits_what_is_not_theirs_to_edit', '۶',
+            ],
+            'ویرایش، واکنش، حذف و نقلِ پاسخ با پرسشِ دوره‌ای می‌رسند' => [
+                'MessengerEnrichmentTest', 'test_edits_reactions_and_deletions_reach_the_other_side_by_polling', '۶',
+            ],
+            'واکنش فقط روی پیامِ دیدنی و از همین گفت‌وگو' => [
+                'MessengerEnrichmentTest', 'test_reactions_follow_visibility_and_moderation', '۶',
+            ],
+            'گزارش بی‌نامِ گزارش‌دهنده به مدیر' => [
+                'MessengerEnrichmentTest', 'test_a_resident_reports_and_management_resolves_without_seeing_who', '۶',
+            ],
+            'پیامِ صوتی فقط صوت و با سقفِ اندازه' => [
+                'MessengerEnrichmentTest', 'test_a_voice_message_accepts_only_audio_of_bounded_size', '۶',
+            ],
+            'میکروفون فقط برای همین مبدأ' => [
+                'SecurityHeadersTest', 'test_only_this_origin_may_ask_for_the_microphone', '۶',
+            ],
         ];
     }
 
@@ -458,10 +493,11 @@ class PhaseRegressionMapTest extends TestCase
             'sessionLifecycle' => ['۱۰', 'پیامِ کانالِ بینِ تب‌ها'],
             'blog' => ['۱۱', 'شکستِ کپی را هم می‌گوید'],
             'messengerThread' => ['۱۲', 'دوباره همان client_id'],
+            'messengerEnrichment' => ['۱۴', 'نشانه‌گذاریِ HTML به‌صورتِ متن'],
         ];
 
         // 🔴 مثلِ ردیف‌های PHP، این فهرست هم فقط بزرگ می‌شود (خرابکاریِ فاز ۸)
-        $this->assertGreaterThanOrEqual(14, count($guards), 'محافظی از فهرستِ JS حذف شده.');
+        $this->assertGreaterThanOrEqual(15, count($guards), 'محافظی از فهرستِ JS حذف شده.');
 
         foreach ($guards as $file => [$phase, $marker]) {
             $path = base_path("tests/js/{$file}.test.".(file_exists(base_path("tests/js/{$file}.test.tsx")) ? 'tsx' : 'ts'));
@@ -488,7 +524,7 @@ class PhaseRegressionMapTest extends TestCase
     public function test_the_map_never_shrinks(): void
     {
         $this->assertGreaterThanOrEqual(
-            100,
+            111,
             count(self::fixes()),
             'ردیفی از نقشهٔ رگرسیون حذف شده؛ یعنی اصلاحی محافظش را از دست داده.',
         );

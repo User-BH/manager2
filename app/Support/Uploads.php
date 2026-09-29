@@ -30,6 +30,14 @@ class Uploads
         'png' => 'image/png',
         'webp' => 'image/webp',
         'pdf' => 'application/pdf',
+        // پیامِ صوتی (فاز ۱۴) — پسوند را `store()` از محتوای فایل حدس می‌زند
+        'weba' => 'audio/webm',
+        'webm' => 'audio/webm',
+        'oga' => 'audio/ogg',
+        'ogg' => 'audio/ogg',
+        'opus' => 'audio/ogg',
+        'm4a' => 'audio/mp4',
+        'mp4' => 'audio/mp4',
     ];
 
     /**

@@ -55,6 +55,9 @@ class MessageSender
             return [$existing, false];
         }
 
+        // پاسخ فقط به پیامی از **همین** گفت‌وگو که هنوز دیده می‌شود (فاز ۱۴)
+        $data['reply_to_id'] = $this->replyTarget($conversation, $user, $data['reply_to_id'] ?? null);
+
         try {
             return [$this->write($complex, $conversation, $user, $data, $attachment), true];
         } catch (UniqueConstraintViolationException $e) {
@@ -97,12 +100,13 @@ class MessageSender
                 'conversation_id' => $conversation->id,
                 'user_id' => $user->id,
                 'client_id' => $data['client_id'] ?? null,
+                'reply_to_id' => $data['reply_to_id'],
                 'body' => $data['body'] ?? '',
                 'audience' => $audience,
                 'unit_id' => $unitId,
                 'attachment_path' => $path,
                 'attachment_name' => $attachment ? Uploads::safeOriginalName($attachment) : null,
-                'attachment_kind' => $attachment ? $this->attachmentKind($attachment) : null,
+                'attachment_kind' => $attachment ? $this->attachmentKind($attachment, (bool) ($data['is_voice'] ?? false)) : null,
                 'author_name' => $user->name,
                 'author_role' => $user->role->value,
                 'unit_label' => $this->unitLabel($user),
@@ -165,10 +169,38 @@ class MessageSender
         }
     }
 
-    /** `image` درون‌خطی نشان داده می‌شود؛ بقیه دانلود می‌شوند. */
-    private function attachmentKind(UploadedFile $file): string
+    /**
+     * `image` درون‌خطی نشان داده می‌شود و `audio` با پخش‌کننده (پیامِ صوتی، فاز ۱۴)؛
+     * بقیه دانلود می‌شوند. نوعِ صوتی فقط از فیلدِ `voice` می‌آید که قاعده‌ی خودش را
+     * دارد — نه از حدسِ نوعِ فایلی که به‌عنوانِ پیوستِ عادی آمده.
+     */
+    private function attachmentKind(UploadedFile $file, bool $isVoice): string
     {
-        return str_starts_with((string) $file->getMimeType(), 'image/') ? 'image' : 'file';
+        return match (true) {
+            $isVoice => 'audio',
+            str_starts_with((string) $file->getMimeType(), 'image/') => 'image',
+            default => 'file',
+        };
+    }
+
+    /**
+     * ⚠️ شناسه‌ی پیامِ گفت‌وگوی دیگر یا پیامِ پنهان‌شده (برای ساکن) به‌عنوانِ
+     * «پاسخ به» پذیرفته نمی‌شود: پاسخ تکه‌ای از متنِ هدف را نشان می‌دهد، پس
+     * راهی می‌شد برای دیدنِ پیامی که کاربر حقِ دیدنش را ندارد.
+     */
+    private function replyTarget(Conversation $conversation, User $user, mixed $replyToId): ?int
+    {
+        if ($replyToId === null || $replyToId === '') {
+            return null;
+        }
+
+        $target = Message::query()->where('conversation_id', $conversation->id)->whereKey((int) $replyToId)->first();
+
+        if ($target === null || $target->isDeleted() || ($target->is_hidden && ! $user->isAdmin())) {
+            throw DomainException::invalid('پیامی که به آن پاسخ می‌دهید در دسترس نیست.', 'messenger.reply_unavailable');
+        }
+
+        return $target->id;
     }
 
     private function unitLabel(User $user): string

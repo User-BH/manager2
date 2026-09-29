@@ -157,6 +157,7 @@ class ConversationDirectory
             ->whereIn('conversation_id', $conversationIds)
             ->where(fn (Builder $q) => $q->whereNull('user_id')->orWhere('user_id', '!=', $viewer->id))
             ->where('is_hidden', false)
+            ->whereNull('deleted_at')
             ->whereDoesntHave('readers', fn ($q) => $q->where('users.id', $viewer->id))
             ->groupBy('conversation_id')
             ->selectRaw('conversation_id, count(*) as unread')
@@ -178,7 +179,12 @@ class ConversationDirectory
             'membersCanPost' => $conversation->members_can_post,
             'unreadCount' => $unread,
             'lastMessage' => $last ? [
-                'preview' => $hiddenForViewer ? null : Str::limit((string) ($last->body ?: $last->attachment_name ?: 'نظرسنجی'), 80),
+                'preview' => match (true) {
+                    $hiddenForViewer => null,
+                    $last->isDeleted() => 'این پیام حذف شد',
+                    $last->attachment_kind === 'audio' && ! $last->body => 'پیامِ صوتی',
+                    default => Str::limit((string) ($last->body ?: $last->attachment_name ?: 'نظرسنجی'), 80),
+                },
                 'authorName' => $last->author_name,
                 'isMine' => $last->user_id === $viewer->id,
                 'sentAt' => Jalali::dateTime($last->created_at),

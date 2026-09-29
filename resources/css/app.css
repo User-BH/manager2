@@ -1620,3 +1620,28 @@ html {
     content-visibility: auto;
     contain-intrinsic-size: auto 72px;
 }
+
+/*
+ * پیامی که به آن پریده‌ایم (پاسخ، سنجاق، جست‌وجو · فاز ۱۴) — فقط حاشیه، بی‌حرکت،
+ * تا با `prefers-reduced-motion` هم سازگار باشد.
+ */
+.chat-row-flash > div {
+    outline: 2px solid var(--color-brand-500);
+    outline-offset: 3px;
+    border-radius: 1rem;
+}
+
+/*
+ * 🔴 ردیفی که منوی پیامش باز است (فاز ۱۴).
+ *
+ * `content-visibility: auto` مهارِ رنگ‌آمیزی (paint containment) هم می‌آورد:
+ * هر چه از قابِ ردیف بیرون بزند بریده و کلیک‌ناپذیر می‌شود. منوی پیام درست همین
+ * بود — سفرِ مرورگر نشان داد گزینه‌هایش در مرورگرِ واقعی زده نمی‌شدند (در jsdom
+ * CSS اعمال نمی‌شود و تستِ کامپوننت سبز بود). فقط همان یک ردیف، فقط تا منو باز است.
+ */
+.chat-row.chat-row-active {
+    content-visibility: visible;
+    contain: none;
+    position: relative;
+    z-index: 10;
+}

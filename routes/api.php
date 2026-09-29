@@ -17,6 +17,8 @@ use App\Http\Controllers\Api\GoodPayerController;
 use App\Http\Controllers\Api\InvitationController;
 use App\Http\Controllers\Api\JoinRequestController;
 use App\Http\Controllers\Api\ManagerController;
+use App\Http\Controllers\Api\MessageActionController;
+use App\Http\Controllers\Api\MessageReportController;
 use App\Http\Controllers\Api\MessengerController;
 use App\Http\Controllers\Api\MyBillController;
 use App\Http\Controllers\Api\NotificationController;
@@ -171,6 +173,30 @@ Route::middleware('auth')->group(function () {
             ->middleware('throttle:messenger-send')->name('messenger.conversations.send');
         Route::post('messenger/conversations/{conversation}/read', [ConversationController::class, 'read'])
             ->middleware('throttle:messenger')->name('messenger.conversations.read');
+
+        /*
+         * غنی‌سازی (مرحلهٔ ۶ · فاز ۱۴). `scopeBindings`: پیام فقط از **همین**
+         * گفت‌وگو پیدا می‌شود؛ شناسه‌ی پیامِ گفت‌وگوی دیگر ۴۰۴ است.
+         */
+        Route::scopeBindings()->group(function () {
+            Route::patch('messenger/conversations/{conversation}/messages/{message}', [MessageActionController::class, 'update'])
+                ->middleware('throttle:messenger-send')->name('messenger.messages.update');
+            Route::delete('messenger/conversations/{conversation}/messages/{message}', [MessageActionController::class, 'destroy'])
+                ->middleware('throttle:messenger-send')->name('messenger.messages.destroy');
+            Route::post('messenger/conversations/{conversation}/messages/{message}/reactions', [MessageActionController::class, 'react'])
+                ->middleware('throttle:messenger')->name('messenger.messages.react');
+            Route::post('messenger/conversations/{conversation}/messages/{message}/report', [MessageActionController::class, 'report'])
+                ->middleware('throttle:messenger-send')->name('messenger.messages.report');
+        });
+        Route::post('messenger/conversations/{conversation}/pin', [MessageActionController::class, 'pin'])
+            ->middleware('throttle:messenger-send')->name('messenger.conversations.pin');
+        Route::get('messenger/conversations/{conversation}/search', [MessageActionController::class, 'search'])
+            ->middleware('throttle:search')->name('messenger.conversations.search');
+
+        Route::get('messenger/reports', [MessageReportController::class, 'index'])
+            ->middleware('throttle:messenger')->name('messenger.reports.index');
+        Route::post('messenger/reports/{report}/resolve', [MessageReportController::class, 'resolve'])
+            ->middleware('throttle:messenger-send')->name('messenger.reports.resolve');
     });
 
     /*

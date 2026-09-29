@@ -116,6 +116,8 @@ export const queryKeys = {
   messenger: {
     all: () => ['messenger'] as const,
     conversations: () => ['messenger', 'conversations'] as const,
+    // صفِ گزارش‌های پیام برای مدیر (فاز ۱۴)
+    reports: () => ['messenger', 'reports'] as const,
   },
 
   // ── بلاگ (فاز ۱۱) ────────────────────────────────────────────────────────

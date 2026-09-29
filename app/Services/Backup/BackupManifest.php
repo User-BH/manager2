@@ -64,6 +64,9 @@ final class BackupManifest
         'messages',
         'message_units',
         'message_reads',
+        // غنی‌سازی (فاز ۱۴): واکنش و گزارش پس از پیام
+        'message_reactions',
+        'message_reports',
         'message_polls',
         'poll_options',
         'poll_votes',

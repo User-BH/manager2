@@ -10,6 +10,7 @@ use App\Models\Expense;
 use App\Models\Message;
 use App\Models\Unit;
 use App\Models\User;
+use App\Services\Features\FeatureFlags;
 use App\Support\Jalali;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -79,7 +80,7 @@ class SearchController extends Controller
             $user->isAdmin() ? $this->expenses($term) : null,
             $user->isAdmin() ? null : $this->myBills($user, $term),
             $this->announcements($user, $term),
-            $this->messages($term),
+            $this->messages($user, $term),
         ], fn (?array $group) => $group !== null && $group['items'] !== []));
 
         if ($only !== '') {
@@ -235,10 +236,25 @@ class SearchController extends Controller
             ])->all());
     }
 
-    private function messages(string $term): array
+    private function messages(User $user, string $term): ?array
     {
-        // پیام‌های پنهان‌شده توسط مدیر نباید از راه جستجو دوباره پیدا شوند
-        $messages = Message::where('is_hidden', false)
+        // پیام‌رسانِ خاموش از راهِ جست‌وجو هم باز نمی‌شود
+        if (! app(FeatureFlags::class)->enabled('messenger')) {
+            return null;
+        }
+
+        /*
+         * 🔴 همان قاعده‌ی دیدِ خودِ پیام‌رسان (مرحلهٔ ۶ · فاز ۱۴).
+         *
+         * این پرسش از نخستین نسخه فقط `is_hidden` را می‌سنجید: هر ساکن با یک
+         * کلمه تکه‌ای از پیامِ خصوصیِ واحدِ دیگر با مدیریت را — با نامِ
+         * نویسنده و شماره‌ی واحد — می‌دید؛ مستأجرِ رفته هم رشته‌ی واحدِ قبلی
+         * را. `visibleTo` برای مدیر همه را و برای ساکن فقط کانال، رشته‌ی
+         * واحدهای **فعلی** و گروه‌های عضو را برمی‌گرداند.
+         *
+         * پیام‌های پنهان‌شده توسط مدیر نباید از راه جستجو دوباره پیدا شوند.
+         */
+        $messages = Message::query()->visibleTo($user)->where('is_hidden', false)->whereNull('deleted_at')
             ->where(fn ($q) => $q
                 ->where('body', 'like', "%{$term}%")
                 ->orWhere('author_name', 'like', "%{$term}%"))
@@ -252,7 +268,8 @@ class SearchController extends Controller
                 'title' => $m->author_name ?: 'پیام',
                 'subtitle' => Str::limit(preg_replace('/\s+/u', ' ', $m->body), 80),
                 'badge' => $m->unit_label ?: null,
-                'path' => '/messenger?focus='.$m->id,
+                // از فاز ۱۲ صفحه‌ی پیام‌رسان `?focus=` را نمی‌خواند؛ خودِ گفت‌وگو باز می‌شود
+                'path' => $m->conversation_id ? '/messenger/'.$m->conversation_id : '/messenger',
             ])->all());
     }
 

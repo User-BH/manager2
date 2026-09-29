@@ -17,6 +17,7 @@ use App\Models\Discount;
 use App\Models\Expense;
 use App\Models\Income;
 use App\Models\Message;
+use App\Models\MessageReport;
 use App\Models\Payment;
 use App\Models\ServiceRequest;
 use App\Models\Unit;
@@ -103,7 +104,7 @@ class TenantIsolationTest extends TestCase
         Storage::disk(PrivateFiles::name())->put("receipts/{$slug}.jpg", 'x');
         Storage::disk(PrivateFiles::name())->put("messenger/{$slug}.jpg", 'x');
 
-        return [
+        $records = [
             'complex' => $complex,
             'admin' => $admin,
             'resident' => $resident,
@@ -159,6 +160,29 @@ class TenantIsolationTest extends TestCase
                 'attachment_path' => "messenger/{$slug}.jpg", 'attachment_name' => 'x.jpg', 'attachment_kind' => 'image',
             ]),
         ];
+
+        /*
+         * پیام درونِ همان گفت‌وگو (فاز ۱۴): مسیرهای تودرتو پیام را فقط از
+         * گفت‌وگوی خودش پیدا می‌کنند؛ بی‌این، مسیرِ خودی هم ۴۰۴ می‌داد و
+         * ردیفِ حمله پوچ می‌شد.
+         */
+        $records['message']->update(['conversation_id' => $records['conversation']->id]);
+        $records['report'] = MessageReport::withoutGlobalScopes()->create([
+            'complex_id' => $complex->id, 'message_id' => $records['message']->id, 'user_id' => $resident->id,
+        ]);
+
+        return $records;
+    }
+
+    /**
+     * آدرس با شناسه‌های رکورد. کلیدِ `conversation+message` یعنی دو شناسه به
+     * ترتیب — مسیرِ تودرتو (فاز ۱۴).
+     */
+    private function uriFor(string $template, array $records, string $key): string
+    {
+        $ids = array_map(fn (string $k) => $records[$k]->id, explode('+', $key));
+
+        return '/api/'.sprintf($template, ...$ids);
     }
 
     /**
@@ -226,6 +250,14 @@ class TenantIsolationTest extends TestCase
             'خواندنِ گفت‌وگوی مجتمعِ دیگر' => ['GET', 'messenger/conversations/%d/messages', 'conversation', []],
             'نوشتن در گفت‌وگوی مجتمعِ دیگر' => ['POST', 'messenger/conversations/%d/messages', 'conversation', ['body' => 'نفوذ']],
             'رسیدِ خواندن در گفت‌وگوی مجتمعِ دیگر' => ['POST', 'messenger/conversations/%d/read', 'conversation', ['up_to' => 1]],
+            // غنی‌سازیِ پیام‌رسان (مرحلهٔ ۶ · فاز ۱۴)
+            'ویرایشِ پیامِ مجتمعِ دیگر' => ['PATCH', 'messenger/conversations/%d/messages/%d', 'conversation+message', ['body' => 'نفوذ']],
+            'حذفِ پیامِ مجتمعِ دیگر' => ['DELETE', 'messenger/conversations/%d/messages/%d', 'conversation+message', []],
+            'واکنش به پیامِ مجتمعِ دیگر' => ['POST', 'messenger/conversations/%d/messages/%d/reactions', 'conversation+message', ['emoji' => '👍']],
+            'گزارشِ پیامِ مجتمعِ دیگر' => ['POST', 'messenger/conversations/%d/messages/%d/report', 'conversation+message', []],
+            'سنجاق در گفت‌وگوی مجتمعِ دیگر' => ['POST', 'messenger/conversations/%d/pin', 'conversation', ['message_id' => null]],
+            'جست‌وجو در گفت‌وگوی مجتمعِ دیگر' => ['GET', 'messenger/conversations/%d/search', 'conversation', []],
+            'رسیدگی به گزارشِ مجتمعِ دیگر' => ['POST', 'messenger/reports/%d/resolve', 'report', ['resolution' => 'hidden']],
             'خواندنِ اطلاعیهٔ دیگری' => ['POST', 'notifications/%d/read', 'announcement', []],
         ];
     }
@@ -237,7 +269,7 @@ class TenantIsolationTest extends TestCase
         string $key,
         array $payload,
     ): void {
-        $uri = '/api/'.sprintf($template, $this->b[$key]->id);
+        $uri = $this->uriFor($template, $this->b, $key);
 
         $response = $this->asAdminOfA($method, $uri, $payload);
 
@@ -270,7 +302,7 @@ class TenantIsolationTest extends TestCase
         string $key,
         array $payload,
     ): void {
-        $uri = '/api/'.sprintf($template, $this->a[$key]->id);
+        $uri = $this->uriFor($template, $this->a, $key);
 
         $response = $this->asAdminOfA($method, $uri, $payload);
 
@@ -293,7 +325,7 @@ class TenantIsolationTest extends TestCase
     {
         // همه‌ی تلاش‌های بالا یک‌جا، بعد بررسی می‌کنیم چیزی از مجتمع B کم نشده
         foreach (self::crossTenantRoutes() as [$method, $template, $key, $payload]) {
-            $this->asAdminOfA($method, '/api/'.sprintf($template, $this->b[$key]->id), $payload);
+            $this->asAdminOfA($method, $this->uriFor($template, $this->b, $key), $payload);
         }
 
         foreach (['unit', 'rule', 'expense', 'income', 'discount', 'announcement', 'message'] as $key) {
@@ -303,6 +335,12 @@ class TenantIsolationTest extends TestCase
                 "رکورد «{$key}» مجتمع B حذف شده است.",
             );
         }
+
+        // 🔴 «حذفِ» پیام ردیف را نگه می‌دارد؛ پس خودِ متن و پرچمِ حذف سنجیده می‌شود (فاز ۱۴)
+        $message = $this->b['message']->fresh();
+        $this->assertSame('پیام', $message->body);
+        $this->assertNull($message->deleted_at);
+        $this->assertFalse((bool) $message->is_hidden, 'گزارشِ مجتمعِ B از مجتمعِ A رسیدگی شد.');
 
         // و واحد B هنوز شماره‌ی خودش را دارد (ویرایش نشده)
         $this->assertSame('1', $this->b['unit']->fresh()->unit_number);

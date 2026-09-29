@@ -18,6 +18,7 @@ use App\Support\CursorPage;
 use App\Support\Notifications;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 
@@ -38,8 +39,6 @@ class ConversationController extends Controller
 
     /** سقفِ پیام‌های تازه در یک پرسش. */
     private const SINCE_LIMIT = 100;
-
-    private const MESSAGE_RELATIONS = ['recipientUnits:id,unit_number', 'readers:id', 'poll.options', 'poll.votes'];
 
     public function __construct(private readonly ConversationDirectory $directory) {}
 
@@ -115,7 +114,7 @@ class ConversationController extends Controller
         $user = Auth::user();
         $this->ensureVisible($conversation, $user);
 
-        $base = Message::query()->where('conversation_id', $conversation->id)->with(self::MESSAGE_RELATIONS);
+        $base = Message::query()->where('conversation_id', $conversation->id)->with(MessageResource::RELATIONS);
         $present = fn (Message $m) => $this->present($m, $user);
 
         if (($since = $request->integer('since')) > 0) {
@@ -149,6 +148,16 @@ class ConversationController extends Controller
                 ->where('message_reads.user_id', '!=', $user->id)
                 ->max('message_reads.message_id'),
             'conversation' => $this->directory->present($conversation, $user),
+            // پیامِ سنجاق‌شده (فاز ۱۴) — همان قاعده‌ی دیدِ بقیه‌ی پیام‌ها
+            'pinned' => $this->pinned($conversation, $user),
+            /*
+             * 🔴 تغییرِ پیام‌هایی که از قبل در کلاینت‌اند (فاز ۱۴): ویرایش، حذف،
+             * واکنش و پنهان‌شدن. `since` فقط پیامِ تازه می‌آورد؛ بی‌این، ویرایش یا
+             * حذفِ طرفِ مقابل تا بارگذاریِ دوباره دیده نمی‌شد. کلاینت
+             * `serverTime`ِ پاسخِ قبلی را (با دو ثانیه هم‌پوشانی) پس می‌فرستد.
+             */
+            'changed' => $this->changed($conversation, $user, $since, $request->integer('changed_after')),
+            'serverTime' => now()->getTimestamp(),
             'canSend' => $this->canSend($conversation, $user),
             'isAdmin' => $user->isAdmin(),
         ]);
@@ -159,17 +168,20 @@ class ConversationController extends Controller
         $user = Auth::user();
         $this->ensureVisible($conversation, $user);
 
+        // پیامِ صوتی همان پیوست است با نوعِ `audio` (فاز ۱۴)؛ قاعده‌ی فایلش جداست
+        $voice = $request->file('voice');
+
         [$message, $created] = $sender->send(
             $this->requireComplex(),
             $conversation,
             $user,
-            $request->validated(),
-            $request->file('attachment'),
+            [...$request->validated(), 'is_voice' => $voice !== null],
+            $voice ?? $request->file('attachment'),
         );
 
         // تکراری ۲۰۰ است نه ۲۰۱: کلاینت می‌فهمد این همان پیامِ قبلی است
         return response()->json(
-            ['message' => $this->present($message->fresh(self::MESSAGE_RELATIONS), $user)],
+            ['message' => $this->present($message->fresh(MessageResource::RELATIONS), $user)],
             $created ? 201 : 200,
         );
     }
@@ -199,6 +211,47 @@ class ConversationController extends Controller
         }
 
         return response()->json(['marked' => $ids->count(), 'unreadTotal' => Notifications::messengerUnread($user)]);
+    }
+
+    /** @return list<array<string, mixed>> */
+    private function changed(Conversation $conversation, User $user, int $since, int $changedAfter): array
+    {
+        if ($since <= 0 || $changedAfter <= 0) {
+            return [];
+        }
+
+        return Message::query()
+            ->where('conversation_id', $conversation->id)
+            ->where('id', '<=', $since)
+            ->where('updated_at', '>=', Carbon::createFromTimestamp($changedAfter))
+            ->with(MessageResource::RELATIONS)
+            ->orderBy('id')
+            ->limit(self::SINCE_LIMIT)
+            ->get()
+            ->map(fn (Message $m) => $this->present($m, $user))
+            ->values()
+            ->all();
+    }
+
+    /** @return array<string, mixed>|null */
+    private function pinned(Conversation $conversation, User $user): ?array
+    {
+        if ($conversation->pinned_message_id === null) {
+            return null;
+        }
+
+        $message = Message::query()->where('conversation_id', $conversation->id)
+            ->whereKey($conversation->pinned_message_id)
+            ->whereNull('deleted_at')
+            ->with(MessageResource::RELATIONS)
+            ->first();
+
+        // پیامِ سنجاقی که بعداً پنهان شد برای ساکن سنجاق نیست
+        if ($message === null || ($message->is_hidden && ! $user->isAdmin())) {
+            return null;
+        }
+
+        return $this->present($message, $user);
     }
 
     private function ensureVisible(Conversation $conversation, User $user): void

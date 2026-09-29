@@ -71,6 +71,8 @@ class Notifications
             ->visibleTo($user)
             ->where('user_id', '!=', $user->id)
             ->where('is_hidden', false)
+            // حذف‌شده «پیامِ خوانده‌نشده» نیست (فاز ۱۴)
+            ->whereNull('deleted_at')
             ->whereDoesntHave('readers', fn ($q) => $q->where('users.id', $user->id))
             ->count();
     }

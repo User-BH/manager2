@@ -4,12 +4,14 @@ namespace App\Http\Resources;
 
 use App\Enums\MessageAudience;
 use App\Models\Message;
+use App\Models\MessageReaction;
 use App\Models\Unit;
 use App\Models\User;
 use App\Services\Poll\PollService;
 use App\Support\Jalali;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
+use Illuminate\Support\Str;
 
 /**
  * پیامِ پیام‌رسانِ داخلی.
@@ -25,6 +27,11 @@ use Illuminate\Http\Resources\Json\JsonResource;
  */
 class MessageResource extends JsonResource
 {
+    /** رابطه‌هایی که این خروجی می‌خواند — برای بارگذاریِ یک‌جا (بی N+1). */
+    public const RELATIONS = [
+        'recipientUnits:id,unit_number', 'readers:id', 'poll.options', 'poll.votes', 'replyTo', 'reactions',
+    ];
+
     /**
      * بیننده از بیرون تزریق می‌شود.
      *
@@ -47,10 +54,12 @@ class MessageResource extends JsonResource
         $hidden = (bool) $message->is_hidden;
         $mayReadHidden = $this->viewer->isAdmin();
         $isMine = $message->user_id === $this->viewer->id;
+        // حذف‌شده برای همه، حتی مدیر، بی‌محتواست: متن و پیوستش واقعاً پاک شده‌اند
+        $deleted = $message->isDeleted();
 
         return [
             'id' => $message->id,
-            'body' => $hidden && ! $mayReadHidden ? null : $message->body,
+            'body' => $deleted || ($hidden && ! $mayReadHidden) ? null : $message->body,
             'authorName' => $message->author_name,
             'unitLabel' => $message->unit_label,
             'isMine' => $isMine,
@@ -67,7 +76,7 @@ class MessageResource extends JsonResource
             'audienceLabel' => $this->audienceLabel($message),
 
             // پیوست (R23b) — مسیرِ سرو کنترل‌شده است، نه لینکِ مستقیمِ دیسک
-            'attachment' => $message->hasAttachment() ? [
+            'attachment' => ! $deleted && $message->hasAttachment() ? [
                 'name' => $message->attachment_name,
                 'kind' => $message->attachment_kind,
                 'url' => route('api.messenger.attachment', $message),
@@ -95,7 +104,75 @@ class MessageResource extends JsonResource
                 : null,
 
             'poll' => $this->poll($message),
+
+            /*
+             * غنی‌سازی (مرحلهٔ ۶ · فاز ۱۴) — همه افزوده؛ کلاینتِ قدیم نمی‌شکند.
+             *
+             * `canEdit`/`canDelete` را سرور می‌گوید تا منوی پیام همان قاعده‌ای را
+             * نشان دهد که سرور اجرا می‌کند؛ کلاینت پنجره‌ی ۱۵ دقیقه را حساب نمی‌کند.
+             */
+            'isDeleted' => $deleted,
+            'isEdited' => ! $deleted && $message->edited_at !== null,
+            'canEdit' => ! $hidden && $message->isEditableBy($this->viewer),
+            'canDelete' => $isMine && ! $deleted && ! $hidden && $message->poll === null,
+            'replyTo' => $this->replyTo($message),
+            'reactions' => $deleted ? [] : $this->reactions($message),
         ];
+    }
+
+    /**
+     * پیامی که این پیام پاسخِ آن است.
+     *
+     * ⚠️ تکه‌متنِ هدف همان قاعده‌ی خودِ هدف را دارد: پنهان‌شده برای ساکن و
+     * حذف‌شده برای همه بی‌متن است — وگرنه پاسخ راهِ دورزدنِ پنهان‌کردن می‌شد.
+     *
+     * @return array<string, mixed>|null
+     */
+    private function replyTo(Message $message): ?array
+    {
+        $target = $message->reply_to_id !== null ? $message->replyTo : null;
+
+        if ($target === null) {
+            return null;
+        }
+
+        $unavailable = $target->isDeleted() || ($target->is_hidden && ! $this->viewer->isAdmin());
+        $summary = $target->body ?: match ($target->attachment_kind) {
+            'audio' => 'پیامِ صوتی',
+            null => 'نظرسنجی',
+            default => (string) $target->attachment_name,
+        };
+
+        return [
+            'id' => $target->id,
+            'authorName' => $target->author_name,
+            'excerpt' => $unavailable ? null : Str::limit($summary, 90),
+            'isDeleted' => $target->isDeleted(),
+        ];
+    }
+
+    /**
+     * واکنش‌ها به ترتیبِ فهرستِ ثابت، فقط شمار — نه اینکه چه کسی.
+     *
+     * @return list<array{emoji: string, count: int, mine: bool}>
+     */
+    private function reactions(Message $message): array
+    {
+        $summary = [];
+
+        foreach (MessageReaction::ALLOWED as $emoji) {
+            $matching = $message->reactions->where('emoji', $emoji);
+
+            if ($matching->isNotEmpty()) {
+                $summary[] = [
+                    'emoji' => $emoji,
+                    'count' => $matching->count(),
+                    'mine' => $matching->contains('user_id', $this->viewer->id),
+                ];
+            }
+        }
+
+        return $summary;
     }
 
     /**
