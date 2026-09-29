@@ -14,14 +14,14 @@
 [`SecurityHeadersTest`](../tests/Feature/SecurityHeadersTest.php) تست دارند.
 پس **برای کار کردن، به هیچ تغییری در nginx نیاز نیست**:
 
-| هدر                         | مقدار                             | چه چیزی را می‌گیرد              |
-| --------------------------- | --------------------------------- | ------------------------------- |
-| `Content-Security-Policy`   | پویا، با nonce                    | تزریقِ اسکریپت (XSS)            |
-| `X-Content-Type-Options`    | `nosniff`                         | حدسِ نوعِ فایل توسط مرورگر      |
-| `X-Frame-Options`           | `DENY`                            | clickjacking                    |
-| `Referrer-Policy`           | `strict-origin-when-cross-origin` | نشتِ آدرسِ صفحه به سایتِ بیرونی |
-| `Permissions-Policy`        | دوربین/میکروفن/موقعیت خاموش       | دسترسیِ ناخواسته به سخت‌افزار   |
-| `Strict-Transport-Security` | فقط روی HTTPS و بیرون از `local`  | حمله‌ی downgrade به HTTP        |
+| هدر                         | مقدار                                                           | چه چیزی را می‌گیرد              |
+| --------------------------- | --------------------------------------------------------------- | ------------------------------- |
+| `Content-Security-Policy`   | پویا، با nonce                                                  | تزریقِ اسکریپت (XSS)            |
+| `X-Content-Type-Options`    | `nosniff`                                                       | حدسِ نوعِ فایل توسط مرورگر      |
+| `X-Frame-Options`           | `DENY`                                                          | clickjacking                    |
+| `Referrer-Policy`           | `strict-origin-when-cross-origin`                               | نشتِ آدرسِ صفحه به سایتِ بیرونی |
+| `Permissions-Policy`        | دوربین/موقعیت خاموش؛ میکروفن فقط همین مبدأ (پیامِ صوتی، فاز ۱۴) | دسترسیِ ناخواسته به سخت‌افزار   |
+| `Strict-Transport-Security` | فقط روی HTTPS و بیرون از `local`                                | حمله‌ی downgrade به HTTP        |
 
 مزیتِ این‌که در لاراول‌اند: با کد نسخه‌بندی می‌شوند، تست دارند، و با هر استقرار
 خودبه‌خود می‌آیند — برخلافِ کانفیگِ سرور که کسی یادش می‌رود.
