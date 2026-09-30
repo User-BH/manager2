@@ -424,6 +424,26 @@ class PhaseRegressionMapTest extends TestCase
             'پاسخ متنِ کاربر را بازتاب نمی‌دهد' => [
                 'SupportBotEvaluationTest', 'test_the_reply_never_echoes_the_visitors_text', '۶',
             ],
+
+            /* ── پس از فاز ۱۵: بستنِ شمارشِ حساب (Medium) ───────────────────────── */
+            '🔴 فراموشیِ رمز برای شماره‌ی با و بی‌حساب یکسان پاسخ می‌دهد' => [
+                'AccountEnumerationTest', 'test_forgot_password_answers_identically_with_or_without_an_account', '۶',
+            ],
+            'فاصله‌ی ارسالِ مجدد نشانه‌ی وجودِ حساب نیست' => [
+                'AccountEnumerationTest', 'test_the_resend_cooldown_is_the_same_for_every_number', '۶',
+            ],
+            'گامِ تأیید «حساب پیدا نشد» نمی‌گوید' => [
+                'AccountEnumerationTest', 'test_the_verify_step_does_not_reveal_a_missing_account', '۶',
+            ],
+            'پیامکِ بازیابی پس از پاسخ می‌رود' => [
+                'AccountEnumerationTest', 'test_the_sms_leaves_only_after_the_response', '۶',
+            ],
+            'زمانِ پاسخ به وجودِ حساب بسته نیست' => [
+                'AccountEnumerationTest', 'test_response_time_does_not_depend_on_the_account', '۶',
+            ],
+            'ثبت‌نام پیش از کد نمی‌گوید «قبلاً ثبت شده»' => [
+                'AccountEnumerationTest', 'test_registration_does_not_reveal_an_existing_number_before_the_code', '۶',
+            ],
         ];
     }
 
@@ -544,7 +564,7 @@ class PhaseRegressionMapTest extends TestCase
     public function test_the_map_never_shrinks(): void
     {
         $this->assertGreaterThanOrEqual(
-            117,
+            123,
             count(self::fixes()),
             'ردیفی از نقشهٔ رگرسیون حذف شده؛ یعنی اصلاحی محافظش را از دست داده.',
         );

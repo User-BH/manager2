@@ -76,8 +76,16 @@ class AuthController extends Controller
         $phone = Phone::normalize($request->input('phone'));
         $user = User::where('phone', $phone)->first();
 
-        // پیامِ یکسان برای «کاربر نیست» و «رمز غلط» تا نشود شماره‌ها را شمارش کرد.
-        if (! $user || ! Hash::check($request->input('password'), $user->password)) {
+        /*
+         * پیامِ یکسان برای «کاربر نیست» و «رمز غلط» تا نشود شماره‌ها را شمارش کرد.
+         *
+         * ⚠️ و **زمانِ** یکسان: پیش از این bcrypt فقط برای حسابِ موجود اجرا
+         * می‌شد و شماره‌ی بی‌حساب محسوس زودتر جواب می‌گرفت. حالا در هر دو حالت
+         * یک بار هش سنجیده می‌شود.
+         */
+        $passwordOk = Hash::check((string) $request->input('password'), $user->password ?? OtpService::dummyHash());
+
+        if (! $user || ! $passwordOk) {
             // فقط برای حسابِ موجود ثبت می‌شود؛ صاحبش در تاریخچه‌ی ورود می‌بیندش
             if ($user) {
                 $this->recorder->failure($user, $request, LoginEvent::FAILED_PASSWORD);
@@ -204,40 +212,40 @@ class AuthController extends Controller
      *
      * فقط شماره گرفته می‌شود؛ اثبات هویت با کد پیامکی است. محدودیت نرخِ
      * `otp-request` جلوی سوءاستفاده و مصرف بی‌رویه‌ی اعتبار پیامک را می‌گیرد.
+     *
+     * ─── 🔴 پاسخ نمی‌گوید این شماره حساب دارد یا نه ────────────────────────
+     * پیش از این شماره‌ی دارای حساب ۲۰۰ و بقیه ۴۲۲ می‌گرفتند (و کامنتِ همین‌جا
+     * خلافش را ادعا می‌کرد). حالا وضعیت، شکل، متن، فاصله‌ی ارسالِ مجدد و زمانِ
+     * پاسخ برای هر دو یکی است — جزئیات در `OtpService::issue`. فقط صاحبِ
+     * سیم‌کارت کد را می‌گیرد، پس فقط او می‌تواند جلو برود.
      */
     public function forgotPassword(ForgotPasswordRequest $request, OtpService $otp): JsonResponse
     {
         $data = $request->validated();
 
         $phone = Phone::normalize($data['phone']);
-        $user = User::where('phone', $phone)->first();
 
-        /*
-         * پیام یکسان برای «شماره ثبت نشده» و «حساب غیرفعال»، تا نشود با
-         * آزمون‌وخطا فهمید کدام شماره در سامانه حساب دارد.
-         *
-         * اثباتِ هویت اینجا خودِ کدِ پیامکی است: فقط کسی که به آن سیم‌کارت
-         * دسترسی دارد می‌تواند ادامه دهد.
-         */
-        if (! $user || ! $user->is_active) {
-            throw ValidationException::withMessages([
-                'phone' => 'حساب فعالی با این شماره پیدا نشد.',
-            ]);
+        // خطای «قالبِ شماره» به وجودِ حساب ربطی ندارد، پس نشانه نیست
+        if (! Phone::isValidMobile($phone)) {
+            throw ValidationException::withMessages(['phone' => 'شماره تلفن همراه معتبر نیست.']);
         }
 
-        $result = $otp->request($phone);
+        $user = User::where('phone', $phone)->where('is_active', true)->first();
+
+        $result = $otp->issue($phone, deliver: $user !== null);
         if (! $result['ok']) {
             throw ValidationException::withMessages(['phone' => $result['error'] ?? 'ارسال کد ناموفق بود.']);
         }
 
         $request->session()->put('reset.pending', [
-            'user_id' => $user->id,
+            'user_id' => $user?->id,
+            'phone' => $phone,
             'verified' => false,
             'at' => now()->timestamp,
         ]);
 
         return response()->json([
-            'message' => 'کد بازیابی به شماره '.$phone.' ارسال شد.',
+            'message' => 'اگر حسابِ فعالی با این شماره باشد، کدِ بازیابی به آن پیامک می‌شود.',
             'dev_code' => $result['dev_code'] ?? null,
         ]);
     }
@@ -254,20 +262,18 @@ class AuthController extends Controller
             throw ValidationException::withMessages(['code' => 'مهلت بازیابی تمام شده است. از ابتدا شروع کنید.']);
         }
 
-        $user = User::find($pending['user_id']);
+        $user = $pending['user_id'] ? User::find($pending['user_id']) : null;
+        $phone = $pending['phone'] ?? $user?->phone;
 
         /*
-         * حالتِ لبه: حساب وسطِ جریانِ چندمرحله‌ای حذف شده.
-         * پیامِ روشن به‌جای ۴۲۲ِ بی‌متن، تا کاربر بداند باید از اول شروع کند.
+         * 🔴 شماره‌ی بی‌حساب همان پیامِ «کد نادرست» را می‌گیرد، نه «حساب پیدا
+         * نشد» — وگرنه گامِ دوم همان چیزی را لو می‌داد که گامِ اول پنهان کرد.
+         * برای چنین شماره‌ای کدی فرستاده نشده، پس هیچ کدی درست نیست؛ و `verify`
+         * همان هزینه‌ی bcrypt را می‌پردازد.
          */
-        if (! $user) {
-            throw DomainException::invalid(
-                'حساب کاربری پیدا نشد. لطفاً از ابتدا شروع کنید.',
-                'auth.pending_user_missing',
-            );
-        }
+        $verified = $phone !== null && $otp->verify($phone, (string) $request->input('code'));
 
-        if (! $otp->verify($user->phone, $request->input('code'))) {
+        if (! $verified || ! $user) {
             throw ValidationException::withMessages(['code' => 'کد واردشده نادرست یا منقضی شده است.']);
         }
 
@@ -368,12 +374,14 @@ class AuthController extends Controller
             throw ValidationException::withMessages(['phone' => 'شماره تلفن همراه معتبر نیست.']);
         }
 
-        if (User::withoutGlobalScopes()->where('phone', $phone)->exists()) {
-            throw ValidationException::withMessages([
-                'phone' => 'این شماره قبلاً ثبت شده است. از همین صفحه وارد شوید.',
-            ]);
-        }
-
+        /*
+         * 🔴 «این شماره قبلاً ثبت شده» دیگر اینجا گفته نمی‌شود.
+         *
+         * این پاسخ به هر کسی — بی‌هیچ پیامکی — می‌گفت کدام شماره حساب دارد؛
+         * بستنِ شمارش در «فراموشیِ رمز» بی‌این بی‌فایده بود. حالا کد برای هر
+         * شماره‌ی معتبر فرستاده می‌شود و همین پیام **پس از تأییدِ کد** می‌آید
+         * (`registerVerify`)، یعنی فقط به صاحبِ همان سیم‌کارت.
+         */
         $result = $otp->request($phone);
         if (! $result['ok']) {
             throw ValidationException::withMessages(['phone' => $result['error'] ?? 'ارسال کد تایید ناموفق بود.']);

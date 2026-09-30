@@ -234,21 +234,28 @@ class TwoFactorLoginTest extends TestCase
             ->assertJsonPath('dev_code', fn ($code) => strlen((string) $code) === 6);
     }
 
-    public function test_forgot_password_refuses_an_unknown_phone(): void
+    /**
+     * ⚠️ پیش از این «شماره‌ی ناشناس ۴۲۲ می‌گیرد» بود — همان شمارشِ حساب. حالا
+     * پاسخ یکسان است و فقط پیامکی نمی‌رود؛ یکسان‌بودنِ کامل را
+     * `AccountEnumerationTest` می‌سنجد.
+     */
+    public function test_forgot_password_sends_nothing_to_an_unknown_phone(): void
     {
         $this->postJson('/api/password/forgot', ['phone' => '09129999999'])
-            ->assertStatus(422)->assertJsonValidationErrors('phone');
+            ->assertOk()->assertJsonPath('dev_code', null);
 
-        // برای شماره‌ی ناشناس هیچ پیامکی فرستاده نمی‌شود
-        $this->assertDatabaseCount('otp_codes', 0);
+        // ردیفِ کد (برای یکسانیِ فاصله‌ی ارسالِ مجدد) هست، ولی کدش هرگز فرستاده نشد
+        $this->assertDatabaseCount('otp_codes', 1);
+        $this->postJson('/api/password/forgot/verify', ['code' => '000000'])->assertStatus(422);
     }
 
-    public function test_forgot_password_refuses_an_inactive_account(): void
+    public function test_forgot_password_sends_nothing_to_an_inactive_account(): void
     {
         $this->user->update(['is_active' => false]);
 
         $this->postJson('/api/password/forgot', ['phone' => '09120000010'])
-            ->assertStatus(422)->assertJsonValidationErrors('phone');
+            ->assertOk()->assertJsonPath('dev_code', null);
+        $this->postJson('/api/password/forgot/verify', ['code' => '000000'])->assertStatus(422);
     }
 
     public function test_the_full_password_reset_flow_changes_the_password(): void

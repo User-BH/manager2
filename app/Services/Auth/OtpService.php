@@ -6,6 +6,7 @@ use App\Models\OtpCode;
 use App\Services\Sms\SmsManager;
 use App\Support\Phone;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Log;
 
 class OtpService
 {
@@ -98,6 +99,78 @@ class OtpService
     }
 
     /**
+     * کدِ بازیابی — **بی‌آنکه پاسخ بگوید این شماره حساب دارد یا نه**.
+     *
+     * ─── 🔴 چه چیزی لو می‌رفت (پس از مرحلهٔ ۶) ─────────────────────────────
+     * `POST /password/forgot` برای شماره‌ی دارای حساب ۲۰۰ و برای بقیه ۴۲۲
+     * می‌داد؛ و حتی با پاسخِ یکسان، سه نشانه‌ی دیگر می‌ماند:
+     *
+     * • **فاصله‌ی ارسالِ مجدد**: ردیفِ کد فقط برای حسابِ موجود ساخته می‌شد،
+     *   پس درخواستِ دوم (از همین مسیر یا از ثبت‌نام) فقط برای آن «کمی صبر
+     *   کنید» می‌گرفت.
+     * • **زمان**: فقط مسیرِ حسابِ موجود bcrypt و تماسِ شبکه‌ایِ پیامک داشت.
+     * • **خطای پیامک**: فقط مسیرِ حسابِ موجود می‌توانست «ارسال ناموفق» بگیرد.
+     *
+     * پس اینجا برای **هر** شماره همان کار انجام می‌شود — ردیفِ کد با هشِ
+     * bcrypt — و تنها تفاوت، فرستادنِ پیامک است که **پس از ارسالِ پاسخ**
+     * (`terminating`) انجام می‌شود؛ زمانِ پاسخ به شبکه‌ی پیامک وابسته نیست و
+     * شکستِ پیامک در پاسخ دیده نمی‌شود. برای شماره‌ی بی‌حساب کد تصادفی است و
+     * هرگز فرستاده نمی‌شود.
+     *
+     * ⚠️ بهایش: اگر سرویسِ پیامک قطع باشد، کاربر خطایی نمی‌بیند و تا پایانِ
+     * فاصله‌ی ارسالِ مجدد صبر می‌کند (ردیف عمداً پاک نمی‌شود، وگرنه همان
+     * «صبر کنید» در قطعی نشانه می‌شد). شکست در لاگ ثبت می‌شود.
+     *
+     * @return array{ok:bool, dev_code:?string, error:?string}
+     */
+    public function issue(string $phone, bool $deliver): array
+    {
+        $phone = Phone::normalize($phone);
+
+        $recent = OtpCode::where('phone', $phone)
+            ->where('created_at', '>', now()->subSeconds(self::RESEND_COOLDOWN))
+            ->exists();
+        if ($recent) {
+            return ['ok' => false, 'dev_code' => null, 'error' => 'برای ارسال مجدد کد کمی صبر کنید.'];
+        }
+
+        $code = (string) random_int(100000, 999999);
+
+        OtpCode::create([
+            'phone' => $phone,
+            'code_hash' => Hash::make($code),
+            'attempts' => 0,
+            'expires_at' => now()->addSeconds(self::TTL_SECONDS),
+        ]);
+
+        if ($deliver) {
+            /*
+             * ⚠️ فقط **یک بار**: فهرستِ `terminating` مالِ نمونه‌ی برنامه است و در
+             * فرایندِ ماندگار (تست، و Octane اگر روزی بیاید) با هر درخواست دوباره
+             * اجرا می‌شود — تستِ شمارش همین را گرفت: یک کد سه بار پیامک شد.
+             */
+            $pending = true;
+            app()->terminating(function () use (&$pending, $phone, $code): void {
+                if (! $pending) {
+                    return;
+                }
+                $pending = false;
+
+                if (! $this->sms->sendOtp($phone, $code)) {
+                    Log::warning('[otp] recovery code could not be delivered', ['phone_tail' => substr($phone, -4)]);
+                }
+            });
+        }
+
+        return [
+            'ok' => true,
+            // همان قیدِ R20 در `request()`: فقط محیطِ توسعه و فقط وقتی واقعاً فرستاده می‌شود
+            'dev_code' => $deliver && $this->sms->isLogDriver() && app()->environment('local', 'testing') ? $code : null,
+            'error' => null,
+        ];
+    }
+
+    /**
      * پاک‌کردن کدهای یک شماره.
      *
      * پس از ورودِ کاملِ موفق صدا زده می‌شود تا «فاصله‌ی ارسال مجدد» که از روی
@@ -121,6 +194,12 @@ class OtpService
             ->first();
 
         if (! $otp || $otp->attempts >= self::MAX_ATTEMPTS) {
+            /*
+             * ⚠️ همان هزینه‌ی bcrypt در شکستِ زودهنگام هم پرداخت می‌شود، تا زمانِ
+             * پاسخ نگوید «برای این شماره اصلاً کدی هست یا نه».
+             */
+            Hash::check($code, self::dummyHash());
+
             return false;
         }
 
@@ -133,5 +212,17 @@ class OtpService
         $otp->update(['used_at' => now()]);
 
         return true;
+    }
+
+    /**
+     * هشِ bcryptِ ثابت برای برابر کردنِ زمانِ مسیرهای «چیزی پیدا نشد» با
+     * مسیرهای واقعی (بازیابی، ورود). یک بار در هر فرایند ساخته می‌شود و با
+     * همان تنظیمِ هزینه‌ی هشِ برنامه.
+     */
+    public static function dummyHash(): string
+    {
+        static $hash = null;
+
+        return $hash ??= Hash::make(bin2hex(random_bytes(16)));
     }
 }

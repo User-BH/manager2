@@ -606,7 +606,8 @@ class AuthorizationAttackTest extends TestCase
         'app/Http/Controllers/Api/System/MemberController.php' => [3, 'فهرستِ کاربرانِ همه‌ی مجتمع‌ها؛ role:super_admin'],
 
         // ── پیش از آنکه کاربر عضوِ مجتمعی باشد ──
-        'app/Http/Controllers/Api/AuthController.php' => [2, 'یکتاییِ شماره در کلِ پلتفرم سنجیده می‌شود'],
+        // یکی کمتر از پیش: بررسیِ «قبلاً ثبت شده» در گامِ اولِ ثبت‌نام برداشته شد (شمارشِ حساب)
+        'app/Http/Controllers/Api/AuthController.php' => [1, 'یکتاییِ شماره در کلِ پلتفرم سنجیده می‌شود — فقط پس از تأییدِ کد'],
         'app/Http/Controllers/Api/JoinRequestController.php' => [2, 'متقاضی هنوز عضوِ هیچ مجتمعی نیست'],
         'app/Http/Controllers/Api/ResidentController.php' => [1, 'کاربرِ بی‌مجتمع، برای دعوت'],
         'app/Services/Account/ComplexUpgrader.php' => [1, 'کاربر در همین لحظه صاحبِ مجتمع می‌شود'],
