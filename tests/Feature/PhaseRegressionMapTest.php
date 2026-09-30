@@ -404,6 +404,26 @@ class PhaseRegressionMapTest extends TestCase
             'میکروفون فقط برای همین مبدأ' => [
                 'SecurityHeadersTest', 'test_only_this_origin_may_ask_for_the_microphone', '۶',
             ],
+
+            /* ── مرحلهٔ ۶، فاز ۱۵: دستیارِ پشتیبانیِ قاعده‌محور ─────────────────── */
+            'دستیار هرگز با اطمینان غلط نمی‌گوید (مجموعه‌ی اصلی)' => [
+                'SupportBotEvaluationTest', 'test_the_tuning_set_stays_accurate_and_never_confidently_wrong', '۶',
+            ],
+            'مجموعه‌ی کنارگذاشته پس‌رفت نمی‌کند' => [
+                'SupportBotEvaluationTest', 'test_the_held_out_set_does_not_regress', '۶',
+            ],
+            'هر پیوندِ پاسخ به جایی واقعی می‌رود' => [
+                'SupportBotEvaluationTest', 'test_every_link_points_somewhere_real', '۶',
+            ],
+            'کلیدواژه‌ی نرمال‌نشده بی‌صدا نمی‌میرد' => [
+                'SupportBotEvaluationTest', 'test_every_keyword_is_already_normalised', '۶',
+            ],
+            'قابلیتِ خاموش معرفی نمی‌شود' => [
+                'SupportBotEvaluationTest', 'test_a_switched_off_feature_is_not_advertised', '۶',
+            ],
+            'پاسخ متنِ کاربر را بازتاب نمی‌دهد' => [
+                'SupportBotEvaluationTest', 'test_the_reply_never_echoes_the_visitors_text', '۶',
+            ],
         ];
     }
 
@@ -524,7 +544,7 @@ class PhaseRegressionMapTest extends TestCase
     public function test_the_map_never_shrinks(): void
     {
         $this->assertGreaterThanOrEqual(
-            111,
+            117,
             count(self::fixes()),
             'ردیفی از نقشهٔ رگرسیون حذف شده؛ یعنی اصلاحی محافظش را از دست داده.',
         );

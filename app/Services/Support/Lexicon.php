@@ -93,6 +93,24 @@ class Lexicon
     ];
 
     /**
+     * عبارت‌هایی (جفتِ واژه‌ی چسبیده) که قاطعانه بیرون از دامنه‌اند (فاز ۱۵).
+     *
+     * «قیمت خونه» مثلِ «قیمت دلار» است: «قیمت» کلیدواژه‌ی اشتراک است، ولی تنها
+     * «خونه» به‌تنهایی نمی‌تواند وتو شود — «خونه‌ی ما شارژش چنده» پرسشِ
+     * درستی است. پس عبارت، نه واژه.
+     *
+     * ⚠️ «دستوراتِ قبلی را نادیده بگیر» خطری برای این موتور ندارد — مدلِ زبانی
+     * نیست و پاسخ‌ها ثابت‌اند — ولی پاسخِ «مطمئن» به آن (مثلاً موضوعِ مدیران
+     * به‌خاطرِ «رمز مدیر») گمراه‌کننده بود.
+     *
+     * @var array<int,string>
+     */
+    private const OUT_OF_DOMAIN_PHRASES = [
+        'قیمتخونه', 'قیمتخانه', 'قیمتملک', 'قیمتمسکن', 'نرخارز',
+        'دستوراتقبلی', 'دستورقبلی', 'ignoreprevious', 'previousinstructions', 'systemprompt',
+    ];
+
+    /**
      * دشنام و توهین.
      *
      * ⚠️ این فهرست **جای پاسخ را عوض نمی‌کند**، فقط جلوی «اطمینان» را
@@ -135,7 +153,11 @@ class Lexicon
     {
         $tokens = PersianText::tokens($message);
 
-        return array_intersect($tokens, self::OUT_OF_DOMAIN) !== [];
+        if (array_intersect($tokens, self::OUT_OF_DOMAIN) !== []) {
+            return true;
+        }
+
+        return array_intersect(PersianText::searchTerms($message), self::OUT_OF_DOMAIN_PHRASES) !== [];
     }
 
     public static function hasProfanity(string $message): bool

@@ -12,8 +12,14 @@ use App\Support\PersianText;
  * می‌سازد)، و پاسخ باید آنی باشد. تطبیق روی پایگاه دانشِ خودمان انجام
  * می‌شود، پس هیچ‌وقت چیزی از خودش نمی‌سازد.
  *
- * جای اتصال به مدل زبانی باز گذاشته شده: اگر روزی کلید و دسترسی داشتید،
- * `config('support.driver')` را عوض کنید و `AiSupportDriver` را پر کنید.
+ * ⚠️ طبقِ تصمیمِ ۳ قاعده‌محور می‌ماند؛ هیچ مدلِ زبانی یا سرویسِ بیرونی. (کامنتِ
+ * قدیمیِ این‌جا به `AiSupportDriver` و `config('support.driver')` ارجاع می‌داد
+ * که هیچ‌کدام هرگز وجود نداشتند — فاز ۱۵ پاکش کرد.) پیامِ کاربر هیچ‌جا ذخیره
+ * نمی‌شود و در پاسخ بازتاب نمی‌یابد: هر پاسخ متنِ ثابتِ `KnowledgeBase` است.
+ *
+ * کیفیتِ تشخیص با `tests/fixtures/support-eval.json` سنجیده می‌شود
+ * (`SupportBotEvaluationTest`)؛ هر تغییرِ کلیدواژه یا آستانه باید آن را سبز
+ * نگه دارد.
  */
 class SupportBot
 {
@@ -27,6 +33,15 @@ class SupportBot
 
     /** زیر این امتیاز اصلاً ربطی وجود ندارد. */
     private const RELEVANT = 1.5;
+
+    /**
+     * دو موضوع که امتیازشان این‌قدر نزدیک است، «کدام را می‌پرسید؟» می‌گیرند.
+     *
+     * ⚠️ مجموعه‌ی ارزیابیِ فاز ۱۵ نشان داد بیشترِ پاسخ‌های «مطمئن ولی غلط»
+     * از همین‌جا می‌آمدند: دو موضوعِ هم‌امتیاز و برنده‌ای که فقط یک واژه جلوتر
+     * بود. وقتی فاصله این‌قدر کم است، پرسیدن صادقانه‌تر از حدس است.
+     */
+    private const CLOSE_CALL = 0.85;
 
     /**
      * @return array<string,mixed>
@@ -58,7 +73,12 @@ class SupportBot
             return $this->fallback();
         }
 
-        if ($best['score'] < self::CONFIDENT || ! $this->isSolid($best)) {
+        $runnerUp = $ranked[1] ?? null;
+        $closeCall = $runnerUp !== null
+            && $runnerUp['score'] >= $best['score'] * self::CLOSE_CALL
+            && $this->isSolid($runnerUp);
+
+        if ($best['score'] < self::CONFIDENT || ! $this->isSolid($best) || $closeCall) {
             /*
              * «کدام‌یک را می‌پرسید؟» فقط وقتی معنا دارد که واقعاً چند گزینه
              * باشد. با یک نامزدِ ضعیف، این جمله کاربر را سرگردان می‌کند
@@ -110,15 +130,44 @@ class SupportBot
     private function rank(array $tokens): array
     {
         $scored = [];
+        $intents = KnowledgeBase::available();
 
-        foreach (KnowledgeBase::intents() as $intent) {
-            $score = 0.0;
-            $hits = 0;
-            $solidHits = 0;
+        /*
+         * واژه‌ای که خودش کلیدواژه‌ی شناخته‌شده است، غلطِ تایپیِ کلیدواژه‌ی
+         * دیگر حساب نمی‌شود (مرحلهٔ ۶ · فاز ۱۵).
+         *
+         * «آنلاین» و «آفلاین» یک حرف فرق دارند؛ بی‌این قاعده «شارژمو آنلاین
+         * بدم» با اطمینان به موضوعِ «نصب روی گوشی» (آفلاین) می‌رفت، و «واحد» به
+         * «وارد» (ورود) امتیاز می‌داد. کاربری که واژه‌ی درستِ دیگری نوشته،
+         * اشتباه تایپ نکرده.
+         */
+        $vocabulary = [];
+        foreach ($intents as $intent) {
+            foreach (array_keys($intent['keywords']) as $keyword) {
+                $vocabulary[(string) $keyword] = true;
+            }
+        }
+
+        foreach ($intents as $intent) {
+            /*
+             * 🔴 هر واژه‌ی پیام فقط **یک بار** شاهد است (مرحلهٔ ۶ · فاز ۱۵).
+             *
+             * پیش از این هر کلیدواژه جدا شمرده می‌شد: واژه‌ی تنهای «ساختمان» با
+             * دو کلیدواژه‌ی «ساختمانم» و «ساختمانمرو» تطبیقِ پیشوندی می‌خورد و
+             * **دو شاهد** حساب می‌شد — هم پاداشِ چندواژه‌ای می‌گرفت و هم «محکم»
+             * به‌شمار می‌آمد، با اینکه هر دو شاهد ضعیف و از یک واژه بودند.
+             * مجموعه‌ی ارزیابی نشان داد «شارژ ساختمان چطور حساب میشه» با همین با
+             * اطمینان به موضوعِ پیوستن می‌رفت. حالا سهمِ هر واژه بهترین تطبیقِ
+             * آن در همین موضوع است.
+             *
+             * @var array<string,array{score:float,kind:string}> $byToken
+             */
+            $byToken = [];
 
             foreach ($intent['keywords'] as $keyword => $weight) {
                 $best = 0.0;
                 $bestKind = 'none';
+                $bestToken = null;
 
                 foreach ($tokens as $token) {
                     // بهترین تطبیقِ این کلیدواژه، نه اولین تطبیق: اگر پیام هم
@@ -126,9 +175,14 @@ class SupportBot
                     // را بگیرد نه امتیاز هم‌ریشه.
                     $match = PersianText::match($token, (string) $keyword);
 
+                    if ($match['kind'] === 'typo' && isset($vocabulary[$token])) {
+                        continue;
+                    }
+
                     if ($match['score'] > $best) {
                         $best = $match['score'];
                         $bestKind = $match['kind'];
+                        $bestToken = $token;
                     }
 
                     if ($best === 1.0) {
@@ -136,15 +190,17 @@ class SupportBot
                     }
                 }
 
-                if ($best > 0) {
-                    $score += $weight * $best;
-                    $hits++;
-
-                    if (in_array($bestKind, ['exact', 'typo', 'inflection'], true)) {
-                        $solidHits++;
-                    }
+                if ($bestToken !== null && $weight * $best > ($byToken[$bestToken]['score'] ?? 0.0)) {
+                    $byToken[$bestToken] = ['score' => $weight * $best, 'kind' => $bestKind];
                 }
             }
+
+            $score = array_sum(array_column($byToken, 'score'));
+            $hits = count($byToken);
+            $solidHits = count(array_filter(
+                $byToken,
+                fn (array $hit) => in_array($hit['kind'], ['exact', 'typo', 'inflection'], true),
+            ));
 
             /*
              * پاداش برای چند کلیدواژه‌ی متفاوت.
