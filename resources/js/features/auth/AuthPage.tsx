@@ -141,7 +141,7 @@ export function AuthPage() {
     <>
       <img
         src={authBackgroundImage}
-        alt="نمای مجتمع مسکونی"
+        alt="نمای یک مجتمع مدرن"
         width={1100}
         height={733}
         loading="lazy"

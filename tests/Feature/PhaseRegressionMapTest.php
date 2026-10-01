@@ -464,6 +464,20 @@ class PhaseRegressionMapTest extends TestCase
             '۴۰۴ِ سرورساید فارسی و با راهِ خروج' => [
                 'GlobalBehaviourTest', 'test_a_missing_page_answers_in_persian_with_a_way_out', '۷',
             ],
+
+            /* ── مرحلهٔ ۷ · فاز ۲: معرفیِ محصول («مسکونی و تجاری») ─────────── */
+            '🔴 هیچ متنِ معرفی محصول را «فقط مسکونی» نمی‌نامد' => [
+                'ProductScopeCopyTest', 'test_no_introduction_calls_the_product_residential_only', '۷',
+            ],
+            'عنوان، توضیح، OG، JSON-LD و llms.txt «مسکونی و تجاری»اند' => [
+                'ProductScopeCopyTest', 'test_the_rendered_pages_say_residential_and_commercial', '۷',
+            ],
+            'آمارِ صفحه‌ی اصلی همان عددهای کارفرما' => [
+                'ProductScopeCopyTest', 'test_the_home_page_numbers_are_the_ones_given', '۷',
+            ],
+            'کارتِ پیام‌رسان همان پیام‌رسانِ ساخته‌شده' => [
+                'ProductScopeCopyTest', 'test_the_messenger_card_describes_the_messenger_that_exists', '۷',
+            ],
         ];
     }
 
@@ -586,7 +600,7 @@ class PhaseRegressionMapTest extends TestCase
     public function test_the_map_never_shrinks(): void
     {
         $this->assertGreaterThanOrEqual(
-            129,
+            133,
             count(self::fixes()),
             'ردیفی از نقشهٔ رگرسیون حذف شده؛ یعنی اصلاحی محافظش را از دست داده.',
         );

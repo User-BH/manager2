@@ -1,5 +1,5 @@
 export const BRAND_NAME = 'ساکنا'
-export const BRAND_TAGLINE = 'پنل مدیریت مجتمع مسکونی'
+export const BRAND_TAGLINE = 'پنل مدیریت مجتمع‌های مسکونی و تجاری'
 
 export const contactInfo = {
   address: 'تهران، خیابان ولیعصر، بالاتر از میدان ونک، برج نگین، طبقه ۴',

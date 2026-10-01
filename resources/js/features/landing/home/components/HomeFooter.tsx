@@ -101,8 +101,8 @@ export function HomeFooter({ page = 'home' }: { page?: 'home' | 'blog' } = {}) {
               className="mt-4 max-w-xs text-[13px] leading-7"
               style={{ color: 'var(--text-secondary)' }}
             >
-              {BRAND_NAME} یک پلتفرم یکپارچه برای مدیریت مالی، امنیتی و ارتباطی مجتمع‌های مسکونی
-              است؛ همراه مدیران ساختمان در سراسر کشور.
+              {BRAND_NAME} یک پلتفرم یکپارچه برای مدیریت مالی، امنیتی و ارتباطی مجتمع‌های مسکونی و
+              تجاری است؛ همراه مدیران ساختمان در سراسر کشور.
             </p>
 
             {social.length > 0 && (
@@ -240,7 +240,7 @@ export function HomeFooter({ page = 'home' }: { page?: 'home' | 'blog' } = {}) {
             <p>
               © {new Date().getFullYear()} {BRAND_NAME}. تمامی حقوق محفوظ است.
             </p>
-            <p>ساخته‌شده با ❤️ برای مدیران مجتمع‌های مسکونی</p>
+            <p>ساخته‌شده با ❤️ برای مدیران مجتمع‌های مسکونی و تجاری</p>
           </div>
         </div>
       </div>

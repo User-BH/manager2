@@ -47,17 +47,17 @@ export function HeroSection() {
               className="h-1.5 w-1.5 rounded-full"
               style={{ backgroundColor: 'var(--color-brand-500)' }}
             />
-            نسل جدید مدیریت مجتمع‌های مسکونی
+            نسل جدید مدیریت مجتمع‌های مسکونی و تجاری
           </motion.div>
 
           <motion.h1
             initial={{ opacity: 0, y: 24 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.65, delay: 0.1 }}
-            className="text-3xl font-extrabold leading-[1.3] sm:text-4xl lg:text-[2.6rem]"
+            className="text-3xl font-extrabold leading-[1.3] text-balance sm:text-4xl lg:text-[2.6rem]"
             style={{ color: 'var(--text-primary)' }}
           >
-            مدیریت مجتمع مسکونی،
+            مدیریت مجتمع مسکونی و تجاری،
             <br />
             <span style={{ color: 'var(--color-brand-500)' }}>ساده، شفاف و یکپارچه</span>
           </motion.h1>
@@ -70,7 +70,7 @@ export function HeroSection() {
             style={{ color: 'var(--text-secondary)' }}
           >
             از شارژ و قبوض تا ارتباط با ساکنین؛ همه‌چیز در یک پنل مدیریتی هوشمند، طراحی‌شده برای
-            مدیران مجتمع‌های مسکونی امروز.
+            مدیران مجتمع‌های مسکونی و تجاری امروز.
           </motion.p>
 
           <motion.div
@@ -138,7 +138,7 @@ export function HeroSection() {
                 گذاشته شده تا چیدمان هنگام لود نپرد. */}
             <img
               src={imageUrls.buildingMain}
-              alt="نمای ساختمان مجتمع مسکونی مدرن"
+              alt="نمای شبانه‌ی یک مجتمع مدرن"
               width={1100}
               height={1466}
               fetchPriority="high"
