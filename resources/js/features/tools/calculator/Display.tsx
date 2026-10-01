@@ -154,7 +154,7 @@ export function Display({
           inputMode="numeric"
           aria-label="عبارت ریاضی"
           spellCheck={false}
-          className="w-full bg-transparent text-left font-mono text-[26px] font-bold outline-none"
+          className="w-full bg-transparent text-left font-mono text-[26px] font-bold"
           style={{ color: 'var(--text-primary)' }}
         />
 

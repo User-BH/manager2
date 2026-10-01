@@ -22,8 +22,9 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>به‌روزرسانی ساکنا</title>
+    @include('partials.theme-init')
     <style>
-        :root { color-scheme: light dark; }
+        :root { color-scheme: light; }
 
         * { box-sizing: border-box; }
 
@@ -40,11 +41,9 @@
             line-height: 1.9;
         }
 
-        @media (prefers-color-scheme: dark) {
-            body { background: #0f172a; color: #e2e8f0; }
-            .card { background: #1e293b; border-color: #334155; }
-            .note { background: #0f172a; border-color: #334155; }
-        }
+        .dark body { background: #0f172a; color: #e2e8f0; }
+        .dark .card { background: #1e293b; border-color: #334155; }
+        .dark .note { background: #0f172a; border-color: #334155; }
 
         .card {
             width: 100%;
@@ -83,9 +82,8 @@
             color: #475569;
         }
 
-        @media (prefers-color-scheme: dark) {
-            .note { color: #94a3b8; }
-        }
+        .dark .note { color: #94a3b8; }
+        .dark { color-scheme: dark; }
     </style>
 </head>
 <body>

@@ -444,6 +444,26 @@ class PhaseRegressionMapTest extends TestCase
             'ثبت‌نام پیش از کد نمی‌گوید «قبلاً ثبت شده»' => [
                 'AccountEnumerationTest', 'test_registration_does_not_reveal_an_existing_number_before_the_code', '۶',
             ],
+
+            /* ── مرحلهٔ ۷ · فاز ۱: رفتارهای سراسری (تم، تاریخچه، ۴۰۴) ─────────── */
+            '🔴 تم از سیستم‌عامل نمی‌آید و همه‌ی سندها یک اسکریپت دارند' => [
+                'GlobalBehaviourTest', 'test_every_document_reads_the_theme_from_the_one_script', '۷',
+            ],
+            'رنگِ نوارِ مرورگر با تمِ انتخابی، نه سیستم‌عامل' => [
+                'GlobalBehaviourTest', 'test_the_browser_bar_colour_is_one_tag_the_script_can_follow', '۷',
+            ],
+            'اسکریپت‌های صفحه‌ی آفلاین زیرِ CSP اجرا می‌شوند' => [
+                'GlobalBehaviourTest', 'test_every_inline_script_on_the_offline_page_carries_the_nonce', '۷',
+            ],
+            '🔴 کاربرِ واردشده صفحه‌ی ورود را نمی‌بیند (سمتِ سرور)' => [
+                'GlobalBehaviourTest', 'test_a_signed_in_user_never_sees_an_auth_page', '۷',
+            ],
+            'صفحه‌ی ورود برای «بازگشت» نگه داشته نمی‌شود' => [
+                'GlobalBehaviourTest', 'test_auth_pages_are_never_kept_for_back_navigation', '۷',
+            ],
+            '۴۰۴ِ سرورساید فارسی و با راهِ خروج' => [
+                'GlobalBehaviourTest', 'test_a_missing_page_answers_in_persian_with_a_way_out', '۷',
+            ],
         ];
     }
 
@@ -534,10 +554,12 @@ class PhaseRegressionMapTest extends TestCase
             'blog' => ['۱۱', 'شکستِ کپی را هم می‌گوید'],
             'messengerThread' => ['۱۲', 'دوباره همان client_id'],
             'messengerEnrichment' => ['۱۴', 'نشانه‌گذاریِ HTML به‌صورتِ متن'],
+            // مرحلهٔ ۷ · فاز ۱: تم، حالتِ فیلد، تاریخچه پس از ورود، ۴۰۴ِ داشبورد
+            'globalBehaviour' => ['۷/۱', 'خطا و «معتبر» هرگز با هم نمی‌نشینند'],
         ];
 
         // 🔴 مثلِ ردیف‌های PHP، این فهرست هم فقط بزرگ می‌شود (خرابکاریِ فاز ۸)
-        $this->assertGreaterThanOrEqual(15, count($guards), 'محافظی از فهرستِ JS حذف شده.');
+        $this->assertGreaterThanOrEqual(16, count($guards), 'محافظی از فهرستِ JS حذف شده.');
 
         foreach ($guards as $file => [$phase, $marker]) {
             $path = base_path("tests/js/{$file}.test.".(file_exists(base_path("tests/js/{$file}.test.tsx")) ? 'tsx' : 'ts'));
@@ -564,7 +586,7 @@ class PhaseRegressionMapTest extends TestCase
     public function test_the_map_never_shrinks(): void
     {
         $this->assertGreaterThanOrEqual(
-            123,
+            129,
             count(self::fixes()),
             'ردیفی از نقشهٔ رگرسیون حذف شده؛ یعنی اصلاحی محافظش را از دست داده.',
         );

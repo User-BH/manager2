@@ -57,7 +57,7 @@ export function RestrictedField<T extends FieldValues>({
     <Controller
       control={control}
       name={name}
-      render={({ field }) => (
+      render={({ field, fieldState, formState }) => (
         <FormField
           {...fieldProps}
           value={field.value ?? ''}
@@ -73,6 +73,16 @@ export function RestrictedField<T extends FieldValues>({
           // خطای فرم مقدم است؛ وگرنه پیام لحظه‌ایِ پالایه
           error={error ?? filterHint ?? undefined}
           invalid={invalid}
+          /*
+           * سبز فقط پس از اعتبارسنجی (مرحلهٔ ۷ · فاز ۱).
+           *
+           * ⚠️ `isSubmitted` و نه `isTouched`: فرم‌ها در حالتِ پیش‌فرضِ
+           * react-hook-form اعتبارسنجی را با ارسال شروع می‌کنند. پیش از آن
+           * `fieldState.invalid` همیشه `false` است، پس «لمس‌شده و بی‌خطا» هر
+           * مقدارِ غلطی را هم سبز می‌کرد. پس از اولین ارسال، با هر تایپ دوباره
+           * سنجیده می‌شود. خالی هرگز سبز نیست.
+           */
+          valid={formState.isSubmitted && !fieldState.invalid && String(field.value ?? '') !== ''}
         />
       )}
     />

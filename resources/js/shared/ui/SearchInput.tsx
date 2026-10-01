@@ -36,13 +36,7 @@ export function SearchInput({ onSearch, placeholder = 'جستجو…', delay = 4
         value={value}
         onChange={(e) => update(e.target.value)}
         placeholder={placeholder}
-        className="w-full rounded-xl border py-2.5 pl-9 pr-9 text-[13.5px] outline-none transition-all focus:ring-2"
-        style={{
-          backgroundColor: 'var(--surface-sunken)',
-          borderColor: 'var(--border-subtle)',
-          color: 'var(--text-primary)',
-          ['--tw-ring-color' as string]: 'var(--ring-focus)',
-        }}
+        className="field w-full rounded-xl py-2.5 pl-9 pr-9 text-[13.5px]"
       />
       {value && (
         <button

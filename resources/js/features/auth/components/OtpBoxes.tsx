@@ -143,13 +143,9 @@ export function OtpBoxes({
           maxLength={1}
           disabled={disabled}
           aria-label={`رقم ${i + 1} کد`}
-          className="h-12 w-11 rounded-xl border text-center text-lg font-bold outline-none transition-all focus:ring-2 disabled:opacity-60"
-          style={{
-            backgroundColor: 'var(--surface-sunken)',
-            borderColor: hasError ? 'var(--color-danger)' : 'var(--border-subtle)',
-            color: 'var(--text-primary)',
-            ['--tw-ring-color' as string]: hasError ? 'var(--color-danger)' : 'var(--ring-focus)',
-          }}
+          // ظاهر و حالت از `.field` (مرحلهٔ ۷ · فاز ۱)
+          aria-invalid={hasError || undefined}
+          className="field h-12 w-11 rounded-xl text-center text-lg font-bold"
         />
       ))}
     </div>

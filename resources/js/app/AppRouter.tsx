@@ -29,6 +29,9 @@ const DashboardLayout = lazy(() =>
 const ForbiddenPage = lazy(() =>
   import('@/features/error/ForbiddenPage').then((m) => ({ default: m.ForbiddenPage })),
 )
+const NotFoundPage = lazy(() =>
+  import('@/features/error/NotFoundPage').then((m) => ({ default: m.NotFoundPage })),
+)
 const DashboardPage = lazy(() =>
   import('@/features/dashboard/DashboardPage').then((m) => ({ default: m.DashboardPage })),
 )
@@ -286,8 +289,8 @@ export function AppRouter() {
           </Route>
         </Route>
 
-        {/* مسیر نامعتبر */}
-        <Route path="*" element={<ForbiddenPage />} />
+        {/* مسیرِ نامعتبر: ۴۰۴، نه ۴۰۳ (مرحلهٔ ۷ · فاز ۱) */}
+        <Route path="*" element={<NotFoundPage />} />
       </Routes>
     </Suspense>
   )

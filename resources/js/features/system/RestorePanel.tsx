@@ -1,10 +1,10 @@
 import { useRef, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
 import { AlertTriangle, FileSearch, Loader2, ShieldCheck, Upload } from 'lucide-react'
 import { Card } from '@/shared/ui/Card'
 import { TextField } from '@/shared/ui/Field'
 import { useAuth } from '@/shared/stores/authStore'
 import { api, ApiError } from '@/shared/lib/api'
+import { leaveToAuth } from '@/shared/lib/leaveToAuth'
 
 /** عبارتی که سرور برای انجام بازیابی می‌خواهد. */
 const CONFIRM_PHRASE = 'بازیابی'
@@ -32,7 +32,6 @@ export function RestorePanel() {
   const [restoring, setRestoring] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const fileRef = useRef<HTMLInputElement>(null)
-  const navigate = useNavigate()
   const { setUser } = useAuth()
 
   function reset() {
@@ -79,8 +78,10 @@ export function RestorePanel() {
       await api('/system/backups/restore', { method: 'POST', body })
 
       // حساب کاربری فعلی هم بازنویسی شده و نشست بسته شده است.
+      // ⚠️ `/auth` سندِ MPAِ جداست، نه روتِ داشبورد: `navigate`ِ روتر صفحه‌ی
+      // «پیدا نشد» را نشان می‌داد (مرحلهٔ ۷ · فاز ۱).
       setUser(null)
-      void navigate('/auth', { replace: true })
+      leaveToAuth()
     } catch (err) {
       setError(err instanceof ApiError ? err.message : 'بازیابی ناموفق بود.')
     } finally {
@@ -117,12 +118,7 @@ export function RestorePanel() {
             const selected = e.target.files?.[0]
             if (selected) void inspect(selected)
           }}
-          className="block w-full max-w-sm rounded-xl border px-3 py-2.5 text-[13px] file:ml-3 file:rounded-lg file:border-0 file:px-3 file:py-1.5 file:text-white"
-          style={{
-            backgroundColor: 'var(--surface-sunken)',
-            borderColor: 'var(--border-subtle)',
-            color: 'var(--text-primary)',
-          }}
+          className="field block w-full max-w-sm rounded-xl px-3 py-2.5 text-[13px] file:ml-3 file:rounded-lg file:border-0 file:px-3 file:py-1.5 file:text-white"
         />
 
         {checking && (

@@ -148,8 +148,9 @@ export function ForgotPasswordPage() {
       })
 
       toastSuccess('رمز عبور تغییر کرد. خوش آمدید!')
-      // ورود خودکار انجام شده؛ به داشبورد (سندِ جدا) می‌رویم
-      window.location.assign('/dashboard')
+      // ورود خودکار انجام شده؛ به داشبورد (سندِ جدا) می‌رویم — با `replace`،
+      // تا «بازگشت» از داشبورد به فرمِ بازیابی برنگردد (مرحلهٔ ۷ · فاز ۱)
+      window.location.replace('/dashboard')
     } catch (err) {
       resetForm.setError('password', {
         message:

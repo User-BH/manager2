@@ -417,12 +417,7 @@ export function PayBillPage() {
                 ref={fileRef}
                 type="file"
                 accept={acceptFor(RECEIPT_EXTENSIONS)}
-                className="w-full rounded-xl border px-3 py-2.5 text-[13px] file:ml-3 file:rounded-lg file:border-0 file:px-3 file:py-1.5 file:text-white"
-                style={{
-                  backgroundColor: 'var(--surface-sunken)',
-                  borderColor: 'var(--border-subtle)',
-                  color: 'var(--text-primary)',
-                }}
+                className="field w-full rounded-xl px-3 py-2.5 text-[13px] file:ml-3 file:rounded-lg file:border-0 file:px-3 file:py-1.5 file:text-white"
               />
               <p className="text-[11px]" style={{ color: 'var(--text-tertiary)' }}>
                 تصویر یا PDF، حداکثر ۴ مگابایت

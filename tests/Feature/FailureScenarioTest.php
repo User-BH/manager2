@@ -159,11 +159,31 @@ class FailureScenarioTest extends TestCase
     {
         $html = (string) view('errors.500')->render();
 
-        foreach (['http://', 'https://', '<script', '/build/', 'asset('] as $external) {
+        foreach (['http://', 'https://', '<script src', '/build/', 'asset('] as $external) {
             $this->assertStringNotContainsString($external, $html);
         }
 
         $this->assertStringContainsString('lang="fa"', $html);
+        $this->assertOnlyThemeScript($html);
+    }
+
+    /**
+     * ⚠️ تنها اسکریپتِ مجاز روی صفحه‌ی خرابی، اسکریپتِ درون‌خطیِ تم است
+     * (مرحلهٔ ۷ · فاز ۱).
+     *
+     * این صفحه‌ها پیش از این **هیچ** اسکریپتی نداشتند و تمِ تیره را از
+     * سیستم‌عامل می‌گرفتند، نه از انتخابِ کاربر. اسکریپتِ تم چیزی از سرور
+     * نمی‌خواهد و اگر شکست بخورد (CSP یا نبودِ localStorage) صفحه روشن
+     * می‌ماند — یعنی همان پیش‌فرض. هر اسکریپتِ دیگری همان وابستگی است که این
+     * تست برایش نوشته شده بود.
+     */
+    private function assertOnlyThemeScript(string $html): void
+    {
+        preg_match_all('/<script\b[^>]*>(.*?)<\/script>/s', $html, $scripts);
+
+        $this->assertCount(1, $scripts[0], 'صفحه‌ی خرابی فقط اسکریپتِ تم را دارد.');
+        $this->assertStringContainsString("localStorage.getItem('sakena:theme')", $scripts[1][0]);
+        $this->assertStringNotContainsString(' src=', $scripts[0][0]);
     }
 
     /**
@@ -336,9 +356,11 @@ class FailureScenarioTest extends TestCase
     {
         $html = (string) view('errors.503')->render();
 
-        foreach (['http://', 'https://', '<script', '/build/'] as $external) {
+        foreach (['http://', 'https://', '<script src', '/build/'] as $external) {
             $this->assertStringNotContainsString($external, $html);
         }
+
+        $this->assertOnlyThemeScript($html);
     }
 
     // ─────────────────────────────────────────────────────────────────────

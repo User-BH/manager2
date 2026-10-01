@@ -125,12 +125,7 @@ export function ServiceRequestsPage() {
             setCategory(event.target.value)
             setPage(1)
           }}
-          className="rounded-lg border px-2.5 py-1.5 text-[12.5px] outline-none"
-          style={{
-            backgroundColor: 'var(--surface-sunken)',
-            borderColor: 'var(--border-subtle)',
-            color: 'var(--text-primary)',
-          }}
+          className="field rounded-lg px-2.5 py-1.5 text-[12.5px]"
         >
           <option value="">همه‌ی دسته‌ها</option>
           {data.categories.map((option) => (

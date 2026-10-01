@@ -108,12 +108,7 @@ export function JoinByManagerPhone() {
           placeholder="۰۹xxxxxxxxx"
           value={phone}
           onChange={(event) => setPhone(toAsciiDigits(event.target.value).replace(/\D/g, ''))}
-          className="rounded-xl border px-3.5 py-2.5 text-sm tabular-nums outline-none"
-          style={{
-            borderColor: 'var(--border-default)',
-            backgroundColor: 'var(--surface-sunken)',
-            color: 'var(--text-primary)',
-          }}
+          className="field rounded-xl px-3.5 py-2.5 text-sm tabular-nums"
           aria-describedby="manager-phone-status"
         />
 

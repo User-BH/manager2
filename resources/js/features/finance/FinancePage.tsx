@@ -155,12 +155,7 @@ export function FinancePage() {
           <select
             value={data.period}
             onChange={(e) => setPeriod(e.target.value)}
-            className="rounded-xl border px-3 py-2.5 text-[13px] outline-none"
-            style={{
-              backgroundColor: 'var(--surface-sunken)',
-              borderColor: 'var(--border-subtle)',
-              color: 'var(--text-primary)',
-            }}
+            className="field rounded-xl px-3 py-2.5 text-[13px]"
           >
             {data.periods.map((p) => (
               <option key={p.value} value={p.value}>

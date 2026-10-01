@@ -23,17 +23,12 @@ import {
  * درست می‌کند.
  */
 
-const baseInput =
-  'w-full rounded-xl border py-2.5 px-3 text-[13.5px] outline-none transition-all duration-200 focus:ring-2'
-
-function fieldStyle(hasError: boolean) {
-  return {
-    backgroundColor: 'var(--surface-sunken)',
-    borderColor: hasError ? 'var(--color-danger)' : 'var(--border-subtle)',
-    color: 'var(--text-primary)',
-    ['--tw-ring-color' as string]: hasError ? 'var(--color-danger)' : 'var(--ring-focus)',
-  }
-}
+/*
+ * رنگ، حاشیه و حلقه‌ی فوکوس از کلاسِ `field` در `app.css` می‌آید (مرحلهٔ ۷ ·
+ * فاز ۱)؛ اینجا فقط اندازه است. حالت (خنثی/نامعتبر/معتبر) از صفت‌هایی
+ * خوانده می‌شود که `useFieldIds` می‌گذارد.
+ */
+const baseInput = 'field w-full rounded-xl py-2.5 px-3 text-[13.5px]'
 
 /**
  * شناسه‌های یک فیلد و صفاتِ ARIAِ متناظرشان.
@@ -42,7 +37,7 @@ function fieldStyle(hasError: boolean) {
  * نمونه از یک فرم روی صفحه (مثلاً مودالِ ویرایش کنارِ فرمِ افزودن) شناسه‌ی
  * تکراری بگیرند و برچسب به ورودیِ اشتباه بچسبد.
  */
-function useFieldIds(hasError: boolean) {
+function useFieldIds(hasError: boolean, valid = false) {
   const id = useId()
   const errorId = `${id}-error`
 
@@ -53,6 +48,8 @@ function useFieldIds(hasError: boolean) {
       id,
       'aria-invalid': hasError || undefined,
       'aria-describedby': hasError ? errorId : undefined,
+      // ⚠️ معتبر فقط وقتی خطایی نیست: دو حالتِ متناقض هرگز با هم نمی‌نشینند
+      'data-valid': (valid && !hasError) || undefined,
     },
   }
 }
@@ -104,22 +101,18 @@ function Wrapper({
 interface TextFieldProps extends InputHTMLAttributes<HTMLInputElement> {
   label: string
   error?: string
+  /** اعتبارسنجی انجام شد و مقدار درست است: حاشیه‌ی سبزِ موفقیت. */
+  valid?: boolean
 }
 
 /** ورودی متنی سازگار با register() از React Hook Form. */
 export const TextField = forwardRef<HTMLInputElement, TextFieldProps>(
-  ({ label, error, ...props }, ref) => {
-    const { id, errorId, control } = useFieldIds(Boolean(error))
+  ({ label, error, valid, ...props }, ref) => {
+    const { id, errorId, control } = useFieldIds(Boolean(error), valid)
 
     return (
       <Wrapper id={id} errorId={errorId} label={label} error={error}>
-        <input
-          ref={ref}
-          className={baseInput}
-          style={fieldStyle(Boolean(error))}
-          {...control}
-          {...props}
-        />
+        <input ref={ref} className={baseInput} {...control} {...props} />
       </Wrapper>
     )
   },
@@ -138,13 +131,7 @@ export const TextAreaField = forwardRef<HTMLTextAreaElement, TextAreaFieldProps>
 
     return (
       <Wrapper id={id} errorId={errorId} label={label} error={error}>
-        <textarea
-          ref={ref}
-          className={`${baseInput} leading-7`}
-          style={fieldStyle(Boolean(error))}
-          {...control}
-          {...props}
-        />
+        <textarea ref={ref} className={`${baseInput} leading-7`} {...control} {...props} />
       </Wrapper>
     )
   },
@@ -164,13 +151,7 @@ export const SelectField = forwardRef<HTMLSelectElement, SelectFieldProps>(
 
     return (
       <Wrapper id={id} errorId={errorId} label={label} error={error}>
-        <select
-          ref={ref}
-          className={baseInput}
-          style={fieldStyle(Boolean(error))}
-          {...control}
-          {...props}
-        >
+        <select ref={ref} className={baseInput} {...control} {...props}>
           {placeholder && <option value="">{placeholder}</option>}
           {options.map((option) => (
             <option key={option.value} value={option.value}>

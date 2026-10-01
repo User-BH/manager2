@@ -46,8 +46,9 @@ export function ThreadSearch({
 
   return (
     <div
-      className="rounded-xl border p-2"
-      style={{ borderColor: 'var(--border-subtle)', backgroundColor: 'var(--surface-base)' }}
+      // قابِ فیلد: حاشیه و حلقه‌ی فوکوس از `.field:focus-within` (مرحلهٔ ۷ · فاز ۱)
+      className="field rounded-xl p-2"
+      style={{ backgroundColor: 'var(--surface-base)' }}
     >
       <div className="flex items-center gap-2">
         <Search size={15} style={{ color: 'var(--text-tertiary)' }} aria-hidden="true" />

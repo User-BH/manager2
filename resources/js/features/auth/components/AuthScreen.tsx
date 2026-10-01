@@ -67,6 +67,8 @@ export function AuthScreen({
       </div>
       <Link
         to={backTo}
+        // یک ورودی برای کلِ جریانِ ورود (مرحلهٔ ۷ · فاز ۱)
+        replace
         className="absolute left-4 top-5 flex items-center gap-1.5 text-[13px] font-medium lg:left-6"
         style={{ color: 'var(--text-secondary)' }}
       >

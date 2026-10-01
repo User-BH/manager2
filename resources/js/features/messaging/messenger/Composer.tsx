@@ -203,13 +203,8 @@ export function Composer({
             rows={1}
             aria-label="متنِ پیام"
             placeholder="پیام خود را بنویسید…"
-            className="w-full resize-none rounded-xl border px-3.5 py-3 text-body outline-none focus:ring-2"
-            style={{
-              backgroundColor: 'var(--surface-sunken)',
-              borderColor: errors.body ? 'var(--color-danger)' : 'var(--border-subtle)',
-              color: 'var(--text-primary)',
-              ['--tw-ring-color' as string]: 'var(--ring-focus)',
-            }}
+            className="field w-full resize-none rounded-xl px-3.5 py-3 text-body"
+            aria-invalid={Boolean(errors.body) || undefined}
             {...bodyField}
             ref={(element) => {
               bodyField.ref(element)

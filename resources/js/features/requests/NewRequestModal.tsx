@@ -49,12 +49,6 @@ export function NewRequestModal({
     defaultValues: { title: '', description: '', category: '', priority: 'normal' },
   })
 
-  const inputStyle = {
-    backgroundColor: 'var(--surface-sunken)',
-    borderColor: 'var(--border-subtle)',
-    color: 'var(--text-primary)',
-  }
-
   async function onSubmit(values: FormValues) {
     /*
      * وقتی پیوست هست، درخواست باید multipart برود. `api` خودش FormData را
@@ -103,8 +97,7 @@ export function NewRequestModal({
           <input
             {...register('title')}
             placeholder="مثلاً: آسانسور بین طبقه ۳ و ۴ گیر می‌کند"
-            className="rounded-lg border px-3 py-2 text-[13px] outline-none"
-            style={inputStyle}
+            className="field rounded-lg px-3 py-2 text-[13px]"
           />
           {errors.title && (
             <span style={{ color: 'var(--color-danger)' }}>{errors.title.message}</span>
@@ -117,11 +110,7 @@ export function NewRequestModal({
             style={{ color: 'var(--text-secondary)' }}
           >
             دسته‌بندی
-            <select
-              {...register('category')}
-              className="rounded-lg border px-3 py-2 text-[13px] outline-none"
-              style={inputStyle}
-            >
+            <select {...register('category')} className="field rounded-lg px-3 py-2 text-[13px]">
               <option value="">انتخاب کنید…</option>
               {categories.map((category) => (
                 <option key={category.value} value={category.value}>
@@ -139,11 +128,7 @@ export function NewRequestModal({
             style={{ color: 'var(--text-secondary)' }}
           >
             فوریت
-            <select
-              {...register('priority')}
-              className="rounded-lg border px-3 py-2 text-[13px] outline-none"
-              style={inputStyle}
-            >
+            <select {...register('priority')} className="field rounded-lg px-3 py-2 text-[13px]">
               <option value="normal">عادی</option>
               <option value="urgent">فوری</option>
             </select>
@@ -159,8 +144,7 @@ export function NewRequestModal({
             {...register('description')}
             rows={5}
             placeholder="هرچه دقیق‌تر بنویسید، پیگیری سریع‌تر می‌شود."
-            className="resize-none rounded-lg border px-3 py-2 text-[13px] outline-none"
-            style={inputStyle}
+            className="field resize-none rounded-lg px-3 py-2 text-[13px]"
           />
           {errors.description && (
             <span style={{ color: 'var(--color-danger)' }}>{errors.description.message}</span>

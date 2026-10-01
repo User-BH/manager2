@@ -22,6 +22,19 @@ import { ForgotPasswordPage } from '@/features/auth/ForgotPasswordPage'
 initObservability()
 trackPageView(window.location.pathname)
 
+/*
+ * ⚠️ بازگشت از bfcache (مرحلهٔ ۷ · فاز ۱).
+ *
+ * سرور این صفحه را `no-store` می‌فرستد تا مرورگر نسخه‌ی کهنه‌اش را نگه
+ * ندارد، ولی همه‌ی مرورگرها به آن پایبند نیستند. نسخه‌ای که از bfcache
+ * برمی‌گردد هنوز فکر می‌کند کاربر مهمان است و فرمِ ورود را نشان می‌دهد؛
+ * بارگذاریِ دوباره از سرور می‌پرسد، و سرور کاربرِ واردشده را به داشبورد
+ * می‌فرستد.
+ */
+window.addEventListener('pageshow', (event) => {
+  if (event.persisted) window.location.reload()
+})
+
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     {/*

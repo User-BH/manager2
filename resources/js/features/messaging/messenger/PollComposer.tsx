@@ -95,11 +95,8 @@ export function PollComposer({
 }) {
   const [showSettings, setShowSettings] = useState(false)
 
-  const inputStyle = {
-    backgroundColor: 'var(--surface-base)',
-    borderColor: 'var(--border-subtle)',
-    color: 'var(--text-primary)',
-  }
+  // حاشیه و فوکوس از `.field`؛ فقط زمینه روشن‌تر است چون خودِ کادر sunken است
+  const inputStyle = { backgroundColor: 'var(--surface-base)' }
 
   return (
     <div
@@ -125,7 +122,7 @@ export function PollComposer({
         onChange={(event) => onChange({ ...draft, question: event.target.value })}
         maxLength={255}
         placeholder="سوال نظرسنجی…"
-        className="mb-2 w-full rounded-lg border px-3 py-2 text-[13px] outline-none"
+        className="field mb-2 w-full rounded-lg px-3 py-2 text-[13px]"
         style={inputStyle}
       />
 
@@ -144,7 +141,7 @@ export function PollComposer({
               }
               maxLength={120}
               placeholder={`گزینه ${index + 1}`}
-              className="flex-1 rounded-lg border px-3 py-1.5 text-[12.5px] outline-none"
+              className="field flex-1 rounded-lg px-3 py-1.5 text-[12.5px]"
               style={inputStyle}
             />
             {draft.options.length > MIN_OPTIONS && (
@@ -211,7 +208,7 @@ export function PollComposer({
               onChange={(event) =>
                 onChange({ ...draft, voterScope: event.target.value as PollDraft['voterScope'] })
               }
-              className="rounded-lg border px-2.5 py-1.5 text-[12.5px] outline-none"
+              className="field rounded-lg px-2.5 py-1.5 text-[12.5px]"
               style={inputStyle}
             >
               {SCOPES.map((scope) => (
@@ -232,7 +229,7 @@ export function PollComposer({
               onChange={(event) =>
                 onChange({ ...draft, weightMode: event.target.value as PollDraft['weightMode'] })
               }
-              className="rounded-lg border px-2.5 py-1.5 text-[12.5px] outline-none"
+              className="field rounded-lg px-2.5 py-1.5 text-[12.5px]"
               style={inputStyle}
             >
               {WEIGHTS.map((weight) => (
@@ -256,7 +253,7 @@ export function PollComposer({
                 value={draft.quorumPercent}
                 onChange={(event) => onChange({ ...draft, quorumPercent: event.target.value })}
                 placeholder="بدون حد نصاب"
-                className="rounded-lg border px-2.5 py-1.5 text-[12.5px] outline-none"
+                className="field rounded-lg px-2.5 py-1.5 text-[12.5px]"
                 style={inputStyle}
               />
             </label>
@@ -270,7 +267,7 @@ export function PollComposer({
                 type="datetime-local"
                 value={draft.closesAt}
                 onChange={(event) => onChange({ ...draft, closesAt: event.target.value })}
-                className="rounded-lg border px-2.5 py-1.5 text-[12.5px] outline-none"
+                className="field rounded-lg px-2.5 py-1.5 text-[12.5px]"
                 style={inputStyle}
               />
             </label>

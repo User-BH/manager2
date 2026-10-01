@@ -99,7 +99,6 @@ describe('ایمنیِ نوع', () => {
       'shared/lib/rememberMe.ts': 'بلافاصله پس از parse، هر دو فیلد بررسی می‌شوند.',
       'shared/lib/viewer.ts':
         'به `{ authenticated?: unknown }` تبدیل می‌شود و با `=== true` سنجیده.',
-      'shared/stores/themeStore.ts': "نتیجه با `=== 'dark'` به یکی از دو مقدارِ مجاز نگاشت می‌شود.",
       'shared/lib/observability/config.ts': 'تگِ رندرشدهٔ خودِ سرور است، نه ورودیِ کاربر.',
     }
 
@@ -121,7 +120,6 @@ describe('ایمنیِ نوع', () => {
     const allowed = [
       'shared/lib/rememberMe.ts',
       'shared/lib/viewer.ts',
-      'shared/stores/themeStore.ts',
       'shared/lib/observability/config.ts',
     ]
 

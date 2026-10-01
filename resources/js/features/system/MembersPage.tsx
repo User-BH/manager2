@@ -141,13 +141,7 @@ export function MembersPage() {
             setPage(1)
           }}
           placeholder="جست‌وجو با شماره موبایل یا نام…"
-          className="w-full rounded-xl border py-3 pr-11 pl-4 text-[13.5px] outline-none focus:ring-2"
-          style={{
-            backgroundColor: 'var(--surface-sunken)',
-            borderColor: 'var(--border-subtle)',
-            color: 'var(--text-primary)',
-            ['--tw-ring-color' as string]: 'var(--ring-focus)',
-          }}
+          className="field w-full rounded-xl py-3 pr-11 pl-4 text-[13.5px]"
         />
       </div>
 
@@ -212,13 +206,7 @@ export function MembersPage() {
                       value={member.role}
                       disabled={isPending(member.id)}
                       onChange={(e) => changeRole(member, e.target.value)}
-                      className="appearance-none rounded-xl border py-2 pr-8 pl-3 text-[12.5px] font-semibold outline-none focus:ring-2"
-                      style={{
-                        backgroundColor: 'var(--surface-sunken)',
-                        borderColor: 'var(--border-subtle)',
-                        color: 'var(--text-primary)',
-                        ['--tw-ring-color' as string]: 'var(--ring-focus)',
-                      }}
+                      className="field appearance-none rounded-xl py-2 pr-8 pl-3 text-[12.5px] font-semibold"
                     >
                       {data.roles.map((r) => (
                         <option key={r.value} value={r.value}>

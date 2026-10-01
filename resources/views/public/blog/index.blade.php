@@ -39,7 +39,7 @@
 
             <form action="/blog" method="get" role="search" class="blog-search">
                 <label for="blog-q" class="sr-only">جست‌وجو در بلاگ</label>
-                <input id="blog-q" type="search" name="q" value="{{ $search }}" maxlength="80"
+                <input id="blog-q" class="field" type="search" name="q" value="{{ $search }}" maxlength="80"
                        placeholder="جست‌وجو در مقاله‌ها…" autocomplete="off">
                 <button type="submit">جست‌وجو</button>
             </form>

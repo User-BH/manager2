@@ -141,15 +141,100 @@ test.describe('صفحات عمومیِ MPA', () => {
     })
   }
 
-  test('مسیرِ نامعتبر صفحه‌ی ۴۰۳ را نشان می‌دهد و دکمه‌ی صفحه‌ی اصلی کار می‌کند', async ({
+  test('مسیرِ نامعتبر صفحه‌ی ۴۰۴ را نشان می‌دهد و دکمه‌ی صفحه‌ی اصلی کار می‌کند', async ({
     page,
   }) => {
+    await page.goto('/')
     await page.goto('/definitely-not-a-real-route-xyz')
-    await expect(page.getByText('۴۰۳')).toBeVisible()
+    // ⚠️ پیش از مرحلهٔ ۷ · فاز ۱ اینجا «۴۰۳ — دسترسی غیرمجاز» بود
+    await expect(page.getByRole('heading', { name: 'این صفحه پیدا نشد' })).toBeVisible()
 
     await page.getByRole('button', { name: /صفحه اصلی/ }).click()
     // باید واقعاً به خانه برود (ناوبریِ کاملِ مرورگر، نه فقط تغییرِ آدرس)
     await page.waitForURL((u) => new URL(u).pathname === '/', { timeout: 15_000 })
     await expect(page.locator('h1').first()).toBeVisible()
+
+    // ۴۰۴ بن‌بست است و جایگزین شد: «بازگشت» به صفحه‌ی پیش از آن می‌رود
+    await page.goBack()
+    await expect(page).not.toHaveURL(/definitely-not-a-real-route-xyz/)
+  })
+
+  test('۴۰۴ِ سرورساید فارسی است، نه قالبِ انگلیسیِ لاراول', async ({ page }) => {
+    const response = await page.goto('/blog/no-such-post-xyz')
+
+    expect(response?.status()).toBe(404)
+    await expect(page.getByRole('heading', { name: 'این صفحه پیدا نشد' })).toBeVisible()
+    await expect(page.getByRole('link', { name: 'صفحه‌ی اصلی' })).toBeVisible()
+  })
+})
+
+/**
+ * تم و تاریخچه‌ی مرورگر (مرحلهٔ ۷ · فاز ۱) — فقط در مرورگرِ واقعی سنجیدنی.
+ *
+ * jsdom نه رنگِ پیش از اولین رنگ‌آمیزی را دارد، نه ناوبریِ سند، نه bfcache.
+ */
+test.describe('تم و تاریخچه', () => {
+  test('سیستم‌عاملِ تیره، تمِ سایت را تیره نمی‌کند', async ({ browser }) => {
+    const context = await browser.newContext({ colorScheme: 'dark' })
+    const page = await context.newPage()
+
+    await page.goto('/')
+
+    const state = await page.evaluate(() => ({
+      dark: document.documentElement.classList.contains('dark'),
+      stored: localStorage.getItem('sakena:theme'),
+    }))
+    // ⚠️ و چیزی هم ذخیره نشده: حدسِ ما «انتخابِ» کاربر نیست
+    expect(state).toEqual({ dark: false, stored: null })
+
+    await context.close()
+  })
+
+  test('پس از ورود، «بازگشت» به فرمِ ورود نمی‌رسد', async ({ page }) => {
+    await page.goto('/')
+    await page.goto('/auth')
+
+    await page.locator('input[autocomplete="username"]:visible').fill('09120000000')
+    await page.locator('input[autocomplete="current-password"]:visible').fill('password')
+
+    /*
+     * پازل با رویدادِ نشانگر حل می‌شود، نه با کشیدنِ ماوسِ Playwright.
+     *
+     * ⚠️ کشیدن در سه موتور شکننده است (`financial-journey`) و ادعای این
+     * آزمون درباره‌ی پازل نیست؛ جای حفره را از خودِ صفحه می‌خوانیم و دسته
+     * را همان‌جا رها می‌کنیم — همان رویدادهایی که دستِ کاربر می‌سازد.
+     */
+    const solved = await page.evaluate(async () => {
+      const handle = [
+        ...document.querySelectorAll<HTMLElement>('button[aria-label="کشیدن برای حل پازل"]'),
+      ].find((b) => b.offsetParent !== null)!
+      const track = handle.parentElement!
+      const gap = [...track.previousElementSibling!.querySelectorAll<HTMLElement>('*')].find(
+        (e) => e.style.left,
+      )!
+      const x = track.getBoundingClientRect().left + parseFloat(gap.style.left) + 20
+      const y = handle.getBoundingClientRect().top + 5
+      const init = { bubbles: true, pointerId: 1, pointerType: 'mouse', isPrimary: true }
+
+      handle.dispatchEvent(new PointerEvent('pointerdown', { ...init, clientX: x, clientY: y }))
+      window.dispatchEvent(new PointerEvent('pointermove', { ...init, clientX: x, clientY: y }))
+      await new Promise((r) => setTimeout(r, 50))
+      window.dispatchEvent(new PointerEvent('pointerup', { ...init, clientX: x, clientY: y }))
+      await new Promise((r) => setTimeout(r, 200))
+
+      return document.body.innerText.includes('ربات نیستید')
+    })
+    expect(solved).toBe(true)
+
+    await page.locator('button[type="submit"]:visible').click()
+    await page.waitForURL(/\/dashboard/, { timeout: 15_000 })
+
+    // 🔴 پیش از این `assign` بود و «بازگشت» دوباره فرمِ ورود را نشان می‌داد
+    await page.goBack()
+    await expect(page).toHaveURL((u) => new URL(u).pathname === '/')
+
+    // و کاربرِ واردشده با آدرسِ مستقیم هم فرمِ ورود را نمی‌بیند (سمتِ سرور)
+    await page.goto('/auth')
+    await expect(page).toHaveURL(/\/dashboard/)
   })
 })

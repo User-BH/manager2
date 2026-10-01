@@ -81,13 +81,7 @@ export function HistoryPanel({
             value={query}
             onChange={(event) => onQueryChange(event.target.value)}
             placeholder="جستجو در محاسبه‌ها…"
-            className="w-full rounded-xl border py-1.5 pr-8 pl-2.5 text-[12px] outline-none focus:ring-2"
-            style={{
-              backgroundColor: 'var(--surface-sunken)',
-              borderColor: 'var(--border-subtle)',
-              color: 'var(--text-primary)',
-              ['--tw-ring-color' as string]: 'var(--ring-focus)',
-            }}
+            className="field w-full rounded-xl py-1.5 pr-8 pl-2.5 text-[12px]"
           />
         </div>
       )}

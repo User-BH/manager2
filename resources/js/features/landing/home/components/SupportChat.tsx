@@ -233,13 +233,7 @@ export function SupportChat() {
                   placeholder="سوالتان را بنویسید…"
                   maxLength={500}
                   aria-label="متن پیام"
-                  className="flex-1 rounded-xl border px-3 py-2 text-[13px] outline-none focus:ring-2"
-                  style={{
-                    backgroundColor: 'var(--surface-sunken)',
-                    borderColor: 'var(--border-subtle)',
-                    color: 'var(--text-primary)',
-                    ['--tw-ring-color' as string]: 'var(--ring-focus)',
-                  }}
+                  className="field flex-1 rounded-xl px-3 py-2 text-[13px]"
                 />
                 <button
                   type="submit"

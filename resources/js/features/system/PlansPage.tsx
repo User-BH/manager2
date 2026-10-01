@@ -266,13 +266,7 @@ export function PlansPage() {
                   })
                 }
                 rows={4}
-                className="w-full rounded-xl border p-3 text-[13px] outline-none focus:ring-2"
-                style={{
-                  backgroundColor: 'var(--surface-sunken)',
-                  borderColor: 'var(--border-subtle)',
-                  color: 'var(--text-primary)',
-                  ['--tw-ring-color' as string]: 'var(--ring-focus)',
-                }}
+                className="field w-full rounded-xl p-3 text-[13px]"
               />
             </div>
 
@@ -439,13 +433,6 @@ function ManualGrant({
     }
   }
 
-  const selectStyle = {
-    backgroundColor: 'var(--surface-sunken)',
-    borderColor: 'var(--border-subtle)',
-    color: 'var(--text-primary)',
-    ['--tw-ring-color' as string]: 'var(--ring-focus)',
-  }
-
   return (
     <Card
       title="فعال‌سازیِ دستیِ پلن برای مجتمع"
@@ -466,8 +453,7 @@ function ManualGrant({
               id="manual-plan-complex"
               value={complexId}
               onChange={(e) => setComplexId(e.target.value)}
-              className="w-full rounded-xl border py-3 px-3 text-[13px] outline-none focus:ring-2"
-              style={selectStyle}
+              className="field w-full rounded-xl py-3 px-3 text-[13px]"
             >
               <option value="">انتخاب کنید…</option>
               {complexes.map((c) => (
@@ -489,8 +475,7 @@ function ManualGrant({
               id="manual-plan-package"
               value={planId}
               onChange={(e) => setPlanId(e.target.value)}
-              className="w-full rounded-xl border py-3 px-3 text-[13px] outline-none focus:ring-2"
-              style={selectStyle}
+              className="field w-full rounded-xl py-3 px-3 text-[13px]"
             >
               <option value="">انتخاب کنید…</option>
               {plans.map((p) => (

@@ -256,6 +256,9 @@ return Application::configure(basePath: dirname(__DIR__))
             prepend: AuthenticateTrustedDevice::class,
         );
 
+        // کاربرِ واردشده‌ای که صفحه‌ی ورود را باز کند (میدل‌ورِ `guest`) — مرحلهٔ ۷ · فاز ۱
+        $middleware->redirectUsersTo('/dashboard');
+
         $middleware->alias([
             'role' => EnsureRole::class,
             'feature' => EnsureFeatureEnabled::class,

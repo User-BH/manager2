@@ -13,10 +13,15 @@
     رنگِ نوارِ مرورگر، به تفکیکِ تم.
 
     بدونِ نسخه‌ی تیره، کاربری که تمِ تیره دارد یک نوارِ سبزِ روشن بالای
-    صفحه‌ی تیره می‌بیند. `media` را مرورگر خودش انتخاب می‌کند.
+    صفحه‌ی تیره می‌بیند.
+
+    ⚠️ یک تگ، نه دو تگ با `media` (مرحلهٔ ۷ · فاز ۱): `media` از تمِ
+    **سیستم‌عامل** پیروی می‌کرد، نه از تمِ انتخابیِ کاربر؛ کاربرِ ویندوزِ
+    تیره روی صفحه‌ی روشن نوارِ تیره می‌دید. مقدار را `theme-init` و
+    `themeStore` با تمِ واقعی هماهنگ می‌کنند، پس این partial باید پیش از
+    `theme-init` بیاید.
 --}}
-<meta name="theme-color" content="#0f6e56" media="(prefers-color-scheme: light)">
-<meta name="theme-color" content="#0f1411" media="(prefers-color-scheme: dark)">
+<meta name="theme-color" content="#0f6e56">
 
 {{-- iOS: بدونِ این‌ها برنامه‌ی نصب‌شده داخلِ سافاری با نوارِ آدرس باز می‌شود --}}
 <meta name="mobile-web-app-capable" content="yes">

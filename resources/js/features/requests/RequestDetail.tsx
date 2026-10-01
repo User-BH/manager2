@@ -108,12 +108,6 @@ export function RequestDetail({
   const moves = availableMoves(request, isAdmin, isAssignee, isRequester)
   const isFinal = request.status === 'closed' || request.status === 'rejected'
 
-  const inputStyle = {
-    backgroundColor: 'var(--surface-sunken)',
-    borderColor: 'var(--border-subtle)',
-    color: 'var(--text-primary)',
-  }
-
   return (
     <div className="flex flex-col gap-4">
       <header className="flex flex-col gap-2">
@@ -165,8 +159,7 @@ export function RequestDetail({
               value={request.assignee?.id ?? 0}
               onChange={(event) => assign.mutate(Number(event.target.value))}
               disabled={assign.isPending}
-              className="flex-1 rounded-lg border px-2.5 py-1.5 text-[12.5px] outline-none"
-              style={inputStyle}
+              className="field flex-1 rounded-lg px-2.5 py-1.5 text-[12.5px]"
             >
               <option value={0}>مسئولی تعیین نشده</option>
               {assignables.map((person) => (
@@ -181,8 +174,7 @@ export function RequestDetail({
             value={request.priority}
             onChange={(event) => setPriority.mutate(event.target.value)}
             disabled={setPriority.isPending}
-            className="rounded-lg border px-2.5 py-1.5 text-[12.5px] outline-none"
-            style={inputStyle}
+            className="field rounded-lg px-2.5 py-1.5 text-[12.5px]"
           >
             {priorities.map((option) => (
               <option key={option.value} value={option.value}>
@@ -250,8 +242,7 @@ export function RequestDetail({
             rows={2}
             maxLength={2000}
             placeholder="پیام یا توضیح…"
-            className="resize-none rounded-xl border px-3 py-2 text-[13px] outline-none"
-            style={inputStyle}
+            className="field resize-none rounded-xl px-3 py-2 text-[13px]"
           />
 
           <div className="flex flex-wrap items-center gap-2">

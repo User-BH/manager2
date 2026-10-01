@@ -21,13 +21,7 @@
     <title>{{ config('brand.tagline') }} — {{ config('brand.name') }}</title>
 
     {{-- تم پیش از اولین رنگ‌آمیزی اعمال می‌شود تا صفحه هنگام بارگذاری پرش نکند --}}
-    <script @csp>
-        (function () {
-            var t = localStorage.getItem('theme') || 'system';
-            var dark = t === 'dark' || (t === 'system' && matchMedia('(prefers-color-scheme: dark)').matches);
-            document.documentElement.classList.toggle('dark', dark);
-        })();
-    </script>
+    @include('partials.theme-init')
 
     @include('partials.observability')
 

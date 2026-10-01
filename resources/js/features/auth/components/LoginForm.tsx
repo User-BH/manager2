@@ -81,15 +81,19 @@ export function LoginForm() {
 
       // دستگاه مورداعتماد: بدون مرحله‌ی دوم مستقیم وارد شد.
       // داشبورد یک سندِ جداست، پس با ناوبریِ واقعیِ مرورگر می‌رویم؛ نشستِ
-      // سمت سرور آنجا دوباره خوانده می‌شود.
+      // سمت سرور آنجا دوباره خوانده می‌شود. `replace` و نه `assign`
+      // (مرحلهٔ ۷ · فاز ۱): «بازگشت» از داشبورد نباید به فرمِ ورود برسد.
       if (data.user) {
-        window.location.assign('/dashboard')
+        window.location.replace('/dashboard')
         return
       }
 
-      // مرحله‌ی دوم: به صفحه‌ی تایید کد می‌رویم (داخلِ همین island است)
+      // مرحله‌ی دوم: به صفحه‌ی تایید کد می‌رویم (داخلِ همین island است).
+      // ⚠️ `replace`: کلِ جریانِ ورود **یک** ورودی در تاریخچه است که در پایان
+      // جای خودش را به داشبورد می‌دهد (`authHistory.ts`).
       if (data.otpRequired) {
         void navigate('/auth/verify', {
+          replace: true,
           state: { phone: data.phone, devCode: data.dev_code ?? null },
         })
       }
@@ -190,6 +194,8 @@ export function LoginForm() {
         </label>
         <Link
           to="/auth/forgot"
+          // یک ورودی برای کلِ جریانِ ورود (مرحلهٔ ۷ · فاز ۱)
+          replace
           className="text-xs font-medium"
           style={{ color: 'var(--color-brand-600)' }}
         >

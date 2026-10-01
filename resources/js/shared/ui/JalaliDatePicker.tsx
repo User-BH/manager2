@@ -67,7 +67,9 @@ export function JalaliDatePicker({
         maxDate={maxToday ? new Date() : undefined}
         // فقط از تقویم؛ تایپ دستیِ تاریخ خطای فرمت می‌سازد
         editable={false}
-        inputClass={error ? 'jalali-input jalali-input-error' : 'jalali-input'}
+        // ظاهر و حالت از `.field` (مرحلهٔ ۷ · فاز ۱). کتابخانه صفتِ دلخواه را به
+        // ورودی نمی‌دهد، پس حالتِ خطا اینجا کلاس است نه `aria-invalid`.
+        inputClass={error ? 'field jalali-input jalali-input-error' : 'field jalali-input'}
         containerClassName="jalali-container"
         // همیشه بالای اینپوت باز شود و با عوض شدن ماه (که ارتفاع تقویم کمی
         // فرق می‌کند) بالا-پایین نپرد. fixMainPosition جلوی چرخشِ خودکارِ

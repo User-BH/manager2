@@ -8,10 +8,15 @@ interface FormFieldProps extends InputHTMLAttributes<HTMLInputElement> {
   error?: string
   /** بوردر/رینگِ قرمز بدون نمایشِ پیام (پیام جای دیگری، مثلاً توست، نشان داده می‌شود). */
   invalid?: boolean
+  /**
+   * اعتبارسنجی انجام شد و مقدار درست است: حاشیه‌ی سبزِ موفقیت (مرحلهٔ ۷ · فاز ۱).
+   * با خطا هرگز هم‌زمان نمی‌شود — خطا برنده است.
+   */
+  valid?: boolean
 }
 
 export const FormField = forwardRef<HTMLInputElement, FormFieldProps>(
-  ({ label, icon: Icon, error, invalid, type = 'text', className, ...props }, ref) => {
+  ({ label, icon: Icon, error, invalid, valid, type = 'text', className, ...props }, ref) => {
     const [showPassword, setShowPassword] = useState(false)
     const isPassword = type === 'password'
     const inputType = isPassword && showPassword ? 'text' : type
@@ -68,17 +73,13 @@ export const FormField = forwardRef<HTMLInputElement, FormFieldProps>(
             type={inputType}
             aria-invalid={hasError || undefined}
             aria-describedby={error ? errorId : undefined}
+            data-valid={(valid && !hasError) || undefined}
+            // رنگ، حاشیه و فوکوس از `.field` (app.css) و حالت از دو صفتِ بالا
             className={cn(
-              'w-full rounded-xl border py-3 pr-11 text-[13.5px] outline-none transition-all duration-200 focus:ring-2',
+              'field w-full rounded-xl py-3 pr-11 text-[13.5px]',
               isPassword ? 'pl-11' : 'pl-4',
               className,
             )}
-            style={{
-              backgroundColor: 'var(--surface-sunken)',
-              borderColor: hasError ? 'var(--color-danger)' : 'var(--border-subtle)',
-              color: 'var(--text-primary)',
-              ['--tw-ring-color' as string]: hasError ? 'var(--color-danger)' : 'var(--ring-focus)',
-            }}
             {...props}
             {...blockCopy}
           />

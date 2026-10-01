@@ -535,13 +535,8 @@ function AnnouncementForm({
         <textarea
           id="announcement-body"
           rows={6}
-          className="w-full resize-none rounded-xl border px-3 py-2.5 text-[13.5px] outline-none transition-all focus:ring-2"
-          style={{
-            backgroundColor: 'var(--surface-sunken)',
-            borderColor: errors.body ? 'var(--color-danger)' : 'var(--border-subtle)',
-            color: 'var(--text-primary)',
-            ['--tw-ring-color' as string]: 'var(--ring-focus)',
-          }}
+          className="field w-full resize-none rounded-xl px-3 py-2.5 text-[13.5px]"
+          aria-invalid={Boolean(errors.body) || undefined}
           {...register('body')}
         />
         {errors.body && (

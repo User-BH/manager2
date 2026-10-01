@@ -18,9 +18,10 @@
     <title>اتصال اینترنت برقرار نیست | ساکنا</title>
     <meta name="theme-color" content="#0f6e56">
     <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+    @include('partials.theme-init')
     <style>
         :root {
-            color-scheme: light dark;
+            color-scheme: light;
             --bg: #f6f8f7;
             --card: #ffffff;
             --text: #10201a;
@@ -29,15 +30,13 @@
             --border: #dbe4e0;
         }
 
-        @media (prefers-color-scheme: dark) {
-            :root {
-                --bg: #0f1411;
-                --card: #16201b;
-                --text: #e8f0ec;
-                --muted: #9bafa7;
-                --brand: #3fae8e;
-                --border: #263630;
-            }
+        :root.dark {
+            --bg: #0f1411;
+            --card: #16201b;
+            --text: #e8f0ec;
+            --muted: #9bafa7;
+            --brand: #3fae8e;
+            --border: #263630;
         }
 
         * { box-sizing: border-box; }
@@ -103,6 +102,7 @@
             color: var(--muted);
             min-height: 18px;
         }
+        .dark { color-scheme: dark; }
     </style>
 </head>
 <body>
@@ -133,7 +133,9 @@
         <p class="state" id="state" role="status" aria-live="polite"></p>
     </main>
 
-    <script>
+    {{-- ⚠️ `@csp` (مرحلهٔ ۷ · فاز ۱): بی‌آن CSP این اسکریپت را می‌بست و دکمه‌ی
+         «تلاش دوباره» هیچ کاری نمی‌کرد — در مرورگر دیده شد. --}}
+    <script @csp>
         (function () {
             var state = document.getElementById('state')
 

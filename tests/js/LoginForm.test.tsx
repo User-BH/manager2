@@ -1,5 +1,5 @@
 import { render as rtlRender, screen, waitFor } from '@testing-library/react'
-import { MemoryRouter } from 'react-router-dom'
+import { MemoryRouter, Route, Routes, useNavigationType } from 'react-router-dom'
 import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
@@ -76,8 +76,16 @@ function render(ui: React.ReactElement) {
   return rtlRender(<MemoryRouter>{ui}</MemoryRouter>)
 }
 
-function borderOf(el: HTMLElement) {
-  return el.style.borderColor
+/*
+ * حالتِ فیلد از صفت خوانده می‌شود، نه از رنگِ درون‌خطی (مرحلهٔ ۷ · فاز ۱):
+ * رنگ را `.field` در CSS از همین صفت‌ها می‌گیرد.
+ */
+function stateOf(el: HTMLElement): 'invalid' | 'valid' | 'neutral' {
+  const invalid = el.getAttribute('aria-invalid') === 'true'
+  const valid = el.dataset.valid === 'true'
+  // ⚠️ هر دو با هم یعنی همان باگِ «سبز و قرمزِ هم‌زمان»
+  if (invalid && valid) throw new Error('فیلد هم‌زمان نامعتبر و معتبر است')
+  return invalid ? 'invalid' : valid ? 'valid' : 'neutral'
 }
 
 describe('LoginForm', () => {
@@ -148,9 +156,61 @@ describe('LoginForm', () => {
     expect(toastTopErrorMock.mock.calls[0][0]).toBe('شماره تلفن یا رمز عبور نادرست است.')
     // و هر دو اینپوت قرمز شوند
     await waitFor(() => {
-      expect(borderOf(phone)).toBe('var(--color-danger)')
-      expect(borderOf(password)).toBe('var(--color-danger)')
+      expect(stateOf(phone)).toBe('invalid')
+      expect(stateOf(password)).toBe('invalid')
     })
+  })
+
+  it('پیش از ارسال خنثی؛ پس از ارسال، درست فقط سبز و نادرست فقط قرمز', async () => {
+    const user = userEvent.setup()
+    render(<LoginForm />)
+
+    const phone = screen.getByPlaceholderText('۰۹xxxxxxxxx')
+    const password = screen.getByPlaceholderText('رمز عبور خود را وارد کنید')
+
+    // ⚠️ پیش از اعتبارسنجی، شماره‌ی کامل هم سبز نیست — هنوز سنجیده نشده
+    await user.type(phone, '09123456789')
+    await user.type(password, '12')
+    expect(stateOf(phone)).toBe('neutral')
+    expect(stateOf(password)).toBe('neutral')
+
+    await user.click(screen.getByRole('button', { name: /ورود به پنل/ }))
+
+    await waitFor(() => expect(stateOf(password)).toBe('invalid'))
+    expect(stateOf(phone)).toBe('valid')
+
+    // پس از ارسال، با هر تایپ دوباره سنجیده می‌شود
+    await user.type(password, '3456')
+    await waitFor(() => expect(stateOf(password)).toBe('valid'))
+  })
+
+  it('گامِ کد جای فرمِ ورود را در تاریخچه می‌گیرد، نه یک گامِ تازه', async () => {
+    /*
+     * ⚠️ مرحلهٔ ۷ · فاز ۱: کلِ جریانِ ورود **یک** ورودی در تاریخچه است.
+     * اگر گامِ کد `push` شود، پس از ورود «بازگشت» از داشبورد به فرمِ ورود
+     * می‌رسد.
+     */
+    function NavigationType() {
+      return <p>نوعِ ناوبری: {useNavigationType()}</p>
+    }
+
+    const user = userEvent.setup()
+    apiMock.mockResolvedValue({ otpRequired: true, phone: '09123456789' })
+    rtlRender(
+      <MemoryRouter initialEntries={['/', '/auth']} initialIndex={1}>
+        <Routes>
+          <Route path="/auth" element={<LoginForm />} />
+          <Route path="/auth/verify" element={<NavigationType />} />
+        </Routes>
+      </MemoryRouter>,
+    )
+
+    await user.type(screen.getByPlaceholderText('۰۹xxxxxxxxx'), '09123456789')
+    await user.type(screen.getByPlaceholderText('رمز عبور خود را وارد کنید'), 'secret123')
+    await user.click(screen.getByText('حل-پازل'))
+    await user.click(screen.getByRole('button', { name: /ورود به پنل/ }))
+
+    expect(await screen.findByText('نوعِ ناوبری: REPLACE')).toBeInTheDocument()
   })
 
   it('پس از ورودِ ناموفق، پازل از نو ساخته می‌شود', async () => {

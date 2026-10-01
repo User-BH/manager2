@@ -99,8 +99,8 @@ export function BlogPostsPage() {
             }}
             aria-label="جست‌وجو در عنوانِ مقاله‌ها"
             placeholder="جست‌وجو در عنوان…"
-            className="w-full rounded-xl border py-2.5 pr-10 pl-3 text-small"
-            style={{ borderColor: 'var(--border-subtle)', backgroundColor: 'var(--surface-base)' }}
+            className="field w-full rounded-xl py-2.5 pr-10 pl-3 text-small"
+            style={{ backgroundColor: 'var(--surface-base)' }}
           />
         </div>
         <div role="group" aria-label="وضعیت" className="flex gap-1.5">

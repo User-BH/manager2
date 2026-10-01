@@ -62,8 +62,9 @@ export function VerifyOtpPage() {
         body: { code: value },
       })
 
-      // ورود کامل شد؛ به داشبورد (سندِ SPAِ جدا) می‌رویم
-      window.location.assign('/dashboard')
+      // ورود کامل شد؛ به داشبورد (سندِ SPAِ جدا) می‌رویم — با `replace`،
+      // تا «بازگشت» از داشبورد به گامِ کد برنگردد (مرحلهٔ ۷ · فاز ۱)
+      window.location.replace('/dashboard')
     } catch (err) {
       if (err instanceof ApiError && err.status === 422) {
         setError(err.fieldError('code') ?? err.message)

@@ -400,12 +400,7 @@ export function ComplexesPage() {
             rows={3}
             maxLength={255}
             placeholder="مثلاً: عدم تمدید اشتراک از مهر ۱۴۰۵"
-            className="resize-none rounded-xl border px-3 py-2 text-[13px] outline-none"
-            style={{
-              backgroundColor: 'var(--surface-sunken)',
-              borderColor: reasonError ? 'var(--color-danger)' : 'var(--border-subtle)',
-              color: 'var(--text-primary)',
-            }}
+            className="field resize-none rounded-xl px-3 py-2 text-[13px]"
           />
 
           {reasonError && (

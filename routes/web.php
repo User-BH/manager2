@@ -79,10 +79,21 @@ Route::view('/offline', 'offline')->name('offline');
 // جریانِ سه‌گامیِ ورود؛ هر سه مسیر همان islandِ auth را سرو می‌کنند و روترِ
 // کوچکِ داخلش گامِ درست را نشان می‌دهد. نام «login» را لاراول برای ریدایرکتِ
 // کاربرِ واردنشده استفاده می‌کند.
+//
+// ─── تاریخچه‌ی مرورگر (مرحلهٔ ۷ · فاز ۱) ──────────────────────────────────
+// کاربرِ واردشده نباید فرمِ ورود را ببیند، حتی با «بازگشتِ» مرورگر:
+//   ① `guest` او را **سمتِ سرور** به داشبورد می‌فرستد — پیش از آن فقط خودِ
+//      React پس از بارگذاری این کار را می‌کرد و فرم یک لحظه دیده می‌شد.
+//   ② `no_store` نمی‌گذارد مرورگر نسخه‌ی پیش از ورودِ این صفحه را از
+//      bfcache برگرداند؛ آن نسخه هنوز فکر می‌کند کاربر مهمان است.
+// خودِ جریانِ ورود هم یک ورودی در تاریخچه است که در پایان با `replace` جای
+// خودش را به داشبورد می‌دهد (LoginForm، VerifyOtpPage، ForgotPasswordPage).
 $authView = ['seo' => config('seo.auth'), 'entry' => 'resources/js/app/entries/auth.tsx'];
-Route::view('/auth', 'public.auth', $authView)->name('login');
-Route::view('/auth/verify', 'public.auth', $authView);
-Route::view('/auth/forgot', 'public.auth', $authView);
+Route::middleware(['guest', 'cache.headers:no_store;private'])->group(function () use ($authView) {
+    Route::view('/auth', 'public.auth', $authView)->name('login');
+    Route::view('/auth/verify', 'public.auth', $authView);
+    Route::view('/auth/forgot', 'public.auth', $authView);
+});
 
 /*
 |--------------------------------------------------------------------------

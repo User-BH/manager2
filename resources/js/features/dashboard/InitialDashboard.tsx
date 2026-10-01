@@ -82,7 +82,7 @@ function InvitationList() {
          * بارگذاریِ کاملِ صفحه ساده‌ترین راهِ درست است: هر حالتِ محلی که روی
          * «حالتِ اولیه» بنا شده هم پاک می‌شود.
          */
-        window.location.assign('/dashboard')
+        window.location.replace('/dashboard')
       },
     })
 

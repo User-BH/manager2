@@ -3,13 +3,7 @@
 <head>
     <meta charset="utf-8">
     <title>در حال انتقال به درگاه پرداخت…</title>
-    <script @csp>
-        (function () {
-            const t = localStorage.getItem('theme') || 'system';
-            document.documentElement.classList.toggle('dark',
-                t === 'dark' || (t === 'system' && matchMedia('(prefers-color-scheme: dark)').matches));
-        })();
-    </script>
+    @include('partials.theme-init')
     @vite(['resources/css/app.css'])
 </head>
 <body class="flex min-h-screen items-center justify-center bg-sunken text-ink">

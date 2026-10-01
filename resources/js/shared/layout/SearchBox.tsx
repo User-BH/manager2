@@ -63,13 +63,7 @@ export function SearchBox() {
         placeholder="جستجو در واحدها، ساکنین، قبوض..."
         // placeholder برچسب حساب نمی‌شود؛ صفحه‌خوان بدون این فقط «ویرایش متن» می‌گوید
         aria-label="جستجو در واحدها، ساکنین و قبوض"
-        className="w-full rounded-xl border py-2 pr-10 pl-24 text-[13.5px] outline-none transition-all duration-200 focus:ring-2"
-        style={{
-          backgroundColor: 'var(--surface-sunken)',
-          borderColor: 'var(--border-subtle)',
-          color: 'var(--text-primary)',
-          ['--tw-ring-color' as string]: 'var(--ring-focus)',
-        }}
+        className="field w-full rounded-xl py-2 pr-10 pl-24 text-[13.5px]"
       />
 
       {/* ⚠️ `aria-live`: شمارِ نتیجه بی‌صدا عوض می‌شد و صفحه‌خوان نمی‌فهمید (فاز ۶) */}

@@ -719,35 +719,17 @@ button:disabled {
     width: 100%;
 }
 
+/* رنگ و حاشیه و فوکوس از `.field` می‌آید (مرحلهٔ ۷ · فاز ۱)؛ اینجا فقط اندازه */
 .jalali-input {
     width: 100%;
     border-radius: 0.75rem;
-    border: 1px solid var(--border-subtle);
-    background-color: var(--surface-sunken);
-    color: var(--text-primary);
     padding: 0.625rem 0.75rem;
     font-size: 13.5px;
     font-family: inherit;
-    outline: none;
-    transition:
-        border-color 0.2s ease,
-        box-shadow 0.2s ease;
 }
 
 .jalali-input::placeholder {
     color: var(--text-tertiary);
-}
-
-.jalali-input:focus {
-    border-color: var(--ring-focus);
-    box-shadow: 0 0 0 2px color-mix(in srgb, var(--ring-focus) 45%, transparent);
-}
-
-.jalali-input-error {
-    border-color: var(--color-danger);
-}
-.jalali-input-error:focus {
-    box-shadow: 0 0 0 2px color-mix(in srgb, var(--color-danger) 45%, transparent);
 }
 
 /* تقویمِ بازشونده */
@@ -1002,11 +984,84 @@ html {
  *
  * `:focus-visible` و نه `:focus`: کاربرِ ماوس نباید بعد از هر کلیک یک
  * حلقه ببیند؛ این تفکیک را خودِ مرورگر انجام می‌دهد.
+ *
+ * ⚠️ داخلِ `@layer base` (مرحلهٔ ۷ · فاز ۱). بیرون از لایه بود و قاعده‌ی
+ * بی‌لایه بر **همه‌ی** کلاس‌های ابزاری می‌چربد: `border-radius: 4px`ش گوشه‌ی
+ * گردِ هر دکمه و فیلدِ `rounded-xl` را با فوکوسِ کیبورد چهارگوش می‌کرد
+ * (در مرورگر سنجیده شد: ۱۲px ← ۴px). حالا ۴px فقط برای عنصری است که خودش
+ * گردی ندارد، مثلِ پیوندِ درونِ متن؛ و عنصری که نشانه‌ی فوکوسِ خودش را
+ * دارد (`.field`، کارتی با `focus-visible:ring`) آن را با `outline-none`
+ * کنار می‌گذارد.
  */
-:where(a, button, [role='button'], input, select, textarea, summary, [tabindex]):focus-visible {
-    outline: 2px solid var(--ring-focus);
-    outline-offset: 2px;
-    border-radius: 4px;
+@layer base {
+    :where(a, button, [role='button'], input, select, textarea, summary, [tabindex]):focus-visible {
+        outline: 2px solid var(--ring-focus);
+        outline-offset: 2px;
+        border-radius: 4px;
+    }
+}
+
+/*
+ * فیلدِ فرم — یک منبع برای همه‌ی ورودی‌ها (مرحلهٔ ۷ · فاز ۱).
+ *
+ * ─── 🔴 چه چیزی خراب بود ─────────────────────────────────────────────────
+ * اندازه‌گیری در مرورگر: فیلدِ فوکوس‌خورده سه لایه داشت — حاشیه‌ی ۱px، حلقه‌ی
+ * ۲pxِ `focus:ring-2` و outlineِ ۲pxِ قاعده‌ی بالا با ۲px فاصله. نتیجه
+ * حدودِ پنج پیکسل خطِ سبز دورِ هر فیلد بود. و چون outline همیشه سبز بود،
+ * فیلدِ **نامعتبر** هم‌زمان قرمز (حاشیه و حلقه) و سبز (outline) می‌شد.
+ *
+ * هر فرم هم نسخه‌ی خودش را داشت: بیش از بیست ورودیِ پراکنده با رنگ و حلقه‌ی
+ * درون‌خطی. حالا همه فقط کلاسِ `field` می‌گیرند و حالت از **صفت** می‌آید:
+ *
+ *   خنثی    → حاشیه‌ی ۱pxِ خنثی؛ با فوکوس ۲px به رنگِ برند
+ *   نامعتبر → `aria-invalid="true"`: فقط قرمز، با فوکوس یا بی‌فوکوس
+ *   معتبر   → `data-valid="true"`: فقط سبزِ موفقیت
+ *
+ * دو حالتِ متناقض نمی‌توانند با هم بنشینند: هر دو صفت را یک کامپوننت
+ * می‌گذارد و `data-valid` فقط وقتی هست که خطایی نباشد.
+ *
+ * ⚠️ فوکوس هنوز دیدنی است (WCAG 2.4.7): خطِ ۲پیکسلیِ پیوسته به رنگِ حالت،
+ * به‌جای سه خطِ جدا. `:focus` و نه `:focus-visible`، چون کاربرِ ماوس هم
+ * باید ببیند در کدام فیلد تایپ می‌کند. `:focus-within` برای قابی است که
+ * ورودیِ بی‌حاشیه را در بر دارد (جست‌وجوی داخلِ گفت‌وگو).
+ */
+.field {
+    border: 1px solid var(--border-default);
+    background-color: var(--surface-sunken);
+    color: var(--text-primary);
+    outline: none;
+    box-shadow: none;
+    transition:
+        border-color 0.15s ease,
+        box-shadow 0.15s ease;
+}
+
+.field:focus,
+.field:focus-visible,
+.field:focus-within {
+    outline: none;
+    border-color: var(--ring-focus);
+    box-shadow: 0 0 0 1px var(--ring-focus);
+}
+
+.field[data-valid='true'] {
+    border-color: var(--color-success);
+}
+
+.field[data-valid='true']:focus {
+    border-color: var(--color-success);
+    box-shadow: 0 0 0 1px var(--color-success);
+}
+
+.field[aria-invalid='true'],
+.field.jalali-input-error {
+    border-color: var(--color-danger);
+}
+
+.field[aria-invalid='true']:focus,
+.field.jalali-input-error:focus {
+    border-color: var(--color-danger);
+    box-shadow: 0 0 0 1px var(--color-danger);
 }
 
 /*
@@ -1293,14 +1348,12 @@ html {
     margin: 1rem 0;
 }
 
+/* رنگ و حاشیه و فوکوس از `.field` می‌آید (مرحلهٔ ۷ · فاز ۱) */
 .blog-search input {
     flex: 1;
     min-width: 0;
     padding: 0.55rem 0.9rem;
-    border: 1px solid var(--border-default);
     border-radius: 0.75rem;
-    background: var(--surface-base);
-    color: var(--text-primary);
 }
 
 .blog-search button,
