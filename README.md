@@ -13,6 +13,7 @@
 | [docs/DEVELOPER_GUIDE.md](docs/DEVELOPER_GUIDE.md)                                 | **از اینجا شروع کنید.** راه‌اندازی، دستورهای روزمره، قراردادهای کد، افزودن یک قابلیت                           |
 | [docs/STAGE4_ROADMAP.md](docs/STAGE4_ROADMAP.md)                                   | 🔴 **نقشهٔ مرحلهٔ چهارم** — ده فاز، دسته‌بندیِ A/B/C، و اینکه از کجا شروع کنیم                                 |
 | [docs/STAGE5_ROADMAP.md](docs/STAGE5_ROADMAP.md)                                   | 🔴 **نقشهٔ مرحلهٔ پنجم و ششم** — ۱۵ فاز، و سه تصمیمی که کدنویسی را مسدود می‌کنند                               |
+| [docs/STAGE7_ROADMAP.md](docs/STAGE7_ROADMAP.md)                                   | 🟠 **نقشهٔ مرحلهٔ هفتم** — ممیزیِ UI/UX: هر بند با کد سنجیده شد (انجام‌شده / بخشی / نه)، ۸ فاز و ۴ پرسش        |
 | [docs/STAGE4_FINAL_CONSOLIDATED_AUDIT.md](docs/STAGE4_FINAL_CONSOLIDATED_AUDIT.md) | 🔴 **گزارشِ مرجعِ نهاییِ مرحلهٔ چهارم** — ۲۵ بخش، شمارشِ قطعی، و حکمِ انتشار؛ بر همهٔ گزارش‌های فازها مقدم است |
 | [docs/FINAL_PRE_PRODUCTION_AUDIT.md](docs/FINAL_PRE_PRODUCTION_AUDIT.md)           | 🔴 **ممیزیِ نهاییِ پیش از محصول** — ۲۴ بخش، شمارشِ مرجع، و حکمِ نهاییِ انتشار                                  |
 | [docs/CANONICAL_INVENTORY.md](docs/CANONICAL_INVENTORY.md)                         | 🔴 **سیاههٔ مرجع** — وضعیتِ قطعی هر مورد؛ هرجا سندی متناقض گفت، این درست است                                   |
