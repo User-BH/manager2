@@ -244,7 +244,11 @@
         </nav>
     @endif
 
-    <div id="root"></div>
+    {{--
+        حالتِ بارگذاری فقط برای صفحه‌ای که کلش React است (مرحلهٔ ۷ · فاز ۳).
+        بلاگ محتوایش را سرورساید دارد (`content`)؛ آنجا چیزی نباید رویش بنشیند.
+    --}}
+    <div id="root">@unless (View::hasSection('content'))@include('partials.boot-shell')@endunless</div>
 
     {{-- محتوای سرورسایدِ صفحه (بلاگ): خزنده بدونِ جاوااسکریپت همین را می‌خواند --}}
     @yield('content')

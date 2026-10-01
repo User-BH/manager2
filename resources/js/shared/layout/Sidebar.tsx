@@ -51,6 +51,12 @@ export function Sidebar() {
 
       {/* سایدبار دسکتاپ - ثابت سمت راست، عرضش انیمیت می‌شود */}
       <motion.aside
+        /*
+         * ⚠️ `initial={false}` (مرحلهٔ ۷ · فاز ۳): بی‌آن، framer-motion در اولین
+         * رندر عرض را از اندازه‌ی طبیعیِ محتوا تا ۲۷۲ انیمیت می‌کرد و کلِ صفحه
+         * چند فریم جابه‌جا می‌شد (Layout Shift در همه‌ی صفحه‌های داشبورد).
+         */
+        initial={false}
         animate={{ width: collapsed ? COLLAPSED_WIDTH : EXPANDED_WIDTH }}
         transition={{ type: 'spring', stiffness: 320, damping: 32 }}
         className="relative z-30 hidden h-screen shrink-0 flex-col border-l lg:flex"

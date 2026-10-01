@@ -88,7 +88,13 @@ Route::view('/offline', 'offline')->name('offline');
 //      bfcache برگرداند؛ آن نسخه هنوز فکر می‌کند کاربر مهمان است.
 // خودِ جریانِ ورود هم یک ورودی در تاریخچه است که در پایان با `replace` جای
 // خودش را به داشبورد می‌دهد (LoginForm، VerifyOtpPage، ForgotPasswordPage).
-$authView = ['seo' => config('seo.auth'), 'entry' => 'resources/js/app/entries/auth.tsx'];
+$authView = [
+    'seo' => config('seo.auth'),
+    'entry' => 'resources/js/app/entries/auth.tsx',
+    // پنلِ تصویرِ دسکتاپ (LCP)؛ زیرِ lg دیده نمی‌شود — مرحلهٔ ۷ · فاز ۳
+    'lcpImage' => 'resources/images/auth-background.webp',
+    'lcpMedia' => '(min-width: 1024px)',
+];
 Route::middleware(['guest', 'cache.headers:no_store;private'])->group(function () use ($authView) {
     Route::view('/auth', 'public.auth', $authView)->name('login');
     Route::view('/auth/verify', 'public.auth', $authView);

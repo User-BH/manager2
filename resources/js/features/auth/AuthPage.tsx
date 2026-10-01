@@ -139,16 +139,31 @@ export function AuthPage() {
 
   const brandPanel = (
     <>
-      <img
-        src={authBackgroundImage}
-        alt="نمای یک مجتمع مدرن"
-        width={1100}
-        height={733}
-        loading="lazy"
-        decoding="async"
-        className="h-full w-full object-cover"
-        draggable={false}
-      />
+      {/*
+        ⚠️ تصویرِ بزرگِ بالای صفحه (LCP) در دسکتاپ — مرحلهٔ ۷ · فاز ۳.
+
+        پیش از این `loading="lazy"` بود: مرورگر تا چیدمان تمام نشود سراغش
+        نمی‌رفت و پنلِ سبز چند لحظه بی‌تصویر می‌ماند. حالا فوری و با اولویتِ
+        بالا، و `routes/web.php` همان را از `<head>` پیش‌بار می‌کند.
+
+        `<picture>` با `media` چون این پنل فقط از `lg` دیده می‌شود: تصویرِ
+        فوری در ظرفِ پنهانِ موبایل هم دانلود می‌شد (‎~۱۲۰KB بی‌مصرف). زیرِ `lg`
+        همان GIFِ یک‌پیکسلیِ درون‌خطی می‌آید و هیچ درخواستی نمی‌رود.
+      */}
+      <picture>
+        <source media="(min-width: 1024px)" srcSet={authBackgroundImage} />
+        <img
+          src="data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw=="
+          alt="نمای یک مجتمع مدرن"
+          width={1100}
+          height={733}
+          loading="eager"
+          fetchPriority="high"
+          decoding="async"
+          className="h-full w-full object-cover"
+          draggable={false}
+        />
+      </picture>
       <div
         className="absolute inset-0"
         style={{

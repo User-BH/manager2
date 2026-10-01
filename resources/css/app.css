@@ -229,6 +229,80 @@ button:disabled {
     color: var(--color-brand-900);
 }
 
+/*
+ * حالتِ بارگذاری پیش از React — `partials/boot-shell.blade.php` (مرحلهٔ ۷ · فاز ۳).
+ *
+ * با تأخیر دیده می‌شود تا روی دستگاهِ سریع چشمک نزند؛ پیامِ «طول کشید» فقط
+ * وقتی که اسکریپت پس از ‎۱۲ ثانیه هنوز نرسیده.
+ */
+.boot-shell {
+    min-height: 70vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 1.25rem;
+    opacity: 0;
+    animation: boot-shell-in 0.3s ease 0.35s forwards;
+}
+
+.boot-shell-bar {
+    position: relative;
+    width: 9rem;
+    height: 3px;
+    overflow: hidden;
+    border-radius: 9999px;
+    background-color: var(--border-subtle);
+}
+
+.boot-shell-bar::after {
+    content: '';
+    position: absolute;
+    inset-block: 0;
+    width: 40%;
+    border-radius: inherit;
+    background-color: var(--color-brand-500);
+    animation: boot-shell-slide 1.1s ease-in-out infinite;
+}
+
+.boot-shell-slow {
+    max-width: 18rem;
+    text-align: center;
+    font-size: 13px;
+    line-height: 1.9;
+    color: var(--text-secondary);
+    opacity: 0;
+    animation: boot-shell-in 0.3s ease 12s forwards;
+}
+
+.boot-shell-slow a {
+    color: var(--color-brand-600);
+    font-weight: 600;
+    text-decoration: underline;
+}
+
+@keyframes boot-shell-in {
+    to {
+        opacity: 1;
+    }
+}
+
+@keyframes boot-shell-slide {
+    from {
+        inset-inline-start: -40%;
+    }
+    to {
+        inset-inline-start: 100%;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .boot-shell-bar::after {
+        animation: none;
+        inset-inline-start: 30%;
+    }
+}
+
 /* ==================================================================
    ۴) کلاس‌های کمکی مشترک
    ================================================================== */
@@ -807,6 +881,14 @@ html {
     /* فایرفاکس فقط همین دو ویژگی را می‌شناسد */
     scrollbar-width: thin;
     scrollbar-color: var(--color-brand-400) transparent;
+    /*
+     * ⚠️ جای نوار از اول رزرو می‌شود (مرحلهٔ ۷ · فاز ۳).
+     *
+     * سنجش در مرورگر: در دسکتاپ هر صفحه‌ی داشبورد با رسیدنِ داده بلند می‌شد،
+     * نوار ظاهر می‌شد و کلِ صفحه ‎۱۰px جابه‌جا می‌شد — CLSِ ‎۰٫۰۱ تا ‎۰٫۰۳ در
+     * همه‌ی صفحه‌ها، و صفر در موبایل که نوارش روی محتوا می‌نشیند.
+     */
+    scrollbar-gutter: stable;
 }
 
 ::-webkit-scrollbar {

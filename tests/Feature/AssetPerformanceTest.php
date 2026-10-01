@@ -238,8 +238,14 @@ class AssetPerformanceTest extends TestCase
             'آدرسِ تصویرِ LCP باید از manifestِ Vite بیاید، نه مسیرِ خامِ منبع.',
         );
 
-        foreach (['/demo', '/support', '/auth'] as $url) {
+        foreach (['/demo', '/support'] as $url) {
             $this->get($url)->assertDontSee('as="image"', false);
         }
+
+        /*
+         * صفحه‌ی ورود (مرحلهٔ ۷ · فاز ۳): پنلِ تصویرِ دسکتاپ LCP است و پیش‌بار
+         * می‌شود — ولی فقط با `media`ِ دسکتاپ، چون زیرِ lg دیده نمی‌شود.
+         */
+        $this->get('/auth')->assertSee('fetchpriority="high" media="(min-width: 1024px)"', false);
     }
 }

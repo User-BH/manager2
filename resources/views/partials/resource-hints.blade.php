@@ -37,7 +37,11 @@
         `public/build/manifest.json` ممکن است وجود نداشته باشد. اینجا —
         وسطِ رندرِ صفحه — قطعاً وجود دارد.
     --}}
-    <link rel="preload" as="image" href="{{ Vite::asset($lcpImage) }}" fetchpriority="high">
+    {{--
+        `$lcpMedia` (مرحلهٔ ۷ · فاز ۳): تصویری که فقط در یک اندازه دیده می‌شود —
+        مثلِ پنلِ دسکتاپِ صفحه‌ی ورود — نباید روی موبایل پیش‌بار شود.
+    --}}
+    <link rel="preload" as="image" href="{{ Vite::asset($lcpImage) }}" fetchpriority="high"@isset($lcpMedia) media="{{ $lcpMedia }}"@endisset>
 @endisset
 
 {{--

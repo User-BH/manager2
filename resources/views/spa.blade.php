@@ -42,6 +42,7 @@
     --}}
     <a href="#main-content" class="skip-link">پرش به محتوای اصلی</a>
 
-    <div id="root"></div>
+    {{-- حالتِ بارگذاری تا اولین رندرِ React جایش را بگیرد (مرحلهٔ ۷ · فاز ۳) --}}
+    <div id="root">@include('partials.boot-shell')</div>
 </body>
 </html>

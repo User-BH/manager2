@@ -142,19 +142,27 @@ export function BillsPage() {
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
-          {data && (
-            <select
-              value={data.period}
-              onChange={(e) => setPeriod(e.target.value)}
-              className="field rounded-xl px-3 py-2.5 text-[13px]"
-            >
-              {data.periods.map((p) => (
+          {/*
+            ⚠️ همیشه رندر می‌شود، پیش از داده غیرفعال (مرحلهٔ ۷ · فاز ۳): با آمدنِ
+            داده این ردیف در موبایل دوخطی می‌شد و کلِ صفحه ‎۵۷px پایین می‌پرید.
+          */}
+          <select
+            value={data?.period ?? ''}
+            onChange={(e) => setPeriod(e.target.value)}
+            disabled={!data}
+            aria-label="دوره"
+            className="field rounded-xl px-3 py-2.5 text-[13px]"
+          >
+            {data ? (
+              data.periods.map((p) => (
                 <option key={p.value} value={p.value}>
                   {p.label}
                 </option>
-              ))}
-            </select>
-          )}
+              ))
+            ) : (
+              <option value="">دوره…</option>
+            )}
+          </select>
 
           {/*
             دسته‌ی PDFِ همه‌ی قبض‌های دوره (R28). چون برای مجتمعِ بزرگ
