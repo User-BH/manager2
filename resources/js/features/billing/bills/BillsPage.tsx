@@ -131,7 +131,15 @@ export function BillsPage() {
 
   return (
     <div className="flex flex-col gap-5">
-      <header className="flex flex-wrap items-center justify-between gap-3">
+      {/*
+        ⚠️ چیدمانِ سرصفحه به متن و داده بسته نیست (مرحلهٔ ۷ · فاز ۳).
+
+        سنجش روی موبایلِ کند: «در حال بارگذاری…» پهن‌تر از نامِ دوره بود و
+        دکمه‌ها را به سطرِ دوم می‌برد؛ با رسیدنِ داده بالا می‌پریدند و با آمدنِ
+        دکمه‌ی PDF دوباره پایین — CLS ‎۰٫۰۶۶. حالا در موبایل عنوان و دکمه‌ها
+        همیشه دو سطرِ جدایند، و دکمه‌های خروجی تا رسیدنِ داده غیرفعال می‌مانند.
+      */}
+      <header className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
         <div>
           <h1 className="text-xl font-extrabold" style={{ color: 'var(--text-primary)' }}>
             قبوض و شارژ
@@ -169,11 +177,11 @@ export function BillsPage() {
             ده‌ها ثانیه طول می‌کشد، در صف ساخته می‌شود و کاربر بلافاصله
             ردیفش را با وضعیتِ «در حال ساخت» می‌بیند.
           */}
-          {data && data.data.length > 0 && (
+          {(!data || data.data.length > 0) && (
             <button
               type="button"
-              onClick={() => bundle.mutate(data.period)}
-              disabled={bundle.isPending}
+              onClick={() => data && bundle.mutate(data.period)}
+              disabled={!data || bundle.isPending}
               className="flex items-center gap-1.5 rounded-xl border px-4 py-2.5 text-[13px] font-semibold disabled:opacity-60"
               style={{ borderColor: 'var(--border-default)', color: 'var(--text-secondary)' }}
             >
@@ -186,10 +194,14 @@ export function BillsPage() {
             </button>
           )}
 
-          {data && data.data.length > 0 && (
+          {(!data || data.data.length > 0) && (
             <a
-              href={`/bills/export.xlsx?period=${encodeURIComponent(data.period)}`}
-              className="flex items-center gap-1.5 rounded-xl border px-4 py-2.5 text-[13px] font-semibold"
+              // بی‌href تا رسیدنِ داده: نه کلیک می‌شود نه فوکوس می‌گیرد
+              href={
+                data ? `/bills/export.xlsx?period=${encodeURIComponent(data.period)}` : undefined
+              }
+              aria-disabled={!data || undefined}
+              className={`flex items-center gap-1.5 rounded-xl border px-4 py-2.5 text-[13px] font-semibold ${data ? '' : 'pointer-events-none opacity-60'}`}
               style={{ borderColor: 'var(--border-default)', color: 'var(--text-secondary)' }}
             >
               <FileSpreadsheet size={15} />

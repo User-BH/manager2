@@ -49,6 +49,18 @@ describe('جابه‌جاییِ صفحه (CLS)', () => {
 
     expect(offenders).toEqual([])
   })
+
+  /*
+   * 🔴 سنجش روی موبایلِ کند (CLS ‎۰٫۰۶۶): «در حال بارگذاری…» دکمه‌ها را به
+   * سطرِ دوم می‌برد، نامِ کوتاه‌ترِ دوره بالا می‌آوردشان و دکمه‌ی PDF دوباره
+   * پایین — صفحه دو بار پرید. پس از اصلاح ‎۰٫۰۰۲۷.
+   */
+  it('سرصفحه‌ی قبض‌ها به پهنای متن و رسیدنِ داده بسته نیست', () => {
+    const bills = codeOf('resources/js/features/billing/bills/BillsPage.tsx')
+
+    expect(bills).toContain('<header className="flex flex-col gap-3 sm:flex-row')
+    expect(bills).not.toMatch(/\{data && data\.data\.length > 0 && \(/)
+  })
 })
 
 describe('تصویرِ بالای صفحه‌ی ورود', () => {
