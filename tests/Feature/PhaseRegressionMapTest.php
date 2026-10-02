@@ -623,10 +623,12 @@ class PhaseRegressionMapTest extends TestCase
             'loadExperience' => ['۷/۳', 'سایدبار در اولین رندر عرضش را انیمیت نمی‌کند'],
             // مرحلهٔ ۷ · فاز ۴: فرمِ بازخورد، چرخ، محتوای سنجیده، صفِ ادمین
             'supportPage' => ['۷/۴', 'Enter و Space ربع را انتخاب می‌کنند'],
+            // پیگیریِ فاز ۳: زیرمجموعه‌ی فونت هیچ نویسه‌ی به‌کاررفته‌ای را گم نمی‌کند
+            'fontSubset' => ['۷/۳', 'خواننده‌ی cmap خودش درست کار می‌کند'],
         ];
 
         // 🔴 مثلِ ردیف‌های PHP، این فهرست هم فقط بزرگ می‌شود (خرابکاریِ فاز ۸)
-        $this->assertGreaterThanOrEqual(18, count($guards), 'محافظی از فهرستِ JS حذف شده.');
+        $this->assertGreaterThanOrEqual(19, count($guards), 'محافظی از فهرستِ JS حذف شده.');
 
         foreach ($guards as $file => [$phase, $marker]) {
             $path = base_path("tests/js/{$file}.test.".(file_exists(base_path("tests/js/{$file}.test.tsx")) ? 'tsx' : 'ts'));
