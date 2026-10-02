@@ -3,6 +3,7 @@ import { MotionConfig } from 'framer-motion'
 import { createRoot } from 'react-dom/client'
 import { initObservability, trackPageView } from '@/shared/lib/observability'
 import { HomeNavbar } from '@/features/landing/home/components/HomeNavbar'
+import { InstallPrompt } from '@/shared/pwa/InstallPrompt'
 import { HomeFooter } from '@/features/landing/home/components/HomeFooter'
 import { ScrollProgressBar } from '@/features/landing/home/components/ScrollProgressBar'
 import { ShareButton } from '@/features/landing/blog/ShareButton'
@@ -30,6 +31,8 @@ createRoot(document.getElementById('root')!).render(
     <MotionConfig reducedMotion="user">
       {isArticle && <ScrollProgressBar />}
       <HomeNavbar page="blog" />
+      {/* بلاگ دکمه‌ی شناور ندارد؛ پیشنهادِ نصب خودِ گوشه را می‌گیرد (فاز ۵) */}
+      <InstallPrompt placement="public-bare" />
     </MotionConfig>
   </StrictMode>,
 )

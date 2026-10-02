@@ -1,10 +1,10 @@
 import { useEffect, useRef, useState } from 'react'
-import { Download, RefreshCw, X } from 'lucide-react'
+import { RefreshCw, X } from 'lucide-react'
 
 import { useFeatures } from '@/shared/hooks'
 import { useAppBuildStore } from './appBuild'
 import { registerServiceWorker, unregisterServiceWorker } from './registerServiceWorker'
-import { useInstallPrompt } from './useInstallPrompt'
+import { InstallPrompt } from './InstallPrompt'
 
 /**
  * دو پیامِ کوچکِ PWA: «نسخه‌ی تازه آماده است» و «نصب روی دستگاه» (R35).
@@ -16,7 +16,6 @@ import { useInstallPrompt } from './useInstallPrompt'
  */
 export function PwaPrompts() {
   const [updateReady, setUpdateReady] = useState(false)
-  const { canInstall, install, dismiss } = useInstallPrompt()
   const { isEnabled } = useFeatures()
   const pwaEnabled = isEnabled('pwa')
 
@@ -99,20 +98,12 @@ export function PwaPrompts() {
     )
   }
 
-  if (canInstall) {
-    return (
-      <Banner
-        icon={<Download className="h-4 w-4" aria-hidden />}
-        title="نصب ساکنا روی دستگاه"
-        body="بدون مرورگر باز می‌شود و صفحه‌های دیده‌شده آفلاین هم می‌آیند."
-        actionLabel="نصب"
-        onAction={() => void install()}
-        onDismiss={dismiss}
-      />
-    )
-  }
-
-  return null
+  /*
+   * پیشنهادِ نصب همان کامپوننتِ صفحه‌های عمومی است (مرحلهٔ ۷ · فاز ۵): راهنمای
+   * iOS و انیمیشنِ خروج به چپ را از همان‌جا می‌گیرد و خودش تصمیم می‌گیرد
+   * نشان داده شود یا نه.
+   */
+  return <InstallPrompt placement="dashboard" />
 }
 
 function Banner({

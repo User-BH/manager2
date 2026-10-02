@@ -35,9 +35,43 @@ export function isInstalled(): boolean {
   return standalone || iosStandalone
 }
 
+/**
+ * آیا این مرورگرِ iOS می‌تواند ساکنا را از «اشتراک‌گذاری ← افزودن به صفحه‌ی
+ * اصلی» نصب کند؟ (مرحلهٔ ۷ · فاز ۵)
+ *
+ * iOS رویدادِ `beforeinstallprompt` ندارد؛ نصب فقط از منوی اشتراک‌گذاری است،
+ * پس آنجا به‌جای دکمه‌ی نصب **راهنما** نشان می‌دهیم.
+ *
+ * ⚠️ نشانه، خودِ `navigator.standalone` است، نه رشته‌ی User-Agent به‌تنهایی:
+ * این ویژگی فقط در WebKitی تعریف می‌شود که «افزودن به صفحه‌ی اصلی» دارد و
+ * بیرون از حالتِ نصب‌شده `false` است. مرورگرهای درون‌برنامه‌ای (اینستاگرام،
+ * تلگرام) آن را ندارند — به کاربرشان راهنمایی نمی‌دهیم که در آنجا کار نمی‌کند.
+ * آی‌پدِ امروزی خودش را «Macintosh» معرفی می‌کند؛ لمسی‌بودن جدایش می‌کند.
+ */
+export function canAddToHomeScreen(): boolean {
+  if (typeof window === 'undefined') return false
+
+  const nav = window.navigator as Navigator & { standalone?: boolean }
+  const ua = nav.userAgent
+  const iOS = /iPhone|iPad|iPod/.test(ua) || (/Macintosh/.test(ua) && nav.maxTouchPoints > 1)
+
+  return iOS && nav.standalone === false
+}
+
+/** ⚠️ `localStorage` در حالتِ خصوصی یا با کوکیِ مسدود پرتاب می‌کند. */
+function readDismissed(): boolean {
+  try {
+    return typeof localStorage !== 'undefined' && localStorage.getItem(DISMISSED_KEY) === '1'
+  } catch {
+    return false
+  }
+}
+
 export function useInstallPrompt() {
   const [event, setEvent] = useState<BeforeInstallPromptEvent | null>(null)
   const [installed, setInstalled] = useState(isInstalled)
+  // راهنمای iOS رویدادی ندارد که با بستن پاک شود؛ این رندرِ دوباره را می‌سازد
+  const [closed, setClosed] = useState(false)
 
   useEffect(() => {
     const onPrompt = (native: Event) => {
@@ -63,8 +97,7 @@ export function useInstallPrompt() {
     }
   }, [])
 
-  const dismissed =
-    typeof localStorage !== 'undefined' && localStorage.getItem(DISMISSED_KEY) === '1'
+  const dismissed = closed || readDismissed()
 
   const install = useCallback(async () => {
     if (!event) return 'unavailable' as const
@@ -79,13 +112,20 @@ export function useInstallPrompt() {
   }, [event])
 
   const dismiss = useCallback(() => {
-    localStorage.setItem(DISMISSED_KEY, '1')
+    try {
+      localStorage.setItem(DISMISSED_KEY, '1')
+    } catch {
+      // حالتِ خصوصیِ سافاری: فقط برای همین صفحه بسته می‌ماند
+    }
+    setClosed(true)
     setEvent(null)
   }, [])
 
   return {
     /** فقط وقتی درست است که مرورگر واقعاً پیشنهاد داده و کاربر ردش نکرده. */
     canInstall: event !== null && !installed && !dismissed,
+    /** iOS: نصب فقط از منوی اشتراک‌گذاری؛ راهنما به‌جای دکمه (فاز ۵). */
+    showIosGuide: event === null && !installed && !dismissed && canAddToHomeScreen(),
     installed,
     install,
     dismiss,

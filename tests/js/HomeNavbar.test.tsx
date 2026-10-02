@@ -2,6 +2,9 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import { render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { HomeNavbar } from '@/features/landing/home/components/HomeNavbar'
+import { scrollToSection } from '@/shared/lib/scroll'
+
+vi.mock('@/shared/lib/scroll', () => ({ scrollToSection: vi.fn() }))
 
 /*
  * ناوبریِ MPA به‌جای روتر، `window.location` را عوض می‌کند؛ در jsdom آن یک
@@ -141,7 +144,11 @@ describe('HomeNavbar', () => {
 
   // ── محتوای منوی برگر (R31) ──────────────────────────────────────────────
 
-  it('منوی برگر برای مهمان دقیقاً چهار دکمه دارد', async () => {
+  /*
+   * مرحلهٔ ۷ · فاز ۵: بخش‌های صفحه‌ی فرود هم در منو آمدند. پیش از این زیرِ
+   * ‎۷۶۸ هیچ راهی به «ویژگی‌ها»، «تور پنل» و «نظرات» جز اسکرولِ دستی نبود.
+   */
+  it('منوی برگر برای مهمان: ورود، ثبت‌نام، بخش‌های صفحه و صفحه‌ها', async () => {
     render(<HomeNavbar />)
     await openMenu()
 
@@ -149,7 +156,14 @@ describe('HomeNavbar', () => {
       within(menuPanel())
         .getAllByRole('button')
         .map((b) => b.textContent),
-    ).toEqual(['ورود', 'ثبت‌نام رایگان', 'دمو', 'سوالات متداول'])
+    ).toEqual(['ورود', 'ثبت‌نام رایگان', 'ویژگی‌ها', 'تور پنل', 'نظرات', 'دمو', 'سوالات متداول'])
+  })
+
+  it('بخش‌های صفحه فقط در منوی صفحه‌ی اصلی‌اند', async () => {
+    render(<HomeNavbar page="demo" />)
+    await openMenu()
+
+    expect(within(menuPanel()).queryByRole('button', { name: 'تور پنل' })).toBeNull()
   })
 
   it('منوی کاربرِ واردشده به‌جای ورود و ثبت‌نام، داشبورد دارد', async () => {
@@ -161,7 +175,7 @@ describe('HomeNavbar', () => {
       within(menuPanel())
         .getAllByRole('button')
         .map((b) => b.textContent),
-    ).toEqual(['ورود به داشبورد', 'دمو', 'سوالات متداول'])
+    ).toEqual(['ورود به داشبورد', 'ویژگی‌ها', 'تور پنل', 'نظرات', 'دمو', 'سوالات متداول'])
   })
 
   it('کلیک روی آیتمِ منو، منو را می‌بندد', async () => {
@@ -172,5 +186,37 @@ describe('HomeNavbar', () => {
 
     // منوی بازمانده روی صفحه، مقصدِ بعدی را می‌پوشاند
     expect(screen.getByRole('button', { name: 'منو' })).toHaveAttribute('aria-expanded', 'false')
+  })
+
+  it('بخشِ منو به همان بخش اسکرول می‌کند و منو را می‌بندد', async () => {
+    render(<HomeNavbar />)
+    await openMenu()
+
+    await userEvent.click(within(menuPanel()).getByRole('button', { name: 'تور پنل' }))
+
+    expect(scrollToSection).toHaveBeenCalledWith('panel-tour')
+    expect(screen.getByRole('button', { name: 'منو' })).toHaveAttribute('aria-expanded', 'false')
+  })
+
+  /*
+   * 🔴 باگِ ‎۶۰۰–۷۶۸ (مرحلهٔ ۷ · فاز ۵).
+   *
+   * پیوندهای هدر از `md` (‎۷۶۸) دیده می‌شدند و برگر فقط زیرِ ‎۶۰۰؛ در این
+   * فاصله شش مقصد در هیچ‌جای هدر نبودند — در هر چهار صفحه‌ی عمومی. jsdom
+   * مدیا‌کوئری ندارد، پس قرارداد روی خودِ کلاس‌هاست: آستانه‌ی پنهان‌شدنِ
+   * برگر و پنلش باید **همان** آستانه‌ی ظاهرشدنِ پیوندها باشد.
+   */
+  it('برگر و پنلش دقیقاً همان‌جا پنهان می‌شوند که پیوندها ظاهر می‌شوند', async () => {
+    const { container } = render(<HomeNavbar />)
+
+    const nav = container.querySelector('nav')!
+    const shown = nav.className.match(/(?:^|\s)((?:sm|md|lg|xl|min-\[\d+px\]):)flex/)?.[1]
+    expect(shown).toBe('md:')
+
+    const burger = screen.getByRole('button', { name: 'منو' }).parentElement!
+    expect(burger.className.split(/\s+/)).toContain(`${shown}hidden`)
+
+    await openMenu()
+    expect(menuPanel().className.split(/\s+/)).toContain(`${shown}hidden`)
   })
 })

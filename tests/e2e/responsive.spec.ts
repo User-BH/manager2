@@ -19,10 +19,13 @@ import { expect, test } from '@playwright/test'
 /**
  * عرضی که از آن به بعد ناوبریِ کامل جای منوی برگر را می‌گیرد.
  *
- * ⚠️ از کلاسِ `min-[600px]:hidden` در `HomeNavbar` گرفته شده. اگر آنجا
- * عوض شود و اینجا نه، تستِ منو در عرضِ اشتباه اجرا می‌شود.
+ * ⚠️ از کلاسِ `md:hidden` در `HomeNavbar` گرفته شده. اگر آنجا عوض شود و
+ * اینجا نه، تستِ منو در عرضِ اشتباه اجرا می‌شود.
+ *
+ * 🔴 تا مرحلهٔ ۷ · فاز ۵ این عدد ۶۰۰ بود — و همین باگ بود: برگر زیرِ ‎۶۰۰
+ * پنهان می‌شد ولی پیوندها تازه از ‎۷۶۸ می‌آمدند.
  */
-const BURGER_BREAKPOINT = 600
+const BURGER_BREAKPOINT = 768
 
 /**
  * کمینه‌ی اندازه‌ی هدفِ لمس، با ارفاقِ زیرپیکسلی.
@@ -41,6 +44,132 @@ const MIN_TOUCH_TARGET = 43.5
 
 /** صفحه‌های عمومی که مهمان می‌بیند؛ بیشترین ترافیک را دارند. */
 const PUBLIC_PAGES = ['/', '/demo', '/support', '/auth', '/blog'] as const
+
+/**
+ * 🔴 باگِ ‎۶۰۰–۷۶۸ (مرحلهٔ ۷ · فاز ۵) — در عرضِ ثابت، مستقل از نمایه‌ی پروژه.
+ *
+ * در این فاصله شش مقصدِ هدر (سه بخشِ صفحه و دمو، بلاگ، سوالات متداول) در
+ * هیچ‌جای هدر نبودند، در هر چهار صفحه‌ی عمومی. هیچ نمایه‌ی Playwright در این
+ * بازه نیست (موبایل ‎۳۹۰، تبلت ‎۷۶۸)، پس عرض اینجا صریح گذاشته می‌شود.
+ */
+test.describe('هدر در ‎۶۰۰ تا ‎۷۶۸', () => {
+  test.use({ viewport: { width: 700, height: 800 } })
+
+  for (const path of ['/', '/demo', '/support'] as const) {
+    test(`${path}: منو هست و مقصدها در آن دیده می‌شوند`, async ({ page }) => {
+      await page.goto(path)
+      await page.waitForLoadState('networkidle')
+
+      const menu = page.getByRole('button', { name: 'منو' })
+      await expect(menu).toBeVisible()
+      await menu.click()
+
+      // پیوندهای دسکتاپ در همان هدر هستند ولی پنهان؛ فقط دیده‌شده‌ها
+      const header = page.getByRole('banner')
+      const expected =
+        path === '/'
+          ? ['ویژگی‌ها', 'تور پنل', 'نظرات', 'دمو']
+          : path === '/demo'
+            ? ['سوالات متداول']
+            : ['دمو']
+      for (const name of expected) {
+        await expect(
+          header.getByRole('button', { name, exact: true }).locator('visible=true'),
+        ).toBeInViewport()
+      }
+    })
+  }
+
+  /*
+   * «تور پنل» و «نظرات» تنبل‌اند. پیش از این شناسه روی خودِ بخش بود و پیوند
+   * تا بارگذاریِ بخش هیچ کاری نمی‌کرد؛ جای‌گیرها هم ‎۲۴ تا ‎۱۸۰ پیکسل با محتوا
+   * فرق داشتند و حرکت از عنوان دور می‌ایستاد.
+   */
+  test('پیوندِ «تور پنل» پیش از بارگذاریِ بخش، دقیقاً روی عنوانش می‌ایستد', async ({ page }) => {
+    await page.goto('/')
+    await page.waitForLoadState('networkidle')
+
+    await page.getByRole('button', { name: 'منو' }).click()
+    await page
+      .getByRole('banner')
+      .getByRole('button', { name: 'تور پنل', exact: true })
+      .locator('visible=true')
+      .click()
+
+    const heading = page.getByRole('heading', { name: 'تور پنل' })
+    await expect(heading).toBeInViewport({ timeout: 10_000 })
+    await expect
+      .poll(async () => Math.round((await page.locator('#panel-tour').boundingBox())?.y ?? -1), {
+        timeout: 5_000,
+      })
+      .toBeLessThanOrEqual(78)
+
+    /*
+     * ⚠️ جای **نهایی**، پس از آرام‌شدنِ صفحه — نه لحظه‌ی رسیدن.
+     *
+     * 🔴 خرابکاری این را خواست: با جای‌گیرِ ثابتِ قدیمِ تبلیغ (‎۲۲۴ به‌جای
+     * ‎۲۴۸) حرکت درست روی ‎۷۲ می‌رسید و تست سبز می‌شد، ولی تبلیغ کمی بعد
+     * بار می‌شد و عنوان در WebKit به ‎۹۶ می‌رفت — همان چیزی که کاربر می‌بیند.
+     */
+    await page.waitForLoadState('networkidle')
+    await page.waitForTimeout(1_000)
+    const top = Math.round((await page.locator('#panel-tour').boundingBox())!.y)
+    // ارتفاعِ هدر ‎۷۲ است؛ کمتر یعنی عنوان زیرِ هدر رفته، بیشتر یعنی دور ایستاده
+    expect(top).toBeGreaterThanOrEqual(66)
+    expect(top).toBeLessThanOrEqual(78)
+  })
+})
+
+/**
+ * 🔴 جای‌گیرِ هر بخشِ تنبل هم‌قدِ محتوای واقعی‌اش (مرحلهٔ ۷ · فاز ۵).
+ *
+ * سه جای‌گیرِ صفحه‌ی اصلی ‎۲۴ تا ‎۱۸۰ پیکسل با محتوا فرق داشتند: هنگامِ
+ * رسیدنِ محتوا صفحه می‌پرید، و اگر تبلیغ **پس از** پایانِ حرکت می‌رسید، پرش
+ * از هدر به «تور پنل» از عنوان دور می‌ایستاد (WebKit ‎۹۶ به‌جای ‎۷۲).
+ *
+ * ⚠️ این همان را مستقیم و بی‌وابستگی به زمان‌بندی می‌سنجد؛ تستِ «پرش» به
+ * زمانِ رسیدنِ تبلیغ وابسته است و خرابکاری نشان داد همیشه نمی‌گیردش.
+ * ارفاقِ ‎۸px برای شکستنِ متفاوتِ خط در موتورها؛ خطای واقعی ‎۲۴+ است.
+ */
+test('جای‌گیرِ بخش‌های تنبلِ صفحه‌ی اصلی هم‌قدِ محتوای واقعی است', async ({ page }) => {
+  /*
+   * ⚠️ چانکِ سه بخش نگه داشته می‌شود تا «پیش» واقعاً جای‌گیر باشد. روی
+   * موبایل تبلیغ نزدیکِ بالای صفحه است و همان لحظه بار می‌شد؛ اندازه‌ی «پیش»
+   * آن‌وقت نیمه‌ی راهِ آماده‌شدنِ اسلایدر بود، نه جای‌گیر.
+   */
+  const held = /\/(AdBannerSection|GallerySwiperSection|TestimonialsSection)-[\w-]+\.js$/
+  await page.route(held, () => {})
+  await page.goto('/')
+  await page.waitForLoadState('domcontentloaded')
+  await expect(page.locator('main > div')).toHaveCount(3)
+
+  const heights = () =>
+    page.evaluate(() =>
+      [...document.querySelectorAll('main > div')].map((d) =>
+        Math.round(d.getBoundingClientRect().height),
+      ),
+    )
+  const before = await heights()
+
+  await page.unrouteAll({ behavior: 'ignoreErrors' })
+  await page.reload()
+  await page.waitForLoadState('networkidle')
+  for (let y = 0; y < 9000; y += 400) {
+    await page.evaluate((v) => window.scrollTo(0, v), y)
+    await page.waitForTimeout(100)
+  }
+  await page.waitForLoadState('networkidle')
+  await page.waitForTimeout(800)
+  const after = await heights()
+
+  expect(after.length).toBe(3)
+  after.forEach((real, i) => {
+    expect(
+      Math.abs(real - before[i]),
+      `بخشِ ${i + 1}: جای‌گیر ${before[i]} ≠ واقعی ${real}`,
+    ).toBeLessThanOrEqual(8)
+  })
+})
 
 test.describe('اندازه‌ها', () => {
   /**

@@ -7,7 +7,7 @@ import { ForbiddenPage } from '@/features/error/ForbiddenPage'
 import { GalleryLightbox } from '@/features/landing/home/components/GalleryLightbox'
 import { SupportWheel } from '@/features/landing/support/SupportWheel'
 import { supportTopics } from '@/features/landing/support/supportContent'
-import { galleryItems } from '@/shared/constants/images'
+import { panelTourItems } from '@/shared/constants/images'
 
 /**
  * چهار باگِ بصریِ تأییدشده (R33).
@@ -132,7 +132,7 @@ describe('لایت‌باکسِ گالری', () => {
    */
   it('پنلِ متن اسکرولِ داخلی دارد و می‌تواند کوچک شود', () => {
     const { container } = render(
-      <GalleryLightbox items={galleryItems} index={0} onClose={vi.fn()} onNavigate={vi.fn()} />,
+      <GalleryLightbox items={panelTourItems} index={0} onClose={vi.fn()} onNavigate={vi.fn()} />,
     )
 
     const panel = container.querySelector('.overflow-y-auto')
@@ -143,7 +143,7 @@ describe('لایت‌باکسِ گالری', () => {
 
   it('ارتفاع‌ها با واحدِ dvh بسته می‌شوند، نه vh', () => {
     const { container } = render(
-      <GalleryLightbox items={galleryItems} index={0} onClose={vi.fn()} onNavigate={vi.fn()} />,
+      <GalleryLightbox items={panelTourItems} index={0} onClose={vi.fn()} onNavigate={vi.fn()} />,
     )
 
     const html = container.innerHTML
@@ -158,18 +158,23 @@ describe('لایت‌باکسِ گالری', () => {
 
   it('محتوای تصویرِ انتخابی نشان داده می‌شود', () => {
     render(
-      <GalleryLightbox items={galleryItems} index={0} onClose={vi.fn()} onNavigate={vi.fn()} />,
+      <GalleryLightbox items={panelTourItems} index={0} onClose={vi.fn()} onNavigate={vi.fn()} />,
     )
 
-    expect(screen.getByText(galleryItems[0].title)).toBeInTheDocument()
-    expect(screen.getByText(galleryItems[0].description)).toBeInTheDocument()
+    expect(screen.getByText(panelTourItems[0].title)).toBeInTheDocument()
+    expect(screen.getByText(panelTourItems[0].description)).toBeInTheDocument()
   })
 
   it('بسته بودن یعنی هیچ‌چیز رندر نمی‌شود', () => {
     const { container } = render(
-      <GalleryLightbox items={galleryItems} index={null} onClose={vi.fn()} onNavigate={vi.fn()} />,
+      <GalleryLightbox
+        items={panelTourItems}
+        index={null}
+        onClose={vi.fn()}
+        onNavigate={vi.fn()}
+      />,
     )
 
-    expect(within(container).queryByText(galleryItems[0].title)).toBeNull()
+    expect(within(container).queryByText(panelTourItems[0].title)).toBeNull()
   })
 })

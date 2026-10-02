@@ -67,9 +67,19 @@ export function useNearViewport<T extends HTMLElement>() {
  * کوتاه‌تر یعنی لحظه‌ی جایگزینی کلِ صفحه می‌پرد (CLS) — بهینه‌سازیِ حجم را
  * با یک مشکلِ بصری عوض کرده‌ایم.
  */
-export function SizedPlaceholder({ height }: { height: number }) {
+export function SizedPlaceholder({
+  height,
+  heightClass,
+}: {
+  height: number
+  heightClass?: string
+}) {
   return (
-    <div style={{ height }} className="w-full animate-pulse rounded-xl" aria-hidden>
+    <div
+      style={heightClass ? undefined : { height }}
+      className={`w-full animate-pulse rounded-xl ${heightClass ?? ''}`}
+      aria-hidden
+    >
       <div
         className="h-full w-full rounded-xl"
         style={{ backgroundColor: 'var(--surface-sunken)' }}
@@ -82,6 +92,8 @@ export function LazyVisible<P extends object>({
   load,
   height,
   placeholder,
+  heightClass,
+  id,
   ...props
 }: {
   load: () => Promise<{ default: ComponentType<P> }>
@@ -89,12 +101,30 @@ export function LazyVisible<P extends object>({
   height: number
   /** جای‌گیرِ اختصاصی؛ اگر ندهید یک اسکلت با همان ارتفاع می‌آید. */
   placeholder?: ReactNode
+  /**
+   * ارتفاعِ ریسپانسیو با کلاس (مثلاً `h-[200px] sm:h-[248px]`) — مرحلهٔ ۷ · فاز ۵.
+   *
+   * 🔴 یک عددِ ثابت برای همه‌ی عرض‌ها درست نیست: سه بخشِ صفحه‌ی فرود با
+   * سنجش در Chromium و WebKit ‎۲۴ تا ‎۱۸۰ پیکسل با جای‌گیرشان فرق داشتند. هم
+   * صفحه هنگامِ رسیدنِ محتوا می‌پرید (CLS) و هم پرش از هدر به «تور پنل» در
+   * WebKit به‌اندازه‌ی همان اختلاف از عنوان دور می‌ایستاد.
+   */
+  heightClass?: string
+  /**
+   * لنگرِ بخش (مرحلهٔ ۷ · فاز ۵).
+   *
+   * 🔴 شناسه روی خودِ بخش بود؛ پس تا بخش بار نشده بود، `getElementById`
+   * چیزی پیدا نمی‌کرد و «گالری» و «نظرات» در هدر و فوتر **هیچ کاری** نمی‌کردند
+   * — مگر کاربر قبلاً خودش تا آنجا اسکرول کرده بود. روی این قاب از رندرِ اول
+   * هست، پس پیوند همیشه جایی برای رفتن دارد.
+   */
+  id?: string
 } & P) {
   const { ref, near } = useNearViewport<HTMLDivElement>()
-  const fallback = placeholder ?? <SizedPlaceholder height={height} />
+  const fallback = placeholder ?? <SizedPlaceholder height={height} heightClass={heightClass} />
 
   return (
-    <div ref={ref}>
+    <div ref={ref} id={id}>
       {near ? <LazyBody load={load} fallback={fallback} {...(props as P)} /> : fallback}
     </div>
   )

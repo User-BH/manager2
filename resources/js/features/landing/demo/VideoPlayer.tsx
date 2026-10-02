@@ -10,7 +10,7 @@ import {
   Volume2,
   VolumeX,
 } from 'lucide-react'
-import { galleryItems } from '@/shared/constants/images'
+import { buildingPhotos } from '@/shared/constants/images'
 import { toPersianDigits } from '@/shared/lib/format'
 
 export interface VideoChapter {
@@ -301,7 +301,7 @@ export function VideoPlayer({
  * حتی بدون ویدیو هم کارِ خودش را می‌کند.
  */
 function MissingVideoNotice({ poster }: { poster: string }) {
-  const slides = galleryItems.slice(0, 5)
+  const slides = buildingPhotos.slice(0, 5)
   const [index, setIndex] = useState(0)
   const [paused, setPaused] = useState(false)
 

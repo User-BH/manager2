@@ -7,12 +7,14 @@ import { ThemeToggle } from '@/shared/layout/ThemeToggle'
 import { Logo } from '@/shared/common/Logo'
 import { scrollToSection } from '@/shared/lib/scroll'
 import { isBlogEnabled, isViewerAuthenticated } from '@/shared/lib/viewer'
+import { PANEL_TOUR } from '@/features/landing/content/sections'
 
 /** به‌جای href لنگری، شناسه‌ی بخش؛ حرکت با اسکرول نرم انجام می‌شود و آدرس
     سایت دست‌نخورده می‌ماند. */
 const sectionLinks = [
   { label: 'ویژگی‌ها', section: 'features' },
-  { label: 'گالری', section: 'gallery' },
+  // نامِ بخش از یک جا — همان در عنوانِ خودِ بخش و فوتر (مرحلهٔ ۷ · فاز ۵)
+  { label: PANEL_TOUR.name, section: PANEL_TOUR.id },
   { label: 'نظرات', section: 'testimonials' },
 ]
 
@@ -72,6 +74,11 @@ export function HomeNavbar({ page = 'home' }: { page?: NavbarPage } = {}) {
     navigate(to)
   }
 
+  function jump(section: string) {
+    setMobileOpen(false)
+    scrollToSection(section)
+  }
+
   return (
     <motion.header
       initial={{ y: -80, opacity: 0 }}
@@ -120,9 +127,13 @@ export function HomeNavbar({ page = 'home' }: { page?: NavbarPage } = {}) {
         </nav>
 
         {/*
-          تم و دکمه‌های ورود/ثبت‌نام از ۶۰۰ به بالا به‌صورت خطی دیده می‌شوند؛
-          یعنی بینِ ۶۰۰ تا ۷۶۸ (که لینک‌ها رفته‌اند ولی برگر هنوز نیامده) هم
-          همین‌ها نمایش داده می‌شوند.
+          تم و دکمه‌های ورود/ثبت‌نام از ۶۰۰ به بالا به‌صورت خطی دیده می‌شوند.
+
+          🔴 باگِ ‎۶۰۰–۷۶۸ (مرحلهٔ ۷ · فاز ۵): پیوندهای بالا از ‎۷۶۸ (`md`)
+          دیده می‌شوند ولی برگر فقط زیرِ ‎۶۰۰ بود. در این فاصله «ویژگی‌ها»،
+          «گالری»، «نظرات»، «دمو»، «بلاگ» و «سوالات متداول» در هیچ‌جای هدر
+          نبودند — در هر چهار صفحه‌ی عمومی. حالا برگر تا ‎۷۶۸ می‌ماند و
+          آستانه‌اش با پیوندها یکی است؛ این ردیف کنارش می‌نشیند.
         */}
         <div className="hidden items-center gap-3 min-[600px]:flex">
           <ThemeToggle />
@@ -161,8 +172,11 @@ export function HomeNavbar({ page = 'home' }: { page?: NavbarPage } = {}) {
           کاری که کاربر روزی چند بار می‌کند پشتِ دو کلیک بود، در حالی که
           دکمه‌اش جا داشت کنارِ برگر بنشیند.
         */}
-        <div className="flex items-center gap-2 min-[600px]:hidden">
-          <ThemeToggle />
+        <div className="flex items-center gap-2 md:hidden">
+          {/* از ‎۶۰۰ به بالا تم در ردیفِ بالاست؛ دو کلیدِ تم کنارِ هم نمی‌آیند */}
+          <span className="min-[600px]:hidden">
+            <ThemeToggle />
+          </span>
 
           <motion.button
             onClick={toggleMobileOpen}
@@ -203,7 +217,7 @@ export function HomeNavbar({ page = 'home' }: { page?: NavbarPage } = {}) {
           initial={{ opacity: 0, height: 0 }}
           animate={{ opacity: 1, height: 'auto' }}
           exit={{ opacity: 0, height: 0 }}
-          className="overflow-hidden border-t px-4 pb-5 pt-3 min-[600px]:hidden"
+          className="overflow-hidden border-t px-4 pb-5 pt-3 md:hidden"
           style={{
             backgroundColor: 'color-mix(in srgb, var(--surface-base) 88%, transparent)',
             backdropFilter: 'blur(16px)',
@@ -212,18 +226,34 @@ export function HomeNavbar({ page = 'home' }: { page?: NavbarPage } = {}) {
           dir="rtl"
         >
           <div className="flex flex-col gap-2">
-            {authenticated ? (
-              <MenuButton primary label="ورود به داشبورد" onClick={() => go('/dashboard')} />
-            ) : (
-              <>
-                <MenuButton label="ورود" onClick={() => go('/auth')} />
+            {/* از ‎۶۰۰ تا ‎۷۶۸ ورود و ثبت‌نام در ردیفِ بالا هستند؛ تکرار نمی‌شوند */}
+            <div className="flex flex-col gap-2 min-[600px]:hidden">
+              {authenticated ? (
+                <MenuButton primary label="ورود به داشبورد" onClick={() => go('/dashboard')} />
+              ) : (
+                <>
+                  <MenuButton label="ورود" onClick={() => go('/auth')} />
+                  <MenuButton
+                    primary
+                    label="ثبت‌نام رایگان"
+                    onClick={() => go('/auth?tab=register')}
+                  />
+                </>
+              )}
+            </div>
+
+            {/*
+              بخش‌های صفحه‌ی فرود در منو (فاز ۵): پیش از این روی موبایل هیچ
+              راهی به آن‌ها جز اسکرولِ دستی نبود.
+            */}
+            {page === 'home' &&
+              sectionLinks.map((link) => (
                 <MenuButton
-                  primary
-                  label="ثبت‌نام رایگان"
-                  onClick={() => go('/auth?tab=register')}
+                  key={link.section}
+                  label={link.label}
+                  onClick={() => jump(link.section)}
                 />
-              </>
-            )}
+              ))}
 
             {links.map((link) => (
               <MenuButton key={link.id} label={link.label} onClick={() => go(link.to)} />

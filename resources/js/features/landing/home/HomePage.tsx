@@ -31,10 +31,28 @@ export function HomePage() {
           هر دو اسلایدر پایین‌تر از تا هستند و بازدیدکننده ممکن است اصلاً
           تا آن‌ها نرسد.
         */}
-        <LazyVisible load={() => import('./components/AdBannerSection')} height={224} />
+        {/*
+          ارتفاع‌های جای‌گیر با سنجشِ واقعی در ‎۳۸۰، ‎۷۰۰ و ‎۱۲۸۰ (فاز ۵):
+          تبلیغ ‎۲۰۰/۲۴۸/۲۸۰، تور ‎۶۹۶/۶۷۲، نظرات ‎۶۰۲/۵۹۴.
+        */}
+        <LazyVisible
+          load={() => import('./components/AdBannerSection')}
+          height={200}
+          heightClass="h-[200px] sm:h-[248px] lg:h-[280px]"
+        />
         <FeaturesSection />
-        <LazyVisible load={() => import('./components/GallerySwiperSection')} height={520} />
-        <LazyVisible load={() => import('./components/TestimonialsSection')} height={420} />
+        <LazyVisible
+          id="panel-tour"
+          load={() => import('./components/GallerySwiperSection')}
+          height={696}
+          heightClass="h-[696px] sm:h-[672px]"
+        />
+        <LazyVisible
+          id="testimonials"
+          load={() => import('./components/TestimonialsSection')}
+          height={602}
+          heightClass="h-[602px] sm:h-[594px]"
+        />
         <CtaSection />
       </main>
 

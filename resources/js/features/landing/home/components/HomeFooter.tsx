@@ -11,7 +11,8 @@ import {
   RubikaIcon,
   BaleIcon,
 } from '@/shared/common/SocialIcons'
-import { BRAND_NAME, socialHover } from '@/shared/config/brand'
+import { BRAND_NAME, socialHover, socialLinks } from '@/shared/config/brand'
+import { PANEL_TOUR } from '@/features/landing/content/sections'
 import { useSiteContent } from '@/shared/hooks'
 import { isBlogEnabled, isViewerAuthenticated } from '@/shared/lib/viewer'
 import { TrustSeal } from './TrustSeal'
@@ -23,6 +24,16 @@ const socialIconMap = {
   rubika: RubikaIcon,
   bale: BaleIcon,
 } as const
+
+/**
+ * نامِ دقیقِ هر شبکه برای تولتیپ — از شناسه، نه از برچسبِ پنلِ مدیر.
+ *
+ * برچسب را ادمین می‌تواند هر چیزی بنویسد («پیجِ ما»)؛ تولتیپ باید بگوید این
+ * آیکون **کدام** شبکه است (مرحلهٔ ۷ · فاز ۵).
+ */
+const platformName: Record<string, string> = Object.fromEntries(
+  socialLinks.map((s) => [s.id, s.label]),
+)
 
 /** لینکِ تماسِ تلفنی از رقم‌های لاتین ساخته می‌شود (شماره‌ی فارسی در tel: کار نمی‌کند). */
 function telHref(phone: string): string {
@@ -45,10 +56,26 @@ export function HomeFooter({ page = 'home' }: { page?: 'home' | 'blog' } = {}) {
       className="border-t"
       style={{ borderColor: 'var(--border-subtle)', backgroundColor: 'var(--surface-base)' }}
     >
-      <div className="mx-auto max-w-6xl px-4 py-14 sm:px-6" dir="rtl">
-        <div className="grid gap-10 lg:grid-cols-[1.1fr_1fr_1fr_1.2fr]">
+      {/*
+        `pb-24` (فاز ۵): دکمه‌های شناورِ پایین‌راست (دستیار و «بالا») ثابت‌اند؛
+        با `py-14` آخرین سطرِ فوتر حتی در انتهای صفحه زیرِ آن‌ها می‌ماند.
+      */}
+      <div className="mx-auto max-w-6xl px-4 pt-14 pb-24 sm:px-6" dir="rtl">
+        {/*
+          ─── چیدمانِ ریسپانسیو (مرحلهٔ ۷ · فاز ۵) ─────────────────────────
+          پیش از این زیرِ ‎۱۰۲۴ همه‌چیز تک‌ستونی می‌شد: ‎۱۰۷۰px ارتفاع در
+          تبلت، با فهرست‌هایی که نصفِ عرض را خالی می‌گذاشتند.
+
+            ‎≥۱۰۲۴  چهار ستون کنارِ هم
+            ‎۷۶۸+   برند در یک ردیف؛ زیرش سه ستون (دسترسی، پشتیبانی، تماس)
+            زیرِ آن برند و تماس هر کدام یک ردیف؛ دو فهرستِ پیوند کنارِ هم
+
+          دو فهرستِ پیوند حتی روی ‎۳۲۰px هم کنارِ هم جا می‌شوند (بلندترین
+          برچسب «قوانین و مقررات» است)، پس روی موبایل هم ستون‌به‌ستون نمی‌روند.
+        */}
+        <div className="grid grid-cols-2 gap-x-6 gap-y-10 md:grid-cols-3 lg:grid-cols-[1.1fr_1fr_1fr_1.2fr]">
           {/* ستون برند و توضیح */}
-          <div>
+          <div className="col-span-2 md:col-span-3 lg:col-span-1">
             <Logo size={32} />
             <p
               className="mt-4 max-w-xs text-[13px] leading-7"
@@ -70,7 +97,7 @@ export function HomeFooter({ page = 'home' }: { page?: 'home' | 'blog' } = {}) {
                       target="_blank"
                       rel="noopener noreferrer"
                       aria-label={item.label}
-                      className="social-icon-link flex h-9 w-9 items-center justify-center rounded-full border transition-all duration-200 hover:-translate-y-0.5 hover:border-transparent hover:text-white"
+                      className="social-icon-link group relative flex h-9 w-9 items-center justify-center rounded-full border transition-all duration-200 hover:-translate-y-0.5 hover:border-transparent hover:text-white focus-visible:border-transparent focus-visible:text-white"
                       style={
                         {
                           borderColor: 'var(--border-subtle)',
@@ -80,6 +107,23 @@ export function HomeFooter({ page = 'home' }: { page?: 'home' | 'blog' } = {}) {
                       }
                     >
                       <Icon size={16} />
+                      {/*
+                        تولتیپ (فاز ۵). لبه‌ی **راستش** به لبه‌ی راستِ آیکون
+                        بسته است و به داخلِ صفحه باز می‌شود: آیکون‌ها همیشه
+                        در ابتدای (راستِ) ردیف‌اند، پس وسط‌چین روی موبایل
+                        اولین تولتیپ را از لبه‌ی صفحه بیرون می‌زد.
+                        `aria-hidden` چون همان نام در `aria-label` هست.
+                      */}
+                      <span
+                        aria-hidden
+                        className="social-tooltip pointer-events-none absolute bottom-full right-0 mb-2 translate-y-1 whitespace-nowrap rounded-lg px-2.5 py-1 text-xs font-medium opacity-0 shadow-lg transition-all duration-200 group-hover:translate-y-0 group-hover:opacity-100 group-focus-visible:translate-y-0 group-focus-visible:opacity-100"
+                        style={{
+                          backgroundColor: 'var(--text-primary)',
+                          color: 'var(--surface-base)',
+                        }}
+                      >
+                        {platformName[item.id] ?? item.label}
+                      </span>
                     </a>
                   )
                 })}
@@ -94,7 +138,7 @@ export function HomeFooter({ page = 'home' }: { page?: 'home' | 'blog' } = {}) {
               ...(onHome
                 ? [
                     { label: 'ویژگی‌ها', section: 'features' },
-                    { label: 'گالری', section: 'gallery' },
+                    { label: PANEL_TOUR.name, section: PANEL_TOUR.id },
                     { label: 'نظرات کاربران', section: 'testimonials' },
                   ]
                 : [{ label: 'صفحه‌ی اصلی', to: '/' }]),
@@ -119,84 +163,97 @@ export function HomeFooter({ page = 'home' }: { page?: 'home' | 'blog' } = {}) {
             ]}
           />
 
-          {/* ستون تماس و نقشه — عنوان و هر ردیف از پنلِ مدیر می‌آید و می‌تواند خاموش باشد */}
-          <div>
+          {/*
+            ستون تماس و نقشه — عنوان و هر ردیف از پنلِ مدیر می‌آید و می‌تواند خاموش باشد.
+
+            نشانِ اینماد هم اینجاست (فاز ۵)، در همان فضای خالیِ زیرِ تلفن؛ پیش
+            از این در ردیفِ کپی‌رایت بود و این ستون تا خط نیمه‌خالی می‌ماند.
+            ⚠️ فقط **جای** گره عوض شد — خودِ کدِ اینماد در Blade دست نخورده.
+            وقتی ستون تمام‌عرض است، نشان کنارِ تلفن می‌نشیند؛ در ستونِ باریک زیرش.
+          */}
+          <div className="col-span-2 md:col-span-1">
             <p className="text-sm font-bold" style={{ color: 'var(--text-primary)' }}>
               {contact.title}
             </p>
 
-            <ul
-              className="mt-4 flex flex-col gap-2.5 text-[13px]"
-              style={{ color: 'var(--text-secondary)' }}
-            >
-              {contact.address && (
-                <li className="flex items-start gap-2">
-                  <MapPin
-                    size={15}
-                    className="mt-0.5 shrink-0"
-                    style={{ color: 'var(--color-brand-500)' }}
-                  />
-                  <span>{contact.address}</span>
-                </li>
-              )}
-              {contact.phone && (
-                <li className="flex items-center gap-2">
-                  <Phone
-                    size={15}
-                    className="shrink-0"
-                    style={{ color: 'var(--color-brand-500)' }}
-                  />
-                  <a href={telHref(contact.phone)} dir="ltr">
-                    {contact.phone}
-                  </a>
-                </li>
-              )}
-              {contact.email && (
-                <li className="flex items-center gap-2">
-                  <Mail
-                    size={15}
-                    className="shrink-0"
-                    style={{ color: 'var(--color-brand-500)' }}
-                  />
-                  <a href={`mailto:${contact.email}`} dir="ltr">
-                    {contact.email}
-                  </a>
-                </li>
-              )}
-            </ul>
+            <div className="mt-4 flex items-start justify-between gap-5 md:flex-col md:justify-start">
+              <div className="min-w-0 flex-1 md:w-full">
+                <ul
+                  className="flex flex-col gap-2.5 text-[13px]"
+                  style={{ color: 'var(--text-secondary)' }}
+                >
+                  {contact.address && (
+                    <li className="flex items-start gap-2">
+                      <MapPin
+                        size={15}
+                        className="mt-0.5 shrink-0"
+                        style={{ color: 'var(--color-brand-500)' }}
+                      />
+                      <span>{contact.address}</span>
+                    </li>
+                  )}
+                  {contact.phone && (
+                    <li className="flex items-center gap-2">
+                      <Phone
+                        size={15}
+                        className="shrink-0"
+                        style={{ color: 'var(--color-brand-500)' }}
+                      />
+                      <a href={telHref(contact.phone)} dir="ltr">
+                        {contact.phone}
+                      </a>
+                    </li>
+                  )}
+                  {contact.email && (
+                    <li className="flex items-center gap-2">
+                      <Mail
+                        size={15}
+                        className="shrink-0"
+                        style={{ color: 'var(--color-brand-500)' }}
+                      />
+                      <a href={`mailto:${contact.email}`} dir="ltr">
+                        {contact.email}
+                      </a>
+                    </li>
+                  )}
+                </ul>
 
-            {contact.mapEmbedUrl && (
-              <div
-                className="mt-4 overflow-hidden rounded-2xl border"
-                style={{ borderColor: 'var(--border-subtle)' }}
-              >
-                <iframe
-                  title="موقعیت ما روی نقشه"
-                  src={contact.mapEmbedUrl}
-                  width="100%"
-                  height="140"
-                  style={{ border: 0, filter: 'saturate(0.85)' }}
-                  loading="lazy"
-                  referrerPolicy="no-referrer-when-downgrade"
-                />
+                {contact.mapEmbedUrl && (
+                  <div
+                    className="mt-4 overflow-hidden rounded-2xl border"
+                    style={{ borderColor: 'var(--border-subtle)' }}
+                  >
+                    <iframe
+                      title="موقعیت ما روی نقشه"
+                      src={contact.mapEmbedUrl}
+                      width="100%"
+                      height="140"
+                      style={{ border: 0, filter: 'saturate(0.85)' }}
+                      loading="lazy"
+                      referrerPolicy="no-referrer-when-downgrade"
+                    />
+                  </div>
+                )}
               </div>
-            )}
+
+              <TrustSeal />
+            </div>
           </div>
         </div>
 
+        {/*
+          ردیفِ پایین (فاز ۵): دو جمله کنارِ هم — کپی‌رایت در راست، دیگری در چپ.
+          پیش از این هر دو در یک ستون روی هم می‌افتادند و نیمه‌ی دیگرِ ردیف
+          جای اینماد بود. روی موبایل باز هم زیرِ هم و وسط‌چین.
+        */}
         <div
-          className="mt-10 flex flex-col items-center justify-between gap-4 border-t pt-6 text-xs sm:flex-row"
+          className="mt-10 flex flex-col items-center gap-2 border-t pt-6 text-center text-xs sm:flex-row sm:justify-between sm:text-start"
           style={{ borderColor: 'var(--border-subtle)', color: 'var(--text-tertiary)' }}
         >
-          {/* نشانِ اعتماد اول می‌آید تا در موبایل بالای متنِ کپی‌رایت بنشیند */}
-          <TrustSeal />
-
-          <div className="flex flex-col items-center gap-2 sm:items-end">
-            <p>
-              © {new Date().getFullYear()} {BRAND_NAME}. تمامی حقوق محفوظ است.
-            </p>
-            <p>ساخته‌شده با ❤️ برای مدیران مجتمع‌های مسکونی و تجاری</p>
-          </div>
+          <p>
+            © {new Date().getFullYear()} {BRAND_NAME}. تمامی حقوق محفوظ است.
+          </p>
+          <p>ساخته‌شده با ❤️ برای مدیران مجتمع‌های مسکونی و تجاری</p>
         </div>
       </div>
     </footer>

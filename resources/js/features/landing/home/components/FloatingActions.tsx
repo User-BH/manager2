@@ -4,6 +4,7 @@ import { ArrowUp } from 'lucide-react'
 import { scrollToTop } from '@/shared/lib/scroll'
 import { SupportChat } from './SupportChat'
 import { HoverLabel } from './HoverLabel'
+import { InstallPrompt } from '@/shared/pwa/InstallPrompt'
 
 /**
  * دو دکمه‌ی شناور گوشه‌ی پایین-راست صفحه‌ی فرود.
@@ -53,6 +54,12 @@ export function FloatingActions() {
       </AnimatePresence>
 
       <SupportChat />
+
+      {/*
+        پیشنهادِ نصب کنارِ همین ستون (مرحلهٔ ۷ · فاز ۵) — اینجا تنها جایی است
+        که اندازه و جای دکمه‌های شناور معلوم است، پس کارت رویشان نمی‌افتد.
+      */}
+      <InstallPrompt placement="public" />
     </>
   )
 }

@@ -625,10 +625,14 @@ class PhaseRegressionMapTest extends TestCase
             'supportPage' => ['۷/۴', 'Enter و Space ربع را انتخاب می‌کنند'],
             // پیگیریِ فاز ۳: زیرمجموعه‌ی فونت هیچ نویسه‌ی به‌کاررفته‌ای را گم نمی‌کند
             'fontSubset' => ['۷/۳', 'خواننده‌ی cmap خودش درست کار می‌کند'],
+            // مرحلهٔ ۷ · فاز ۵: لنگرِ بخشِ تنبل، فوتر، «تور پنل»، پیشنهادِ نصب، ادعای ساخته‌نشده
+            'homePage' => ['۷/۵', 'هیچ متنی قابلیتِ ساخته‌نشده را وعده نمی‌دهد'],
+            // مرحلهٔ ۷ · فاز ۵: باگِ ‎۶۰۰–۷۶۸ (آستانه‌ی برگر = آستانه‌ی پیوندها)
+            'HomeNavbar' => ['۷/۵', 'برگر و پنلش دقیقاً همان‌جا پنهان می‌شوند که پیوندها ظاهر می‌شوند'],
         ];
 
         // 🔴 مثلِ ردیف‌های PHP، این فهرست هم فقط بزرگ می‌شود (خرابکاریِ فاز ۸)
-        $this->assertGreaterThanOrEqual(19, count($guards), 'محافظی از فهرستِ JS حذف شده.');
+        $this->assertGreaterThanOrEqual(21, count($guards), 'محافظی از فهرستِ JS حذف شده.');
 
         foreach ($guards as $file => [$phase, $marker]) {
             $path = base_path("tests/js/{$file}.test.".(file_exists(base_path("tests/js/{$file}.test.tsx")) ? 'tsx' : 'ts'));

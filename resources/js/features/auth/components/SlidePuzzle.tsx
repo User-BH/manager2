@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { motion } from 'framer-motion'
 import { Check, RefreshCw } from 'lucide-react'
-import { galleryImages } from '@/shared/constants/images'
+import { buildingPhotoSources } from '@/shared/constants/images'
 
 const WIDTH = 300
 const HEIGHT = 92
@@ -234,7 +234,7 @@ export function SlidePuzzle({
 }
 
 function makePuzzle(): Puzzle {
-  const image = galleryImages[Math.floor(Math.random() * galleryImages.length)]
+  const image = buildingPhotoSources[Math.floor(Math.random() * buildingPhotoSources.length)]
   // جای خالی نه خیلی چپ (که بی‌معنی شود) نه خیلی راست
   const targetX = Math.round(80 + Math.random() * (WIDTH - PIECE - 100))
   const gapY = Math.round(18 + Math.random() * (HEIGHT - PIECE - 36))

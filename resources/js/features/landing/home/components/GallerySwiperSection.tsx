@@ -1,13 +1,14 @@
 import { useState, type CSSProperties } from 'react'
 import { ZoomIn } from 'lucide-react'
-import { galleryItems } from '@/shared/constants/images'
+import { panelTourItems } from '@/shared/constants/images'
+import { PANEL_TOUR } from '@/features/landing/content/sections'
 import { RevealOnScroll } from './RevealOnScroll'
 import { GalleryLightbox } from './GalleryLightbox'
 
 // این سه مقدار باید دقیقاً با مقادیر متناظرشان در index.css (.gallery-marquee-item) یکی باشند
 const ITEM_WIDTH_PX = 280
 const ITEM_GAP_PX = 20
-const ITEMS_PER_BLOCK = galleryItems.length
+const ITEMS_PER_BLOCK = panelTourItems.length
 
 // عرض دقیق px یک «بلوک» کامل از تصاویر اصلی - این عدد دقیقاً مسافتی است که
 // انیمیشن باید جابه‌جا شود تا چرخه بدون درز و بدون خطای انباشتی تکرار شود.
@@ -17,7 +18,7 @@ const BLOCK_WIDTH_PX = ITEMS_PER_BLOCK * (ITEM_WIDTH_PX + ITEM_GAP_PX)
 // آرایه سه بار پشت‌سرهم تکرار می‌شود تا حتی در صفحه‌نمایش‌های خیلی عریض هم
 // همیشه حداقل یک کپی کامل دیگر در ادامه‌ی مسیر دیده شود و هیچ‌گاه فضای خالی نیاید
 const REPEAT_COUNT = 3
-const loopedImages = Array.from({ length: REPEAT_COUNT }).flatMap(() => galleryItems)
+const loopedImages = Array.from({ length: REPEAT_COUNT }).flatMap(() => panelTourItems)
 
 // سرعت ثابت حرکت: حدود ۵۷ پیکسل بر ثانیه، فارغ از اینکه چند تصویر در گالری باشد
 const PIXELS_PER_SECOND = 57
@@ -32,29 +33,27 @@ export function GallerySwiperSection() {
   const [openIndex, setOpenIndex] = useState<number | null>(null)
 
   return (
-    <section
-      id="gallery"
-      className="overflow-hidden py-20"
-      style={{ backgroundColor: 'var(--surface-sunken)' }}
-    >
+    // لنگرِ `#panel-tour` روی قابِ `LazyVisible` است تا پیش از بارگذاری هم پیدا شود
+    <section className="overflow-hidden py-20" style={{ backgroundColor: 'var(--surface-sunken)' }}>
       <div className="mx-auto max-w-6xl px-4 sm:px-6" dir="rtl">
         <RevealOnScroll className="mx-auto max-w-xl text-center">
           <h2
             className="text-2xl font-extrabold sm:text-3xl"
             style={{ color: 'var(--text-primary)' }}
           >
-            مجتمع شما، بخش به بخش
+            {PANEL_TOUR.name}
           </h2>
           {/*
-            ─── چرا عنوان و توضیح عوض شد (R32) ─────────────────────────────
-            عنوانِ قبلی «نگاهی به فضای مجتمع‌ها» بود و زیرش فقط می‌گفت
-            «برای بزرگ‌نمایی کلیک کنید» — یعنی بازدیدکننده این بخش را یک
-            آلبومِ تزئینی می‌دید و رد می‌شد، در حالی که هر قاب توضیحِ یک
-            قابلیتِ واقعی است. حالا خودِ عنوان و متن این را می‌گویند.
+            ─── «تور پنل» به‌جای «مجتمع شما، بخش به بخش» (مرحلهٔ ۷ · فاز ۵) ───
+            قاب‌ها دیگر عکسِ لابی و بام نیستند؛ تصویرِ واقعیِ صفحه‌های خودِ
+            ساکنا‌اند. چیدمان، انیمیشن، تعدادِ قاب‌ها (۸) و لایت‌باکس همان
+            ماند — خواسته‌ی ممیزی این بود که فقط تصویر و عنوان و متن عوض شوند.
+            متنِ قبلی «کنترلِ تردد» و «بودجه‌ی سالانه» را هم وعده می‌داد که
+            هیچ‌کدام ساخته نشده‌اند.
           */}
           <p className="mt-3 text-[14.5px] leading-7" style={{ color: 'var(--text-secondary)' }}>
-            هر بخشِ ساختمان یک سرفصلِ واقعی در پنل دارد — از کنترلِ تردد و پارکینگ تا سرویسِ آسانسور
-            و بودجه‌ی سالانه. روی هر قاب بزنید تا ببینید آنجا دقیقاً چه کاری انجام می‌شود.
+            صفحه‌های واقعیِ ساکنا، همان‌طور که مدیر و ساکن می‌بینند — از داشبورد و نمودارها تا
+            پیام‌رسان، اعلان‌ها و قبض. روی هر قاب بزنید تا بزرگ‌تر ببینید و توضیحش را بخوانید.
           </p>
         </RevealOnScroll>
       </div>
@@ -67,7 +66,7 @@ export function GallerySwiperSection() {
             {loopedImages.map((item, index) => (
               <button
                 key={index}
-                onClick={() => setOpenIndex(index % galleryItems.length)}
+                onClick={() => setOpenIndex(index % panelTourItems.length)}
                 aria-label={`بزرگ‌نمایی: ${item.title}`}
                 className="gallery-marquee-item group"
               >
@@ -118,7 +117,7 @@ export function GallerySwiperSection() {
       </div>
 
       <GalleryLightbox
-        items={galleryItems}
+        items={panelTourItems}
         index={openIndex}
         onClose={() => setOpenIndex(null)}
         onNavigate={setOpenIndex}

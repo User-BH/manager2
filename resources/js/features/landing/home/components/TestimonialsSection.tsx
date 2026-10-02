@@ -9,8 +9,9 @@ import 'swiper/css'
 import 'swiper/css/pagination'
 
 export function TestimonialsSection() {
+  // لنگرِ `#testimonials` روی قابِ `LazyVisible` است، نه اینجا (مرحلهٔ ۷ · فاز ۵)
   return (
-    <section id="testimonials" className="mx-auto max-w-4xl px-4 py-20 sm:px-6" dir="rtl">
+    <section className="mx-auto max-w-4xl px-4 py-20 sm:px-6" dir="rtl">
       <RevealOnScroll className="mx-auto max-w-xl text-center">
         <h2
           className="text-2xl font-extrabold sm:text-3xl"

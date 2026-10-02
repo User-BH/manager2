@@ -3,7 +3,7 @@ import { render, screen } from '@testing-library/react'
 
 import { FeaturesSection } from '@/features/landing/home/components/FeaturesSection'
 import { features } from '@/features/landing/content/landingContent'
-import { galleryItems } from '@/shared/constants/images'
+import { panelTourItems } from '@/shared/constants/images'
 
 /**
  * هشت کارتِ ویژگی و گالریِ توضیح‌دار (R32).
@@ -68,7 +68,7 @@ describe('کارت‌های ویژگی', () => {
 
 describe('گالری', () => {
   it('هر قاب توضیح و برچسب دارد، نه فقط تصویر', () => {
-    for (const item of galleryItems) {
+    for (const item of panelTourItems) {
       expect(item.title.trim()).not.toBe('')
       // خواسته‌ی R32: گالری باید شرحِ ویژگی باشد نه آلبومِ تزئینی
       expect(item.description.trim().length).toBeGreaterThan(60)
