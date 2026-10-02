@@ -279,6 +279,7 @@ button:disabled {
     color: var(--color-brand-600);
     font-weight: 600;
     text-decoration: underline;
+    white-space: nowrap;
 }
 
 @keyframes boot-shell-in {

@@ -478,6 +478,23 @@ class PhaseRegressionMapTest extends TestCase
             'کارتِ پیام‌رسان همان پیام‌رسانِ ساخته‌شده' => [
                 'ProductScopeCopyTest', 'test_the_messenger_card_describes_the_messenger_that_exists', '۷',
             ],
+
+            /* ── مرحلهٔ ۷ · فاز ۳: تجربه‌ی بارگذاری ───────────────────────────── */
+            '🔴 صفحه‌ی تمام-React به‌جای سفید حالتِ بارگذاری دارد' => [
+                'LoadExperienceTest', 'test_a_page_that_is_all_react_shows_a_loading_state_not_white', '۷',
+            ],
+            'لایه‌ی بارگذاری روی محتوای سرورساید نمی‌نشیند' => [
+                'LoadExperienceTest', 'test_a_server_rendered_page_gets_no_loading_layer', '۷',
+            ],
+            'لایه‌ی بارگذاری روی دستگاهِ سریع چشمک نمی‌زند' => [
+                'LoadExperienceTest', 'test_the_loading_layer_waits_before_it_shows', '۷',
+            ],
+            'لوگو به اندازه‌ی نمایشش' => [
+                'LoadExperienceTest', 'test_the_logo_is_sized_for_where_it_is_shown', '۷',
+            ],
+            'تصویرِ پنلِ ورود فقط در دسکتاپ پیش‌بار می‌شود' => [
+                'LoadExperienceTest', 'test_the_auth_panel_image_is_preloaded_only_where_it_is_seen', '۷',
+            ],
         ];
     }
 
@@ -570,10 +587,12 @@ class PhaseRegressionMapTest extends TestCase
             'messengerEnrichment' => ['۱۴', 'نشانه‌گذاریِ HTML به‌صورتِ متن'],
             // مرحلهٔ ۷ · فاز ۱: تم، حالتِ فیلد، تاریخچه پس از ورود، ۴۰۴ِ داشبورد
             'globalBehaviour' => ['۷/۱', 'خطا و «معتبر» هرگز با هم نمی‌نشینند'],
+            // مرحلهٔ ۷ · فاز ۳: جابه‌جاییِ صفحه و تصویرِ بالای صفحه‌ی ورود
+            'loadExperience' => ['۷/۳', 'سایدبار در اولین رندر عرضش را انیمیت نمی‌کند'],
         ];
 
         // 🔴 مثلِ ردیف‌های PHP، این فهرست هم فقط بزرگ می‌شود (خرابکاریِ فاز ۸)
-        $this->assertGreaterThanOrEqual(16, count($guards), 'محافظی از فهرستِ JS حذف شده.');
+        $this->assertGreaterThanOrEqual(17, count($guards), 'محافظی از فهرستِ JS حذف شده.');
 
         foreach ($guards as $file => [$phase, $marker]) {
             $path = base_path("tests/js/{$file}.test.".(file_exists(base_path("tests/js/{$file}.test.tsx")) ? 'tsx' : 'ts'));
@@ -600,7 +619,7 @@ class PhaseRegressionMapTest extends TestCase
     public function test_the_map_never_shrinks(): void
     {
         $this->assertGreaterThanOrEqual(
-            133,
+            138,
             count(self::fixes()),
             'ردیفی از نقشهٔ رگرسیون حذف شده؛ یعنی اصلاحی محافظش را از دست داده.',
         );

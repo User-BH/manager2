@@ -151,19 +151,24 @@ export function FinancePage() {
           />
         )}
 
-        {data && (
-          <select
-            value={data.period}
-            onChange={(e) => setPeriod(e.target.value)}
-            className="field rounded-xl px-3 py-2.5 text-[13px]"
-          >
-            {data.periods.map((p) => (
+        {/* همیشه رندر می‌شود، پیش از داده غیرفعال — بی‌پرشِ سرصفحه (مرحلهٔ ۷ · فاز ۳) */}
+        <select
+          value={data?.period ?? ''}
+          onChange={(e) => setPeriod(e.target.value)}
+          disabled={!data}
+          aria-label="دوره"
+          className="field rounded-xl px-3 py-2.5 text-[13px]"
+        >
+          {data ? (
+            data.periods.map((p) => (
               <option key={p.value} value={p.value}>
                 {p.label}
               </option>
-            ))}
-          </select>
-        )}
+            ))
+          ) : (
+            <option value="">دوره…</option>
+          )}
+        </select>
       </header>
 
       {isLoading && <DashboardSkeleton />}
