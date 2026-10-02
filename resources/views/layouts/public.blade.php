@@ -27,7 +27,6 @@
         'contactPoint' => [
             '@type' => 'ContactPoint',
             'telephone' => $brand['contact']['phone_href'] ?? null,
-            'email' => $brand['contact']['email'] ?? null,
             'contactType' => 'customer support',
             'areaServed' => 'IR',
             'availableLanguage' => ['Persian'],

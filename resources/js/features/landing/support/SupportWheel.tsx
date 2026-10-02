@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useLayoutEffect, useRef, useState, type KeyboardEvent } from 'react'
 import { motion } from 'framer-motion'
 import type { SupportTopic, SupportTopicId } from './supportContent'
 
@@ -63,10 +63,55 @@ export function SupportWheel({
   const gap = 3
 
   const [hovered, setHovered] = useState<SupportTopicId | null>(null)
-  const hoveredTopic = topics.find((topic) => topic.id === hovered) ?? null
+  // فوکوسِ کیبورد جدا از کلیک: حلقه فقط برای کیبورد (مرحلهٔ ۷ · فاز ۴)
+  const [keyboardFocus, setKeyboardFocus] = useState<SupportTopicId | null>(null)
+  const [tooltipPos, setTooltipPos] = useState<{ left: number; top: number } | null>(null)
+  const wrapperRef = useRef<HTMLDivElement>(null)
+  const tooltipRef = useRef<HTMLDivElement>(null)
+
+  const hoveredIndex = topics.findIndex((topic) => topic.id === hovered)
+  const hoveredTopic = hoveredIndex >= 0 ? topics[hoveredIndex] : null
+
+  /*
+   * ⚠️ جای تولتیپ: **کنارِ همان ربع**، نه زیرِ چرخ (مرحلهٔ ۷ · فاز ۴).
+   *
+   * لنگر لبه‌ی بیرونیِ ربع روی نیمسازِ آن است. ربع‌های سمتِ راست تولتیپ را
+   * به راست می‌برند و ربع‌های چپ به چپ، تا روی خودِ ربع ننشیند. بعد با
+   * اندازه‌ی واقعیِ تولتیپ و پنجره **مهار** می‌شود: در دسکتاپ چرخ نزدیکِ
+   * لبه‌ی چپِ صفحه است و در موبایل تقریباً تمام‌عرض؛ بی‌مهار، تولتیپ از صفحه
+   * بیرون می‌زد و اسکرولِ افقی می‌ساخت.
+   */
+  useLayoutEffect(() => {
+    const wrapper = wrapperRef.current
+    const tooltip = tooltipRef.current
+    if (hoveredIndex < 0 || !wrapper || !tooltip) return
+
+    const mid = hoveredIndex * 90 + 45
+    const anchor = point(mid, OUTER + 6)
+    const rightSide = anchor.x >= CENTER
+    const box = wrapper.getBoundingClientRect()
+    const width = tooltip.offsetWidth
+    const height = tooltip.offsetHeight
+    const margin = 8
+
+    let left = rightSide ? anchor.x + 4 : anchor.x - 4 - width
+    left = Math.max(left, margin - box.left)
+    left = Math.min(left, window.innerWidth - margin - box.left - width)
+    const top = Math.min(Math.max(anchor.y - height / 2, 0), SIZE - height)
+
+    setTooltipPos({ left, top })
+  }, [hoveredIndex])
+
+  function onKeyDown(event: KeyboardEvent, id: SupportTopicId) {
+    // role="button" بی‌Enter و Space برای کاربرِ کیبورد بی‌فایده بود
+    if (event.key === 'Enter' || event.key === ' ') {
+      event.preventDefault()
+      onSelect(id)
+    }
+  }
 
   return (
-    <div className="relative mx-auto" style={{ width: SIZE, height: SIZE }}>
+    <div ref={wrapperRef} className="relative mx-auto" style={{ width: SIZE, height: SIZE }}>
       {/* هاله‌ی نرم پشت چرخ */}
       <motion.div
         animate={{ scale: [1, 1.08, 1], opacity: [0.35, 0.55, 0.35] }}
@@ -83,23 +128,30 @@ export function SupportWheel({
         بخش می‌آید.
       */}
       <motion.div
+        ref={tooltipRef}
         initial={false}
-        animate={{ opacity: hoveredTopic ? 1 : 0, y: hoveredTopic ? 0 : 6 }}
-        transition={{ duration: 0.18 }}
-        className="pointer-events-none absolute inset-x-0 -bottom-2 z-10 text-center"
+        animate={{ opacity: hoveredTopic && tooltipPos ? 1 : 0, scale: hoveredTopic ? 1 : 0.96 }}
+        transition={{ duration: 0.16 }}
+        className="pointer-events-none absolute z-20 w-max max-w-[11rem] rounded-xl px-3 py-2 text-tiny font-medium leading-5 shadow-lg"
+        style={{
+          left: tooltipPos?.left ?? 0,
+          top: tooltipPos?.top ?? 0,
+          backgroundColor: 'var(--surface-overlay)',
+          color: 'var(--text-secondary)',
+          border: '1px solid var(--border-subtle)',
+        }}
         aria-hidden
       >
-        <span
-          className="inline-block rounded-lg px-3 py-1.5 text-[11.5px] font-medium shadow-lg"
-          style={{
-            backgroundColor: 'var(--surface-base)',
-            color: 'var(--text-secondary)',
-            border: '1px solid var(--border-subtle)',
-          }}
-        >
-          {/* متن نگه داشته می‌شود تا هنگامِ محوشدن نپرد */}
-          {hoveredTopic?.short ?? '\u00a0'}
-        </span>
+        {hoveredTopic && (
+          <span
+            className="mb-0.5 block text-small font-extrabold"
+            style={{ color: hoveredTopic.color }}
+          >
+            {hoveredTopic.title}
+          </span>
+        )}
+        {/* متن نگه داشته می‌شود تا هنگامِ محوشدن نپرد */}
+        {hoveredTopic?.short ?? '\u00a0'}
       </motion.div>
 
       <motion.svg
@@ -150,9 +202,23 @@ export function SupportWheel({
               onClick={() => onSelect(topic.id)}
               onHoverStart={() => setHovered(topic.id)}
               onHoverEnd={() => setHovered(null)}
-              onFocus={() => setHovered(topic.id)}
-              onBlur={() => setHovered(null)}
+              onFocus={(event) => {
+                setHovered(topic.id)
+                setKeyboardFocus(event.currentTarget.matches(':focus-visible') ? topic.id : null)
+              }}
+              onBlur={() => {
+                setHovered(null)
+                setKeyboardFocus(null)
+              }}
+              onKeyDown={(event) => onKeyDown(event, topic.id)}
               tabIndex={0}
+              /*
+               * 🔴 کلیک حاشیه‌ی مشکیِ پیش‌فرضِ مرورگر را دورِ ربع می‌گذاشت
+               * (مرحلهٔ ۷ · فاز ۴). خودِ outline خاموش است؛ انتخاب را جابه‌جاییِ
+               * ربع به بیرون و رنگِ کامل نشان می‌دهد، و فوکوسِ **کیبورد** یک
+               * حلقه‌ی هم‌رنگِ متن روی خودِ ربع می‌گیرد.
+               */
+              className="outline-none"
               role="button"
               /*
                * `<title>` حذف شد: مرورگر از رویش تولتیپِ بومیِ زردِ خودش را
@@ -166,8 +232,10 @@ export function SupportWheel({
                 d={quarterPath(start, end)}
                 fill={topic.color}
                 opacity={isActive ? 1 : 0.82}
-                stroke="var(--surface-canvas)"
-                strokeWidth={2}
+                stroke={
+                  keyboardFocus === topic.id ? 'var(--text-primary)' : 'var(--surface-canvas)'
+                }
+                strokeWidth={keyboardFocus === topic.id ? 3 : 2}
               />
 
               {/*

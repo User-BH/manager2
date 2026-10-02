@@ -1,11 +1,15 @@
 export const BRAND_NAME = 'ساکنا'
 export const BRAND_TAGLINE = 'پنل مدیریت مجتمع‌های مسکونی و تجاری'
 
+/**
+ * راهِ تماسِ عمومی: فقط تلفن (مرحلهٔ ۷ · فاز ۴، تصمیمِ کارفرما).
+ *
+ * ایمیلِ پشتیبانی در این پروژه وجود ندارد و نشانی و نقشه مقدارِ نمونه بودند.
+ * مقدارِ واقعی از `/site-settings` می‌آید (ادمینِ کل ویرایشش می‌کند)؛ این فقط
+ * پیش‌فرضِ پیش از رسیدنِ پاسخ است.
+ */
 export const contactInfo = {
-  address: 'تهران، خیابان ولیعصر، بالاتر از میدان ونک، برج نگین، طبقه ۴',
   phone: '۰۲۱-۸۸۷۷۶۶۵۵',
-  email: 'info@sakena.app',
-  mapEmbedUrl: 'https://maps.google.com/maps?q=35.7595,51.4111&z=15&output=embed',
 }
 
 export const socialLinks = [

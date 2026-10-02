@@ -25,14 +25,19 @@ class SiteContent
         return [
             'contact' => [
                 'title' => 'ارتباط با ما',
-                'address' => 'تهران، خیابان ولیعصر، بالاتر از میدان ونک، برج نگین، طبقه ۴',
+                /*
+                 * فقط تلفن (مرحلهٔ ۷ · فاز ۴، تصمیمِ کارفرما): ایمیلِ پشتیبانی
+                 * وجود ندارد و نشانی و نقشه مقدارِ نمونه بودند. ادمین اگر
+                 * نشانیِ واقعی داشت از پنل روشنش می‌کند.
+                 */
+                'address' => '',
                 'phone' => '۰۲۱-۸۸۷۷۶۶۵۵',
-                'email' => 'info@sakena.app',
-                'mapEmbedUrl' => 'https://maps.google.com/maps?q=35.7595,51.4111&z=15&output=embed',
-                'showAddress' => true,
+                'email' => '',
+                'mapEmbedUrl' => '',
+                'showAddress' => false,
                 'showPhone' => true,
-                'showEmail' => true,
-                'showMap' => true,
+                'showEmail' => false,
+                'showMap' => false,
             ],
             'social' => [
                 ['id' => 'instagram', 'label' => 'اینستاگرام', 'href' => 'https://instagram.com/sakena.app', 'enabled' => true],

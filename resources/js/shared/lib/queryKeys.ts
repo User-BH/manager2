@@ -170,6 +170,9 @@ export const queryKeys = {
     complexes: (params: { page?: number } = {}) => ['system', 'complexes', params] as const,
     plans: () => ['system', 'plans'] as const,
     siteSettings: () => ['system', 'site-settings'] as const,
+    // صفِ بازخوردهای صفحه‌ی پشتیبانی (مرحلهٔ ۷ · فاز ۴)
+    feedback: (params: { status?: string; page?: number } = {}) =>
+      ['system', 'feedback', params] as const,
     sms: () => ['system', 'sms'] as const,
     subscriptions: () => ['system', 'subscriptions'] as const,
     observability: () => ['system', 'observability'] as const,

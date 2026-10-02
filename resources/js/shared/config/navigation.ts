@@ -21,6 +21,7 @@ import {
   ScrollText as AuditIcon,
   Server,
   Settings2,
+  MessageSquareHeart,
   Share2,
   Smartphone,
   UserCog,
@@ -98,6 +99,8 @@ export const navSections: NavSection[] = [
       { label: 'تبلیغات صفحه اصلی', path: '/system/ads', icon: MegaphoneIcon, roles: SUPER },
       { label: 'بلاگ', path: '/system/blog', icon: Newspaper, roles: SUPER },
       { label: 'فوتر و شبکه‌ها', path: '/system/site', icon: Share2, roles: SUPER },
+      // صفِ فرمِ بازخوردِ صفحه‌ی پشتیبانی (مرحلهٔ ۷ · فاز ۴)
+      { label: 'بازخوردها', path: '/system/feedback', icon: MessageSquareHeart, roles: SUPER },
       { label: 'پنل پیامک', path: '/system/sms', icon: Smartphone, roles: SUPER },
       { label: 'پایش و تحلیل', path: '/system/observability', icon: Activity, roles: SUPER },
       { label: 'لاگ فعالیت', path: '/system/audit', icon: AuditIcon, roles: SUPER },

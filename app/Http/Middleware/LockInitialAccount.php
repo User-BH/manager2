@@ -41,6 +41,13 @@ class LockInitialAccount
         '*/logout',
         // گزارشِ خطای مرورگر (نوشتنی است ولی داده‌ی مجتمع نیست)
         '*/client-errors',
+        /*
+         * صفحه‌ی پشتیبانی (مرحلهٔ ۷ · فاز ۴): بازخورد و پرسش از دستیار برای
+         * **مهمان** باز است؛ کاربری که وارد شده ولی هنوز مجتمعی ندارد نباید
+         * از مهمان کمتر بتواند. پیش از این هر دو برایش ۴۰۳ می‌دادند.
+         */
+        '*/feedback',
+        '*/support/chat',
     ];
 
     public function handle(Request $request, Closure $next): Response

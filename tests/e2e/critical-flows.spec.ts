@@ -169,6 +169,40 @@ test.describe('صفحات عمومیِ MPA', () => {
 })
 
 /**
+ * فرمِ بازخوردِ صفحه‌ی پشتیبانی (مرحلهٔ ۷ · فاز ۴).
+ *
+ * ⚠️ CSRF فقط اینجا سنجیدنی است: لاراول در PHPUnit آن را کنار می‌گذارد.
+ */
+test.describe('فرمِ بازخورد', () => {
+  test('بی‌توکنِ CSRF پذیرفته نمی‌شود (۴۱۹)', async ({ request }) => {
+    const res = await request.post('/api/v1/feedback', {
+      headers: { Accept: 'application/json' },
+      data: { category: 'bug', message: 'پیامی بی‌توکن که نباید ثبت شود' },
+      failOnStatusCode: false,
+    })
+
+    expect(res.status()).toBe(419)
+  })
+
+  test('از پیوندِ فوتر تا پیامِ «رسید»', async ({ page }) => {
+    await page.goto('/')
+    await page.getByRole('link', { name: 'ارسال بازخورد' }).click()
+    await page.waitForURL(/\/support#feedback/)
+
+    const form = page.locator('#feedback')
+    await expect(form).toBeInViewport({ timeout: 10_000 })
+
+    await form.getByText('پیشنهادِ بهبود', { exact: true }).click()
+    await form
+      .getByLabel('متنِ پیام')
+      .fill(`کاش گزارشِ مالی را هم می‌شد ماهانه چاپ کرد (${test.info().project.name})`)
+    await form.getByRole('button', { name: 'ارسالِ پیام' }).click()
+
+    await expect(form.getByRole('status')).toContainText('پیامِ شما رسید')
+  })
+})
+
+/**
  * تم و تاریخچه‌ی مرورگر (مرحلهٔ ۷ · فاز ۱) — فقط در مرورگرِ واقعی سنجیدنی.
  *
  * jsdom نه رنگِ پیش از اولین رنگ‌آمیزی را دارد، نه ناوبریِ سند، نه bfcache.

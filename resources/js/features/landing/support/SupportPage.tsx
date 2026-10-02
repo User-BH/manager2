@@ -6,6 +6,9 @@ import { scrollToElement } from '@/shared/lib/scroll'
 import { HomeNavbar } from '../home/components/HomeNavbar'
 import { FloatingActions } from '../home/components/FloatingActions'
 import { SupportWheel } from './SupportWheel'
+import { LazyVisible } from '@/shared/ui/LazyVisible'
+import { SupportAnswer } from './SupportAnswer'
+import { useSiteContent } from '@/shared/hooks'
 import { isSupportTopicId, supportTopics, type SupportTopicId } from './supportContent'
 
 /** ارتفاع نوار بالای صفحه، تا مقصدِ اسکرول زیرش پنهان نشود. */
@@ -28,6 +31,13 @@ export function SupportPage() {
   const [activeTopic, setActiveTopic] = useState<SupportTopicId | null>(requested)
   const [openEntry, setOpenEntry] = useState<string | null>(null)
   const sectionRefs = useRef<Record<string, HTMLElement | null>>({})
+  // تلفن و شبکه‌های واقعی برای بخشِ «تماس با ما» — همان منبعِ فوتر (مرحلهٔ ۷ · فاز ۴)
+  const site = useSiteContent()
+
+  function goToFeedback() {
+    const section = document.getElementById('feedback')
+    if (section) scrollToElement(section, NAVBAR_OFFSET)
+  }
 
   function goToTopic(id: SupportTopicId) {
     setActiveTopic(id)
@@ -44,6 +54,19 @@ export function SupportPage() {
     const timer = window.setTimeout(() => goToTopic(requested), 220)
     return () => window.clearTimeout(timer)
   }, [requested])
+
+  /*
+   * ورود از پیوندِ «ارسال بازخورد»ِ فوتر (`/support#feedback`).
+   *
+   * ⚠️ مرورگر خودش به `#feedback` نمی‌رود: هنگامِ بارگذاری این بخش هنوز
+   * وجود ندارد چون React بعد آن را می‌سازد.
+   */
+  useEffect(() => {
+    if (window.location.hash !== '#feedback') return
+
+    const timer = window.setTimeout(goToFeedback, 220)
+    return () => window.clearTimeout(timer)
+  }, [])
 
   return (
     <div style={{ backgroundColor: 'var(--surface-canvas)' }}>
@@ -218,12 +241,7 @@ export function SupportPage() {
                             transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
                             className="overflow-hidden"
                           >
-                            <p
-                              className="px-3 pb-5 text-[13.5px] leading-8"
-                              style={{ color: 'var(--text-secondary)' }}
-                            >
-                              {entry.answer}
-                            </p>
+                            <SupportAnswer entry={entry} site={site} onFeedback={goToFeedback} />
                           </motion.div>
                         )}
                       </AnimatePresence>
@@ -234,6 +252,17 @@ export function SupportPage() {
             </motion.section>
           )
         })}
+
+        {/*
+          ⚠️ فرمِ بازخورد تنبل بار می‌شود (مرحلهٔ ۷ · فاز ۴): zod و
+          react-hook-form بارگذاریِ اولِ این صفحه را از ‎۱۷۲ به ‎۲۰۸KB (gzip)
+          می‌بردند — برای فرمی که تهِ صفحه است. `id` روی قاب است تا پیوندِ
+          `#feedback`ِ فوتر پیش از بارشدنش هم مقصد داشته باشد؛ اسکرول به آن
+          همان چیزی است که بارش را راه می‌اندازد.
+        */}
+        <div id="feedback" className="scroll-mt-24">
+          <LazyVisible load={() => import('./FeedbackSection')} height={640} />
+        </div>
       </main>
 
       <FloatingActions />

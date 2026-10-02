@@ -243,6 +243,16 @@ class AppServiceProvider extends ServiceProvider
          * سنجه‌های کارایی: هر بازدید یک بسته می‌فرستد (هنگامِ ترکِ صفحه)، پس
          * سقفِ کم کافی است. اگر کسی بخواهد جدول را پر کند، همین‌جا می‌ایستد.
          */
+        /*
+         * فرمِ بازخورد (مرحلهٔ ۷ · فاز ۴): انسان در دقیقه بیش از یکی دو پیام
+         * نمی‌نویسد. سقفِ روزانه جلوی پرکردنِ صف از یک IP را می‌گیرد؛ عمداً
+         * سخت‌گیرانه نیست چون پشتِ CGNATِ اپراتورها کاربرانِ زیادی یک IP دارند.
+         */
+        RateLimiter::for('feedback', fn (Request $request) => [
+            Limit::perMinute(3)->by('feedback:'.$request->ip()),
+            Limit::perDay(30)->by('feedback-day:'.$request->ip()),
+        ]);
+
         RateLimiter::for('web-vitals', fn (Request $request) => [
             Limit::perMinute(10)->by($request->user()?->id ?: $request->ip()),
         ]);

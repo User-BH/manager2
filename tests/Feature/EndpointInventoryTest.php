@@ -42,6 +42,7 @@ class EndpointInventoryTest extends TestCase
             'client-errors',            // گزارشِ خطای مرورگر
             'csrf-token',
             'features',                 // پرچم‌های قابلیت
+            'feedback',                 // فرمِ بازخوردِ پشتیبانی؛ سقفِ نرخ + تله‌ی ربات (مرحلهٔ ۷ · فاز ۴)
             'login', 'login/resend', 'login/verify',
             'me',                       // برای مهمان تهی برمی‌گرداند
             'password/forgot', 'password/forgot/verify', 'password/reset',

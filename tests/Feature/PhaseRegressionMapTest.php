@@ -495,6 +495,38 @@ class PhaseRegressionMapTest extends TestCase
             'تصویرِ پنلِ ورود فقط در دسکتاپ پیش‌بار می‌شود' => [
                 'LoadExperienceTest', 'test_the_auth_panel_image_is_preloaded_only_where_it_is_seen', '۷',
             ],
+
+            /* ── مرحلهٔ ۷ · فاز ۴: صفحه‌ی پشتیبانی و فرمِ بازخورد ──────────────── */
+            '🔴 بازخورد واقعاً در سرور ذخیره می‌شود' => [
+                'FeedbackTest', 'test_a_guest_can_send_feedback_and_it_is_stored', '۷',
+            ],
+            'هیچ داده‌ای به اعتمادِ فرمِ مرورگر معتبر نیست' => [
+                'FeedbackTest', 'test_the_server_rejects_what_the_form_would_have_stopped', '۷',
+            ],
+            'تله‌ی ربات: پاسخِ موفق، بی‌ذخیره' => [
+                'FeedbackTest', 'test_a_filled_honeypot_looks_accepted_but_stores_nothing', '۷',
+            ],
+            'ارسالِ دوباره‌ی همان متن ردیفِ دوم نمی‌سازد' => [
+                'FeedbackTest', 'test_the_same_text_twice_is_stored_once', '۷',
+            ],
+            'سقفِ نرخِ فرمِ بازخورد' => [
+                'FeedbackTest', 'test_the_rate_limit_stops_a_flood', '۷',
+            ],
+            'پاک‌سازیِ نویسه‌های مخرب بی‌شکستنِ نیم‌فاصله' => [
+                'FeedbackTest', 'test_invisible_control_and_direction_characters_are_removed_but_half_spaces_stay', '۷',
+            ],
+            'صفِ بازخورد فقط برای ادمینِ کل' => [
+                'FeedbackTest', 'test_only_the_platform_admin_can_read_the_queue', '۷',
+            ],
+            '🔴 کاربرِ بی‌مجتمع از مهمان کمتر نمی‌تواند (بازخورد و دستیار)' => [
+                'FeedbackTest', 'test_a_signed_in_user_without_a_complex_can_still_use_the_support_page', '۷',
+            ],
+            'راهِ تماس فقط تلفن و شبکه‌ها' => [
+                'ContactChannelsTest', 'test_the_public_footer_offers_only_the_phone_and_the_social_networks', '۷',
+            ],
+            'تنظیمِ ذخیره‌شده‌ی پنل هم فقط تلفن می‌شود' => [
+                'ContactChannelsTest', 'test_the_migration_switches_off_what_the_panel_had_saved', '۷',
+            ],
         ];
     }
 
@@ -589,10 +621,12 @@ class PhaseRegressionMapTest extends TestCase
             'globalBehaviour' => ['۷/۱', 'خطا و «معتبر» هرگز با هم نمی‌نشینند'],
             // مرحلهٔ ۷ · فاز ۳: جابه‌جاییِ صفحه و تصویرِ بالای صفحه‌ی ورود
             'loadExperience' => ['۷/۳', 'سایدبار در اولین رندر عرضش را انیمیت نمی‌کند'],
+            // مرحلهٔ ۷ · فاز ۴: فرمِ بازخورد، چرخ، محتوای سنجیده، صفِ ادمین
+            'supportPage' => ['۷/۴', 'Enter و Space ربع را انتخاب می‌کنند'],
         ];
 
         // 🔴 مثلِ ردیف‌های PHP، این فهرست هم فقط بزرگ می‌شود (خرابکاریِ فاز ۸)
-        $this->assertGreaterThanOrEqual(17, count($guards), 'محافظی از فهرستِ JS حذف شده.');
+        $this->assertGreaterThanOrEqual(18, count($guards), 'محافظی از فهرستِ JS حذف شده.');
 
         foreach ($guards as $file => [$phase, $marker]) {
             $path = base_path("tests/js/{$file}.test.".(file_exists(base_path("tests/js/{$file}.test.tsx")) ? 'tsx' : 'ts'));
@@ -619,7 +653,7 @@ class PhaseRegressionMapTest extends TestCase
     public function test_the_map_never_shrinks(): void
     {
         $this->assertGreaterThanOrEqual(
-            138,
+            148,
             count(self::fixes()),
             'ردیفی از نقشهٔ رگرسیون حذف شده؛ یعنی اصلاحی محافظش را از دست داده.',
         );

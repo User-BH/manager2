@@ -22,7 +22,12 @@ const BUDGET: Record<string, number> = {
   'resources/js/app/entries/home.tsx': 182 * 1024,
   'resources/js/app/entries/auth.tsx': 209 * 1024,
   'resources/js/app/entries/demo.tsx': 178 * 1024,
-  'resources/js/app/entries/support.tsx': 176 * 1024,
+  /*
+   * مرحلهٔ ۷ · فاز ۴: ‎۱۷۶ ← ‎۱۷۸. اندازه‌گیری ‎۱۷۶٫۲KB؛ رشد **متن** است، نه کد:
+   * دو پرسشِ تازه و پاسخ‌های اصلاح‌شده‌ی دقیق‌تر (همه با کد سنجیده). فرمِ
+   * بازخورد با zod و react-hook-form عمداً تنبل است — بی‌آن ‎۲۰۸KB بود.
+   */
+  'resources/js/app/entries/support.tsx': 178 * 1024,
   'resources/js/app/main.tsx': 174 * 1024,
   // بلاگ (مرحلهٔ ۶ · فاز ۱۱): اندازه‌گیری ‎۱۶۴٫۶KB، به‌اضافه‌ی حدودِ ۱۰٪
   'resources/js/app/entries/blog.tsx': 181 * 1024,

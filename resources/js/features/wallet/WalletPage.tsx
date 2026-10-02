@@ -142,7 +142,7 @@ function Statement({ unitId }: { unitId: number }) {
       {data.transactions.length === 0 ? (
         <EmptyState
           message="هنوز تراکنشی ثبت نشده است."
-          hint="با پرداخت قبض یا شارژ کیف، اینجا پر می‌شود."
+          hint="مازادِ پرداخت‌ها اینجا می‌نشیند و قبض‌های بعدی از آن پرداخت می‌شوند."
         />
       ) : (
         <div className="overflow-x-auto">

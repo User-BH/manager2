@@ -12,6 +12,7 @@ use App\Http\Controllers\Api\DashboardController;
 use App\Http\Controllers\Api\DiscountController;
 use App\Http\Controllers\Api\DocumentController;
 use App\Http\Controllers\Api\FeatureFlagController;
+use App\Http\Controllers\Api\FeedbackController;
 use App\Http\Controllers\Api\FinanceController;
 use App\Http\Controllers\Api\GoodPayerController;
 use App\Http\Controllers\Api\InvitationController;
@@ -40,6 +41,7 @@ use App\Http\Controllers\Api\System\BackupController as SystemBackupController;
 use App\Http\Controllers\Api\System\BlogCategoryController;
 use App\Http\Controllers\Api\System\BlogPostController;
 use App\Http\Controllers\Api\System\ComplexController as SystemComplexController;
+use App\Http\Controllers\Api\System\FeedbackController as SystemFeedbackController;
 use App\Http\Controllers\Api\System\MemberController;
 use App\Http\Controllers\Api\System\ObservabilityController;
 use App\Http\Controllers\Api\System\PlanController;
@@ -139,6 +141,13 @@ Route::get('site-settings', [SiteContentController::class, 'footer'])->name('sit
 | عمومی می‌ماند؛ محدودیت نرخ جای احراز هویت را می‌گیرد.
 */
 Route::get('support/starters', [SupportChatController::class, 'starters'])->name('support.starters');
+
+/*
+| فرمِ بازخوردِ صفحه‌ی پشتیبانی (مرحلهٔ ۷ · فاز ۴). عمومی است چون فرستنده
+| ممکن است حساب نداشته باشد؛ محافظتش در `FeedbackController` شرح داده شده.
+*/
+Route::post('feedback', [FeedbackController::class, 'store'])
+    ->middleware('throttle:feedback')->name('feedback.store');
 Route::post('support/chat', [SupportChatController::class, 'reply'])
     ->middleware(['throttle:support-chat', 'feature:support_bot'])->name('support.chat');
 
@@ -505,6 +514,10 @@ Route::middleware('auth')->group(function () {
 
         // تنظیماتِ فوترِ سایت: تماس و شبکه‌های اجتماعی
         Route::get('site-settings', [SiteSettingsController::class, 'show'])->name('site-settings.show');
+
+        // صفِ بازخوردهای صفحه‌ی پشتیبانی (مرحلهٔ ۷ · فاز ۴)
+        Route::get('feedback', [SystemFeedbackController::class, 'index'])->name('feedback.index');
+        Route::patch('feedback/{feedback}', [SystemFeedbackController::class, 'update'])->name('feedback.update');
         Route::put('site-settings', [SiteSettingsController::class, 'update'])->name('site-settings.update');
 
         // همه‌ی اعضای ثبت‌نام‌شده: جست‌وجو، مشاهده و تغییر نقش

@@ -81,6 +81,8 @@ final class BackupManifest
         'blog_tags',
         'blog_posts',
         'blog_post_tag',
+        // بازخوردِ صفحه‌ی پشتیبانی (مرحلهٔ ۷ · فاز ۴)؛ نوشته‌ی کاربر است، نه تله‌متری
+        'feedback',
         'notification_settings',
         'notifications',
         'audit_logs',

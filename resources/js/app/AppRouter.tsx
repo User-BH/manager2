@@ -29,6 +29,9 @@ const DashboardLayout = lazy(() =>
 const ForbiddenPage = lazy(() =>
   import('@/features/error/ForbiddenPage').then((m) => ({ default: m.ForbiddenPage })),
 )
+const FeedbackInboxPage = lazy(() =>
+  import('@/features/system/FeedbackInboxPage').then((m) => ({ default: m.FeedbackInboxPage })),
+)
 const NotFoundPage = lazy(() =>
   import('@/features/error/NotFoundPage').then((m) => ({ default: m.NotFoundPage })),
 )
@@ -280,6 +283,7 @@ export function AppRouter() {
             <Route path="/system/blog/new" element={<BlogEditorPage />} />
             <Route path="/system/blog/:id" element={<BlogEditorPage />} />
             <Route path="/system/site" element={<SiteSettingsPage />} />
+            <Route path="/system/feedback" element={<FeedbackInboxPage />} />
             <Route path="/system/members" element={<MembersPage />} />
             <Route path="/system/plans" element={<PlansPage />} />
             <Route path="/system/sms" element={<SmsPage />} />

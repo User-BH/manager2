@@ -142,7 +142,11 @@ class SupportBotEvaluationTest extends TestCase
     public function test_every_link_points_somewhere_real(): void
     {
         $landing = (string) File::get(resource_path('js/features/landing/home/components/FeaturesSection.tsx'));
-        $topics = (string) File::get(resource_path('js/features/landing/support/supportContent.ts'));
+        // متنِ صفحه‌ی پشتیبانی از مرحلهٔ ۷ · فاز ۴ در یک فایلِ JSON است
+        $topicIds = array_column(
+            json_decode((string) File::get(resource_path('content/support-topics.json')), true)['topics'],
+            'id',
+        );
         $broken = [];
 
         foreach (KnowledgeBase::intents() as $intent) {
@@ -159,7 +163,7 @@ class SupportBotEvaluationTest extends TestCase
 
                 $ok = $this->get($path)->status() === 200
                     && ($fragment === null || str_contains($landing, "id=\"{$fragment}\""))
-                    && (! isset($query['topic']) || str_contains($topics, "id: '{$query['topic']}'"));
+                    && (! isset($query['topic']) || in_array($query['topic'], $topicIds, true));
 
                 if (! $ok) {
                     $broken[] = "{$intent['id']}: {$href}";

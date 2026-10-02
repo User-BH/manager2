@@ -1,8 +1,7 @@
-import { useEffect, useState, type CSSProperties } from 'react'
+import { type CSSProperties } from 'react'
 import { Link } from '@/shared/lib/mpaNav'
 import { Mail, Phone, MapPin } from 'lucide-react'
 import { scrollToSection } from '@/shared/lib/scroll'
-import { api } from '@/shared/lib/api'
 import { toAsciiDigits } from '@/shared/lib/inputFilters'
 import { Logo } from '@/shared/common/Logo'
 import {
@@ -12,7 +11,8 @@ import {
   RubikaIcon,
   BaleIcon,
 } from '@/shared/common/SocialIcons'
-import { BRAND_NAME, contactInfo, socialHover, socialLinks } from '@/shared/config/brand'
+import { BRAND_NAME, socialHover } from '@/shared/config/brand'
+import { useSiteContent } from '@/shared/hooks'
 import { isBlogEnabled, isViewerAuthenticated } from '@/shared/lib/viewer'
 import { TrustSeal } from './TrustSeal'
 
@@ -23,35 +23,6 @@ const socialIconMap = {
   rubika: RubikaIcon,
   bale: BaleIcon,
 } as const
-
-interface FooterSocial {
-  id: string
-  label: string
-  href: string
-}
-
-interface FooterContact {
-  title: string
-  address: string | null
-  phone: string | null
-  email: string | null
-  mapEmbedUrl: string | null
-}
-
-// پیش‌فرض‌ها از config می‌آیند تا فوتر پیش از رسیدنِ داده (یا هنگام خطای شبکه)
-// هرگز خالی نماند.
-const DEFAULT_CONTACT: FooterContact = {
-  title: 'ارتباط با ما',
-  address: contactInfo.address,
-  phone: contactInfo.phone,
-  email: contactInfo.email,
-  mapEmbedUrl: contactInfo.mapEmbedUrl,
-}
-const DEFAULT_SOCIAL: FooterSocial[] = socialLinks.map((s) => ({
-  id: s.id,
-  label: s.label,
-  href: s.href,
-}))
 
 /** لینکِ تماسِ تلفنی از رقم‌های لاتین ساخته می‌شود (شماره‌ی فارسی در tel: کار نمی‌کند). */
 function telHref(phone: string): string {
@@ -66,26 +37,8 @@ export function HomeFooter({ page = 'home' }: { page?: 'home' | 'blog' } = {}) {
   const authenticated = isViewerAuthenticated()
   const onHome = page === 'home'
 
-  // تماس و شبکه‌ها از پنلِ مدیرِ کل می‌آیند؛ تا رسیدنشان، پیش‌فرض نشان داده می‌شود.
-  const [contact, setContact] = useState<FooterContact>(DEFAULT_CONTACT)
-  const [social, setSocial] = useState<FooterSocial[]>(DEFAULT_SOCIAL)
-
-  useEffect(() => {
-    const controller = new AbortController()
-
-    api<{ contact: FooterContact; social: FooterSocial[] }>('/site-settings', {
-      signal: controller.signal,
-    })
-      .then((data) => {
-        setContact(data.contact)
-        setSocial(data.social)
-      })
-      .catch(() => {
-        // خطای شبکه: همان پیش‌فرض‌ها می‌مانند
-      })
-
-    return () => controller.abort()
-  }, [])
+  // تماس و شبکه‌ها از پنلِ مدیرِ کل می‌آیند؛ تا رسیدنشان، پیش‌فرض (مرحلهٔ ۷ · فاز ۴: مشترک با پشتیبانی)
+  const { contact, social } = useSiteContent()
 
   return (
     <footer
@@ -161,6 +114,8 @@ export function HomeFooter({ page = 'home' }: { page?: 'home' | 'blog' } = {}) {
               { label: 'قوانین و مقررات', to: '/support?topic=terms' },
               { label: 'حریم خصوصی', to: '/support?topic=privacy' },
               { label: 'تماس با ما', to: '/support?topic=contact' },
+              // فرمِ بازخورد، پیشنهاد و گزارشِ مشکل (مرحلهٔ ۷ · فاز ۴)
+              { label: 'ارسال بازخورد', to: '/support#feedback' },
             ]}
           />
 

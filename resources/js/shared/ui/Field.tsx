@@ -122,12 +122,14 @@ TextField.displayName = 'TextField'
 interface TextAreaFieldProps extends TextareaHTMLAttributes<HTMLTextAreaElement> {
   label: string
   error?: string
+  /** اعتبارسنجی انجام شد و مقدار درست است: حاشیه‌ی سبزِ موفقیت. */
+  valid?: boolean
 }
 
 /** متنِ چندخطی با همان برچسب و اعلامِ خطا (مرحلهٔ ۶ · فاز ۱۱). */
 export const TextAreaField = forwardRef<HTMLTextAreaElement, TextAreaFieldProps>(
-  ({ label, error, ...props }, ref) => {
-    const { id, errorId, control } = useFieldIds(Boolean(error))
+  ({ label, error, valid, ...props }, ref) => {
+    const { id, errorId, control } = useFieldIds(Boolean(error), valid)
 
     return (
       <Wrapper id={id} errorId={errorId} label={label} error={error}>

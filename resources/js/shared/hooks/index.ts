@@ -12,3 +12,5 @@ export { useAutoFocus } from './useAutoFocus'
 export { useFeatures } from './useFeatures'
 export { useUnsavedChanges } from './useUnsavedChanges'
 export { useFocusTrap } from './useFocusTrap'
+// تماس و شبکه‌های واقعی برای فوتر و صفحه‌ی پشتیبانی (مرحلهٔ ۷ · فاز ۴)
+export { useSiteContent, DEFAULT_SITE_CONTENT, type SiteContent } from './useSiteContent'
