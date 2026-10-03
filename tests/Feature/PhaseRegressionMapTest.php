@@ -629,10 +629,12 @@ class PhaseRegressionMapTest extends TestCase
             'homePage' => ['۷/۵', 'هیچ متنی قابلیتِ ساخته‌نشده را وعده نمی‌دهد'],
             // مرحلهٔ ۷ · فاز ۵: باگِ ‎۶۰۰–۷۶۸ (آستانه‌ی برگر = آستانه‌ی پیوندها)
             'HomeNavbar' => ['۷/۵', 'برگر و پنلش دقیقاً همان‌جا پنهان می‌شوند که پیوندها ظاهر می‌شوند'],
+            // مرحلهٔ ۷ · فاز ۶: قوانین در پنجره‌ی همان صفحه، نه ناوبریِ تازه‌ای که اپِ نصب‌شده برباید
+            'termsDialog' => ['۷/۶', 'هیچ پنجره یا تبِ تازه‌ای نمی‌خواهد'],
         ];
 
         // 🔴 مثلِ ردیف‌های PHP، این فهرست هم فقط بزرگ می‌شود (خرابکاریِ فاز ۸)
-        $this->assertGreaterThanOrEqual(21, count($guards), 'محافظی از فهرستِ JS حذف شده.');
+        $this->assertGreaterThanOrEqual(22, count($guards), 'محافظی از فهرستِ JS حذف شده.');
 
         foreach ($guards as $file => [$phase, $marker]) {
             $path = base_path("tests/js/{$file}.test.".(file_exists(base_path("tests/js/{$file}.test.tsx")) ? 'tsx' : 'ts'));

@@ -1,4 +1,5 @@
-import { useLocation, useSearchParams } from 'react-router-dom'
+import { Suspense, lazy, useState } from 'react'
+import { useLocation, useNavigate, useSearchParams } from 'react-router-dom'
 import { AnimatePresence, motion } from 'framer-motion'
 import { ArrowRight, ShieldCheck } from 'lucide-react'
 import { LoginForm } from './components/LoginForm'
@@ -15,6 +16,8 @@ import { authLeaveMessage } from '@/shared/lib/leaveToAuth'
 
 type AuthTab = 'login' | 'register'
 
+const TermsDialog = lazy(() => import('./components/TermsDialog'))
+
 const SLIDE = { type: 'spring', stiffness: 260, damping: 30 } as const
 
 /**
@@ -29,6 +32,7 @@ export function AuthPage() {
   const [searchParams, setSearchParams] = useSearchParams()
   const { isAuthenticated, isLoading } = useAuth()
   const location = useLocation()
+  const navigate = useNavigate()
 
   /*
    * ⚠️ زبانه‌ی فعال از **آدرس** خوانده می‌شود، نه از یک حالتِ موازی.
@@ -54,6 +58,46 @@ export function AuthPage() {
   }
 
   useDocumentTitle(tab === 'login' ? 'ورود به پنل' : 'ثبت‌نام')
+
+  /*
+   * ─── پنجره‌ی قوانین (مرحلهٔ ۷ · فاز ۶) ─────────────────────────────────
+   * باز بودنش هم در **آدرس** است (`terms=1`)، مثلِ زبانه:
+   *   • آدرسِ مستقیم و بارگذاریِ دوباره همان پنجره را باز نشان می‌دهند
+   *   • بازکردن یک گام در تاریخچه می‌سازد؛ «بازگشت» پنجره را می‌بندد و از
+   *     صفحه بیرون نمی‌برد، «جلو» دوباره بازش می‌کند
+   *   • بستن با دکمه، اگر خودمان آن گام را ساخته بودیم، همان گام را برمی‌دارد؛
+   *     اگر پنجره با آدرسِ مستقیم باز شده بود، فقط پارامتر را پاک می‌کند —
+   *     وگرنه «بازگشت» کاربر را از سایت بیرون می‌برد
+   * یک بار و همین‌جا سوار می‌شود: فرم دو نسخه دارد (دسکتاپ و موبایل) و هر
+   * کدام پنجره‌ی خودش را باز می‌کرد.
+   */
+  const termsOpen = tab === 'register' && searchParams.get('terms') === '1'
+  const [termsLoaded, setTermsLoaded] = useState(termsOpen)
+  if (termsOpen && !termsLoaded) setTermsLoaded(true)
+
+  function openTerms() {
+    setSearchParams(
+      (params) => {
+        params.set('terms', '1')
+        return params
+      },
+      { state: { termsPushed: true } },
+    )
+  }
+
+  function closeTerms() {
+    if ((location.state as { termsPushed?: boolean } | null)?.termsPushed) {
+      void navigate(-1)
+      return
+    }
+    setSearchParams(
+      (params) => {
+        params.delete('terms')
+        return params
+      },
+      { replace: true },
+    )
+  }
 
   if (!isLoading && isAuthenticated) {
     // داشبورد یک سندِ SPAِ جداست؛ پس رفتن به آن ناوبریِ واقعیِ مرورگر است نه
@@ -131,7 +175,7 @@ export function AuthPage() {
       {isLogin ? (
         <LoginForm key="login" />
       ) : (
-        <RegisterForm key="register" onRegistered={() => setTab('login')} />
+        <RegisterForm key="register" onRegistered={() => setTab('login')} onOpenTerms={openTerms} />
       )}
       {switcher}
     </div>
@@ -263,6 +307,13 @@ export function AuthPage() {
           {renderForm('auth-tab-pill-mobile')}
         </div>
       </main>
+
+      {/* بیرونِ پنل‌های کشویی: `fixed` درونِ والدِ transformدار به آن والد می‌چسبد */}
+      {termsLoaded && (
+        <Suspense fallback={null}>
+          <TermsDialog open={termsOpen} onClose={closeTerms} />
+        </Suspense>
+      )}
     </div>
   )
 }

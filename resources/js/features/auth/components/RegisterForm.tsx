@@ -1,5 +1,4 @@
 import { useState } from 'react'
-import { Link } from 'react-router-dom'
 import { useForm, useWatch } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { motion } from 'framer-motion'
@@ -27,7 +26,14 @@ import { toastTopSuccess } from '@/shared/lib/alert'
 import { api, ApiError } from '@/shared/lib/api'
 import { useAutoFocus } from '@/shared/hooks'
 
-export function RegisterForm({ onRegistered }: { onRegistered?: () => void }) {
+export function RegisterForm({
+  onRegistered,
+  onOpenTerms,
+}: {
+  onRegistered?: () => void
+  /** پنجره‌ی قوانین را باز می‌کند (فاز ۶)؛ بی‌آن پیوند مثلِ یک پیوندِ معمولی رفتار می‌کند. */
+  onOpenTerms?: () => void
+}) {
   /*
    * فوکوسِ خودکار روی اولین فیلد (فنی-۸۳).
    *
@@ -308,15 +314,30 @@ export function RegisterForm({ onRegistered }: { onRegistered?: () => void }) {
         >
           <input type="checkbox" className="mt-0.5 h-4 w-4 rounded" {...register('acceptTerms')} />
           <span>
-            {/* لینک قوانین: کلیک به صفحه‌ی پشتیبانی، بخش قوانین */}
-            <Link
-              to="/support?topic=terms"
-              target="_blank"
+            {/*
+              پیوندِ قوانین (مرحلهٔ ۷ · فاز ۶).
+
+              🔴 پیش از این `target="_blank"` بود و با اپِ نصب‌شده، کروم آن را
+              به پنجره‌ی اپ می‌برد — جزئیات در `TermsDialog`. حالا کلیکِ ساده
+              پنجره‌ی همین صفحه را باز می‌کند و ناوبری‌ای نمی‌سازد.
+
+              `href` می‌ماند تا بی‌جاوااسکریپت، یا با کلیکِ میانی و Ctrl که
+              خواستِ صریحِ کاربر برای تبِ تازه است، همان صفحه‌ی عمومیِ قوانین
+              باز شود — و `target` نه، تا هیچ کلیکِ ساده‌ای ناوبریِ تازه نسازد.
+            */}
+            <a
+              href="/support?topic=terms"
+              onClick={(event) => {
+                if (!onOpenTerms) return
+                if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey) return
+                event.preventDefault()
+                onOpenTerms()
+              }}
               className="font-semibold underline"
               style={{ color: 'var(--color-brand-600)' }}
             >
               قوانین و مقررات استفاده از پنل
-            </Link>{' '}
+            </a>{' '}
             را مطالعه کرده‌ام و می‌پذیرم.
           </span>
         </label>
