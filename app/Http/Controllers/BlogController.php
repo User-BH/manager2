@@ -5,9 +5,9 @@ namespace App\Http\Controllers;
 use App\Models\BlogCategory;
 use App\Models\BlogPost;
 use App\Models\BlogTag;
+use App\Services\Blog\BlogPages;
 use App\Services\Blog\PublicBlog;
 use App\Services\Features\FeatureFlags;
-use App\Support\CanonicalUrl;
 use App\Support\PrivateFiles;
 use App\Support\Uploads;
 use Illuminate\Http\Request;
@@ -28,7 +28,10 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
  */
 class BlogController extends Controller
 {
-    public function __construct(private readonly PublicBlog $blog) {}
+    public function __construct(
+        private readonly PublicBlog $blog,
+        private readonly BlogPages $pages,
+    ) {}
 
     public function index(Request $request): Response
     {
@@ -72,24 +75,11 @@ class BlogController extends Controller
             $preview = true;
         }
 
+        $page = $this->pages->article($post, $preview);
         $response = response()->view('public.blog.show', [
-            'post' => $post,
-            'related' => $preview ? [] : $this->blog->related($post['id'], $post['categoryId']),
-            'preview' => $preview,
+            ...$page['view'],
             'entry' => 'resources/js/app/entries/blog.tsx',
-            'seo' => [
-                'title' => $post['metaTitle'].' | بلاگ '.config('brand.name'),
-                'description' => $post['metaDescription'],
-                'og_type' => 'article',
-                'og_image' => $post['cover'] ? CanonicalUrl::base().$post['cover'] : null,
-                'canonical' => $post['canonical'],
-                'robots' => $preview ? 'noindex,nofollow' : null,
-                'breadcrumbs' => array_values(array_filter([
-                    ['name' => 'بلاگ', 'url' => CanonicalUrl::base().'/blog'],
-                    $post['category'] ? ['name' => $post['category']['name'], 'url' => CanonicalUrl::base().'/blog/category/'.rawurlencode($post['category']['slug'])] : null,
-                    ['name' => $post['title'], 'url' => $post['canonical']],
-                ])),
-            ],
+            'seo' => $page['seo'],
         ]);
 
         return $preview ? $response->header('X-Robots-Tag', 'noindex, nofollow') : $response;
@@ -110,47 +100,12 @@ class BlogController extends Controller
 
     private function listing(Request $request, ?BlogCategory $category, ?BlogTag $tag, ?string $search): Response
     {
-        $page = max(1, (int) $request->query('page', 1));
-        $result = $this->blog->page($page, $category, $tag, $search);
-
-        $base = CanonicalUrl::base().'/blog'.match (true) {
-            $category !== null => '/category/'.rawurlencode($category->slug),
-            $tag !== null => '/tag/'.rawurlencode($tag->slug),
-            default => '',
-        };
-
-        $pageUrl = fn (int $p) => $p > 1 ? $base.'?page='.$p : $base;
-        $heading = match (true) {
-            $category !== null => $category->name,
-            $tag !== null => '#'.$tag->name,
-            $search !== null => 'نتیجه‌ی جست‌وجو',
-            default => 'بلاگ '.config('brand.name'),
-        };
-
-        $crumbs = [['name' => 'بلاگ', 'url' => CanonicalUrl::base().'/blog']];
-        if ($category !== null || $tag !== null) {
-            $crumbs[] = ['name' => $heading, 'url' => $base];
-        }
+        $page = $this->pages->listing(max(1, (int) $request->query('page', 1)), $category, $tag, $search);
 
         return response()->view('public.blog.index', [
-            'result' => $result,
-            'categories' => $this->blog->categories(),
-            'heading' => $heading,
-            'description' => $category?->description,
-            'search' => $search,
-            'pageUrl' => $pageUrl,
+            ...$page['view'],
             'entry' => 'resources/js/app/entries/blog.tsx',
-            'seo' => [
-                'title' => $heading.($result['page'] > 1 ? ' — صفحه‌ی '.$result['page'] : '').' | '.config('brand.name'),
-                'description' => $category?->description
-                    ?: 'راهنما و تجربه‌ی مدیریتِ ساختمان و مجتمع: شارژ، قبض، حسابداری و زندگیِ آپارتمانی.',
-                // هر صفحه‌ی فهرست متعارفِ خودش است (نه صفحه‌ی اول)؛ جست‌وجو ایندکس نمی‌شود
-                'canonical' => $pageUrl($result['page']),
-                'robots' => $search !== null ? 'noindex,follow' : null,
-                'breadcrumbs' => $crumbs,
-                'prev' => $result['page'] > 1 ? $pageUrl($result['page'] - 1) : null,
-                'next' => $result['page'] < $result['lastPage'] ? $pageUrl($result['page'] + 1) : null,
-            ],
+            'seo' => $page['seo'],
         ]);
     }
 

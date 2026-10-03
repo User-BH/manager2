@@ -3,11 +3,13 @@
 namespace App\Console\Commands;
 
 use App\Models\Advertisement;
+use App\Models\BlogPost;
 use App\Models\Message;
 use App\Models\Payment;
 use App\Models\ServiceRequest;
 use App\Models\Subscription;
 use App\Services\Backup\BackupManifest;
+use App\Services\Blog\BlogRenderer;
 use App\Support\PrivateFiles;
 use Illuminate\Console\Command;
 
@@ -45,6 +47,7 @@ class PruneOrphanUploads extends Command
             ->merge(Advertisement::withoutGlobalScopes()->whereNotNull('image_path')->pluck('image_path'))
             ->merge(Message::withoutGlobalScopes()->whereNotNull('attachment_path')->pluck('attachment_path'))
             ->merge(ServiceRequest::withoutGlobalScopes()->whereNotNull('attachment_path')->pluck('attachment_path'))
+            ->merge($this->blogImages())
             ->filter()
             ->flip();
 
@@ -107,6 +110,36 @@ class PruneOrphanUploads extends Command
         $this->info(count($orphans).' فایل حذف شد ('.$this->humanBytes($bytes).' آزاد شد).');
 
         return self::SUCCESS;
+    }
+
+    /**
+     * تصویرهای بلاگ: کاور و هر تصویرِ داخلِ متن (مرحلهٔ ۷ · فاز ۷).
+     *
+     * 🔴 پوشه‌ی `blog/` از R58 در `FILE_ROOTS` بود ولی این فهرست هیچ‌کدام از
+     * تصویرهایش را نمی‌شناخت؛ پس `--delete` **همه‌ی تصویرهای بلاگ** را یتیم
+     * می‌دید و پاک می‌کرد. تصویرِ داخلِ متن ستونی ندارد و فقط در مارک‌داون
+     * است، پس از متن خوانده می‌شود — هم پیش‌نویس‌ها، هم منتشرشده‌ها.
+     *
+     * @return list<string>
+     */
+    private function blogImages(): array
+    {
+        $paths = [];
+
+        BlogPost::query()->select(['id', 'cover_path', 'body'])->chunkById(200, function ($posts) use (&$paths): void {
+            foreach ($posts as $post) {
+                if ($post->cover_path) {
+                    $paths[] = $post->cover_path;
+                }
+
+                preg_match_all('#'.preg_quote(BlogRenderer::MEDIA_PREFIX, '#').'([A-Za-z0-9]{40}\.[a-z]+)#', (string) $post->body, $m);
+                foreach ($m[1] as $file) {
+                    $paths[] = 'blog/'.$file;
+                }
+            }
+        });
+
+        return $paths;
     }
 
     private function humanBytes(int $bytes): string

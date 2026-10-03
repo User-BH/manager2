@@ -19,7 +19,19 @@ use Illuminate\Database\Eloquent\Builder;
  */
 class PublicBlog
 {
-    public const PER_PAGE = 9;
+    /**
+     * ده مقاله در هر صفحه (مرحلهٔ ۷ · فاز ۷، خواسته‌ی ممیزی؛ پیش از این ۹ و
+     * شبکه‌ی سه‌ستونی بود).
+     */
+    public const PER_PAGE = 10;
+
+    /**
+     * کوتاه‌ترین عبارتِ جست‌وجو (فاز ۷).
+     *
+     * یک حرف تقریباً در همه‌ی مقاله‌ها هست؛ جست‌وجویش فقط درخواستِ بی‌فایده
+     * و فهرستِ کامل است. API با ۴۲۲ ردش می‌کند و صفحه پیامِ روشن می‌دهد.
+     */
+    public const MIN_SEARCH = 2;
 
     /**
      * @return array{items: array<int, array<string, mixed>>, total: int, page: int, lastPage: int}
@@ -31,6 +43,11 @@ class PublicBlog
         // عبارتی که پس از پاک‌سازی چیزی از آن نماند («%») چیزی پیدا نمی‌کند — نه همه‌چیز
         if ($search !== null && $term === '') {
             return ['items' => [], 'total' => 0, 'page' => 1, 'lastPage' => 1];
+        }
+
+        // عبارتِ تک‌حرفی: نتیجه‌ای نمی‌دهد و قالب علتش را می‌گوید (فاز ۷)
+        if ($search !== null && mb_strlen($term) < self::MIN_SEARCH) {
+            return ['items' => [], 'total' => 0, 'page' => 1, 'lastPage' => 1, 'tooShort' => true];
         }
 
         $build = function () use ($page, $category, $tag, $term): array {
@@ -68,7 +85,7 @@ class PublicBlog
     public function find(string $slug): ?array
     {
         return BlogCache::remember('post:'.md5($slug), function () use ($slug): ?array {
-            $post = BlogPost::visible()->with(['category', 'tags', 'author'])->where('slug', $slug)->first();
+            $post = BlogPost::visible()->with(['category', 'tags'])->where('slug', $slug)->first();
 
             return $post ? $this->full($post) : null;
         });
@@ -77,24 +94,46 @@ class PublicBlog
     /** مقاله‌ی پیش‌نویس برای پیش‌نمایشِ سوپرادمین — بی‌کش. */
     public function preview(BlogPost $post): array
     {
-        return $this->full($post->loadMissing(['category', 'tags', 'author']));
+        return $this->full($post->loadMissing(['category', 'tags']));
     }
 
     /** @return array<int, array<string, mixed>> */
+    /**
+     * مقاله‌های مرتبط — بر اساسِ **موضوع**، نه تازگی (مرحلهٔ ۷ · فاز ۷).
+     *
+     * پیش از این «هم‌دسته اول، بعد تازه‌ترین‌ها» بود؛ با یک دسته‌ی بزرگ، مرتبط
+     * یعنی سه مقاله‌ی آخرِ همان دسته، هرچه بودند. حالا امتیاز: هر برچسبِ
+     * مشترک ۲، هم‌دسته بودن ۱؛ برابرها با تازگی. مقاله‌ی بی‌هیچ اشتراکی
+     * فقط وقتی می‌آید که مرتبطِ کافی نباشد.
+     *
+     * ⚠️ امتیاز در PHP حساب می‌شود، نه SQL: تعدادِ مقاله‌ها صدها است نه
+     * میلیون‌ها، و نتیجه کش می‌شود.
+     *
+     * @return array<int, array<string, mixed>>
+     */
     public function related(int $postId, ?int $categoryId, int $limit = 3): array
     {
-        return BlogCache::remember("related:{$postId}", fn () => BlogPost::visible()
-            ->with(['category', 'tags'])
-            ->whereKeyNot($postId)
-            ->when($categoryId, fn (Builder $q) => $q->orderByRaw('CASE WHEN category_id = ? THEN 0 ELSE 1 END', [$categoryId]))
-            ->orderByDesc('published_at')
-            ->limit($limit)
-            ->get()
-            ->map(fn (BlogPost $post) => $this->card($post))
-            ->all());
+        return BlogCache::remember("related:{$postId}", function () use ($postId, $categoryId, $limit): array {
+            $tagIds = BlogPost::find($postId)?->tags()->pluck('blog_tags.id')->all() ?? [];
+
+            return BlogPost::visible()
+                ->with(['category', 'tags'])
+                ->whereKeyNot($postId)
+                ->orderByDesc('published_at')
+                ->get()
+                ->map(fn (BlogPost $post) => [
+                    'post' => $post,
+                    'score' => 2 * $post->tags->whereIn('id', $tagIds)->count()
+                        + ($categoryId !== null && $post->category_id === $categoryId ? 1 : 0),
+                ])
+                ->sortByDesc('score') // پایدار است: برابرها همان ترتیبِ تازگی را نگه می‌دارند
+                ->take($limit)
+                ->map(fn (array $row) => $this->card($row['post']))
+                ->values()
+                ->all();
+        });
     }
 
-    /** @return array<int, array{name: string, slug: string, count: int}> */
     public function categories(): array
     {
         return BlogCache::remember('categories', fn () => BlogCategory::query()
@@ -168,7 +207,8 @@ class PublicBlog
             'toc' => $post->toc ?? [],
             'status' => $post->status,
             'updatedAt' => $post->updated_at->toIso8601String(),
-            'author' => $post->author?->name,
+            // ⚠️ نامِ نویسنده عمداً بیرون نمی‌آید (مرحلهٔ ۷ · فاز ۷، خواسته‌ی ممیزی):
+            // نه در صفحه، نه در JSON-LD، نه در API. ناشر خودِ ساکناست.
             'metaTitle' => $post->meta_title ?: $post->title,
             'metaDescription' => $post->meta_description ?: ($post->excerpt ?: $this->summary($post->body_html, 155)),
             'canonical' => CanonicalUrl::base().'/blog/'.rawurlencode($post->slug),

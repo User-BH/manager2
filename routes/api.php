@@ -5,6 +5,7 @@ use App\Http\Controllers\Api\AnnouncementController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\BackupController;
 use App\Http\Controllers\Api\BillController;
+use App\Http\Controllers\Api\BlogController as PublicBlogController;
 use App\Http\Controllers\Api\ChargeRuleController;
 use App\Http\Controllers\Api\ClientErrorController;
 use App\Http\Controllers\Api\ConversationController;
@@ -150,6 +151,18 @@ Route::post('feedback', [FeedbackController::class, 'store'])
     ->middleware('throttle:feedback')->name('feedback.store');
 Route::post('support/chat', [SupportChatController::class, 'reply'])
     ->middleware(['throttle:support-chat', 'feature:support_bot'])->name('support.chat');
+
+/*
+| بلاگِ عمومی (مرحلهٔ ۷ · فاز ۷): جست‌وجو، صفحه‌بندی و بازکردنِ مقاله بدونِ
+| بارگذاریِ دوباره‌ی سند. عمومی است چون خودِ بلاگ عمومی است؛ سقفِ نرخ جای
+| احراز هویت را می‌گیرد و پرچمِ `blog` همان پرچمِ صفحه‌هاست. جزئیات در
+| `Api\BlogController`.
+*/
+Route::middleware(['throttle:blog', 'feature:blog'])->group(function () {
+    Route::get('blog', [PublicBlogController::class, 'index'])->name('public-blog.index');
+    Route::get('blog/posts/{slug}', [PublicBlogController::class, 'show'])
+        ->where('slug', '[^/]{1,190}')->name('public-blog.show');
+});
 
 // --- واردشده ---
 Route::middleware('auth')->group(function () {

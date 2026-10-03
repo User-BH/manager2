@@ -11,6 +11,7 @@ use App\Models\Payment;
 use App\Models\PaymentAllocation;
 use App\Models\Unit;
 use App\Models\User;
+use App\Models\WalletTransaction;
 use App\Services\Wallet\WalletService;
 use Illuminate\Support\Facades\DB;
 
@@ -137,7 +138,7 @@ class PaymentService
         app(WalletService::class)->credit(
             $unit,
             $surplus['amount'],
-            'payment',
+            WalletTransaction::SOURCE_PAYMENT_SURPLUS,
             $payment,
             'مازادِ پرداخت #'.$payment->id,
         );

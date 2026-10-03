@@ -164,16 +164,38 @@ describe('نقطه‌های ورود', () => {
   })
 })
 
+/**
+ * معافیت‌های نام‌برده — هر کدام با دلیل، و کهنه نمی‌مانند (تستِ دوم).
+ *
+ * `blogNavigation.ts` (مرحلهٔ ۷ · فاز ۷): ناوبریِ بی‌بارگذاریِ بلاگ بدنه‌ی
+ * `<main>` را با HTML ِ **سرورِ خودمان** عوض می‌کند — پاسخِ هم‌مبدأِ
+ * `/api/blog` که همان قالبِ Blade ِ صفحه‌ی سرورساید رندرش کرده (همه‌چیز
+ * escape شده؛ متنِ مقاله از `BlogRenderer` با HTML ِ خامِ escape‌شده). یعنی
+ * همان HTML که صفحه‌ی کامل هم چاپ می‌کند. اسکلت و خطا رشته‌ی ثابت‌اند و پیامِ
+ * خطا با `textContent` نوشته می‌شود.
+ */
+const RAW_HTML_ALLOWED: Record<string, string> = {
+  [join('features', 'landing', 'blog', 'blogNavigation.ts')]:
+    'بدنه‌ی سرورِ خودمان، همان HTML ِ صفحه‌ی کامل',
+}
+
+const RAW_HTML =
+  /dangerouslySetInnerHTML|\.innerHTML\s*=|\.outerHTML\s*=|insertAdjacentHTML|document\.write\(/
+
 describe('HTMLِ خام', () => {
   it('هیچ کدی HTML را مستقیم در DOM نمی‌نویسد', () => {
-    const offenders = SOURCES.filter((f) =>
-      /dangerouslySetInnerHTML|\.innerHTML\s*=|\.outerHTML\s*=|insertAdjacentHTML|document\.write\(/.test(
-        code(f),
-      ),
-    ).map((f) => relative(JS, f))
+    const offenders = SOURCES.filter((f) => RAW_HTML.test(code(f)))
+      .map((f) => relative(JS, f))
+      .filter((f) => !(f in RAW_HTML_ALLOWED))
 
     expect(SOURCES.length).toBeGreaterThan(150)
     expect(offenders).toEqual([])
+  })
+
+  it('هر معافیتِ HTML ِ خام هنوز واقعی است', () => {
+    for (const file of Object.keys(RAW_HTML_ALLOWED)) {
+      expect(RAW_HTML.test(code(join(JS, file))), file).toBe(true)
+    }
   })
 })
 

@@ -59,6 +59,32 @@ class WalletTransaction extends Model
     /** اصلاحِ دستیِ مدیر (مثبت یا منفی). */
     public const SOURCE_ADJUSTMENT = 'adjustment';
 
+    /*
+     * 🔴 دو منبعِ بی‌برچسب (مرحلهٔ ۷ · فاز ۷).
+     *
+     * `PaymentService` و `BillGenerator` با رشته‌ی خامِ `'payment'` و
+     * `'manual'` اعتبار می‌دادند که در `sourceLabel()` نبودند؛ صورت‌حسابِ
+     * کیفِ پول به ساکن واژه‌ی انگلیسیِ «payment» نشان می‌داد. (در عکس‌گرفتن
+     * برای مقاله‌ی کیفِ پول دیده شد.) مقدارها همان می‌مانند چون در ردیف‌های
+     * موجود ذخیره‌اند؛ فقط نام و برچسب گرفتند.
+     */
+
+    /** مازادِ رسیدی که بیش از مانده‌ی قبض‌ها تأیید شد. */
+    public const SOURCE_PAYMENT_SURPLUS = 'payment';
+
+    /** قبضِ پرداخت‌شده‌ای که کم شد؛ تفاوت به کیف برمی‌گردد. */
+    public const SOURCE_BILL_REDUCTION = 'manual';
+
+    /** همه‌ی منبع‌های شناخته — `WalletLedgerTest` می‌سنجد هر کدام برچسبِ فارسی دارد. */
+    public const SOURCES = [
+        self::SOURCE_TOPUP_RECEIPT,
+        self::SOURCE_TOPUP_GATEWAY,
+        self::SOURCE_BILL_PAYMENT,
+        self::SOURCE_ADJUSTMENT,
+        self::SOURCE_PAYMENT_SURPLUS,
+        self::SOURCE_BILL_REDUCTION,
+    ];
+
     protected $fillable = [
         'complex_id', 'unit_id', 'direction', 'amount', 'balance_after',
         'source', 'payment_id', 'bill_id', 'created_by', 'note',
@@ -103,6 +129,8 @@ class WalletTransaction extends Model
             self::SOURCE_TOPUP_GATEWAY => 'شارژ از درگاه',
             self::SOURCE_BILL_PAYMENT => 'پرداخت قبض',
             self::SOURCE_ADJUSTMENT => 'اصلاح توسط مدیر',
+            self::SOURCE_PAYMENT_SURPLUS => 'مازاد پرداخت',
+            self::SOURCE_BILL_REDUCTION => 'بازگشت از کاهش قبض',
             default => $this->source,
         };
     }

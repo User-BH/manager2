@@ -228,18 +228,7 @@
             دیده می‌شود و بالای محتوا می‌نشیند.
         --}}
         <nav aria-label="مسیر راهنما" class="breadcrumb-bar">
-            <ol>
-                @foreach ($breadcrumbs as $index => $crumb)
-                    <li>
-                        @if ($loop->last)
-                            <span aria-current="page">{{ $crumb['name'] }}</span>
-                        @else
-                            <a href="{{ $crumb['url'] }}">{{ $crumb['name'] }}</a>
-                            <span aria-hidden="true">›</span>
-                        @endif
-                    </li>
-                @endforeach
-            </ol>
+            @include('partials.breadcrumb-items', ['breadcrumbs' => $breadcrumbs])
         </nav>
     @endif
 

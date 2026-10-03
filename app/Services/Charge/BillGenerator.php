@@ -7,6 +7,7 @@ use App\Models\Bill;
 use App\Models\Complex;
 use App\Models\Discount;
 use App\Models\Unit;
+use App\Models\WalletTransaction;
 use App\Services\Wallet\WalletService;
 use App\Support\Jalali;
 use Carbon\Carbon;
@@ -167,7 +168,7 @@ class BillGenerator
             app(WalletService::class)->credit(
                 $unit,
                 $surplus['amount'],
-                'manual',
+                WalletTransaction::SOURCE_BILL_REDUCTION,
                 null,
                 'مازادِ کاهشِ قبضِ دوره‌ی '.$surplus['period'],
             );

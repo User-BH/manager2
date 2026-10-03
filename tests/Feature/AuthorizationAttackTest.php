@@ -539,6 +539,9 @@ class AuthorizationAttackTest extends TestCase
      *
      * @return array<int, array{0: string, 1: string}>
      */
+    /** مسیرهای شناسه‌دارِ عمداً عمومی؛ دلیلِ هر کدام کنارِ فیلتر آمده. */
+    private const PUBLIC_PARAMETERISED = ['api/blog/posts/{slug}'];
+
     private function guestReachableRoutes(): array
     {
         $out = [];
@@ -552,6 +555,18 @@ class AuthorizationAttackTest extends TestCase
 
             // نسخه‌ی `api/v1/` همان مسیرهاست؛ یک بار کافی است
             if (str_starts_with($uri, 'api/v1/')) {
+                continue;
+            }
+
+            /*
+             * مسیرِ شناسه‌دارِ **عمداً عمومی** — فهرستِ بسته، با دلیل.
+             *
+             * `blog/posts/{slug}` (مرحلهٔ ۷ · فاز ۷): مقاله‌ی منتشرشده‌ی بلاگِ
+             * عمومی است و خودِ صفحه‌اش هم بی‌ورود باز می‌شود. محافظتش سقفِ نرخ
+             * و «فقط منتشرشده» است (`BlogApiTest`)؛ مسیرِ عمومیِ تازه باید
+             * این‌جا با دلیل بیاید، نه بی‌صدا.
+             */
+            if (in_array($uri, self::PUBLIC_PARAMETERISED, true)) {
                 continue;
             }
 

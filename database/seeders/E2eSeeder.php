@@ -4,6 +4,7 @@ namespace Database\Seeders;
 
 use App\Models\User;
 use App\Models\WalletTransaction;
+use App\Services\Blog\BlogImporter;
 use App\Services\Wallet\WalletService;
 use Illuminate\Database\Seeder;
 use RuntimeException;
@@ -30,7 +31,7 @@ class E2eSeeder extends Seeder
     /** بیش از هر قبضِ نمایشی، تا کیف قبض را کامل بپردازد نه بخشی از آن. */
     public const CREDIT = 5_000_000;
 
-    public function run(WalletService $wallet): void
+    public function run(WalletService $wallet, BlogImporter $importer): void
     {
         if (app()->environment('production')) {
             throw new RuntimeException('E2eSeeder روی محصول اجرا نمی‌شود.');
@@ -52,5 +53,12 @@ class E2eSeeder extends Seeder
 
             $wallet->credit($unit, self::CREDIT, WalletTransaction::SOURCE_ADJUSTMENT, null, 'اعتبارِ آزمونِ سرتاسری');
         }
+
+        /*
+         * مقاله‌های واقعیِ بلاگ (مرحلهٔ ۷ · فاز ۷) — همان که استقرار وارد می‌کند؛
+         * سفرهای صفحه‌بندی، جست‌وجو و بازکردنِ مقاله بی‌آن‌ها چیزی برای سنجیدن
+         * نداشتند.
+         */
+        $importer->import();
     }
 }

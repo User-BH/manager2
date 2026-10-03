@@ -282,6 +282,15 @@ class AppServiceProvider extends ServiceProvider
             Limit::perMinute(20)->by($request->ip()),
         ]);
 
+        /*
+         * API ِ عمومیِ بلاگ (مرحلهٔ ۷ · فاز ۷). خواندنِ ارزان و کش‌شده است، ولی
+         * جست‌وجو کش نمی‌شود و هر عبارتِ تازه یک LIKE روی همه‌ی مقاله‌هاست؛
+         * ۶۰ در دقیقه برای خواننده‌ی واقعی (هر کلیک یک درخواست) فراوان است.
+         */
+        RateLimiter::for('blog', fn (Request $request) => [
+            Limit::perMinute(60)->by('blog:'.$request->ip()),
+        ]);
+
         // آپلود رسید: هم فضا مصرف می‌کند و هم صف بررسی مدیر را پر می‌کند
         RateLimiter::for('receipt-upload', fn (Request $request) => [
             Limit::perHour(20)->by($request->user()?->id ?: $request->ip()),

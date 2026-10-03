@@ -175,7 +175,8 @@ function usedCharacters(): Set<number> {
   const sources = [
     ...filesUnder('resources/js', /\.tsx?$/),
     ...filesUnder('resources/views', /\.php$/),
-    ...filesUnder('resources/content', /\.json$/),
+    // مقاله‌های بلاگ هم (مرحلهٔ ۷ · فاز ۷): متنشان با همین فونت رسم می‌شود
+    ...filesUnder('resources/content', /\.(json|md)$/),
     'app/Services/Support/KnowledgeBase.php',
   ]
   const used = new Set<number>()

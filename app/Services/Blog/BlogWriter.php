@@ -6,6 +6,7 @@ use App\Models\BlogPost;
 use App\Models\BlogTag;
 use App\Models\User;
 use App\Support\Audit;
+use App\Support\PersianText;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
@@ -22,7 +23,7 @@ class BlogWriter
     /**
      * @param  array{title: string, slug?: ?string, excerpt?: ?string, body: string, category_id?: ?int, tags?: array<int, string>, status: string, published_at?: ?string, cover_path?: ?string, meta_title?: ?string, meta_description?: ?string}  $data
      */
-    public function save(?BlogPost $post, array $data, User $author): BlogPost
+    public function save(?BlogPost $post, array $data, ?User $author): BlogPost
     {
         return DB::transaction(function () use ($post, $data, $author): BlogPost {
             $post ??= new BlogPost(['status' => BlogPost::DRAFT]);
@@ -37,7 +38,14 @@ class BlogWriter
                 'body' => $data['body'],
                 'body_html' => $rendered['html'],
                 'toc' => $rendered['toc'],
-                'search_text' => $rendered['text'],
+                /*
+                 * 🔴 عنوان و خلاصه هم در متنِ جست‌وجو (مرحلهٔ ۷ · فاز ۷).
+                 *
+                 * جست‌وجو عبارت را یکدست می‌کند («آ» → «ا»، «ي» → «ی») ولی عنوان را
+                 * خام می‌گشت و این ستون فقط متنِ بدنه را داشت؛ پس «پرداخت آنلاین»
+                 * که فقط در عنوان آمده بود هرگز پیدا نمی‌شد.
+                 */
+                'search_text' => trim(PersianText::normalize($data['title'].' '.($data['excerpt'] ?? '')).' '.$rendered['text']),
                 'reading_minutes' => $rendered['minutes'],
                 'category_id' => $data['category_id'] ?? null,
                 'cover_path' => $data['cover_path'] ?? null,
@@ -50,8 +58,9 @@ class BlogWriter
                 'meta_description' => $data['meta_description'] ?? null,
             ]);
 
+            // نویسنده فقط سابقه‌ی پنل است؛ واردکننده‌ی مقاله‌ها روی نصبِ تازه ممکن است ادمین نداشته باشد
             if (! $post->exists) {
-                $post->author_id = $author->id;
+                $post->author_id = $author?->id;
             }
 
             $post->save();

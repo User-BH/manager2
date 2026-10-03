@@ -527,6 +527,53 @@ class PhaseRegressionMapTest extends TestCase
             'تنظیمِ ذخیره‌شده‌ی پنل هم فقط تلفن می‌شود' => [
                 'ContactChannelsTest', 'test_the_migration_switches_off_what_the_panel_had_saved', '۷',
             ],
+
+            /* ── مرحلهٔ ۷ · فاز ۷: بلاگ ──────────────────────────────────────── */
+            '🔴 صفحه‌بندیِ واقعی از پایگاه‌داده، ده تا در هر صفحه' => [
+                'BlogApiTest', 'test_a_page_holds_ten_articles_and_the_rest_come_from_the_database', '۷',
+            ],
+            'جست‌وجوی واقعی و صفحه‌بندی‌شده با عبارت در آدرس' => [
+                'BlogApiTest', 'test_search_is_real_paginated_and_keeps_the_query_in_the_url', '۷',
+            ],
+            'ورودیِ نامعتبرِ جست‌وجو را سرور رد می‌کند' => [
+                'BlogApiTest', 'test_invalid_search_input_is_rejected_by_the_server', '۷',
+            ],
+            'سقفِ نرخِ API ِ بلاگ' => [
+                'BlogApiTest', 'test_the_api_is_rate_limited', '۷',
+            ],
+            'پیش‌نویس از API بیرون نمی‌آید' => [
+                'BlogApiTest', 'test_drafts_and_scheduled_posts_never_leave_through_the_api', '۷',
+            ],
+            'نامِ نویسنده هیچ‌جا نیست' => [
+                'BlogApiTest', 'test_an_article_comes_with_its_html_meta_and_no_author', '۷',
+            ],
+            'مقاله‌های مرتبط بر اساسِ موضوع' => [
+                'BlogApiTest', 'test_related_articles_follow_the_topic_not_the_date', '۷',
+            ],
+            '🔴 واژه‌ی فقط-در-عنوان با «آ» و «ي» پیدا می‌شود' => [
+                'BlogApiTest', 'test_a_word_only_in_the_title_is_found_even_with_arabic_or_alef_madda', '۷',
+            ],
+            '🔴 مسیرِ راهنما پس از جابه‌جاییِ بی‌بارگذاری کهنه نمی‌ماند' => [
+                'BlogApiTest', 'test_the_breadcrumb_comes_along_and_matches_the_server_rendered_page', '۷',
+            ],
+            '۱۵ مقاله‌ی واقعی و اجرای دوباره‌ی بی‌اثر' => [
+                'BlogImporterTest', 'test_fifteen_real_articles_are_imported_and_a_second_run_changes_nothing', '۷',
+            ],
+            'تاریخِ مقاله‌ها پخش در امسال و پارسال' => [
+                'BlogImporterTest', 'test_dates_are_spread_over_this_year_and_last_and_none_is_in_the_future', '۷',
+            ],
+            'زمانِ مطالعه از حجمِ واقعی' => [
+                'BlogImporterTest', 'test_reading_time_follows_the_real_length', '۷',
+            ],
+            'پیوندِ داخلیِ مقاله‌ها سالم' => [
+                'BlogImporterTest', 'test_internal_links_point_to_real_articles_and_real_pages', '۷',
+            ],
+            '🔴 هرسِ فایل‌های یتیم تصویرِ بلاگ را پاک نمی‌کند' => [
+                'BlogImporterTest', 'test_pruning_orphan_uploads_keeps_every_blog_image', '۷',
+            ],
+            '🔴 منبعِ کیفِ پول برچسبِ فارسی دارد' => [
+                'WalletLedgerTest', 'test_every_wallet_source_has_a_persian_label', '۷',
+            ],
         ];
     }
 
@@ -631,10 +678,12 @@ class PhaseRegressionMapTest extends TestCase
             'HomeNavbar' => ['۷/۵', 'برگر و پنلش دقیقاً همان‌جا پنهان می‌شوند که پیوندها ظاهر می‌شوند'],
             // مرحلهٔ ۷ · فاز ۶: قوانین در پنجره‌ی همان صفحه، نه ناوبریِ تازه‌ای که اپِ نصب‌شده برباید
             'termsDialog' => ['۷/۶', 'هیچ پنجره یا تبِ تازه‌ای نمی‌خواهد'],
+            // مرحلهٔ ۷ · فاز ۷: ناوبریِ بی‌بارگذاریِ بلاگ — رقابت، خطا، جست‌وجوی نامعتبر
+            'blogNavigation' => ['۷/۷', 'رقابت: پاسخِ دیررسیده‌ی کلیکِ اول روی کلیکِ دوم نمی‌نشیند'],
         ];
 
         // 🔴 مثلِ ردیف‌های PHP، این فهرست هم فقط بزرگ می‌شود (خرابکاریِ فاز ۸)
-        $this->assertGreaterThanOrEqual(22, count($guards), 'محافظی از فهرستِ JS حذف شده.');
+        $this->assertGreaterThanOrEqual(23, count($guards), 'محافظی از فهرستِ JS حذف شده.');
 
         foreach ($guards as $file => [$phase, $marker]) {
             $path = base_path("tests/js/{$file}.test.".(file_exists(base_path("tests/js/{$file}.test.tsx")) ? 'tsx' : 'ts'));

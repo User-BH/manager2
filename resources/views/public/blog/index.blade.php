@@ -2,7 +2,8 @@
     فهرستِ بلاگ، دسته، برچسب و نتیجه‌ی جست‌وجو (مرحلهٔ ۶ · فاز ۱۱).
 
     همه‌چیز سرورساید است؛ صفحه‌بندی و جست‌وجو پیوند و فرمِ معمولی‌اند و بدونِ
-    جاوااسکریپت کار می‌کنند.
+    جاوااسکریپت کار می‌کنند. با جاوااسکریپت (مرحلهٔ ۷ · فاز ۷) همان‌ها بی‌بارگذاریِ
+    دوباره انجام می‌شوند و بدنه از `_index_body` ِ همین پوشه می‌آید.
 --}}
 @extends('layouts.public')
 
@@ -30,69 +31,13 @@
 @endpush
 
 @section('content')
-    <main id="main-content" class="blog-main">
-        <header class="blog-header">
-            <h1>{{ $heading }}</h1>
-            @if ($description)
-                <p>{{ $description }}</p>
-            @endif
-
-            <form action="/blog" method="get" role="search" class="blog-search">
-                <label for="blog-q" class="sr-only">جست‌وجو در بلاگ</label>
-                <input id="blog-q" class="field" type="search" name="q" value="{{ $search }}" maxlength="80"
-                       placeholder="جست‌وجو در مقاله‌ها…" autocomplete="off">
-                <button type="submit">جست‌وجو</button>
-            </form>
-
-            @if ($categories !== [])
-                <nav aria-label="دسته‌ها" class="blog-categories">
-                    @foreach ($categories as $cat)
-                        <a class="blog-chip" href="/blog/category/{{ rawurlencode($cat['slug']) }}">
-                            {{ $cat['name'] }} <span>({{ \App\Support\Jalali::digits($cat['count']) }})</span>
-                        </a>
-                    @endforeach
-                </nav>
-            @endif
-        </header>
-
-        @if ($search !== null)
-            <p class="blog-result-count" role="status">
-                {{ \App\Support\Jalali::digits($result['total']) }} مقاله برای «{{ $search }}»
-            </p>
-        @endif
-
-        @if ($result['items'] === [])
-            <div class="blog-empty">
-                <p>{{ $search !== null ? 'مقاله‌ای با این عبارت پیدا نشد.' : 'هنوز مقاله‌ای منتشر نشده است.' }}</p>
-                @if ($search !== null)
-                    <a href="/blog">همه‌ی مقاله‌ها</a>
-                @endif
-            </div>
-        @else
-            <div class="blog-grid">
-                @foreach ($result['items'] as $item)
-                    @include('public.blog._card', ['item' => $item])
-                @endforeach
-            </div>
-        @endif
-
-        @if ($result['lastPage'] > 1)
-            @php
-                $query = $search !== null ? '&q='.rawurlencode($search) : '';
-                $link = fn (int $p) => $search !== null
-                    ? '/blog?page='.$p.$query
-                    : parse_url($pageUrl($p), PHP_URL_PATH).($p > 1 ? '?page='.$p : '');
-            @endphp
-            <nav aria-label="صفحه‌بندی" class="blog-pager">
-                @if ($result['page'] > 1)
-                    <a rel="prev" href="{{ $link($result['page'] - 1) }}">قبلی</a>
-                @endif
-                <span>صفحه‌ی {{ \App\Support\Jalali::digits($result['page']) }} از {{ \App\Support\Jalali::digits($result['lastPage']) }}</span>
-                @if ($result['page'] < $result['lastPage'])
-                    <a rel="next" href="{{ $link($result['page'] + 1) }}">بعدی</a>
-                @endif
-            </nav>
-        @endif
+    {{--
+        `data-blog-view` و محتوای `<main>` را ناوبریِ بی‌بارگذاریِ بلاگ عوض
+        می‌کند (`features/landing/blog/blogNavigation.ts`)؛ سرصفحه و پاصفحه
+        بیرونِ آن‌اند و دست نمی‌خورند.
+    --}}
+    <main id="main-content" class="blog-main" data-blog-view="listing">
+        @include('public.blog._index_body')
     </main>
 
     <div id="blog-footer"></div>

@@ -60,7 +60,8 @@ class BlogTest extends TestCase
 
         $this->get('/blog/'.rawurlencode($post->slug))
             ->assertOk()
-            ->assertSee('<h1>راهنمای محاسبه‌ی شارژ ساختمان</h1>', false)
+            // `tabindex` تا ناوبریِ بی‌بارگذاری فوکوس را به عنوان ببرد (مرحلهٔ ۷ · فاز ۷)
+            ->assertSee('<h1 tabindex="-1" data-blog-focus>راهنمای محاسبه‌ی شارژ ساختمان</h1>', false)
             ->assertSee('متنِ بخشِ اول.')
             ->assertHeaderMissing('X-Robots-Tag');
     }
@@ -264,7 +265,7 @@ class BlogTest extends TestCase
             ->assertSee('<meta name="robots" content="noindex,follow">', false);
 
         // نویسه‌ی ویژه‌ی LIKE همه‌چیز را برنمی‌گرداند
-        $this->get('/blog?q=%25')->assertOk()->assertSee('مقاله‌ای با این عبارت پیدا نشد');
+        $this->get('/blog?q=%25')->assertOk()->assertSee('مقاله‌ای برای جست‌وجوی شما پیدا نشد');
     }
 
     /* ─────────────────────────── نقشه‌ی سایت و پرچم ─────────────────────────── */

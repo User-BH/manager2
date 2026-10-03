@@ -39,6 +39,7 @@ class EndpointInventoryTest extends TestCase
     {
         return [
             'ads',                      // تبلیغاتِ سکو، عمداً بی‌مجتمع
+            'blog', 'blog/posts/{slug}', // بلاگِ عمومی؛ سقفِ نرخ + پرچمِ blog، فقط منتشرشده (مرحلهٔ ۷ · فاز ۷)
             'client-errors',            // گزارشِ خطای مرورگر
             'csrf-token',
             'features',                 // پرچم‌های قابلیت

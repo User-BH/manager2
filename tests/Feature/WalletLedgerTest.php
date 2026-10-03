@@ -309,6 +309,44 @@ class WalletLedgerTest extends TestCase
             ->assertJsonPath('walletBalance', 75000);
     }
 
+    /**
+     * 🔴 هر منبعِ کیفِ پول برچسبِ فارسی دارد (مرحلهٔ ۷ · فاز ۷).
+     *
+     * مازادِ رسید با رشته‌ی خامِ `'payment'` و بازگشت از کاهشِ قبض با
+     * `'manual'` ثبت می‌شدند و صورت‌حسابِ ساکن خودِ واژه‌ی انگلیسی را نشان
+     * می‌داد. حالا هم برچسب سنجیده می‌شود، هم اینکه هیچ فراخوانیِ `credit`
+     * رشته‌ی خام نمی‌دهد — منبعِ تازه باید ثابت و برچسبِ خودش را بگیرد.
+     */
+    public function test_every_wallet_source_has_a_persian_label(): void
+    {
+        foreach (WalletTransaction::SOURCES as $source) {
+            $label = (new WalletTransaction(['source' => $source]))->sourceLabel();
+
+            $this->assertNotSame($source, $label, "منبعِ «{$source}» برچسب ندارد");
+            $this->assertMatchesRegularExpression('/\p{Arabic}/u', $label);
+        }
+
+        $raw = [];
+        foreach (['app/Services/Payment/PaymentService.php', 'app/Services/Charge/BillGenerator.php', 'app/Services/Wallet/WalletService.php'] as $file) {
+            $code = (string) file_get_contents(base_path($file));
+            if (preg_match_all('/->credit\(\s*\$\w+,\s*[^,]+,\s*\'[a-z_]+\'/s', $code, $m)) {
+                $raw[$file] = $m[0];
+            }
+        }
+
+        $this->assertSame([], $raw, 'منبعِ کیفِ پول با رشته‌ی خام، نه ثابت');
+    }
+
+    public function test_a_receipt_surplus_shows_a_persian_source_in_the_statement(): void
+    {
+        $this->wallet->credit($this->unit, 40000, WalletTransaction::SOURCE_PAYMENT_SURPLUS);
+
+        $row = WalletTransaction::where('unit_id', $this->unit->id)->latest('id')->firstOrFail();
+
+        $this->assertSame('مازاد پرداخت', $row->sourceLabel());
+        $this->assertSame('payment', $row->source, 'مقدارِ ذخیره‌شده نباید عوض شود — ردیف‌های قدیمی همین را دارند');
+    }
+
     /* ── کمکی ──────────────────────────────────────────────────────────── */
 
     private function makeBill(float $total): Bill
