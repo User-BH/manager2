@@ -1,5 +1,6 @@
 import { Suspense, lazy, useEffect, useState } from 'react'
 import { AnimatePresence } from 'framer-motion'
+import { markShown } from './installState'
 import { useInstallPrompt } from './useInstallPrompt'
 
 const InstallPromptCard = lazy(() => import('./InstallPromptCard'))
@@ -16,11 +17,14 @@ const InstallPromptCard = lazy(() => import('./InstallPromptCard'))
  *     کروم دیگر service worker نمی‌خواهد؛ manifest (که در همه‌ی صفحه‌های
  *     عمومی هست) و کمی تعامل با صفحه کافی است — پس SW فقط برای این روی
  *     صفحه‌های عمومی ثبت نمی‌شود.
- *   • **iOS** رویدادی ندارد و نصب فقط از «اشتراک‌گذاری ← افزودن به صفحه‌ی
- *     اصلی» است؛ آنجا راهنمای همان راه می‌آید، نه دکمه‌ای که کاری نمی‌کند.
+ *   • **iOS، سافاریِ مک، فایرفاکسِ اندروید** رویدادی ندارند و نصب از منوی
+ *     خودِ مرورگر است؛ آنجا راهنمای همان راه می‌آید با متنِ مشروط («اگر هنوز
+ *     نصب نکرده‌اید…»)، نه دکمه‌ای که کاری نمی‌کند (مرحلهٔ ۸ · فاز ۲).
  *   • **بستن** با انیمیشن به چپ می‌رود و بعد از DOM برداشته می‌شود
  *     (`AnimatePresence`)؛ بستن به خاطر سپرده می‌شود و با هر بارگذاری
  *     دوباره تحمیل نمی‌شود — همان کلیدِ داشبورد، پس یک بار بستن همه‌جا بس است.
+ *   • **بی‌بستن هم** با هر بارگذاری برنمی‌گردد: پس از هر بار دیده‌شدن، دکمه
+ *     تا ۳ روز و راهنما تا ۱۴ روز نمی‌آید (مرحلهٔ ۸ · فاز ۲).
  *   • اگر برنامه نصب‌شده باز شده باشد هیچ‌چیز نشان داده نمی‌شود.
  *
  * `placement`:
@@ -34,8 +38,8 @@ export function InstallPrompt({
 }: {
   placement?: 'public' | 'public-bare' | 'dashboard'
 }) {
-  const { canInstall, showIosGuide, install, dismiss } = useInstallPrompt()
-  const available = canInstall || showIosGuide
+  const { canInstall, guide, install, dismiss } = useInstallPrompt()
+  const available = canInstall || guide !== null
 
   /*
    * مکثِ کوتاه پیش از آمدن: کارتی که هم‌زمان با خودِ صفحه بالا بپرد، اولین
@@ -47,12 +51,17 @@ export function InstallPrompt({
   useEffect(() => {
     if (!available) return
 
-    const timer = window.setTimeout(() => setReady(true), showIosGuide ? 4000 : 1500)
+    const timer = window.setTimeout(() => setReady(true), guide ? 4000 : 1500)
 
     return () => window.clearTimeout(timer)
-  }, [available, showIosGuide])
+  }, [available, guide])
 
   const visible = available && ready
+
+  // «دیده شد» همان لحظه‌ی نمایش ثبت می‌شود، نه هنگامِ رسیدنِ رویداد
+  useEffect(() => {
+    if (visible) markShown()
+  }, [visible])
 
   return (
     <AnimatePresence>
@@ -61,7 +70,7 @@ export function InstallPrompt({
         <Suspense key="install-prompt" fallback={null}>
           <InstallPromptCard
             placement={placement}
-            ios={showIosGuide}
+            guide={canInstall ? null : guide}
             onInstall={() => void install()}
             onDismiss={dismiss}
           />

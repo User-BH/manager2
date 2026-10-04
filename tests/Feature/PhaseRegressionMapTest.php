@@ -695,10 +695,12 @@ class PhaseRegressionMapTest extends TestCase
             'selfHostedImages' => ['۸/۱', 'هیچ تصویری از سایتِ دیگری کشیده نمی‌شود'],
             // مرحلهٔ ۸ · فاز ۱: ثبت‌نام‌کننده‌ی اولیه تجربه‌ی جدای خودش را دارد، نه پوسته‌ی ساکن
             'registrantExperience' => ['۸/۱', 'مالِ این حالت نیست و به داشبوردِ خودش برمی‌گردد'],
+            // مرحلهٔ ۸ · فاز ۲: «نصب است؟» فقط از سیگنالِ واقعی؛ پیشنهاد با هر بارگذاری برنمی‌گردد
+            'installState' => ['۸/۲', 'fullscreen نه: کروم در F11'],
         ];
 
         // 🔴 مثلِ ردیف‌های PHP، این فهرست هم فقط بزرگ می‌شود (خرابکاریِ فاز ۸)
-        $this->assertGreaterThanOrEqual(25, count($guards), 'محافظی از فهرستِ JS حذف شده.');
+        $this->assertGreaterThanOrEqual(26, count($guards), 'محافظی از فهرستِ JS حذف شده.');
 
         foreach ($guards as $file => [$phase, $marker]) {
             $path = base_path("tests/js/{$file}.test.".(file_exists(base_path("tests/js/{$file}.test.tsx")) ? 'tsx' : 'ts'));

@@ -1,12 +1,24 @@
 import { useCallback, useEffect, useState } from 'react'
+import {
+  dismissForever,
+  installGuide,
+  isDismissed,
+  markInstalled,
+  markNotInstalled,
+  mayOffer,
+  runningInstalled,
+  type InstallGuide,
+} from './installState'
 
 /**
- * دکمه‌ی نصبِ سفارشی (R35).
+ * دکمه‌ی نصبِ سفارشی (R35) و راهنمای مرورگرهای بی‌رویداد.
  *
  * ─── چرا دکمه‌ی خودمان ─────────────────────────────────────────────────────
  * کروم پیشنهادِ نصب را در منویی پنهان می‌کند که بیشترِ کاربران هرگز باز
  * نمی‌کنند. `beforeinstallprompt` اجازه می‌دهد همان پیشنهاد را نگه داریم و
  * سرِ جای درست خودمان نشان بدهیم.
+ *
+ * چه وقت چه چیزی نشان داده می‌شود و چرا: `installState.ts` (مرحلهٔ ۸ · فاز ۲).
  */
 
 /** رویدادی که تایپ‌اسکریپت نمی‌شناسد چون هنوز در استاندارد نیست. */
@@ -15,75 +27,41 @@ interface BeforeInstallPromptEvent extends Event {
   userChoice: Promise<{ outcome: 'accepted' | 'dismissed' }>
 }
 
-/** کلیدِ یادسپاریِ «نه، ممنون» تا هر بار دوباره نپرسیم. */
-const DISMISSED_KEY = 'sakena:install-dismissed'
-
-/**
- * آیا برنامه همین حالا نصب‌شده اجرا می‌شود؟
- *
- * ⚠️ دو راهِ تشخیص لازم است: اندروید/دسکتاپ `display-mode` را درست
- * می‌گویند، ولی سافاریِ iOS آن را برای برنامه‌ی نصب‌شده هم `browser`
- * گزارش می‌کند و به‌جایش `navigator.standalone` دارد. با یکی از این دو،
- * روی iOS دکمه‌ی نصب به کاربری نشان داده می‌شد که از قبل نصبش کرده.
- */
-export function isInstalled(): boolean {
-  if (typeof window === 'undefined') return false
-
-  const standalone = window.matchMedia?.('(display-mode: standalone)').matches ?? false
-  const iosStandalone = (window.navigator as { standalone?: boolean }).standalone === true
-
-  return standalone || iosStandalone
-}
-
-/**
- * آیا این مرورگرِ iOS می‌تواند ساکنا را از «اشتراک‌گذاری ← افزودن به صفحه‌ی
- * اصلی» نصب کند؟ (مرحلهٔ ۷ · فاز ۵)
- *
- * iOS رویدادِ `beforeinstallprompt` ندارد؛ نصب فقط از منوی اشتراک‌گذاری است،
- * پس آنجا به‌جای دکمه‌ی نصب **راهنما** نشان می‌دهیم.
- *
- * ⚠️ نشانه، خودِ `navigator.standalone` است، نه رشته‌ی User-Agent به‌تنهایی:
- * این ویژگی فقط در WebKitی تعریف می‌شود که «افزودن به صفحه‌ی اصلی» دارد و
- * بیرون از حالتِ نصب‌شده `false` است. مرورگرهای درون‌برنامه‌ای (اینستاگرام،
- * تلگرام) آن را ندارند — به کاربرشان راهنمایی نمی‌دهیم که در آنجا کار نمی‌کند.
- * آی‌پدِ امروزی خودش را «Macintosh» معرفی می‌کند؛ لمسی‌بودن جدایش می‌کند.
- */
-export function canAddToHomeScreen(): boolean {
-  if (typeof window === 'undefined') return false
-
-  const nav = window.navigator as Navigator & { standalone?: boolean }
-  const ua = nav.userAgent
-  const iOS = /iPhone|iPad|iPod/.test(ua) || (/Macintosh/.test(ua) && nav.maxTouchPoints > 1)
-
-  return iOS && nav.standalone === false
-}
-
-/** ⚠️ `localStorage` در حالتِ خصوصی یا با کوکیِ مسدود پرتاب می‌کند. */
-function readDismissed(): boolean {
-  try {
-    return typeof localStorage !== 'undefined' && localStorage.getItem(DISMISSED_KEY) === '1'
-  } catch {
-    return false
-  }
-}
-
 export function useInstallPrompt() {
   const [event, setEvent] = useState<BeforeInstallPromptEvent | null>(null)
-  const [installed, setInstalled] = useState(isInstalled)
-  // راهنمای iOS رویدادی ندارد که با بستن پاک شود؛ این رندرِ دوباره را می‌سازد
+  const [installed, setInstalled] = useState(runningInstalled)
+  // راهنما رویدادی ندارد که با بستن پاک شود؛ این رندرِ دوباره را می‌سازد
   const [closed, setClosed] = useState(false)
 
+  /*
+   * ⚠️ مجاز بودنِ راهنما **یک بار، هنگامِ سوارشدن** سنجیده می‌شود: کارت پس از
+   * نمایش «دیده شد» را ثبت می‌کند و اگر این‌جا هر رندر دوباره سنجیده می‌شد،
+   * کارت با نشان‌دادنِ خودش ناپدید می‌شد.
+   */
+  const [guide] = useState<InstallGuide | null>(() => {
+    const kind = installGuide()
+    return kind && mayOffer(kind) ? kind : null
+  })
+
   useEffect(() => {
+    // داخلِ اپ: یادِ این انباره بماند که اپ این‌جا هست (فایرفاکسِ اندروید از آن سود می‌برد)
+    if (runningInstalled()) markInstalled()
+
     const onPrompt = (native: Event) => {
       /*
        * جلوی نوارِ پیش‌فرضِ مرورگر گرفته می‌شود و خودِ رویداد نگه داشته
-       * می‌شود؛ بعداً فقط با ژستِ کاربر می‌توان `prompt()` را صدا زد.
+       * می‌شود؛ بعداً فقط با ژستِ کاربر می‌توان `prompt()` را صدا زد. اگر
+       * همین تازگی پیشنهاد دیده شده، نگه داشته نمی‌شود: مرورگر هم نوارِ
+       * خودش را نشان نمی‌دهد و نصب از نشانِ نوارِ آدرس همچنان در دسترس است.
        */
       native.preventDefault()
-      setEvent(native as BeforeInstallPromptEvent)
+      // مرورگر خودش می‌گوید نصب نیست — هر نشانه‌ی قدیمیِ «نصب‌شده» کهنه است
+      markNotInstalled()
+      if (mayOffer('native')) setEvent(native as BeforeInstallPromptEvent)
     }
 
     const onInstalled = () => {
+      markInstalled()
       setInstalled(true)
       setEvent(null)
     }
@@ -97,7 +75,7 @@ export function useInstallPrompt() {
     }
   }, [])
 
-  const dismissed = closed || readDismissed()
+  const dismissed = closed || isDismissed()
 
   const install = useCallback(async () => {
     if (!event) return 'unavailable' as const
@@ -112,11 +90,7 @@ export function useInstallPrompt() {
   }, [event])
 
   const dismiss = useCallback(() => {
-    try {
-      localStorage.setItem(DISMISSED_KEY, '1')
-    } catch {
-      // حالتِ خصوصیِ سافاری: فقط برای همین صفحه بسته می‌ماند
-    }
+    dismissForever()
     setClosed(true)
     setEvent(null)
   }, [])
@@ -124,8 +98,8 @@ export function useInstallPrompt() {
   return {
     /** فقط وقتی درست است که مرورگر واقعاً پیشنهاد داده و کاربر ردش نکرده. */
     canInstall: event !== null && !installed && !dismissed,
-    /** iOS: نصب فقط از منوی اشتراک‌گذاری؛ راهنما به‌جای دکمه (فاز ۵). */
-    showIosGuide: event === null && !installed && !dismissed && canAddToHomeScreen(),
+    /** مرورگرِ بی‌رویداد: راهنمای منوی خودش، نه دکمه‌ی ساختگیِ «نصب». */
+    guide: event === null && !installed && !dismissed ? guide : null,
     installed,
     install,
     dismiss,

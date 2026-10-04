@@ -1,5 +1,6 @@
 import { motion } from 'framer-motion'
 import { Download, Share, X } from 'lucide-react'
+import type { InstallGuide } from './installState'
 
 /**
  * خودِ کارتِ پیشنهادِ نصب — **تنبل** (مرحلهٔ ۷ · فاز ۵).
@@ -11,14 +12,32 @@ import { Download, Share, X } from 'lucide-react'
  * دانلود می‌شوند که واقعاً لازم‌اند — در همان مکثِ کوتاهِ پیش از نمایش.
  * بودجه‌ی باندلِ پشتیبانی و دمو همین را گرفت.
  */
+/**
+ * راهنمای مرورگرهای بی‌رویداد (مرحلهٔ ۸ · فاز ۲). این مرورگرها نمی‌توانند
+ * بگویند ساکنا نصب است یا نه، پس متن **مشروط** است و دکمه‌ی «نصب» ندارد —
+ * فقط «متوجه شدم».
+ */
+const GUIDE_STEPS: Record<InstallGuide, React.ReactNode> = {
+  ios: (
+    <>
+      دکمه‌ی اشتراک‌گذاری{' '}
+      <Share className="inline h-3.5 w-3.5 align-[-2px]" aria-label="اشتراک‌گذاری" /> را بزنید و
+      «Add to Home Screen» را انتخاب کنید.
+    </>
+  ),
+  'macos-safari': <>از منوی File گزینه‌ی «Add to Dock» را انتخاب کنید.</>,
+  'firefox-android': <>از منوی ⋮ گزینه‌ی «Install» یا «Add to Home screen» را انتخاب کنید.</>,
+}
+
 export default function InstallPromptCard({
   placement,
-  ios,
+  guide,
   onInstall,
   onDismiss,
 }: {
   placement: 'public' | 'public-bare' | 'dashboard'
-  ios: boolean
+  /** `null`: مرورگر خودش پیشنهاد داده (نصب نیست، قطعی) — دکمه‌ی «نصب» */
+  guide: InstallGuide | null
   onInstall: () => void
   onDismiss: () => void
 }) {
@@ -56,17 +75,18 @@ export default function InstallPromptCard({
           style={{ backgroundColor: 'var(--tone-brand-bg)', color: 'var(--tone-brand-fg)' }}
           aria-hidden
         >
-          {ios ? <Share className="h-4 w-4" /> : <Download className="h-4 w-4" />}
+          {guide ? <Share className="h-4 w-4" /> : <Download className="h-4 w-4" />}
         </span>
 
         <div className="min-w-0 flex-1">
-          <p className="text-sm font-semibold">نصبِ اپلیکیشنِ ساکنا</p>
+          <p className="text-sm font-semibold">
+            {guide ? 'ساکنا را نصب کنید' : 'نصبِ اپلیکیشنِ ساکنا'}
+          </p>
 
-          {ios ? (
+          {guide ? (
             <p className="mt-1 text-xs leading-6" style={{ color: 'var(--text-secondary)' }}>
-              در نوارِ مرورگر دکمه‌ی «اشتراک‌گذاری»{' '}
-              <Share className="inline h-3.5 w-3.5 align-[-2px]" aria-label="اشتراک‌گذاری" /> را
-              بزنید و «Add to Home Screen» (افزودن به صفحه‌ی اصلی) را انتخاب کنید.
+              {/* مشروط: این مرورگرها نمی‌توانند بگویند نصب است یا نه */}
+              اگر هنوز نصبش نکرده‌اید: {GUIDE_STEPS[guide]}
             </p>
           ) : (
             <p className="mt-1 text-xs leading-6" style={{ color: 'var(--text-secondary)' }}>
@@ -77,11 +97,11 @@ export default function InstallPromptCard({
 
           <button
             type="button"
-            onClick={ios ? onDismiss : onInstall}
+            onClick={guide ? onDismiss : onInstall}
             className="mt-3 rounded-lg px-3 py-1.5 text-xs font-semibold"
             style={{ backgroundColor: 'var(--tone-brand-fg)', color: 'var(--text-on-brand)' }}
           >
-            {ios ? 'متوجه شدم' : 'نصب'}
+            {guide ? 'متوجه شدم' : 'نصب'}
           </button>
         </div>
 

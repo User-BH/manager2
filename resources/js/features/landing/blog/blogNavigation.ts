@@ -358,6 +358,12 @@ export function initBlogNavigation(main: HTMLElement, options: BlogNavigationOpt
   document.addEventListener('click', onClick)
   document.addEventListener('submit', onSubmit)
   window.addEventListener('popstate', onPopState)
+  /*
+   * از این لحظه کلیک‌ها بی‌بارگذاری‌اند. پیش از آن (اسکریپت هنوز نرسیده)
+   * پیوندها ناوبریِ معمولی‌اند — همان پس‌رفتِ درست؛ E2E با همین نشانه
+   * می‌داند کی کلیک کند (مرحلهٔ ۸ · فاز ۲: یک اجرای سرد پیش از آن کلیک کرد).
+   */
+  main.dataset.blogEnhanced = ''
 
   return {
     navigate,
@@ -365,6 +371,7 @@ export function initBlogNavigation(main: HTMLElement, options: BlogNavigationOpt
       document.removeEventListener('click', onClick)
       document.removeEventListener('submit', onSubmit)
       window.removeEventListener('popstate', onPopState)
+      delete main.dataset.blogEnhanced
       controller?.abort()
     },
   }

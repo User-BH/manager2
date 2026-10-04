@@ -377,4 +377,83 @@ describe('پیشنهادِ نصب', () => {
     })
     expect(screen.queryByTestId('install-prompt')).toBeNull()
   })
+
+  /* ── مرحلهٔ ۸ · فاز ۲: تکرار، متنِ مشروط، نصب در همین صفحه ─────────────── */
+
+  it('بی‌بستن هم با بارگذاریِ دوباره برنمی‌گردد (هر بارگذاری مزاحم نمی‌شود)', () => {
+    const first = render(<InstallPrompt />)
+    fireInstallEvent()
+    act(() => {
+      vi.advanceTimersByTime(1600)
+    })
+    expect(screen.getByTestId('install-prompt')).toBeInTheDocument()
+    first.unmount()
+
+    // «بارگذاریِ دوباره»: همان مرورگر، همان رویداد، کارت نه
+    render(<InstallPrompt />)
+    fireInstallEvent()
+    act(() => {
+      vi.advanceTimersByTime(5000)
+    })
+    expect(screen.queryByTestId('install-prompt')).toBeNull()
+  })
+
+  it('نصب در همین صفحه تمام شد (appinstalled): کارت می‌رود و دیگر برنمی‌گردد', async () => {
+    render(<InstallPrompt />)
+    fireInstallEvent()
+    act(() => {
+      vi.advanceTimersByTime(1600)
+    })
+    expect(screen.getByTestId('install-prompt')).toBeInTheDocument()
+
+    act(() => {
+      window.dispatchEvent(new Event('appinstalled'))
+    })
+    vi.useRealTimers()
+    await waitFor(() => expect(screen.queryByTestId('install-prompt')).toBeNull())
+    expect(JSON.parse(localStorage.getItem('sakena:install-state') ?? '{}')).toMatchObject({
+      installedSeen: true,
+    })
+  })
+
+  it('رویدادِ مرورگر یعنی «نصب نیست»: نشانه‌ی کهنه‌ی «نصب‌شده» پاک می‌شود (اپ حذف شده بود)', () => {
+    localStorage.setItem('sakena:install-state', JSON.stringify({ installedSeen: true }))
+    render(<InstallPrompt />)
+    fireInstallEvent()
+
+    expect(JSON.parse(localStorage.getItem('sakena:install-state') ?? '{}')).not.toHaveProperty(
+      'installedSeen',
+    )
+  })
+
+  it('راهنما (iOS) مشروط است: «اگر هنوز نصب نکرده‌اید» — سافاری نمی‌تواند بداند', async () => {
+    pretendIos(false)
+    render(<InstallPrompt />)
+    act(() => {
+      vi.advanceTimersByTime(4100)
+    })
+    vi.useRealTimers()
+
+    const card = await screen.findByTestId('install-prompt')
+    expect(card).toHaveTextContent('اگر هنوز نصبش نکرده‌اید')
+    expect(within(card).getByRole('button', { name: 'متوجه شدم' })).toBeInTheDocument()
+  })
+
+  it('سافاریِ مک: راهنمای «Add to Dock»، بی‌دکمه‌ی ساختگیِ نصب', async () => {
+    Object.defineProperty(window.navigator, 'userAgent', {
+      configurable: true,
+      value:
+        'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.4 Safari/605.1.15',
+    })
+    render(<InstallPrompt />)
+    act(() => {
+      vi.advanceTimersByTime(4100)
+    })
+    vi.useRealTimers()
+
+    const card = await screen.findByTestId('install-prompt')
+    expect(card).toHaveTextContent('Add to Dock')
+    expect(card).toHaveTextContent('اگر هنوز نصبش نکرده‌اید')
+    expect(within(card).queryByRole('button', { name: 'نصب' })).toBeNull()
+  })
 })

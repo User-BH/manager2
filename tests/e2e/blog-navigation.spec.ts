@@ -30,6 +30,8 @@ async function secondPageCount(page: Page, q?: string): Promise<number> {
 }
 
 async function mark(page: Page) {
+  // ⚠️ کلیک پیش از سوارشدنِ ناوبری ناوبریِ معمولی است (پس‌رفتِ درست)، نه باگ
+  await expect(page.locator('main[data-blog-enhanced]')).toBeAttached()
   await page.evaluate(
     () => ((window as unknown as { __sameDocument: boolean }).__sameDocument = true),
   )

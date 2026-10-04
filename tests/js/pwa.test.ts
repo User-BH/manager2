@@ -17,7 +17,7 @@ import {
   registerServiceWorker,
   serviceWorkerSupported,
 } from '@/shared/pwa/registerServiceWorker'
-import { isInstalled } from '@/shared/pwa/useInstallPrompt'
+import { runningInstalled as isInstalled } from '@/shared/pwa/installState'
 
 /**
  * ثبتِ service worker و تشخیصِ نصب (R35).

@@ -107,6 +107,17 @@ describe('نگاشتِ آدرس به API', () => {
   })
 })
 
+describe('سوارشدن', () => {
+  it('نشانه‌ی «بی‌بارگذاری فعال است» با سوارشدن می‌آید و با برداشتن می‌رود', () => {
+    expect(main.hasAttribute('data-blog-enhanced')).toBe(false)
+    const nav = setup(vi.fn())
+    expect(main.hasAttribute('data-blog-enhanced')).toBe(true)
+    nav.destroy()
+    destroy = null
+    expect(main.hasAttribute('data-blog-enhanced')).toBe(false)
+  })
+})
+
 describe('کلیک', () => {
   it('کارت بی‌بارگذاری باز می‌شود: بدنه، عنوان، آدرس و فوکوس عوض می‌شوند', async () => {
     const fetchImpl = vi.fn(() => json(response('article', '/blog/a', 'مقاله‌ی الف')))
