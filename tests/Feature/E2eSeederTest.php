@@ -2,6 +2,9 @@
 
 namespace Tests\Feature;
 
+use App\Enums\AccountState;
+use App\Models\Complex;
+use App\Models\ComplexInvitation;
 use App\Models\User;
 use App\Services\Wallet\WalletService;
 use Database\Seeders\DemoSeeder;
@@ -82,5 +85,48 @@ class E2eSeederTest extends TestCase
 
         $this->assertSame(['chromium', 'firefox', 'webkit'], $pairs[1]);
         $this->assertSame(E2eSeeder::OWNERS, $pairs[2]);
+    }
+
+    /**
+     * ثبت‌نام‌کننده‌های سفرِ مرورگر (مرحلهٔ ۸ · فاز ۱): بی‌مجتمع ساخته می‌شوند، و
+     * اجرای دوباره — پس از آن‌که سفر عضوشان کرد — دوباره بی‌مجتمع و بی‌دعوتشان می‌کند.
+     */
+    public function test_registrants_start_and_restart_without_a_complex(): void
+    {
+        $this->seed(DemoSeeder::class);
+        $this->seed(E2eSeeder::class);
+
+        $phone = E2eSeeder::REGISTRANTS[0];
+        $user = User::withoutGlobalScopes()->where('phone', $phone)->firstOrFail();
+        $this->assertSame(AccountState::Initial, AccountState::of($user));
+
+        // همان چیزی که سفر انجام می‌دهد: دعوت، پذیرش، واحد
+        $complex = Complex::query()->firstOrFail();
+        $unit = $complex->units()->withoutGlobalScopes()->firstOrFail();
+        ComplexInvitation::withoutGlobalScopes()->create([
+            'complex_id' => $complex->id, 'user_id' => $user->id, 'unit_id' => $unit->id,
+            'role' => 'tenant', 'status' => ComplexInvitation::ACCEPTED,
+        ]);
+        $user->update(['complex_id' => $complex->id]);
+        $user->units()->withoutGlobalScopes()->attach($unit->id, ['relation' => 'tenant', 'complex_id' => $complex->id]);
+
+        $this->seed(E2eSeeder::class);
+
+        $user->refresh();
+        $this->assertSame(AccountState::Initial, AccountState::of($user));
+        $this->assertSame(0, $user->units()->withoutGlobalScopes()->count());
+        $this->assertSame(0, ComplexInvitation::withoutGlobalScopes()->where('user_id', $user->id)->count());
+    }
+
+    /** نگاشتِ موتور ← شماره در سفرِ ثبت‌نام‌کننده همان `REGISTRANTS` است */
+    public function test_the_registrants_match_the_browser_journey(): void
+    {
+        $spec = (string) file_get_contents(base_path('tests/e2e/registrant-journey.spec.ts'));
+
+        $this->assertSame(1, preg_match('/const REGISTRANTS[^{]*\{([^}]*)\}/', $spec, $block), 'نگاشتِ REGISTRANTS در آزمونِ مرورگر پیدا نشد.');
+        preg_match_all("/(chromium|firefox|webkit):\\s*'(\\d+)'/", $block[1], $pairs);
+
+        $this->assertSame(['chromium', 'firefox', 'webkit'], $pairs[1]);
+        $this->assertSame(E2eSeeder::REGISTRANTS, $pairs[2]);
     }
 }

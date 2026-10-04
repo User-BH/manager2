@@ -3,26 +3,30 @@ import { expect, test, type Page } from '@playwright/test'
 /**
  * سفرِ «ثبت‌نام‌کننده‌ی اولیه» (مرحلهٔ ۸ · فاز ۱).
  *
- * ثبت‌نام → داشبوردِ جدای خودش → مدیر او را به واحد اضافه می‌کند → دعوت را
- * می‌پذیرد → داشبوردِ واحد. خواستِ کارفرما این است که این حالت فقط یک صفحه‌ی
- * نمایشیِ فرانت نباشد؛ پس هر گام از سرورِ واقعی می‌گذرد: ثبت‌نام با کد،
- * افزودن با همان API ِ فرمِ مدیر (`POST /residents` که برای حسابِ موجود دعوت
- * می‌سازد، نه وصلِ بی‌اجازه)، و پذیرش با کلیک در رابط.
+ * ثبت‌نام‌کرده → داشبوردِ جدای خودش → مدیر او را به واحد اضافه می‌کند → دعوت
+ * را می‌پذیرد → داشبوردِ واحد. خواستِ کارفرما این است که این حالت فقط یک
+ * صفحه‌ی نمایشیِ فرانت نباشد؛ پس هر گام از سرورِ واقعی می‌گذرد: افزودن با همان
+ * API ِ فرمِ مدیر (`POST /residents` که برای حسابِ موجود دعوت می‌سازد، نه وصلِ
+ * بی‌اجازه)، و پذیرش با کلیک در رابط.
  *
- * ثبت‌نام این‌جا با API است: فرمش در `management-journey` با کلیک و تایپ
- * پوشش دارد.
+ * 🔴 حساب از `E2eSeeder::REGISTRANTS` می‌آید، نه از API ِ ثبت‌نام: سقفِ
+ * `register` پنج در ساعت برای هر IP است، `management-journey` سه تا را
+ * می‌خورد و در CI ششمی ۴۲۹ گرفت. فرمِ ثبت‌نام همان‌جا پوشش دارد.
  *
- * ⚠️ هر موتور و هر اجرا شماره‌ی خودش را دارد: پس از پذیرش، حساب دیگر اولیه
- * نیست و اجرای دوباره روی همان پایگاه‌داده شماره‌ی تازه می‌خواهد.
- * پیش‌نیاز: `DemoSeeder`، `otp_disabled`، `APP_ENV=local`، `SMS_DRIVER=log`.
+ * ⚠️ پس از پذیرش حساب دیگر اولیه نیست؛ اجرای دوباره‌ی `E2eSeeder` آن را
+ * برمی‌گرداند. پیش‌نیاز: `DemoSeeder`، `E2eSeeder`، `otp_disabled`.
  */
 
-const ENGINE: Record<string, string> = { chromium: '1', firefox: '2', webkit: '3' }
-const RUN = String(Date.now()).slice(-6)
-const PASSWORD = 'Secret123x'
+/** همان `E2eSeeder::REGISTRANTS` */
+const REGISTRANTS: Record<string, string> = {
+  chromium: '09120000021',
+  firefox: '09120000022',
+  webkit: '09120000023',
+}
+const PASSWORD = 'password'
 const NOT_A_MEMBER = 'ثبت‌نام شما کامل است؛ هنوز عضو هیچ مجتمعی نیستید'
 
-const phoneFor = (project: string) => `0937${RUN}${ENGINE[project] ?? '9'}`
+const phoneFor = (project: string) => REGISTRANTS[project] ?? REGISTRANTS.chromium
 
 async function call(
   page: Page,
@@ -63,21 +67,8 @@ async function signIn(page: Page, phone: string, password: string) {
 test.describe.configure({ mode: 'serial' })
 
 test.describe('ثبت‌نام‌کننده‌ی اولیه', () => {
-  test('ثبت‌نام می‌کند و داشبوردِ جدای خودش را می‌گیرد', async ({ page }, testInfo) => {
+  test('داشبوردِ جدای خودش را می‌گیرد، نه پوسته‌ی ساکن', async ({ page }, testInfo) => {
     const phone = phoneFor(testInfo.project.name)
-
-    await page.goto('/auth')
-    const sent = await call(page, 'POST', '/api/register', {
-      name: 'ثبت‌نام‌کننده‌ی سرتاسری',
-      phone,
-      password: PASSWORD,
-      password_confirmation: PASSWORD,
-      accept_terms: true,
-    })
-    expect(sent.status, JSON.stringify(sent.json)).toBe(200)
-    expect(sent.json.dev_code, 'کدِ آزمایشی نیامد؛ APP_ENV=local و SMS_DRIVER=log').toBeTruthy()
-    const verified = await call(page, 'POST', '/api/register/verify', { code: sent.json.dev_code })
-    expect(verified.status).toBeLessThan(300)
 
     await signIn(page, phone, PASSWORD)
     await page.goto('/dashboard')
@@ -123,7 +114,8 @@ test.describe('ثبت‌نام‌کننده‌ی اولیه', () => {
       phone,
       role: 'tenant',
       unit_id: unit!.id,
-      password: PASSWORD,
+      // فرم رمز می‌خواهد؛ برای حسابِ موجود به کار نمی‌رود (دعوت ساخته می‌شود)
+      password: 'Secret123x',
     })
     // حسابِ موجود دعوت می‌گیرد (۲۰۲)، نه وصلِ بی‌اجازه
     expect(added.status, JSON.stringify(added.json)).toBe(202)
