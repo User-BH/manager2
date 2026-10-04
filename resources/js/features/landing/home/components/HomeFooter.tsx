@@ -40,13 +40,9 @@ function telHref(phone: string): string {
   return 'tel:' + toAsciiDigits(phone).replace(/[^\d+]/g, '')
 }
 
-/**
- * `page`: روی صفحه‌ای جز خانه (بلاگ، فاز ۱۱) پیوندهای «بخش‌های همین صفحه»
- * جایی ندارند که به آن اسکرول کنند؛ همان قاعده‌ی سرصفحه — نشان داده نمی‌شوند.
- */
-export function HomeFooter({ page = 'home' }: { page?: 'home' | 'blog' } = {}) {
+/** فوترِ صفحه‌ی اصلی — فقط همان‌جا (بلاگ از مرحلهٔ ۸ · فاز ۱ فوتر ندارد). */
+export function HomeFooter() {
   const authenticated = isViewerAuthenticated()
-  const onHome = page === 'home'
 
   // تماس و شبکه‌ها از پنلِ مدیرِ کل می‌آیند؛ تا رسیدنشان، پیش‌فرض (مرحلهٔ ۷ · فاز ۴: مشترک با پشتیبانی)
   const { contact, social } = useSiteContent()
@@ -57,10 +53,12 @@ export function HomeFooter({ page = 'home' }: { page?: 'home' | 'blog' } = {}) {
       style={{ borderColor: 'var(--border-subtle)', backgroundColor: 'var(--surface-base)' }}
     >
       {/*
-        `pb-24` (فاز ۵): دکمه‌های شناورِ پایین‌راست (دستیار و «بالا») ثابت‌اند؛
-        با `py-14` آخرین سطرِ فوتر حتی در انتهای صفحه زیرِ آن‌ها می‌ماند.
+        فاصله‌ی پایین (مرحلهٔ ۸ · فاز ۱): ‎۹۶px ِ خالیِ زیرِ ردیفِ آخر (فاز ۵) برای
+        این بود که دکمه‌های ثابتِ پایین‌راست (دستیار و «بالا») روی متن نیفتند.
+        حالا خودِ ردیفِ آخر از ستونِ آن دکمه‌ها کنار می‌رود (پایین‌تر)، پس
+        فاصله‌ی پایین در همه‌ی عرض‌ها کوتاه است.
       */}
-      <div className="mx-auto max-w-6xl px-4 pt-14 pb-24 sm:px-6" dir="rtl">
+      <div className="mx-auto max-w-6xl px-4 pt-14 pb-7 sm:px-6" dir="rtl">
         {/*
           ─── چیدمانِ ریسپانسیو (مرحلهٔ ۷ · فاز ۵) ─────────────────────────
           پیش از این زیرِ ‎۱۰۲۴ همه‌چیز تک‌ستونی می‌شد: ‎۱۰۷۰px ارتفاع در
@@ -135,15 +133,11 @@ export function HomeFooter({ page = 'home' }: { page?: 'home' | 'blog' } = {}) {
           <FooterLinkGroup
             title="دسترسی سریع"
             links={[
-              ...(onHome
-                ? [
-                    { label: 'ویژگی‌ها', section: 'features' },
-                    { label: PANEL_TOUR.name, section: PANEL_TOUR.id },
-                    { label: 'نظرات کاربران', section: 'testimonials' },
-                  ]
-                : [{ label: 'صفحه‌ی اصلی', to: '/' }]),
+              { label: 'ویژگی‌ها', section: 'features' },
+              { label: PANEL_TOUR.name, section: PANEL_TOUR.id },
+              { label: 'نظرات کاربران', section: 'testimonials' },
               { label: 'مشاهده دمو', to: '/demo' },
-              ...(isBlogEnabled() && page !== 'blog' ? [{ label: 'بلاگ', to: '/blog' }] : []),
+              ...(isBlogEnabled() ? [{ label: 'بلاگ', to: '/blog' }] : []),
               authenticated
                 ? { label: 'ورود به داشبورد', to: '/dashboard' }
                 : { label: 'ورود به پنل', to: '/auth' },
@@ -243,11 +237,16 @@ export function HomeFooter({ page = 'home' }: { page?: 'home' | 'blog' } = {}) {
 
         {/*
           ردیفِ پایین (فاز ۵): دو جمله کنارِ هم — کپی‌رایت در راست، دیگری در چپ.
-          پیش از این هر دو در یک ستون روی هم می‌افتادند و نیمه‌ی دیگرِ ردیف
-          جای اینماد بود. روی موبایل باز هم زیرِ هم و وسط‌چین.
+          روی موبایل زیرِ هم و وسط‌چین.
+
+          حاشیه‌ی دوطرفه (مرحلهٔ ۸ · فاز ۱): دکمه‌ی دستیار از لبه‌ی راست تا
+          ‎۷۶px را می‌گیرد و «بالا» تا ‎۶۴px. موبایل: ‎۱۶+۶۴=‎۸۰px. ‎۶۴۰ تا ‎۱۲۸۰:
+          ‎۲۴+۵۶=‎۸۰px. از ‎۱۲۸۰ لبه‌ی محتوا خودش ‎۸۸px دور است. دوطرفه تا متنِ
+          وسط‌چین وسط بماند. سنجش: E2E ِ `responsive.spec.ts` در همه‌ی عرض‌ها.
         */}
         <div
-          className="mt-10 flex flex-col items-center gap-2 border-t pt-6 text-center text-xs sm:flex-row sm:justify-between sm:text-start"
+          className="mt-10 flex flex-col items-center gap-1.5 border-t px-16 pt-5 text-center text-xs leading-5 sm:flex-row sm:justify-between sm:px-14 sm:text-start xl:px-0"
+          data-footer-bottom
           style={{ borderColor: 'var(--border-subtle)', color: 'var(--text-tertiary)' }}
         >
           <p>

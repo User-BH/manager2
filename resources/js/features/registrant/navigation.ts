@@ -1,0 +1,15 @@
+import { Bell, LayoutDashboard, UserRound, WalletCards } from 'lucide-react'
+
+/**
+ * منوی تجربه‌ی «ثبت‌نام‌کننده‌ی اولیه» (مرحلهٔ ۸ · فاز ۱).
+ *
+ * فقط صفحه‌هایی که این حالت واقعاً به کارشان دارد و همین حالا وجود دارند:
+ * داشبوردِ خودش (دعوت‌ها و دو راهِ پیوستن)، اعلان‌ها، پروفایل، و حساب — که
+ * خریدِ اشتراک، راهِ دومِ بیرون‌رفتن از این حالت، در آن است.
+ */
+export const REGISTRANT_NAV = [
+  { to: '/dashboard', label: 'داشبورد', icon: LayoutDashboard },
+  { to: '/notifications', label: 'اعلان‌ها', icon: Bell },
+  { to: '/profile', label: 'پروفایل', icon: UserRound },
+  { to: '/account', label: 'حساب و اشتراک', icon: WalletCards },
+] as const

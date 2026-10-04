@@ -69,6 +69,12 @@ fi
 
 require_php_extensions "$PHP"
 
+# دادهٔ نمونه رمزِ «password» دارد — روی سایتِ واقعی یعنی سوپرادمینِ باز.
+# خودِ DemoSeeder هم رد می‌کند؛ این‌جا پیش از هر کاری و با پیامِ روشن.
+if [ "$WITH_DEMO" = "1" ] && is_production; then
+    die "--demo روی APP_ENV=production مجاز نیست: رمزِ همه‌ی حساب‌های نمونه «password» است. برای ساختِ سوپرادمین: php artisan admin:create"
+fi
+
 # ---------------------------------------------------------------- ۳) وابستگی‌ها
 step "نصب وابستگی‌های PHP"
 if is_production; then

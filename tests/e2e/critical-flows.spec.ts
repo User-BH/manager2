@@ -51,6 +51,40 @@ test.describe('صفحه‌ی اصلی', () => {
     expect(broken).toEqual([])
   })
 
+  /*
+   * مرحلهٔ ۸ · فاز ۱ · بندِ ۲: تصویرها بی‌اینترنتِ بین‌الملل هم باید بیایند.
+   * `selfHostedImages.test.ts` منبع را می‌سنجد؛ این‌جا آنچه مرورگرِ واقعی
+   * می‌کشد — شاملِ تصویری که از دیتابیس (بنر، تنظیمات) یا CSS برسد. صفحه تا
+   * پایین پیموده می‌شود تا بخش‌ها و تصویرهای تنبل هم بار شوند.
+   */
+  test('هیچ صفحه‌ی عمومی تصویری از سایتِ دیگر نمی‌کشد', async ({ page, baseURL }) => {
+    const origin = new URL(baseURL!).origin
+    const foreign: string[] = []
+    page.on('request', (request) => {
+      if (request.resourceType() === 'image' && !request.url().startsWith('data:')) {
+        if (new URL(request.url()).origin !== origin) foreign.push(request.url())
+      }
+    })
+
+    const article = await page.request
+      .get('/api/blog', { headers: { Accept: 'application/json' } })
+      .then((r) => r.json() as Promise<{ data: { items: { slug: string }[] } }>)
+    const pages = ['/', '/support', '/demo', '/auth', '/blog']
+    if (article.data.items[0]) pages.push(`/blog/${encodeURIComponent(article.data.items[0].slug)}`)
+
+    for (const path of pages) {
+      await page.goto(path)
+      await page.waitForLoadState('networkidle')
+      for (let y = 0; y < 12000; y += 700) {
+        await page.evaluate((v) => window.scrollTo(0, v), y)
+        await page.waitForTimeout(80)
+      }
+      await page.waitForLoadState('networkidle')
+    }
+
+    expect(foreign, foreign.join('\n')).toEqual([])
+  })
+
   test('دارایی‌های عبوری از Vite با نامِ هش‌دار سرو می‌شوند', async ({ page }) => {
     await page.goto('/')
 

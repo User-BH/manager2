@@ -151,6 +151,18 @@ class BlogTest extends TestCase
 
     /* ─────────────────────────── فهرستِ مطالب و SEO ─────────────────────────── */
 
+    /** مرحلهٔ ۸ · فاز ۱ · بندِ ۲۱: فوترِ صفحه‌ی اصلی در بلاگ نیست — نه جای سوارشدن، نه خودِ فوتر */
+    public function test_the_blog_has_no_home_footer(): void
+    {
+        $post = $this->article();
+
+        foreach (['/blog', '/blog/'.rawurlencode($post->slug)] as $path) {
+            $html = $this->get($path)->assertOk()->getContent();
+            $this->assertStringNotContainsString('blog-footer', $html, $path);
+            $this->assertStringNotContainsString('<footer', $html, $path);
+        }
+    }
+
     public function test_the_table_of_contents_points_at_real_headings(): void
     {
         $post = $this->article();

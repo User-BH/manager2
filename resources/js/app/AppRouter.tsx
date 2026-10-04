@@ -3,6 +3,7 @@ import { Route, Routes, useLocation } from 'react-router-dom'
 import { Loader2 } from 'lucide-react'
 import { trackPageView } from '@/shared/lib/observability'
 import { ProtectedRoute } from './ProtectedRoute'
+import { useAuth } from '@/shared/stores/authStore'
 import type { UserRole } from '@/shared/types'
 
 /*
@@ -31,6 +32,15 @@ const ForbiddenPage = lazy(() =>
 )
 const FeedbackInboxPage = lazy(() =>
   import('@/features/system/FeedbackInboxPage').then((m) => ({ default: m.FeedbackInboxPage })),
+)
+/*
+ * تجربه‌ی جدای «ثبت‌نام‌کننده‌ی اولیه» (مرحلهٔ ۸ · فاز ۱) — روتر، پوسته و
+ * داشبوردِ خودش؛ فقط برای همان حساب‌ها بار می‌شود.
+ */
+const RegistrantRouter = lazy(() =>
+  import('./RegistrantRouter').then((m) => ({
+    default: m.RegistrantRouter,
+  })),
 )
 const NotFoundPage = lazy(() =>
   import('@/features/error/NotFoundPage').then((m) => ({ default: m.NotFoundPage })),
@@ -212,6 +222,23 @@ function TrackPageViews() {
 }
 
 export function AppRouter() {
+  const { user } = useAuth()
+
+  /*
+   * چهار تجربه، نه یک داشبورد با آیتم‌های پنهان (مرحلهٔ ۸ · فاز ۱): حسابی
+   * که به هیچ مجتمعی وصل نیست اصلاً این مسیرها را نمی‌بیند. حالت از سرور
+   * می‌آید (`accountState`، مشتق از `complex_id`) و قفلِ نوشتن هم همان‌جاست.
+   */
+  if (user?.accountState === 'initial') {
+    return (
+      <Suspense fallback={<RouteFallback />}>
+        <ScrollToTop />
+        <TrackPageViews />
+        <RegistrantRouter />
+      </Suspense>
+    )
+  }
+
   return (
     <Suspense fallback={<RouteFallback />}>
       <ScrollToTop />

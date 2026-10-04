@@ -556,6 +556,17 @@ class PhaseRegressionMapTest extends TestCase
             '🔴 مسیرِ راهنما پس از جابه‌جاییِ بی‌بارگذاری کهنه نمی‌ماند' => [
                 'BlogApiTest', 'test_the_breadcrumb_comes_along_and_matches_the_server_rendered_page', '۷',
             ],
+
+            /* ── مرحلهٔ ۸ · فاز ۱: دادهٔ نمایشی، فوتر، تصویرها ─────────────────── */
+            'چهار حسابِ داشبورد با «password» و نقشِ درست وارد می‌شوند' => [
+                'DemoSeederTest', 'test_each_of_the_four_accounts_signs_in_with_its_role', '۸',
+            ],
+            '🔴 دادهٔ نمایشی (رمزِ password) روی محصول اجرا نمی‌شود' => [
+                'DemoSeederTest', 'test_it_refuses_to_run_in_production', '۸',
+            ],
+            'بلاگ فوترِ صفحه‌ی اصلی را ندارد' => [
+                'BlogTest', 'test_the_blog_has_no_home_footer', '۸',
+            ],
             '۱۵ مقاله‌ی واقعی و اجرای دوباره‌ی بی‌اثر' => [
                 'BlogImporterTest', 'test_fifteen_real_articles_are_imported_and_a_second_run_changes_nothing', '۷',
             ],
@@ -680,10 +691,14 @@ class PhaseRegressionMapTest extends TestCase
             'termsDialog' => ['۷/۶', 'هیچ پنجره یا تبِ تازه‌ای نمی‌خواهد'],
             // مرحلهٔ ۷ · فاز ۷: ناوبریِ بی‌بارگذاریِ بلاگ — رقابت، خطا، جست‌وجوی نامعتبر
             'blogNavigation' => ['۷/۷', 'رقابت: پاسخِ دیررسیده‌ی کلیکِ اول روی کلیکِ دوم نمی‌نشیند'],
+            // مرحلهٔ ۸ · فاز ۱: هیچ تصویرِ محتوایی از سایتِ دیگر کشیده نمی‌شود
+            'selfHostedImages' => ['۸/۱', 'هیچ تصویری از سایتِ دیگری کشیده نمی‌شود'],
+            // مرحلهٔ ۸ · فاز ۱: ثبت‌نام‌کننده‌ی اولیه تجربه‌ی جدای خودش را دارد، نه پوسته‌ی ساکن
+            'registrantExperience' => ['۸/۱', 'مالِ این حالت نیست و به داشبوردِ خودش برمی‌گردد'],
         ];
 
         // 🔴 مثلِ ردیف‌های PHP، این فهرست هم فقط بزرگ می‌شود (خرابکاریِ فاز ۸)
-        $this->assertGreaterThanOrEqual(23, count($guards), 'محافظی از فهرستِ JS حذف شده.');
+        $this->assertGreaterThanOrEqual(25, count($guards), 'محافظی از فهرستِ JS حذف شده.');
 
         foreach ($guards as $file => [$phase, $marker]) {
             $path = base_path("tests/js/{$file}.test.".(file_exists(base_path("tests/js/{$file}.test.tsx")) ? 'tsx' : 'ts'));

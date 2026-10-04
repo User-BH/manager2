@@ -23,7 +23,6 @@ import { useDocumentTitle } from '@/shared/hooks'
 import { useAuth } from '@/shared/stores/authStore'
 import { formatMoney, formatNumber } from '@/shared/lib/format'
 import type { BillStatus } from '@/shared/types'
-import { InitialDashboard } from './InitialDashboard'
 import { OpenPollsCard } from './components/OpenPollsCard'
 import type { MessagePoll } from '@/shared/ui/PollCard'
 
@@ -71,22 +70,16 @@ type DashboardData = (AdminDashboard | SystemDashboard | ResidentDashboard) & Wi
 
 export function DashboardPage() {
   const { user } = useAuth()
-  const isInitial = user?.accountState === 'initial'
 
   const { data, error, isLoading, refetch } = useQuery({
     queryKey: queryKeys.dashboard.all(),
     queryFn: ({ signal }) => api<DashboardData>('/dashboard', { signal }),
-    // حالتِ اولیه به هیچ مجتمعی وصل نیست؛ این درخواست چیزی برایش ندارد
-    enabled: !isInitial,
   })
 
   useDocumentTitle('داشبورد')
 
-  /*
-   * پنجمین حالتِ داشبورد (R21): ثبت‌نام‌کرده ولی هنوز نه خریده و نه مدیری
-   * اضافه‌اش کرده. صفحه‌ی جداگانه‌ای می‌بیند که فقط می‌گوید چه کند.
-   */
-  if (isInitial) return <InitialDashboard />
+  // ثبت‌نام‌کننده‌ی اولیه به این صفحه نمی‌رسد: تجربه‌ی جدای خودش را دارد
+  // (`features/registrant`، مرحلهٔ ۸ · فاز ۱)
 
   if (isLoading) return <DashboardSkeleton />
   if (error) return <ErrorState error={error} onRetry={() => void refetch()} />

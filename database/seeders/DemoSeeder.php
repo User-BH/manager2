@@ -24,11 +24,24 @@ use App\Services\Charge\BillGenerator;
 use App\Support\Jalali;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
+use RuntimeException;
 
 class DemoSeeder extends Seeder
 {
+    /**
+     * حسابِ «ثبت‌نامِ اولیه»: همان چیزی که `AuthController::register` می‌سازد —
+     * مالکِ بی‌مجتمع که هنوز به مجتمعی نپیوسته (مرحلهٔ ۸ · فاز ۱).
+     */
+    public const FRESH_SIGNUP_PHONE = '09120000002';
+
     public function run(): void
     {
+        // رمزِ همه‌ی حساب‌های این‌جا «password» است؛ روی سایتِ واقعی یعنی
+        // سوپرادمینی که هر کسی می‌تواند واردش شود (مرحلهٔ ۸ · فاز ۱)
+        if (app()->environment('production')) {
+            throw new RuntimeException('DemoSeeder روی محصول اجرا نمی‌شود: رمزِ همه‌ی حساب‌هایش «password» است.');
+        }
+
         $period = Jalali::currentPeriod();
         $prevPeriod = Jalali::shiftPeriod($period, -1);
 
@@ -40,6 +53,17 @@ class DemoSeeder extends Seeder
             'password' => Hash::make('password'),
             'role' => UserRole::SuperAdmin,
             'is_active' => true,
+        ]);
+
+        // --- ثبت‌نامِ اولیه: بی‌مجتمع، مثلِ کسی که خودش ثبت‌نام کرده ---
+        User::create([
+            'complex_id' => null,
+            'name' => 'کاربر تازه‌ثبت‌نام',
+            'phone' => self::FRESH_SIGNUP_PHONE,
+            'password' => Hash::make('password'),
+            'role' => UserRole::Owner,
+            'is_active' => true,
+            'terms_accepted_at' => now(),
         ]);
 
         // --- Complex ---

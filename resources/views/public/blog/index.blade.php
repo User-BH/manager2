@@ -39,6 +39,5 @@
     <main id="main-content" class="blog-main" data-blog-view="listing">
         @include('public.blog._index_body')
     </main>
-
-    <div id="blog-footer"></div>
+    {{-- بی‌فوتر (مرحلهٔ ۸ · فاز ۱): فوترِ صفحه‌ی اصلی این‌جا حذف شد --}}
 @endsection

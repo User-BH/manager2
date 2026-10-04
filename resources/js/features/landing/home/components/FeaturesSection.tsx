@@ -113,8 +113,9 @@ export function FeaturesSection() {
                   <h3 className="text-[15px] font-bold" style={{ color: 'var(--text-primary)' }}>
                     {feature.title}
                   </h3>
+                  {/* دوطرفه‌چین جز در کارتِ باریک — `features-text` در app.css (مرحلهٔ ۸ · فاز ۱) */}
                   <p
-                    className="mt-2 text-[13.5px] leading-6"
+                    className="features-text mt-2 text-[13.5px] leading-6"
                     style={{ color: 'var(--text-secondary)' }}
                   >
                     {feature.description}

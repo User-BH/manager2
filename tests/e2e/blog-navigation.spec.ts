@@ -108,6 +108,8 @@ test.describe('بلاگ: صفحه‌بندی، جست‌وجو و مقاله ب�
     await expect(crumbs.getByRole('link', { name: 'بلاگ' })).toBeVisible()
 
     const article = page.locator('main article.blog-article')
+    // مرحلهٔ ۸ · فاز ۱ · بندِ ۲۱: فوترِ صفحه‌ی اصلی این‌جا نیست، حتی پس از سوارشدنِ جزیره‌ها
+    await expect(page.locator('footer')).toHaveCount(0)
     await expect(article.locator('time')).toHaveText(/^[۰-۹]{4}\/[۰-۹]{2}\/[۰-۹]{2}$/)
     await expect(article).toContainText(/[۰-۹]+ دقیقه مطالعه/)
     await expect(article.locator('img.blog-cover')).toBeVisible()

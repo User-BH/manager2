@@ -142,7 +142,8 @@ describe('توکن‌های طراحی', () => {
         'پالتِ حروفِ اول؛ رنگِ هویت است و در هر دو تم یکسان می‌ماند.',
       'shared/layout/NotificationBell.tsx': 'رنگِ سایه؛ سایه در تمِ تیره هم تیره است.',
       'features/finance/good-payers/GoodPayersPage.tsx': 'برنزِ مدال؛ معنایی است نه وضعیتی.',
-      'features/dashboard/InitialDashboard.tsx': 'فقط fallbackِ `var(--color-amber-400, #fbbf24)`.',
+      'features/registrant/RegistrantDashboardPage.tsx':
+        'فقط fallbackِ `var(--color-amber-400, #fbbf24)`.',
     }
 
     const offenders: string[] = []

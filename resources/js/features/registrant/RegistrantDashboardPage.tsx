@@ -3,26 +3,33 @@ import { useQuery } from '@tanstack/react-query'
 import { ArrowLeft, Building2, Check, PlayCircle, ShieldAlert, UserPlus, X } from 'lucide-react'
 import { api } from '@/shared/lib/api'
 import { queryKeys } from '@/shared/lib/queryKeys'
+import { useDocumentTitle } from '@/shared/hooks'
 import { useAction } from '@/shared/hooks/useAction'
 import { useAuth } from '@/shared/stores/authStore'
 import type { Invitation } from '@/shared/types'
 import { JoinByManagerPhone } from './JoinByManagerPhone'
 
 /**
- * داشبوردِ «حالتِ اولیه» — پنجمین حالتِ داشبورد (R21).
+ * داشبوردِ «ثبت‌نام‌کننده‌ی اولیه» (R21؛ از مرحلهٔ ۸ · فاز ۱ تجربه‌ی جدا با
+ * روتر و پوسته‌ی خودش — `RegistrantRouter`).
  *
  * مخاطبش کسی است که خودش ثبت‌نام کرده ولی هنوز نه خریده و نه مدیری اضافه‌اش
  * کرده. پیش از R21 چنین کسی اصلاً نمی‌توانست وارد شود و در بن‌بست می‌ماند.
  *
  * کلِ این صفحه یک کار دارد: **به او بگوید دقیقاً چه کند.** دو راه بیشتر
  * ندارد و هر دو اینجا صریح‌اند — دعوتِ مدیر را بپذیرد، یا خودش مجتمع بسازد.
+ * بقیه‌ی جزئیات را فایلِ داشبوردِ کارفرما مشخص می‌کند؛ چیزی حدسی اضافه نشد.
  */
-export function InitialDashboard() {
+export function RegistrantDashboardPage() {
   const { user } = useAuth()
+  useDocumentTitle('داشبورد')
 
   return (
     <div className="mx-auto flex max-w-3xl flex-col gap-5">
-      <DemoBanner />
+      <h1 className="text-lg font-extrabold" style={{ color: 'var(--text-primary)' }}>
+        {user?.name ? `${user.name}، خوش آمدید` : 'خوش آمدید'}
+      </h1>
+      <StatusBanner />
       <InvitationList />
       <JoinByManagerPhone />
       <NextSteps />
@@ -32,9 +39,13 @@ export function InitialDashboard() {
   )
 }
 
-/* ── بنرِ «نسخه‌ی نمایشی» ─────────────────────────────────────────────────── */
+/* ── وضعیتِ حساب ─────────────────────────────────────────────────────────── */
 
-function DemoBanner() {
+/**
+ * پیش از این عنوانش «نسخه‌ی نمایشی» بود — که این حساب نیست: حسابِ واقعی است
+ * که هنوز به مجتمعی وصل نشده. همان را صریح می‌گوید (مرحلهٔ ۸ · فاز ۱).
+ */
+function StatusBanner() {
   return (
     <div
       className="flex items-start gap-3 rounded-2xl border p-4"
@@ -51,11 +62,11 @@ function DemoBanner() {
       />
       <div>
         <p className="text-sm font-bold" style={{ color: 'var(--text-primary)' }}>
-          نسخه‌ی نمایشی
+          ثبت‌نام شما کامل است؛ هنوز عضو هیچ مجتمعی نیستید
         </p>
         <p className="mt-1 text-[13px] leading-6" style={{ color: 'var(--text-secondary)' }}>
-          حساب شما ساخته شده ولی هنوز به مجتمعی وصل نیست. تا آن زمان همه‌چیز فقط‌خواندنی است و
-          تغییری ذخیره نمی‌شود.
+          حساب شما ساخته شده ولی هنوز به هیچ مجتمع یا واحدی وصل نیست. وقتی مدیر ساختمان شما را به
+          واحدتان اضافه کند یا خودتان مجتمع بسازید، داشبورد کامل برایتان باز می‌شود.
         </p>
       </div>
     </div>

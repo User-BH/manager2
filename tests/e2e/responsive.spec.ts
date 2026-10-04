@@ -171,6 +171,88 @@ test('جای‌گیرِ بخش‌های تنبلِ صفحه‌ی اصلی هم�
   })
 })
 
+/**
+ * ردیفِ آخرِ فوتر (مرحلهٔ ۸ · فاز ۱): کوتاه، ولی زیرِ دکمه‌های ثابت نه.
+ *
+ * ‎۹۶px ِ خالیِ فاز ۵ برای دورماندن از دکمه‌ی دستیار و «بالا» بود؛ حالا
+ * خودِ ردیف از ستونِ آن دکمه‌ها کنار می‌رود. هر دو با هم سنجیده می‌شوند:
+ * فقط «فاصله کم شد» روی گوشی متن را زیرِ دکمه می‌برد، فقط «هم‌پوشانی ندارد»
+ * با همان فاصله‌ی بلندِ قبلی هم سبز بود. مستطیلِ **متن** (Range) سنجیده
+ * می‌شود، نه بلوکِ `p` که تمامِ عرض را می‌گیرد.
+ */
+test('ردیفِ آخرِ فوتر کوتاه است و هیچ‌جا زیرِ دکمه‌های ثابت نمی‌رود', async ({ page }) => {
+  await page.goto('/')
+  await page.waitForLoadState('networkidle')
+
+  for (const width of [360, 390, 600, 640, 768, 1024, 1279, 1280, 1440]) {
+    await page.setViewportSize({ width, height: 800 })
+    for (let i = 0; i < 3; i++) {
+      await page.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight))
+      await page.waitForTimeout(250)
+    }
+
+    const report = await page.evaluate(() => {
+      const row = document.querySelector('[data-footer-bottom]')!
+      const footer = row.closest('footer')!
+      const lines = [...row.querySelectorAll('p')].flatMap((p) => {
+        const range = document.createRange()
+        range.selectNodeContents(p)
+        return [...range.getClientRects()]
+      })
+      const buttons = [...document.querySelectorAll<HTMLElement>('button, a')]
+        .filter((el) => getComputedStyle(el).position === 'fixed' && el.getClientRects().length > 0)
+        .map((el) => ({
+          name: el.getAttribute('aria-label') ?? '',
+          rect: el.getBoundingClientRect(),
+        }))
+      const hits = lines.flatMap((line) =>
+        buttons
+          .filter(
+            ({ rect }) =>
+              line.right > rect.left &&
+              line.left < rect.right &&
+              line.bottom > rect.top &&
+              line.top < rect.bottom,
+          )
+          .map(({ name }) => name),
+      )
+      const gap = footer.getBoundingClientRect().bottom - Math.max(...lines.map((l) => l.bottom))
+      return { hits, gap: Math.round(gap), buttons: buttons.length }
+    })
+
+    expect(report.buttons, `${width}px: دکمه‌ی ثابتی دیده نشد`).toBeGreaterThan(0)
+    expect(report.hits, `${width}px: متنِ فوتر زیرِ ${report.hits.join('، ')}`).toEqual([])
+    expect(report.gap, `${width}px: فضای خالیِ زیرِ ردیفِ آخر`).toBeLessThanOrEqual(40)
+  }
+})
+
+/**
+ * توضیحِ کارت‌های ویژگی دوطرفه‌چین است (مرحلهٔ ۸ · فاز ۱ · بندِ ۳) — مگر
+ * کارت آن‌قدر باریک باشد که فاصله‌ی کلمه‌ها کش بیاید (‎۶۴۰–۷۶۸، دو ستون).
+ * مرزها از شبکه‌ی کارت‌ها حساب شده‌اند (app.css)؛ هر دو سوی مرزِ ‎۷۱۲ سنجیده می‌شود.
+ */
+test('توضیحِ ویژگی‌ها دوطرفه‌چین است، جز در کارتِ باریک', async ({ page }) => {
+  await page.goto('/')
+  for (const [width, expected] of [
+    [375, 'justify'],
+    [640, 'start'],
+    [700, 'start'],
+    [712, 'justify'],
+    [768, 'justify'],
+    [1280, 'justify'],
+  ] as const) {
+    await page.setViewportSize({ width, height: 900 })
+    await page.locator('#features').scrollIntoViewIfNeeded()
+    const text = page.locator('.features-text').first()
+    await expect(text).toBeAttached()
+    const { align, cardWidth } = await text.evaluate((p) => ({
+      align: getComputedStyle(p).textAlign,
+      cardWidth: Math.round(p.getBoundingClientRect().width),
+    }))
+    expect(align, `${width}px (متن ${cardWidth}px)`).toBe(expected)
+  }
+})
+
 test.describe('اندازه‌ها', () => {
   /**
    * 🔴 مهم‌ترین ادعای این فایل: هیچ صفحه‌ای نباید افقی اسکرول شود.

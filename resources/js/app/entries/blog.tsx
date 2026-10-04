@@ -4,7 +4,6 @@ import { createRoot, type Root } from 'react-dom/client'
 import { initObservability, trackPageView } from '@/shared/lib/observability'
 import { HomeNavbar } from '@/features/landing/home/components/HomeNavbar'
 import { InstallPrompt } from '@/shared/pwa/InstallPrompt'
-import { HomeFooter } from '@/features/landing/home/components/HomeFooter'
 import { ScrollProgressBar } from '@/features/landing/home/components/ScrollProgressBar'
 import { ShareButton } from '@/features/landing/blog/ShareButton'
 import { initBlogNavigation } from '@/features/landing/blog/blogNavigation'
@@ -16,7 +15,8 @@ import { initBlogNavigation } from '@/features/landing/blog/blogNavigation'
  * مقاله در HTMLِ سرورند (`public/blog/*.blade.php`). این‌جا فقط چیزهایی که
  * بدونشان هم صفحه کامل است، روی همان HTML سوار می‌شوند:
  *
- * - سرصفحه و پاصفحه‌ی مشترکِ سایت
+ * - سرصفحه‌ی مشترکِ سایت — پاصفحه‌ی صفحه‌ی اصلی به خواستِ ممیزی این‌جا
+ *   نیست (مرحلهٔ ۸ · فاز ۱)
  * - نوارِ پیشرفتِ خواندن — فقط روی صفحه‌ی مقاله
  * - دکمه‌ی اشتراک و کپیِ پیوند
  */
@@ -53,15 +53,6 @@ createRoot(document.getElementById('root')!).render(
     </MotionConfig>
   </StrictMode>,
 )
-
-const footer = document.getElementById('blog-footer')
-if (footer) {
-  createRoot(footer).render(
-    <StrictMode>
-      <HomeFooter page="blog" />
-    </StrictMode>,
-  )
-}
 
 /*
  * دکمه‌ی «کپیِ پیوند» درونِ بدنه‌ی مقاله است؛ با هر جابه‌جاییِ بی‌بارگذاری
