@@ -384,29 +384,43 @@ fix_permissions() {
              storage/framework/sessions storage/logs bootstrap/cache 2>/dev/null || true
     chmod -R ug+rwX storage bootstrap/cache 2>/dev/null || true
 
-    local web_user owner
+    local web_user foreign
     web_user="$(detect_web_user)"
-    owner="$(stat -c '%U' storage 2>/dev/null || echo '?')"
 
     if [ -z "$web_user" ]; then
         ok "مجوزها تنظیم شد (کاربر وب‌سرور تشخیص داده نشد)"
         return 0
     fi
 
-    if [ "$owner" = "$web_user" ]; then
-        ok "storage و bootstrap/cache متعلق به '$web_user' هستند"
+    # 🔴 مرحلهٔ ۸ · فاز ۳: پیش از این فقط مالکِ **خودِ** پوشه‌ی storage سنجیده
+    # می‌شد. اگر درست بود، همین‌جا برمی‌گشت — حتی وقتی artisanِ همین استقرار
+    # (با root) زیرپوشه‌ای مثلِ storage/app/private/blog را تازه ساخته بود.
+    # لاراول پوشه‌ی دیسکِ خصوصی را ۰۷۰۰ می‌سازد؛ php-fpm درونش را نمی‌دید و
+    # همه‌ی تصویرهای بلاگ ۴۰۴ می‌گرفتند. حالا هر فایل و پوشه‌ای سنجیده می‌شود.
+    # ⚠️ وضعیتِ find جدا نگه داشته می‌شود: پوشه‌ای که برای کاربرِ فعلی
+    # خواندنی نیست («Permission denied» — همان حالتِ خراب) find را با کدِ ۱
+    # می‌بندد. با `set -e` آن کلِ استقرار را همین‌جا می‌کشت، و «چیزی پیدا
+    # نشد» هم نباید «همه درست است» خوانده شود.
+    local scanned=1
+    foreign="$(find storage bootstrap/cache ! -user "$web_user" -print -quit 2>/dev/null)" || scanned=0
+    if [ -z "$foreign" ] && [ "$scanned" = "0" ]; then
+        foreign="storage (همه‌جایش خواندنی نبود)"
+    fi
+
+    if [ -z "$foreign" ]; then
+        ok "storage و bootstrap/cache (با همه‌ی زیرپوشه‌ها) متعلق به '$web_user' هستند"
         return 0
     fi
 
     if [ "$(id -u)" = "0" ]; then
         chown -R "$web_user:$web_user" storage bootstrap/cache
-        ok "مالکیت storage و bootstrap/cache از '$owner' به '$web_user' تغییر کرد"
+        ok "مالکیت storage و bootstrap/cache به '$web_user' برگشت (نمونه: $foreign)"
         return 0
     fi
 
-    # نه root هستیم و نه مالک درست است — این حالت قطعاً به خطای ۵۰۰ می‌رسد،
-    # پس نباید آن را به‌عنوان موفقیت گزارش کنیم.
-    warn "مالک storage کاربر '$owner' است، نه '$web_user' — سایت خطای ۵۰۰ می‌دهد."
+    # نه root هستیم و نه مالک درست است — بسته به اینکه کدام پوشه، از ۵۰۰ تا
+    # تصویرِ ۴۰۴؛ پس نباید آن را به‌عنوان موفقیت گزارش کنیم.
+    warn "'$foreign' متعلق به '$web_user' نیست — php-fpm ممکن است آن را نبیند (خطای ۵۰۰ یا تصویرِ ۴۰۴)."
     note "این را با دسترسی root بزنید:"
     note "  sudo chown -R ${web_user}:${web_user} '$APP_ROOT/storage' '$APP_ROOT/bootstrap/cache'"
 }

@@ -170,6 +170,35 @@ test.describe('بلاگ: صفحه‌بندی، جست‌وجو و مقاله ب�
     expect(await sameDocument(page)).toBe(true)
   })
 
+  /*
+   * مرحلهٔ ۸ · فاز ۳ · بندِ ۱۶: اگر تصویر بار نشد (مثلِ ۴۰۴ ِ سرورِ اصلی)،
+   * عنوانِ همان مقاله به‌جایش — و خطا به سامانه گزارش می‌شود تا جایگزین
+   * ریشه را پنهان نکند.
+   */
+  test('تصویرِ بار‌نشده: عنوانِ مقاله به‌جایش، و گزارش به خطاهای سامانه', async ({
+    page,
+    browserName,
+  }) => {
+    await page.route('**/blog/media/**', (route) => route.fulfill({ status: 404, body: '' }))
+    const reports: string[] = []
+    page.on('request', (request) => {
+      if (request.url().includes('/client-errors')) reports.push(request.postData() ?? '')
+    })
+
+    await page.goto('/blog')
+    // کارتِ بی‌جلد (مثلاً مقاله‌ی `blog-journey`) چیزی برای سنجیدن ندارد
+    const first = cards(page)
+      .filter({ has: page.locator('.blog-card-cover') })
+      .first()
+    const title = await first.locator('.blog-card-title').innerText()
+
+    await expect(first.locator('.blog-img-fallback')).toHaveText(title)
+    await expect(first.locator('img.is-broken')).toBeHidden()
+    await expect.poll(() => reports.length).toBeGreaterThan(0)
+    // ⚠️ بدنه‌ی sendBeacon را Playwright فقط در کرومیوم نشان می‌دهد
+    if (browserName === 'chromium') expect(reports.join(' ')).toContain('/blog/media/')
+  })
+
   test.describe('موبایل', () => {
     test.use({ viewport: { width: 390, height: 844 } })
 

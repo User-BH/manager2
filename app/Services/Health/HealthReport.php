@@ -2,6 +2,7 @@
 
 namespace App\Services\Health;
 
+use App\Models\BlogPost;
 use App\Support\EnvironmentGuard;
 use App\Support\PrivateFiles;
 use Illuminate\Support\Facades\Cache;
@@ -83,6 +84,7 @@ class HealthReport
             'queue' => $this->queue(),
             'scheduler' => $this->scheduler(),
             'config' => $this->configuration(),
+            'blog_media' => $this->blogMedia(),
         ];
 
         return [
@@ -280,6 +282,42 @@ class HealthReport
             return $violations === []
                 ? ['status' => self::OK, 'detail' => 'سالم است']
                 : ['status' => self::DEGRADED, 'detail' => implode('؛ ', $violations)];
+        }, self::DEGRADED);
+    }
+
+    /**
+     * تصویرهای بلاگ را **همین فرایندِ وب** می‌بیند؟ (مرحلهٔ ۸ · فاز ۳ · بندِ ۱۶)
+     *
+     * 🔴 روی سرورِ اصلی جلدِ همه‌ی مقاله‌ها ۴۰۴ می‌داد و پاسخ از خودِ لاراول بود:
+     * `exists()` ِ دیسکِ خصوصی برای کاربرِ php-fpm «نه» می‌گفت. محتمل‌ترین ریشه
+     * (با کد، بی‌دسترسی به سرور): `blog:import` ِ استقرار با کاربرِ دیگری
+     * (root) پوشه‌ی `blog/` را با دسترسیِ ۰۷۰۰ ساخت و `fix_permissions` چون
+     * مالکِ خودِ `storage` درست بود، زیرپوشه‌ها را نگشت. از خطِ فرمان همه‌چیز
+     * سالم دیده می‌شد؛ پس این سنجه از درونِ وب است — همان‌جا که خراب بود.
+     *
+     * فقط `degraded`: بی‌تصویرِ بلاگ سایت کار می‌کند.
+     *
+     * @return array<string, mixed>
+     */
+    private function blogMedia(): array
+    {
+        return $this->timed(function (): array {
+            $covers = BlogPost::visible()
+                ->whereNotNull('cover_path')
+                ->orderByDesc('published_at')
+                ->limit(50)
+                ->pluck('cover_path');
+
+            if ($covers->isEmpty()) {
+                return ['status' => self::OK, 'detail' => 'مقاله‌ی منتشرشده‌ای با جلد نیست'];
+            }
+
+            $disk = PrivateFiles::disk();
+            $missing = $covers->reject(fn (string $path) => $disk->exists($path))->count();
+
+            return $missing === 0
+                ? ['status' => self::OK, 'detail' => "{$covers->count()} جلد برای وب خواندنی است"]
+                : ['status' => self::DEGRADED, 'detail' => "{$missing} از {$covers->count()} جلدِ مقاله برای فرایندِ وب دیده نمی‌شود — مالکیت و دسترسیِ storage/app/private/blog را بررسی کنید، سپس php artisan blog:import"];
         }, self::DEGRADED);
     }
 }

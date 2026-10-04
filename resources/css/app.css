@@ -510,6 +510,36 @@ button:disabled {
     background: var(--social-hover-bg);
 }
 
+/* تصویرِ بلاگی که بار نشد (مرحلهٔ ۸ · فاز ۳): همان متنی که تصویر می‌گفت، در
+   همان قاب — نه جعبه‌ی خالی. ریشه جای دیگری بسته شده؛ این فقط پس‌رفت است. */
+/* ⚠️ `.blog-main` لازم است: `.blog-card-cover img` پایین‌ترِ همین فایل همان
+   وزن را دارد و display را برمی‌گرداند — E2E ِ مرورگرِ واقعی گرفتش. */
+.blog-main img.is-broken {
+    display: none;
+}
+
+.blog-img-fallback {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    aspect-ratio: 1200 / 630;
+    padding: 1rem 1.25rem;
+    border-radius: inherit;
+    background: linear-gradient(135deg, var(--tone-brand-bg), var(--surface-sunken));
+    color: var(--text-secondary);
+    font-size: 0.875rem;
+    font-weight: 600;
+    line-height: 1.8;
+    text-align: center;
+}
+
+/* در کارتِ پهن، قابِ جلد بلندتر از ۱۲۰۰:۶۳۰ است (به بلندیِ کارت) */
+.blog-card-cover .blog-img-fallback {
+    aspect-ratio: auto;
+    height: 100%;
+}
+
 /* توضیحِ کارت‌های ویژگی (مرحلهٔ ۸ · فاز ۱): دوطرفه‌چین، مگر سطر آن‌قدر کوتاه
    باشد (زیرِ ‎۲۸۰px) که فاصله‌ی کلمه‌ها کش بیاید. پهنای متن از شبکه‌ی کارت‌ها:
      تک‌ستونی (زیرِ ‎۶۴۰):  عرض − ‎۷۲  → از ‎۳۵۲px به بالا ‎≥۲۸۰

@@ -111,27 +111,75 @@ class PublicBlog
      *
      * @return array<int, array<string, mixed>>
      */
+    /**
+     * مقاله‌های **واقعاً** مرتبط (مرحلهٔ ۸ · فاز ۳ · بندِ ۲۰).
+     *
+     * امتیاز از داده‌ی خودِ مقاله: ۳ برای هر برچسبِ مشترک، ۲ برای همان دسته، و
+     * ۱ برای هر کلیدواژه‌ی مشترکِ عنوان (تا ۲). فقط امتیازِ مثبت — پیش از این
+     * وقتی چیزی مرتبط نبود، تازه‌ترین‌ها با برچسبِ «مرتبط» پر می‌شدند. برابرها
+     * با تاریخ و بعد شناسه، پس ترتیب بینِ درخواست‌ها ثابت است. اگر هیچ نبود،
+     * `latest()` با عنوانِ دیگری جایش می‌آید (`BlogPages`).
+     *
+     * @return list<array<string, mixed>>
+     */
     public function related(int $postId, ?int $categoryId, int $limit = 3): array
     {
         return BlogCache::remember("related:{$postId}", function () use ($postId, $categoryId, $limit): array {
-            $tagIds = BlogPost::find($postId)?->tags()->pluck('blog_tags.id')->all() ?? [];
+            $current = BlogPost::with('tags')->find($postId);
+            $tagIds = $current?->tags->pluck('id')->all() ?? [];
+            $keywords = self::keywords((string) $current?->title);
 
             return BlogPost::visible()
                 ->with(['category', 'tags'])
                 ->whereKeyNot($postId)
                 ->orderByDesc('published_at')
+                ->orderByDesc('id')
                 ->get()
                 ->map(fn (BlogPost $post) => [
                     'post' => $post,
-                    'score' => 2 * $post->tags->whereIn('id', $tagIds)->count()
-                        + ($categoryId !== null && $post->category_id === $categoryId ? 1 : 0),
+                    'score' => 3 * $post->tags->whereIn('id', $tagIds)->count()
+                        + ($categoryId !== null && $post->category_id === $categoryId ? 2 : 0)
+                        + min(2, count(array_intersect(self::keywords($post->title), $keywords))),
                 ])
-                ->sortByDesc('score') // پایدار است: برابرها همان ترتیبِ تازگی را نگه می‌دارند
+                ->filter(fn (array $row) => $row['score'] > 0)
+                ->sortByDesc('score') // پایدار است: برابرها همان ترتیبِ تازگی و شناسه را نگه می‌دارند
                 ->take($limit)
                 ->map(fn (array $row) => $this->card($row['post']))
                 ->values()
                 ->all();
         });
+    }
+
+    /**
+     * تازه‌ترین مقاله‌ها جز این یکی — جای «مرتبط» وقتی هیچ مقاله‌ی مرتبطی نیست.
+     *
+     * @return list<array<string, mixed>>
+     */
+    public function latest(int $exceptId, int $limit = 3): array
+    {
+        return BlogCache::remember("latest-except:{$exceptId}", fn (): array => BlogPost::visible()
+            ->with('category')
+            ->whereKeyNot($exceptId)
+            ->orderByDesc('published_at')
+            ->orderByDesc('id')
+            ->limit($limit)
+            ->get()
+            ->map(fn (BlogPost $post) => $this->card($post))
+            ->all());
+    }
+
+    /** واژه‌های معنادارِ عنوان: نرمال، سه‌حرف به بالا، بی‌واژه‌های پرتکرار */
+    private const STOPWORDS = ['برای', 'بدون', 'چطور', 'چرا', 'کنیم', 'کنید', 'است', 'آیا', 'کجا', 'نباید', 'باید', 'دارد', 'همه', 'واقعا'];
+
+    /** @return list<string> */
+    public static function keywords(string $title): array
+    {
+        $words = preg_split('/[^\p{L}\p{N}\x{200C}]+/u', PersianText::normalize($title)) ?: [];
+
+        return array_values(array_unique(array_filter(
+            $words,
+            fn (string $w) => mb_strlen($w) >= 3 && ! in_array($w, self::STOPWORDS, true),
+        )));
     }
 
     public function categories(): array
@@ -151,6 +199,7 @@ class PublicBlog
     {
         return BlogPost::visible()
             ->orderByDesc('published_at')
+            ->orderByDesc('id')
             ->get(['slug', 'updated_at'])
             ->map(fn (BlogPost $post) => [
                 'loc' => '/blog/'.rawurlencode($post->slug),

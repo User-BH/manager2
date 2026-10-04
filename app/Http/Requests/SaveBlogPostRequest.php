@@ -26,7 +26,19 @@ class SaveBlogPostRequest extends FormRequest
             'title' => ['required', 'string', 'max:200'],
             'slug' => ['nullable', 'string', 'max:180', 'regex:/^[\p{L}\p{N}-]+$/u'],
             'excerpt' => ['nullable', 'string', 'max:400'],
-            'body' => ['required', 'string', 'max:200000'],
+            'body' => [
+                'required', 'string', 'max:200000',
+                /*
+                 * هر تصویرِ متن متنِ جایگزین می‌خواهد (مرحلهٔ ۸ · فاز ۳): صفحه‌خوان
+                 * و موتورِ جست‌وجو تصویر را با همین می‌شناسند، و اگر تصویر بار
+                 * نشود همین به‌جایش نشان داده می‌شود.
+                 */
+                function (string $attribute, mixed $value, \Closure $fail): void {
+                    if (is_string($value) && preg_match('/!\[\s*\]\(/u', $value)) {
+                        $fail('هر تصویرِ متن باید توضیح داشته باشد: ![توضیحِ تصویر](نشانی)');
+                    }
+                },
+            ],
             'category_id' => ['nullable', 'integer', Rule::exists('blog_categories', 'id')],
             'tags' => ['nullable', 'array', 'max:10'],
             'tags.*' => ['string', 'max:50'],

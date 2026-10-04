@@ -48,20 +48,41 @@ class BlogImporter
         return resource_path('content/blog');
     }
 
+    /** تصویرهایی که در همین اجرا دوباره روی دیسک نوشته شدند */
+    private int $restored = 0;
+
     /**
-     * @return array{created: list<string>, updated: list<string>, skipped: list<string>}
+     * @return array{created: list<string>, updated: list<string>, skipped: list<string>, deleted: list<string>, restored: int}
      */
     public function import(bool $force = false): array
     {
-        $report = ['created' => [], 'updated' => [], 'skipped' => []];
+        $report = ['created' => [], 'updated' => [], 'skipped' => [], 'deleted' => [], 'restored' => 0];
+        $this->restored = 0;
         $files = glob($this->directory().'/*.md') ?: [];
         sort($files);
+        $deleted = BlogDeleter::deletedSlugs();
 
         foreach ($files as $file) {
             $article = $this->parse($file);
+
+            // عمداً حذف‌شده (پنل یا `blog:delete`) — حتی با `--force` برنمی‌گردد
+            if (in_array($article['slug'], $deleted, true)) {
+                $report['deleted'][] = $article['slug'];
+
+                continue;
+            }
+
             $existing = BlogPost::where('slug', $article['slug'])->first();
 
             if ($existing !== null && ! $force) {
+                /*
+                 * 🔴 مرحلهٔ ۸ · فاز ۳: مقاله‌ی موجود دست نمی‌خورد، ولی تصویرهایش
+                 * **بررسی و ترمیم** می‌شوند. پیش از این تصویر فقط هنگامِ ساختِ
+                 * مقاله نوشته می‌شد؛ اگر آن نوشتن ناموفق بود، اجرای دوباره‌ی
+                 * استقرار مقاله را «از قبل بود» می‌دانست و تصویر هرگز برنمی‌گشت.
+                 */
+                $this->storeImage($article['cover']);
+                $this->withImages($article['body']);
                 $report['skipped'][] = $article['slug'];
 
                 continue;
@@ -86,7 +107,9 @@ class BlogImporter
             $report[$existing === null ? 'created' : 'updated'][] = $article['slug'];
         }
 
-        if ($report['created'] !== [] || $report['updated'] !== []) {
+        $report['restored'] = $this->restored;
+
+        if ($report['created'] !== [] || $report['updated'] !== [] || $this->restored > 0) {
             BlogCache::bump();
         }
 
@@ -109,6 +132,11 @@ class BlogImporter
             if (preg_match('/^([a-z_]+):\s*(.*)$/', $line, $m)) {
                 $head[$m[1]] = trim($m[2]);
             }
+        }
+
+        // همان قاعده‌ی پنل: تصویرِ بی‌توضیح پذیرفته نیست (مرحلهٔ ۸ · فاز ۳)
+        if (preg_match('/!\[\s*\]\(/u', $parts[2])) {
+            throw new RuntimeException(basename($file).': تصویری بی‌توضیح (alt) دارد.');
         }
 
         foreach (['title', 'slug', 'excerpt', 'category', 'published', 'cover'] as $required) {
@@ -143,6 +171,7 @@ class BlogImporter
         return Carbon::create($gy, $gm, $gd, 9, 0, 0, 'Asia/Tehran')->utc();
     }
 
+    /** @phpstan-impure تصویرهای متن را هم می‌نویسد (`storeImage`) */
     private function withImages(string $markdown): string
     {
         return (string) preg_replace_callback(
@@ -152,7 +181,11 @@ class BlogImporter
         );
     }
 
-    /** نامِ فایلِ ذخیره‌شده (بی‌پوشه) را برمی‌گرداند. */
+    /**
+     * نامِ فایلِ ذخیره‌شده (بی‌پوشه) را برمی‌گرداند؛ تصویرِ نبوده را می‌نویسد و می‌شمارد.
+     *
+     * @phpstan-impure
+     */
     private function storeImage(string $name): string
     {
         $source = $this->directory().'/images/'.$name.'.webp';
@@ -165,7 +198,16 @@ class BlogImporter
         $disk = PrivateFiles::disk();
 
         if (! $disk->exists('blog/'.$file)) {
-            $disk->put('blog/'.$file, (string) file_get_contents($source));
+            /*
+             * ⚠️ دیسکِ خصوصی `throw: false` است: نوشتنِ ناموفق فقط `false`
+             * برمی‌گرداند. پیش از این نادیده می‌ماند و مقاله با جلدی ساخته
+             * می‌شد که روی دیسک نبود — صفحه ۴۰۴ ِ تصویر می‌گرفت و هیچ‌جا
+             * خطایی ثبت نمی‌شد (مرحلهٔ ۸ · فاز ۳).
+             */
+            if (! $disk->put('blog/'.$file, (string) file_get_contents($source))) {
+                throw new RuntimeException("نوشتنِ تصویرِ {$name} روی دیسک ناموفق بود (دسترسیِ storage/app/private/blog؟)");
+            }
+            $this->restored++;
         }
 
         return $file;

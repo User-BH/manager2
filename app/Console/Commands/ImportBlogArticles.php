@@ -31,10 +31,12 @@ class ImportBlogArticles extends Command
         }
 
         $this->info(sprintf(
-            'مقاله‌های بلاگ: %d تازه، %d بازنویسی، %d از قبل بود.',
+            'مقاله‌های بلاگ: %d تازه، %d بازنویسی، %d از قبل بود، %d عمداً حذف‌شده؛ %d تصویر ترمیم شد.',
             count($report['created']),
             count($report['updated']),
             count($report['skipped']),
+            count($report['deleted']),
+            $report['restored'],
         ));
 
         return self::SUCCESS;

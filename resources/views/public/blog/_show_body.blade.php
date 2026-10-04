@@ -36,7 +36,9 @@
             <span>{{ $digits($post['readingMinutes']) }} دقیقه مطالعه</span>
         </p>
         @if ($post['cover'])
-            <img class="blog-cover" src="{{ $post['cover'] }}" alt="" width="1200" height="630" loading="eager" fetchpriority="high">
+            {{-- مرحلهٔ ۸ · فاز ۳: alt از عنوان؛ اگر تصویر بار نشد، همین متن به‌جایش (blogImages.ts) --}}
+            <img class="blog-cover" src="{{ $post['cover'] }}" alt="تصویرِ جلدِ مقاله: {{ $post['title'] }}" width="1200" height="630" loading="eager" fetchpriority="high"
+                 data-fallback="{{ $post['title'] }}">
         @endif
     </header>
 
@@ -93,7 +95,7 @@
 
 @if ($related !== [])
     <section class="blog-related" aria-labelledby="blog-related-title">
-        <h2 id="blog-related-title">مقاله‌های مرتبط</h2>
+        <h2 id="blog-related-title">{{ $relatedTitle ?? 'مقاله‌های مرتبط' }}</h2>
         <div class="blog-related-grid">
             @foreach ($related as $item)
                 @include('public.blog._card', ['item' => $item, 'level' => 3, 'compact' => true])

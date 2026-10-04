@@ -7,9 +7,9 @@ use App\Http\Requests\SaveBlogPostRequest;
 use App\Http\Requests\UploadBlogImageRequest;
 use App\Models\BlogPost;
 use App\Models\BlogTag;
+use App\Services\Blog\BlogDeleter;
 use App\Services\Blog\BlogRenderer;
 use App\Services\Blog\BlogWriter;
-use App\Support\Audit;
 use App\Support\Jalali;
 use App\Support\PersianText;
 use App\Support\PrivateFiles;
@@ -85,10 +85,10 @@ class BlogPostController extends Controller
         return response()->json(['message' => 'مقاله ذخیره شد.', 'id' => $post->id, 'slug' => $post->slug]);
     }
 
-    public function destroy(BlogPost $post): JsonResponse
+    /** حذفِ کامل — تصویرهای بی‌استفاده، برچسبِ بی‌مقاله، و بی‌بازگشت با `blog:import` (مرحلهٔ ۸ · فاز ۳) */
+    public function destroy(BlogPost $post, BlogDeleter $deleter): JsonResponse
     {
-        Audit::log('blog.deleted', 'حذفِ مقاله‌ی بلاگ', null, ['post' => $post->id, 'title' => $post->title]);
-        $post->delete();
+        $deleter->delete($post);
 
         return response()->json(['message' => 'مقاله حذف شد.']);
     }

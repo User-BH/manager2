@@ -9,7 +9,9 @@
 <article class="blog-card{{ ($compact ?? false) ? ' blog-card-compact' : '' }}">
     @if ($item['cover'])
         <a href="{{ $item['url'] }}" class="blog-card-cover" tabindex="-1" aria-hidden="true">
-            <img src="{{ $item['cover'] }}" alt="" width="1200" height="630" decoding="async"
+            {{-- پیوندِ جلد aria-hidden است (عنوان پیوندِ اصلی است)؛ alt برای وقتی است که تصویر بار نشود --}}
+            <img src="{{ $item['cover'] }}" alt="{{ $item['title'] }}" width="1200" height="630" decoding="async"
+                 data-fallback="{{ $item['title'] }}"
                  @if ($eager ?? false) loading="eager" fetchpriority="high" @else loading="lazy" @endif>
         </a>
     @endif

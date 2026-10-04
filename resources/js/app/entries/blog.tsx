@@ -7,6 +7,8 @@ import { InstallPrompt } from '@/shared/pwa/InstallPrompt'
 import { ScrollProgressBar } from '@/features/landing/home/components/ScrollProgressBar'
 import { ShareButton } from '@/features/landing/blog/ShareButton'
 import { initBlogNavigation } from '@/features/landing/blog/blogNavigation'
+import { watchBlogImages } from '@/features/landing/blog/blogImages'
+import { reportError } from '@/shared/lib/observability/errorReporting'
 
 /*
  * Entryِ بلاگ (مرحلهٔ ۶ · فاز ۱۱).
@@ -76,6 +78,9 @@ mountShare()
 
 const main = document.querySelector<HTMLElement>('main[data-blog-view]')
 if (main) {
+  // جایگزینِ متنیِ تصویرِ بار‌نشده + گزارش تا ریشه پنهان نماند (مرحلهٔ ۸ · فاز ۳)
+  watchBlogImages(main, (src) => reportError(new Error(`تصویرِ بلاگ بار نشد: ${src}`)))
+
   initBlogNavigation(main, {
     beforeSwap: () => {
       shareRoot?.unmount()

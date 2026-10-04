@@ -567,6 +567,29 @@ class PhaseRegressionMapTest extends TestCase
             'بلاگ فوترِ صفحه‌ی اصلی را ندارد' => [
                 'BlogTest', 'test_the_blog_has_no_home_footer', '۸',
             ],
+
+            /* ── مرحلهٔ ۸ · فاز ۳: درستیِ بلاگ ─────────────────────────────────── */
+            'حذفِ کامل: ردیف، تصویرِ بی‌استفاده، برچسبِ بی‌مقاله' => [
+                'BlogCorrectnessTest', 'test_deleting_removes_the_row_its_unused_images_and_tags_but_keeps_shared_ones', '۸',
+            ],
+            '🔴 مقاله‌ی حذف‌شده با استقرارِ بعدی برنمی‌گردد' => [
+                'BlogCorrectnessTest', 'test_an_imported_article_that_was_deleted_is_not_brought_back_by_the_next_deploy', '۸',
+            ],
+            '🔴 تصویرِ گم‌شده با blog:import ترمیم می‌شود' => [
+                'BlogCorrectnessTest', 'test_the_next_import_restores_an_image_that_went_missing', '۸',
+            ],
+            '🔴 نوشتنِ ناموفقِ تصویر بی‌صدا نمی‌گذرد' => [
+                'BlogCorrectnessTest', 'test_a_failed_image_write_is_loud_not_a_post_with_a_missing_cover', '۸',
+            ],
+            'سلامت: جلدی که فرایندِ وب نمی‌بیند' => [
+                'BlogCorrectnessTest', 'test_health_sees_covers_the_web_process_cannot_read', '۸',
+            ],
+            '🔴 دسترسیِ storage از کلِ درخت، نه پوشه‌ی بالا' => [
+                'DeployPermissionsTest', 'test_the_decision_comes_from_the_whole_tree_not_the_top_folder', '۸',
+            ],
+            'مرتبط فقط واقعاً مرتبط' => [
+                'BlogCorrectnessTest', 'test_related_are_only_truly_related_and_title_keywords_count', '۸',
+            ],
             '۱۵ مقاله‌ی واقعی و اجرای دوباره‌ی بی‌اثر' => [
                 'BlogImporterTest', 'test_fifteen_real_articles_are_imported_and_a_second_run_changes_nothing', '۷',
             ],
@@ -697,10 +720,12 @@ class PhaseRegressionMapTest extends TestCase
             'registrantExperience' => ['۸/۱', 'مالِ این حالت نیست و به داشبوردِ خودش برمی‌گردد'],
             // مرحلهٔ ۸ · فاز ۲: «نصب است؟» فقط از سیگنالِ واقعی؛ پیشنهاد با هر بارگذاری برنمی‌گردد
             'installState' => ['۸/۲', 'fullscreen نه: کروم در F11'],
+            // مرحلهٔ ۸ · فاز ۳: تصویرِ بار‌نشده متنِ خودش را می‌گیرد و گزارش می‌شود
+            'blogImages' => ['۸/۳', 'گزارش می‌شود — یک بار برای هر نشانی'],
         ];
 
         // 🔴 مثلِ ردیف‌های PHP، این فهرست هم فقط بزرگ می‌شود (خرابکاریِ فاز ۸)
-        $this->assertGreaterThanOrEqual(26, count($guards), 'محافظی از فهرستِ JS حذف شده.');
+        $this->assertGreaterThanOrEqual(27, count($guards), 'محافظی از فهرستِ JS حذف شده.');
 
         foreach ($guards as $file => [$phase, $marker]) {
             $path = base_path("tests/js/{$file}.test.".(file_exists(base_path("tests/js/{$file}.test.tsx")) ? 'tsx' : 'ts'));

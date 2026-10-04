@@ -75,10 +75,18 @@ class BlogPages
      */
     public function article(array $post, bool $preview = false): array
     {
+        /*
+         * مرتبط فقط وقتی واقعاً مرتبط است؛ اگر هیچ نبود، تازه‌ترین‌ها **با عنوانِ
+         * خودشان** — نه با برچسبِ «مرتبط» (مرحلهٔ ۸ · فاز ۳ · بندِ ۲۰).
+         */
+        $related = $preview ? [] : $this->blog->related($post['id'], $post['categoryId']);
+        $fallback = ! $preview && $related === [];
+
         return [
             'view' => [
                 'post' => $post,
-                'related' => $preview ? [] : $this->blog->related($post['id'], $post['categoryId']),
+                'related' => $fallback ? $this->blog->latest($post['id']) : $related,
+                'relatedTitle' => $fallback ? 'تازه‌ترین مقاله‌ها' : 'مقاله‌های مرتبط',
                 'preview' => $preview,
             ],
             'seo' => [
