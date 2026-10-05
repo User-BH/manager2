@@ -531,6 +531,9 @@ Route::middleware('auth')->group(function () {
         // صفِ بازخوردهای صفحه‌ی پشتیبانی (مرحلهٔ ۷ · فاز ۴)
         Route::get('feedback', [SystemFeedbackController::class, 'index'])->name('feedback.index');
         Route::patch('feedback/{feedback}', [SystemFeedbackController::class, 'update'])->name('feedback.update');
+        // پاسخ به عضو (مرحلهٔ ۸ · فاز ۶) — اعلانِ شخصی، فقط برای همان کاربر
+        Route::post('feedback/{feedback}/replies', [SystemFeedbackController::class, 'reply'])
+            ->middleware('throttle:feedback-reply')->name('feedback.reply');
         Route::put('site-settings', [SiteSettingsController::class, 'update'])->name('site-settings.update');
 
         // همه‌ی اعضای ثبت‌نام‌شده: جست‌وجو، مشاهده و تغییر نقش

@@ -48,6 +48,13 @@ class LockInitialAccount
          */
         '*/feedback',
         '*/support/chat',
+        /*
+         * اعلان‌های خودش (مرحلهٔ ۸ · فاز ۶): پاسخ به بازخورد به همین کاربرِ
+         * بی‌مجتمع هم می‌رسد و «خوانده شد» زدنش ۴۰۳ می‌گرفت. فقط اعلانِ خودِ
+         * کاربر را لمس می‌کند (`$user->notifications()`)، نه داده‌ی مجتمع.
+         */
+        '*/notifications/read-all',
+        '*/notifications/personal/*/read',
     ];
 
     public function handle(Request $request, Closure $next): Response

@@ -155,6 +155,8 @@ class Notifications
         return match (true) {
             isset($data['billId']) => '/my-bills/'.$data['billId'],
             isset($data['serviceRequestId']) => '/requests',
+            // پاسخ به بازخورد: متنِ کامل در تاریخچه‌ی اعلان‌ها (مرحلهٔ ۸ · فاز ۶)
+            isset($data['feedbackReplyId']) => '/notifications',
             default => null,
         };
     }

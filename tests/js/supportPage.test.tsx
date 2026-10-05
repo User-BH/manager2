@@ -325,39 +325,110 @@ describe('محتوای پشتیبانی', () => {
 
 // ─── صفِ ادمین ─────────────────────────────────────────────────────────────
 
-describe('صفِ بازخوردها', () => {
-  it('متنِ پیام متن رندر می‌شود، نه HTML', async () => {
-    apiMock.mockResolvedValue({
-      data: [
-        {
-          id: 1,
-          category: 'feedback',
-          categoryLabel: 'بازخورد',
-          message: '<img src=x onerror="window.__xss=1"> متن',
-          name: null,
-          phone: '09121234567',
-          status: 'new',
-          statusLabel: 'تازه',
-          createdAt: '2026-10-02T10:00:00+03:30',
-        },
-      ],
-      meta: { currentPage: 1, lastPage: 1, total: 1 },
-      counts: { new: 1 },
-    })
+describe('بازخورد کاربران (صفِ ادمینِ کل)', () => {
+  function row(overrides: Record<string, unknown> = {}) {
+    return {
+      id: 1,
+      category: 'feedback',
+      categoryLabel: 'بازخورد درباره‌ی تجربه‌ی کاربری',
+      message: 'متنِ پیام',
+      name: null,
+      phone: '09121234567',
+      status: 'new',
+      statusLabel: 'تازه',
+      createdAt: '2026-10-02T10:00:00+03:30',
+      date: '۱۴۰۵/۰۷/۱۰',
+      time: '۱۰:۰۰',
+      member: null,
+      replies: [],
+      ...overrides,
+    }
+  }
+
+  function renderInbox(rows: ReturnType<typeof row>[]) {
+    apiMock.mockImplementation((path: string) =>
+      path.startsWith('/system/feedback?')
+        ? Promise.resolve({
+            data: rows,
+            meta: { currentPage: 1, lastPage: 1, total: rows.length },
+            counts: { new: rows.length },
+          })
+        : Promise.resolve({ message: 'ok', feedback: rows[0] }),
+    )
     const client = new QueryClient({ defaultOptions: { queries: { retry: false } } })
-    const { container } = render(
+    return render(
       <QueryClientProvider client={client}>
         <MemoryRouter>
           <FeedbackInboxPage />
         </MemoryRouter>
       </QueryClientProvider>,
     )
+  }
+
+  it('متنِ پیام و پاسخ متن رندر می‌شوند، نه HTML', async () => {
+    const { container } = renderInbox([
+      row({
+        message: '<img src=x onerror="window.__xss=1"> متن',
+        member: { name: 'نگین', via: 'phone' },
+        replies: [{ id: 9, body: '<b>پاسخ</b>', author: 'مدیر سیستم', at: '۱۴۰۵/۰۷/۱۰ ۱۱:۰۰' }],
+      }),
+    ])
 
     expect(await screen.findByText(/onerror/)).toBeInTheDocument()
-    expect(container.querySelector('li img')).toBeNull()
+    expect(screen.getByText('<b>پاسخ</b>')).toBeInTheDocument()
+    expect(container.querySelector('li img, li b')).toBeNull()
     expect(screen.getByRole('link', { name: /09121234567/ })).toHaveAttribute(
       'href',
       'tel:09121234567',
     )
+  })
+
+  it('عنوان «بازخورد کاربران»؛ تاریخ و ساعت جدا؛ عضو بودن از سرور', async () => {
+    renderInbox([
+      row({ id: 1, member: { name: 'نگین', via: 'account' } }),
+      row({ id: 2, phone: '09129998888' }),
+    ])
+
+    expect(
+      await screen.findByRole('heading', { level: 1, name: /بازخورد کاربران/ }),
+    ).toBeInTheDocument()
+    // سرصفحه پیش از رسیدنِ داده هست؛ منتظرِ خودِ سطرها
+    expect(await screen.findAllByText('تاریخ ۱۴۰۵/۰۷/۱۰ · ساعت ۱۰:۰۰')).toHaveLength(2)
+    expect(screen.getByText(/عضو سایت · نگین/)).toHaveTextContent('با حساب')
+    expect(screen.getByText('عضو سایت نیست')).toBeInTheDocument()
+  })
+
+  it('پاسخ فقط برای عضو؛ غیرعضو راهِ تماس می‌گیرد', async () => {
+    renderInbox([row({ id: 1, member: { name: 'نگین', via: 'phone' } }), row({ id: 2 })])
+
+    expect(await screen.findByLabelText('پاسخ به نگین')).toBeInTheDocument()
+    expect(screen.getAllByRole('textbox')).toHaveLength(1)
+    expect(screen.getByText(/پاسخ داخلِ سایت ممکن نیست/)).toBeInTheDocument()
+  })
+
+  it('ارسالِ پاسخ همان متن را به همان بازخورد می‌فرستد و جعبه را پاک می‌کند', async () => {
+    const user = userEvent.setup()
+    renderInbox([row({ id: 7, member: { name: 'نگین', via: 'phone' } })])
+
+    const box = await screen.findByLabelText('پاسخ به نگین')
+    const send = screen.getByRole('button', { name: 'ارسالِ پاسخ' })
+    // دکمه با طولِ متن خاموش نمی‌شود؛ کلیکِ خالی پیام می‌دهد و چیزی نمی‌فرستد
+    expect(send).toBeEnabled()
+    await user.click(send)
+    expect(await screen.findByRole('alert')).toHaveTextContent('دست‌کم ۲ نویسه')
+    expect(box).toHaveAttribute('aria-invalid', 'true')
+    expect(apiMock).not.toHaveBeenCalledWith('/system/feedback/7/replies', expect.anything())
+
+    await user.type(box, 'ممنون؛ بررسی شد.')
+    expect(screen.queryByRole('alert')).toBeNull()
+    await user.click(send)
+
+    await waitFor(() =>
+      expect(apiMock).toHaveBeenCalledWith('/system/feedback/7/replies', {
+        method: 'POST',
+        body: { body: 'ممنون؛ بررسی شد.' },
+      }),
+    )
+    await waitFor(() => expect(box).toHaveValue(''))
   })
 })

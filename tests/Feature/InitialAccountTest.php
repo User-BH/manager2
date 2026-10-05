@@ -135,13 +135,21 @@ class InitialAccountTest extends TestCase
          */
         foreach ([
             ['POST', '/api/v1/messenger'],
-            ['POST', '/api/v1/notifications/read-all'],
+            // ⚠️ تا مرحلهٔ ۸ · فاز ۶ این‌جا notifications/read-all بود؛ حالا عمداً باز است
+            // (پاسخ به بازخورد به همین کاربر هم می‌رسد) — تستِ پایین همان را می‌سنجد
+            ['POST', '/api/v1/announcements'],
             ['POST', '/api/v1/bills/generate'],
         ] as [$method, $uri]) {
             $this->actingAs($this->fresh)
                 ->json($method, $uri)
                 ->assertStatus(403);
         }
+    }
+
+    /** خواندنِ اعلان‌های **خودش** نوشتن است ولی داده‌ی مجتمع نیست (مرحلهٔ ۸ · فاز ۶) */
+    public function test_an_initial_account_can_mark_its_own_notifications_read(): void
+    {
+        $this->actingAs($this->fresh)->postJson('/api/v1/notifications/read-all')->assertOk();
     }
 
     public function test_reading_is_still_allowed(): void

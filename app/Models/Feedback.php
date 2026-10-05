@@ -6,6 +6,7 @@ use App\Enums\FeedbackCategory;
 use App\Enums\FeedbackStatus;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 /**
  * بازخوردِ صفحه‌ی پشتیبانی (مرحلهٔ ۷ · فاز ۴).
@@ -43,5 +44,15 @@ class Feedback extends Model
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
+    }
+
+    /**
+     * پاسخ‌های ادمینِ کل، به ترتیبِ زمان (مرحلهٔ ۸ · فاز ۶)
+     *
+     * @return HasMany<FeedbackReply, $this>
+     */
+    public function replies(): HasMany
+    {
+        return $this->hasMany(FeedbackReply::class)->orderBy('id');
     }
 }

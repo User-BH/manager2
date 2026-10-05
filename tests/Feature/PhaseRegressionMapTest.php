@@ -618,6 +618,41 @@ class PhaseRegressionMapTest extends TestCase
             'فیلدِ بیرون از فرم ذخیره نمی‌شود' => [
                 'FeedbackTest', 'test_extra_fields_cannot_be_mass_assigned', '۸',
             ],
+
+            /* ── مرحلهٔ ۸ · فاز ۶: بازخورد کاربران و پاسخ به عضو ─────────────────── */
+            'عضو بودن فقط از سرور؛ تاریخ و ساعتِ جدا' => [
+                'FeedbackReplyTest', 'test_the_list_says_who_is_a_member_with_date_and_time_apart', '۸',
+            ],
+            'صفِ بازخورد صفحه‌بندی و بی N+1' => [
+                'FeedbackReplyTest', 'test_the_list_is_paginated_and_free_of_n_plus_one', '۸',
+            ],
+            '🔴 پاسخ فقط اعلانِ همان عضو؛ وضعیت عوض نمی‌شود' => [
+                'FeedbackReplyTest', 'test_a_member_gets_the_reply_as_their_own_notification', '۸',
+            ],
+            'غیرعضو پاسخِ داخلِ سایت نمی‌گیرد' => [
+                'FeedbackReplyTest', 'test_a_non_member_cannot_be_replied_to_in_the_site', '۸',
+            ],
+            'فرستنده‌ی واردشده بر شماره‌ی تایپ‌شده مقدم است' => [
+                'FeedbackReplyTest', 'test_the_signed_in_sender_wins_over_the_typed_phone', '۸',
+            ],
+            '🔴 گیرنده از درخواست انتخاب نمی‌شود' => [
+                'FeedbackReplyTest', 'test_the_recipient_cannot_be_chosen_by_the_request', '۸',
+            ],
+            'صف و پاسخ فقط برای ادمینِ کل' => [
+                'FeedbackReplyTest', 'test_only_the_super_admin_sees_the_queue_or_replies', '۸',
+            ],
+            '🔴 IDOR: پاسخ را کسِ دیگری نمی‌بیند و نمی‌خواند' => [
+                'FeedbackReplyTest', 'test_nobody_else_can_see_or_touch_the_reply', '۸',
+            ],
+            'پاسخ اعتبارسنجی و متنِ ساده' => [
+                'FeedbackReplyTest', 'test_the_reply_is_validated_and_kept_as_plain_text', '۸',
+            ],
+            'سقفِ نرخِ پاسخ' => [
+                'FeedbackReplyTest', 'test_replies_are_rate_limited', '۸',
+            ],
+            'حسابِ اولیه اعلانِ خودش را خوانده می‌کند' => [
+                'InitialAccountTest', 'test_an_initial_account_can_mark_its_own_notifications_read', '۸',
+            ],
             '۱۵ مقاله‌ی واقعی و اجرای دوباره‌ی بی‌اثر' => [
                 'BlogImporterTest', 'test_fifteen_real_articles_are_imported_and_a_second_run_changes_nothing', '۷',
             ],

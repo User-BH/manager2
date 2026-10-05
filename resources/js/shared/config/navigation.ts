@@ -100,7 +100,12 @@ export const navSections: NavSection[] = [
       { label: 'بلاگ', path: '/system/blog', icon: Newspaper, roles: SUPER },
       { label: 'فوتر و شبکه‌ها', path: '/system/site', icon: Share2, roles: SUPER },
       // صفِ فرمِ بازخوردِ صفحه‌ی پشتیبانی (مرحلهٔ ۷ · فاز ۴)
-      { label: 'بازخوردها', path: '/system/feedback', icon: MessageSquareHeart, roles: SUPER },
+      {
+        label: 'بازخورد کاربران',
+        path: '/system/feedback',
+        icon: MessageSquareHeart,
+        roles: SUPER,
+      },
       { label: 'پنل پیامک', path: '/system/sms', icon: Smartphone, roles: SUPER },
       { label: 'پایش و تحلیل', path: '/system/observability', icon: Activity, roles: SUPER },
       { label: 'لاگ فعالیت', path: '/system/audit', icon: AuditIcon, roles: SUPER },
