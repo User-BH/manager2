@@ -151,14 +151,14 @@
         <meta property="og:image:width" content="1200">
         <meta property="og:image:height" content="630">
     @endunless
-    <meta property="og:image:alt" content="{{ $brand['name'] }} — {{ $brand['tagline'] }}">
+    <meta property="og:image:alt" content="{{ $seo['og_image_alt'] ?? $brand['name'].' — '.$brand['tagline'] }}">
 
     {{-- Twitter Card --}}
     <meta name="twitter:card" content="summary_large_image">
     <meta name="twitter:title" content="{{ $seo['title'] }}">
     <meta name="twitter:description" content="{{ $seo['description'] }}">
     <meta name="twitter:image" content="{{ $ogImage }}">
-    <meta name="twitter:image:alt" content="{{ $brand['name'] }} — {{ $brand['tagline'] }}">
+    <meta name="twitter:image:alt" content="{{ $seo['og_image_alt'] ?? $brand['name'].' — '.$brand['tagline'] }}">
 
     {{--
         پیام‌رسان‌های ایرانی و بین‌المللی.

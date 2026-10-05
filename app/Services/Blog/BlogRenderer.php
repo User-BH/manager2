@@ -6,6 +6,7 @@ use App\Support\PersianText;
 use League\CommonMark\Environment\Environment;
 use League\CommonMark\Event\DocumentParsedEvent;
 use League\CommonMark\Extension\CommonMark\CommonMarkCoreExtension;
+use League\CommonMark\Extension\CommonMark\Node\Block\Heading;
 use League\CommonMark\Extension\CommonMark\Node\Inline\Image;
 use League\CommonMark\Extension\ExternalLink\ExternalLinkExtension;
 use League\CommonMark\Extension\GithubFlavoredMarkdownExtension;
@@ -85,6 +86,14 @@ class BlogRenderer
 
         $environment->addEventListener(DocumentParsedEvent::class, function (DocumentParsedEvent $event): void {
             foreach ($event->getDocument()->iterator() as $node) {
+                /*
+                 * عنوانِ صفحه خودش h1 است؛ «# …» در متن h1 ِ دوم می‌ساخت و ساختارِ
+                 * عنوان‌ها را برای موتورِ جست‌وجو و صفحه‌خوان می‌شکست (مرحلهٔ ۸ · فاز ۴).
+                 */
+                if ($node instanceof Heading && $node->getLevel() === 1) {
+                    $node->setLevel(2);
+                }
+
                 if (! $node instanceof Image) {
                     continue;
                 }

@@ -590,6 +590,23 @@ class PhaseRegressionMapTest extends TestCase
             'مرتبط فقط واقعاً مرتبط' => [
                 'BlogCorrectnessTest', 'test_related_are_only_truly_related_and_title_keywords_count', '۸',
             ],
+
+            /* ── مرحلهٔ ۸ · فاز ۴: جست‌وجو و SEO ِ بلاگ ───────────────────────── */
+            '🔴 واژه‌های جدا از هم پیدا می‌شوند' => [
+                'BlogSearchTest', 'test_words_need_not_be_next_to_each_other', '۸',
+            ],
+            'رتبه: عنوان، برچسب، متن؛ کلِ عبارت اول' => [
+                'BlogSearchTest', 'test_title_beats_tags_which_beat_the_body_and_the_whole_phrase_wins', '۸',
+            ],
+            'بی‌تطابقِ کامل: «نزدیک»، نه «پیدا نشد»' => [
+                'BlogSearchTest', 'test_no_full_match_shows_close_results_marked_as_such', '۸',
+            ],
+            'عنوان و توضیحِ یکتا برای هر صفحه‌ی فهرست' => [
+                'BlogSearchTest', 'test_every_listing_page_has_its_own_title_and_description', '۸',
+            ],
+            '🔴 API ِ همه‌ی مقاله‌ها با توضیحِ UTF-8 ِ سالم' => [
+                'BlogSearchTest', 'test_every_shipped_article_opens_through_the_api_with_a_clean_description', '۸',
+            ],
             '۱۵ مقاله‌ی واقعی و اجرای دوباره‌ی بی‌اثر' => [
                 'BlogImporterTest', 'test_fifteen_real_articles_are_imported_and_a_second_run_changes_nothing', '۷',
             ],

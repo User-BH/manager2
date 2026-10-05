@@ -112,9 +112,18 @@ class SeoController extends Controller
          * **منتشرشده‌ی زمان‌رسیده** — پیش‌نویس از نقشه‌ی سایت هم لو نمی‌رود.
          */
         if (app(FeatureFlags::class)->enabled('blog')) {
-            $urls .= "  <url>\n    <loc>{$base}/blog</loc>\n    <lastmod>{$today}</lastmod>\n    <changefreq>daily</changefreq>\n    <priority>0.8</priority>\n  </url>\n";
+            $blog = app(PublicBlog::class);
+            $posts = $blog->sitemap();
+            // «امروز» برای /blog دروغ بود: آخرین تغییرِ واقعی، تازه‌ترین مقاله است (مرحلهٔ ۸ · فاز ۴)
+            $blogLastmod = $posts === [] ? $today : max(array_column($posts, 'lastmod'));
+            $urls .= "  <url>\n    <loc>{$base}/blog</loc>\n    <lastmod>{$blogLastmod}</lastmod>\n    <changefreq>daily</changefreq>\n    <priority>0.8</priority>\n  </url>\n";
 
-            foreach (app(PublicBlog::class)->sitemap() as $post) {
+            // صفحه‌ی هر دسته‌ی دارای مقاله — برچسب‌ها و صفحه‌های ۲ به بعد نه (کم‌محتوا/تکراری)
+            foreach ($blog->categories() as $category) {
+                $urls .= "  <url>\n    <loc>{$base}/blog/category/".rawurlencode($category['slug'])."</loc>\n    <changefreq>weekly</changefreq>\n    <priority>0.5</priority>\n  </url>\n";
+            }
+
+            foreach ($posts as $post) {
                 $urls .= "  <url>\n    <loc>{$base}{$post['loc']}</loc>\n    <lastmod>{$post['lastmod']}</lastmod>\n    <changefreq>monthly</changefreq>\n    <priority>0.6</priority>\n  </url>\n";
             }
         }

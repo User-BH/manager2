@@ -65,6 +65,8 @@ class BlogWriter
 
             $post->save();
             $post->tags()->sync($this->tagIds($data['tags'] ?? []));
+            // پس از برچسب‌ها: ستون‌های رتبه‌ی جست‌وجو نامِ برچسب و دسته را هم دارند
+            BlogSearchIndex::refresh($post->unsetRelation('tags')->unsetRelation('category'));
 
             if (! $wasVisible && $post->status === BlogPost::PUBLISHED) {
                 Audit::log('blog.published', 'انتشارِ مقاله‌ی بلاگ', null, ['post' => $post->id, 'slug' => $post->slug]);

@@ -135,6 +135,30 @@ test.describe('بلاگ: صفحه‌بندی، جست‌وجو و مقاله ب�
     await expect(page.getByRole('searchbox', { name: 'جست‌وجو در بلاگ' })).toHaveValue(SEARCH)
   })
 
+  /*
+   * مرحلهٔ ۸ · فاز ۴ · بندِ ۱۹: چند واژه‌ی جدا از هم، و وقتی هیچ مقاله‌ای همه
+   * را ندارد «نزدیک» — هر دو بی‌بارگذاری و با عبارت در آدرس.
+   */
+  test('جست‌وجوی چندواژه‌ای و نتیجه‌ی نزدیک', async ({ page }) => {
+    await page.goto('/blog')
+    await mark(page)
+    const box = page.getByRole('searchbox', { name: 'جست‌وجو در بلاگ' })
+    const status = page.locator('.blog-result-count')
+
+    // «شارژ» و «آسانسور» پشتِ هم در هیچ مقاله‌ای نیامده‌اند، جدا آمده‌اند
+    await box.fill('شارژ آسانسور')
+    await page.getByRole('button', { name: 'جست‌وجو' }).click()
+    await expect(status).toContainText('مقاله برای «شارژ آسانسور»')
+    await expect(cards(page).first()).toBeVisible()
+
+    await box.fill('شارژ زیردریایی')
+    await page.getByRole('button', { name: 'جست‌وجو' }).click()
+    await expect(status).toContainText('مقاله‌ی نزدیک')
+    await expect(cards(page).first()).toBeVisible()
+    await expect(page).toHaveURL(/q=%D8%B4%D8%A7%D8%B1%DA%98/)
+    expect(await sameDocument(page)).toBe(true)
+  })
+
   test('بی‌نتیجه، خالی و یک‌حرفی', async ({ page }) => {
     await page.goto('/blog')
     const requests: string[] = []

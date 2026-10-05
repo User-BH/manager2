@@ -50,35 +50,146 @@ class PublicBlog
             return ['items' => [], 'total' => 0, 'page' => 1, 'lastPage' => 1, 'tooShort' => true];
         }
 
-        $build = function () use ($page, $category, $tag, $term): array {
+        $build = function () use ($page, $category, $tag): array {
             $query = BlogPost::visible()
                 ->with(['category', 'tags'])
                 ->when($category, fn (Builder $q) => $q->where('category_id', $category->id))
                 ->when($tag, fn (Builder $q) => $q->whereHas('tags', fn (Builder $t) => $t->whereKey($tag->id)))
-                ->when($term !== '', fn (Builder $q) => $q->where(fn (Builder $w) => $w
-                    ->where('title', 'like', "%{$term}%")
-                    ->orWhere('search_text', 'like', "%{$term}%")))
                 ->orderByDesc('published_at')
                 ->orderByDesc('id');
 
-            $total = (clone $query)->count();
-            $lastPage = max(1, (int) ceil($total / self::PER_PAGE));
-
-            return [
-                'items' => $query->forPage(min($page, $lastPage), self::PER_PAGE)->get()
-                    ->map(fn (BlogPost $post) => $this->card($post))->all(),
-                'total' => $total,
-                'page' => min($page, $lastPage),
-                'lastPage' => $lastPage,
-            ];
+            return $this->paginate($query, $page);
         };
 
         // ⚠️ جست‌وجو کش نمی‌شود: هر عبارتِ تازه یک کلیدِ تازه بود و کش را پر می‌کرد
         if ($term !== '') {
-            return $build();
+            return $this->search($term, $page);
         }
 
         return BlogCache::remember("page:{$page}:c".($category->id ?? 0).':t'.($tag->id ?? 0), $build);
+    }
+
+    /**
+     * جست‌وجوی چندواژه‌ای با رتبه (مرحلهٔ ۸ · فاز ۴ · بندِ ۱۹).
+     *
+     * پیش از این کلِ عبارت یک «تکه» بود: «شارژ آسانسور» فقط مقاله‌ای را
+     * می‌یافت که همین دو واژه را **پشتِ هم** داشت، و ترتیب فقط تاریخ بود.
+     * حالا:
+     *
+     *   ۱. عبارت (یک‌دست‌شده) به واژه‌ها شکسته می‌شود؛ واژه‌های پرتکرار
+     *      («و»، «برای»، «چطور»…) کنار می‌روند — جمله‌ی کوتاه هم کار می‌کند.
+     *   ۲. مقاله باید **همه‌ی** واژه‌ها را داشته باشد — در عنوان، برچسب/دسته/
+     *      خلاصه یا متن، هرجا. اگر هیچ مقاله‌ای همه را نداشت، مقاله‌هایی که
+     *      **هر کدام** را دارند با نشانِ «نزدیک» (`partial`) — نه «پیدا نشد».
+     *   ۳. رتبه: کلِ عبارت در عنوان ۸ و در متن ۴؛ هر واژه در عنوان ۵، در
+     *      برچسب/دسته/خلاصه ۳، در متن ۱. برابرها با تاریخ و بعد شناسه.
+     *
+     * ⚠️ مقیاس: LIKE با `%` ِ آغازین ایندکس نمی‌خورد و کلِ مقاله‌های منتشرشده را
+     * می‌پیماید — برای صدها تا چند هزار مقاله چند میلی‌ثانیه است. اگر روزی ده‌ها
+     * هزار شد، جای این متد FULLTEXT با ngram است؛ امضایش عوض نمی‌شود.
+     *
+     * @return array{items: array<int, array<string, mixed>>, total: int, page: int, lastPage: int, partial: bool}
+     */
+    private function search(string $term, int $page): array
+    {
+        $tokens = self::searchTokens($term);
+        $phrase = count($tokens) > 1 ? $term : null;
+
+        $inAny = fn (Builder $q, string $token) => $q->where(fn (Builder $w) => $w
+            ->where('search_title', 'like', "%{$token}%")
+            ->orWhere('search_meta', 'like', "%{$token}%")
+            ->orWhere('search_text', 'like', "%{$token}%"));
+
+        $base = fn (bool $all) => BlogPost::visible()->where(function (Builder $q) use ($tokens, $inAny, $all): void {
+            foreach ($tokens as $token) {
+                $all ? $inAny($q, $token) : $q->orWhere(fn (Builder $o) => $inAny($o, $token));
+            }
+        });
+
+        $partial = false;
+        $query = $base(true);
+        if ($query->clone()->count() === 0 && count($tokens) > 1) {
+            $partial = true;
+            $query = $base(false);
+        }
+
+        [$score, $bindings] = $this->relevance($tokens, $phrase);
+
+        $query->with(['category', 'tags'])
+            ->select('blog_posts.*')
+            ->selectRaw("({$score}) as relevance", $bindings)
+            ->orderByDesc('relevance')
+            ->orderByDesc('published_at')
+            ->orderByDesc('id');
+
+        return [...$this->paginate($query, $page), 'partial' => $partial];
+    }
+
+    /**
+     * @param  list<string>  $tokens
+     * @return array{string, list<string>}
+     */
+    private function relevance(array $tokens, ?string $phrase): array
+    {
+        $parts = [];
+        $bindings = [];
+        $weigh = function (string $column, string $needle, int $weight) use (&$parts, &$bindings): void {
+            $parts[] = "CASE WHEN {$column} LIKE ? THEN {$weight} ELSE 0 END";
+            $bindings[] = "%{$needle}%";
+        };
+
+        if ($phrase !== null) {
+            $weigh('search_title', $phrase, 8);
+            $weigh('search_text', $phrase, 4);
+        }
+        foreach ($tokens as $token) {
+            $weigh('search_title', $token, 5);
+            $weigh('search_meta', $token, 3);
+            $weigh('search_text', $token, 1);
+        }
+
+        return [implode(' + ', $parts), $bindings];
+    }
+
+    /** واژه‌هایی که به جست‌وجو چیزی اضافه نمی‌کنند */
+    private const SEARCH_STOPWORDS = [
+        'و', 'در', 'به', 'از', 'که', 'را', 'با', 'این', 'آن', 'برای', 'تا', 'یا', 'هم', 'چه', 'چطور',
+        'چگونه', 'چرا', 'کنیم', 'کنم', 'کنید', 'است', 'هست', 'می', 'ها', 'های', 'یک', 'هر', 'بر', 'اگر',
+    ];
+
+    /**
+     * واژه‌های جست‌وجو از عبارتِ یک‌دست‌شده — حداکثر شش تا. اگر همه پرتکرار
+     * بودند (مثلاً «برای چه»)، خودِ عبارت یک واژه حساب می‌شود.
+     *
+     * @return list<string>
+     */
+    public static function searchTokens(string $term): array
+    {
+        $words = preg_split('/[^\p{L}\p{N}]+/u', $term, -1, PREG_SPLIT_NO_EMPTY) ?: [];
+        $tokens = array_values(array_unique(array_filter(
+            $words,
+            fn (string $w) => mb_strlen($w) >= 2 && ! in_array($w, self::SEARCH_STOPWORDS, true),
+        )));
+
+        return array_slice($tokens !== [] ? $tokens : [$term], 0, 6);
+    }
+
+    /**
+     * @param  Builder<BlogPost>  $query
+     * @return array{items: array<int, array<string, mixed>>, total: int, page: int, lastPage: int}
+     */
+    private function paginate(Builder $query, int $page): array
+    {
+        $total = $query->clone()->count();
+        $lastPage = max(1, (int) ceil($total / self::PER_PAGE));
+
+        return [
+            'items' => $query->forPage(min($page, $lastPage), self::PER_PAGE)->get()
+                ->map(fn (BlogPost $post) => $this->card($post))->all(),
+            'total' => $total,
+            'page' => min($page, $lastPage),
+            'lastPage' => $lastPage,
+        ];
     }
 
     /** @return array<string, mixed>|null */
@@ -97,19 +208,10 @@ class PublicBlog
         return $this->full($post->loadMissing(['category', 'tags']));
     }
 
-    /** @return array<int, array<string, mixed>> */
-    /**
-     * مقاله‌های مرتبط — بر اساسِ **موضوع**، نه تازگی (مرحلهٔ ۷ · فاز ۷).
-     *
-     * پیش از این «هم‌دسته اول، بعد تازه‌ترین‌ها» بود؛ با یک دسته‌ی بزرگ، مرتبط
-     * یعنی سه مقاله‌ی آخرِ همان دسته، هرچه بودند. حالا امتیاز: هر برچسبِ
-     * مشترک ۲، هم‌دسته بودن ۱؛ برابرها با تازگی. مقاله‌ی بی‌هیچ اشتراکی
-     * فقط وقتی می‌آید که مرتبطِ کافی نباشد.
-     *
-     * ⚠️ امتیاز در PHP حساب می‌شود، نه SQL: تعدادِ مقاله‌ها صدها است نه
-     * میلیون‌ها، و نتیجه کش می‌شود.
-     *
-     * @return array<int, array<string, mixed>>
+    /*
+     * تاریخچه: مرحلهٔ ۷ · فاز ۷ امتیاز را از موضوع گرفت (نه تازگی) ولی وقتی
+     * چیزی مرتبط نبود تازه‌ترین‌ها را «مرتبط» می‌نامید؛ مرحلهٔ ۸ · فاز ۳ آن را
+     * بست. امتیاز در PHP است نه SQL: صدها مقاله، و نتیجه کش می‌شود.
      */
     /**
      * مقاله‌های **واقعاً** مرتبط (مرحلهٔ ۸ · فاز ۳ · بندِ ۲۰).
@@ -219,7 +321,22 @@ class PublicBlog
         $text = preg_match('/<p>(.*?)<\/p>/su', $html, $m) ? $m[1] : $html;
         $text = trim((string) preg_replace('/\s+/u', ' ', html_entity_decode(strip_tags($text), ENT_QUOTES | ENT_HTML5, 'UTF-8')));
 
-        return mb_strlen($text) > $limit ? rtrim(mb_substr($text, 0, $limit)).'…' : $text;
+        if (mb_strlen($text) <= $limit) {
+            return $text;
+        }
+
+        // سرِ مرزِ واژه، نه وسطِ آن
+        $cut = mb_substr($text, 0, $limit);
+        $space = mb_strrpos($cut, ' ');
+
+        $cut = $space !== false && $space > $limit * 0.6 ? mb_substr($cut, 0, $space) : $cut;
+
+        /*
+         * ⚠️ نه `rtrim($cut, '،؛…')`: rtrim بایت‌به‌بایت کار می‌کند و بایت‌های
+         * «،» و «؛» را از تهِ حرف‌های فارسیِ دیگر هم می‌کَند — UTF-8 ِ شکسته که
+         * JSON ِ API را با «Malformed UTF-8» می‌انداخت (E2E گرفتش).
+         */
+        return (string) preg_replace('/[\s،,.؛:]+$/u', '', $cut).'…';
     }
 
     /** عبارتِ جست‌وجو: یک‌دست (ی/ک)، بی‌نویسه‌ی ویژه‌ی LIKE، و محدود. */
@@ -259,7 +376,8 @@ class PublicBlog
             // ⚠️ نامِ نویسنده عمداً بیرون نمی‌آید (مرحلهٔ ۷ · فاز ۷، خواسته‌ی ممیزی):
             // نه در صفحه، نه در JSON-LD، نه در API. ناشر خودِ ساکناست.
             'metaTitle' => $post->meta_title ?: $post->title,
-            'metaDescription' => $post->meta_description ?: ($post->excerpt ?: $this->summary($post->body_html, 155)),
+            // خلاصه تا ۴۰۰ نویسه است و موتورِ جست‌وجو حدودِ ۱۶۰ را نشان می‌دهد (مرحلهٔ ۸ · فاز ۴)
+            'metaDescription' => $post->meta_description ?: $this->summary($post->excerpt ?: $post->body_html, 160),
             'canonical' => CanonicalUrl::base().'/blog/'.rawurlencode($post->slug),
         ];
     }

@@ -43,6 +43,9 @@
             <p class="blog-result-count" role="status">
                 @if (! empty($result['tooShort']))
                     عبارتِ جست‌وجو دست‌کم {{ $digits(\App\Services\Blog\PublicBlog::MIN_SEARCH) }} حرف باشد.
+                @elseif (! empty($result['partial']))
+                    {{-- مرحلهٔ ۸ · فاز ۴: هیچ مقاله‌ای همه‌ی واژه‌ها را نداشت --}}
+                    مقاله‌ای با همه‌ی واژه‌های «{{ $search }}» نبود؛ {{ $digits($result['total']) }} مقاله‌ی نزدیک:
                 @else
                     {{ $digits($result['total']) }} مقاله برای «{{ $search }}»
                 @endif

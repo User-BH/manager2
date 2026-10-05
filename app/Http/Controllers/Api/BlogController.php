@@ -58,6 +58,8 @@ class BlogController extends Controller
                 'lastPage' => $result['lastPage'],
                 'perPage' => PublicBlog::PER_PAGE,
                 'search' => $search,
+                // هیچ مقاله‌ای همه‌ی واژه‌ها را نداشت؛ این‌ها هر کدام را دارند (مرحلهٔ ۸ · فاز ۴)
+                'partial' => $result['partial'] ?? false,
                 'heading' => $page['view']['heading'],
             ],
             'html' => view('public.blog._index_body', $page['view'])->render(),

@@ -56,9 +56,16 @@ class BlogPages
                 'pageUrl' => $pageUrl,
             ],
             'seo' => [
-                'title' => $heading.($result['page'] > 1 ? ' — صفحه‌ی '.$result['page'] : '').' | '.config('brand.name'),
-                'description' => $category?->description
-                    ?: 'راهنما و تجربه‌ی مدیریتِ ساختمان و مجتمع: شارژ، قبض، حسابداری و زندگیِ آپارتمانی.',
+                /*
+                 * مرحلهٔ ۸ · فاز ۴ · بندِ ۱۸: عنوان و توضیحِ **یکتا** برای هر صفحه.
+                 * پیش از این `/blog`، صفحه‌های ۲ تا N و همه‌ی برچسب‌ها یک توضیح
+                 * داشتند — «محتوای تکراری» از دیدِ موتورِ جست‌وجو. عنوانِ اصلی هم
+                 * «بلاگ ساکنا | ساکنا» بود: نامِ برند دو بار، هیچ موضوعی.
+                 */
+                'title' => ($search === null && $category === null && $tag === null
+                    ? 'بلاگ مدیریت ساختمان و مجتمع مسکونی و تجاری'
+                    : $heading).($result['page'] > 1 ? ' — صفحه‌ی '.$result['page'] : '').' | '.config('brand.name'),
+                'description' => $this->listingDescription($category, $tag, $result['page']),
                 // هر صفحه‌ی فهرست متعارفِ خودش است (نه صفحه‌ی اول)؛ جست‌وجو ایندکس نمی‌شود
                 'canonical' => $pageUrl($result['page']),
                 'robots' => $search !== null ? 'noindex,follow' : null,
@@ -67,6 +74,18 @@ class BlogPages
                 'next' => $result['page'] < $result['lastPage'] ? $pageUrl($result['page'] + 1) : null,
             ],
         ];
+    }
+
+    private function listingDescription(?BlogCategory $category, ?BlogTag $tag, int $page): string
+    {
+        $text = match (true) {
+            $category !== null => $category->description
+                ?: "مقاله‌های {$category->name} در بلاگ ".config('brand.name').': راهنمای کاربردیِ مدیریتِ ساختمان و مجتمع.',
+            $tag !== null => "مقاله‌های برچسبِ «{$tag->name}» در بلاگ ".config('brand.name').' — راهنمای مدیریتِ مجتمع مسکونی و تجاری.',
+            default => 'راهنمای مدیریتِ مجتمع مسکونی و تجاری: شارژ ساختمان و پرداختِ آنلاین، مدیریتِ مالی و گزارشِ ماهانه، ارتباطِ مدیر و ساکنین.',
+        };
+
+        return $page > 1 ? "{$text} صفحه‌ی {$page}." : $text;
     }
 
     /**
@@ -94,6 +113,8 @@ class BlogPages
                 'description' => $post['metaDescription'],
                 'og_type' => 'article',
                 'og_image' => $post['cover'] ? CanonicalUrl::base().$post['cover'] : null,
+                // پیش از این alt ِ تصویرِ اشتراک همیشه شعارِ برند بود، حتی روی جلدِ مقاله
+                'og_image_alt' => $post['cover'] ? 'تصویرِ جلدِ مقاله: '.$post['title'] : null,
                 'canonical' => $post['canonical'],
                 'robots' => $preview ? 'noindex,nofollow' : null,
                 'breadcrumbs' => array_values(array_filter([

@@ -5,6 +5,8 @@ namespace App\Http\Controllers\Api\System;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\SaveBlogCategoryRequest;
 use App\Models\BlogCategory;
+use App\Models\BlogPost;
+use App\Services\Blog\BlogSearchIndex;
 use App\Services\Blog\BlogWriter;
 use Illuminate\Http\JsonResponse;
 
@@ -42,12 +44,18 @@ class BlogCategoryController extends Controller
         // نامک عوض نمی‌شود: پیوندهای بیرونی به صفحه‌ی دسته نمی‌شکنند
         $category->update($request->validated());
 
+        // نامِ دسته در ستونِ جست‌وجوی مقاله‌هایش هم هست (مرحلهٔ ۸ · فاز ۴)
+        $category->posts()->with(['category', 'tags'])->each(fn (BlogPost $post) => BlogSearchIndex::refresh($post));
+
         return response()->json(['message' => 'دسته ذخیره شد.']);
     }
 
     public function destroy(BlogCategory $category): JsonResponse
     {
+        $postIds = $category->posts()->pluck('id');
         $category->delete();
+
+        BlogPost::whereKey($postIds)->with(['category', 'tags'])->each(fn (BlogPost $post) => BlogSearchIndex::refresh($post));
 
         return response()->json(['message' => 'دسته حذف شد؛ مقاله‌هایش بی‌دسته شدند.']);
     }
