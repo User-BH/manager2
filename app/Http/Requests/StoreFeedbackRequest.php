@@ -23,13 +23,22 @@ class StoreFeedbackRequest extends BaseFormRequest
     /** بیش از این پیوند در یک پیام، نشانه‌ی تبلیغ است نه بازخورد. */
     public const MAX_LINKS = 2;
 
+    public const NAME_MAX = 60;
+
+    /**
+     * نام فقط حرفِ فارسی، فاصله و نیم‌فاصله (مرحلهٔ ۸ · فاز ۵ · بندِ ۹) — همان
+     * `PERSIAN_NAME_PATTERN` ِ `inputFilters.ts`. «ي/ك/ى» پیش از سنجش «ی/ک» می‌شوند.
+     */
+    public const PERSIAN_NAME = '/^[\x{0621}-\x{063A}\x{0641}-\x{064A}\x{067E}\x{0686}\x{0698}\x{06A9}\x{06AF}\x{06CC}\x{200C} ]+$/u';
+
     public function rules(): array
     {
         return [
             'category' => ['required', Rule::enum(FeedbackCategory::class)],
             'message' => ['required', 'string', 'min:10', 'max:2000'],
-            'name' => ['nullable', 'string', 'max:80'],
-            'phone' => ['nullable', 'string'],
+            'name' => ['nullable', 'string', 'max:'.self::NAME_MAX, 'regex:'.self::PERSIAN_NAME],
+            // اجباری (مرحلهٔ ۸ · فاز ۵ · بندِ ۱۰)؛ شکلش در after() با Phone::isValidMobile
+            'phone' => ['required', 'string'],
             // تله‌ی ربات (honeypot): برای انسان دیده نمی‌شود؛ بررسی‌اش در کنترلر است
             'website' => ['nullable', 'string', 'max:200'],
         ];
@@ -40,7 +49,7 @@ class StoreFeedbackRequest extends BaseFormRequest
         return [
             function (Validator $validator): void {
                 $phone = $this->input('phone');
-                if (is_string($phone) && $phone !== '' && ! Phone::isValidMobile($phone)) {
+                if (is_string($phone) && ! Phone::isValidMobile($phone)) {
                     $validator->errors()->add('phone', 'شماره موبایل باید ۱۱ رقم و با ۰۹ شروع شود.');
                 }
 
@@ -67,11 +76,21 @@ class StoreFeedbackRequest extends BaseFormRequest
 
         $this->merge([
             'message' => $clean($this->input('message')),
-            'name' => $clean($this->input('name')) ?: null,
+            'name' => is_string($name = $clean($this->input('name')))
+                ? (trim((string) preg_replace('/ {2,}/', ' ', strtr($name, ['ي' => 'ی', 'ى' => 'ی', 'ك' => 'ک']))) ?: null)
+                : $name,
             'phone' => is_string($this->input('phone')) && trim($this->input('phone')) !== ''
                 ? Phone::normalize($this->input('phone'))
                 : null,
         ]);
+    }
+
+    public function messages(): array
+    {
+        return [
+            'name.regex' => 'نام فقط با حروف فارسی نوشته شود.',
+            'phone.required' => 'شماره موبایل را وارد کنید.',
+        ];
     }
 
     public function attributes(): array

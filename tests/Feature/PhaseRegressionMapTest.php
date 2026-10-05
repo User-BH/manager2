@@ -607,6 +607,17 @@ class PhaseRegressionMapTest extends TestCase
             '🔴 API ِ همه‌ی مقاله‌ها با توضیحِ UTF-8 ِ سالم' => [
                 'BlogSearchTest', 'test_every_shipped_article_opens_through_the_api_with_a_clean_description', '۸',
             ],
+
+            /* ── مرحلهٔ ۸ · فاز ۵: فرمِ بازخورد ─────────────────────────────────── */
+            'موبایل اجباری و فقط شماره‌ی ایرانی؛ نام فقط فارسی' => [
+                'FeedbackTest', 'test_the_server_rejects_what_the_form_would_have_stopped', '۸',
+            ],
+            'نامِ فارسی تمیز و اختیاری' => [
+                'FeedbackTest', 'test_a_persian_name_is_kept_clean_and_optional', '۸',
+            ],
+            'فیلدِ بیرون از فرم ذخیره نمی‌شود' => [
+                'FeedbackTest', 'test_extra_fields_cannot_be_mass_assigned', '۸',
+            ],
             '۱۵ مقاله‌ی واقعی و اجرای دوباره‌ی بی‌اثر' => [
                 'BlogImporterTest', 'test_fifteen_real_articles_are_imported_and_a_second_run_changes_nothing', '۷',
             ],
@@ -739,10 +750,12 @@ class PhaseRegressionMapTest extends TestCase
             'installState' => ['۸/۲', 'fullscreen نه: کروم در F11'],
             // مرحلهٔ ۸ · فاز ۳: تصویرِ بار‌نشده متنِ خودش را می‌گیرد و گزارش می‌شود
             'blogImages' => ['۸/۳', 'گزارش می‌شود — یک بار برای هر نشانی'],
+            // مرحلهٔ ۸ · فاز ۵: فهرستِ انتخابیِ سفارشی با کیبوردِ select ِ بومی
+            'selectMenu' => ['۸/۵', 'Home/End، Esc بدونِ تغییر، و Tab انتخاب می‌کند و می‌رود'],
         ];
 
         // 🔴 مثلِ ردیف‌های PHP، این فهرست هم فقط بزرگ می‌شود (خرابکاریِ فاز ۸)
-        $this->assertGreaterThanOrEqual(27, count($guards), 'محافظی از فهرستِ JS حذف شده.');
+        $this->assertGreaterThanOrEqual(28, count($guards), 'محافظی از فهرستِ JS حذف شده.');
 
         foreach ($guards as $file => [$phase, $marker]) {
             $path = base_path("tests/js/{$file}.test.".(file_exists(base_path("tests/js/{$file}.test.tsx")) ? 'tsx' : 'ts'));

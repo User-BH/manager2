@@ -226,13 +226,52 @@ test.describe('فرمِ بازخورد', () => {
     const form = page.locator('#feedback')
     await expect(form).toBeInViewport({ timeout: 10_000 })
 
-    await form.getByText('پیشنهادِ بهبود', { exact: true }).click()
+    // مرحلهٔ ۸ · فاز ۵: فهرستِ انتخابیِ سفارشی، با کیبورد — همان راهِ کاربرِ صفحه‌خوان
+    const type = form.getByRole('combobox', { name: 'نوعِ پیام' })
+    await type.focus()
+    await page.keyboard.press('ArrowDown')
+    await expect(form.getByRole('listbox')).toBeVisible()
+    await page.keyboard.press('Enter')
+    await expect(type).toContainText('پیشنهاد')
+
     await form
       .getByLabel('متنِ پیام')
       .fill(`کاش گزارشِ مالی را هم می‌شد ماهانه چاپ کرد (${test.info().project.name})`)
+    // موبایل اجباری است: بی‌آن درخواستی نمی‌رود و فوکوس به خودش می‌رسد
+    await form.getByRole('button', { name: 'ارسالِ پیام' }).click()
+    await expect(form.getByLabel('شماره موبایل')).toBeFocused()
+    await expect(form.getByText('شماره موبایل را وارد کنید.')).toBeVisible()
+
+    await form.getByLabel('شماره موبایل').fill('09121234567')
     await form.getByRole('button', { name: 'ارسالِ پیام' }).click()
 
     await expect(form.getByRole('status')).toContainText('پیامِ شما رسید')
+  })
+
+  /*
+   * مرحلهٔ ۸ · فاز ۵ · بندِ ۵: بخشِ بازخورد پس‌زمینه‌ی جدای خودش را تا لبه‌ی صفحه
+   * دارد و فهرستِ بازِ «نوعِ پیام» در گوشی بیرون نمی‌زند.
+   */
+  test('بخشِ بازخورد تمام‌عرض است و فهرستِ نوع در گوشی سرریز نمی‌کند', async ({ page }) => {
+    await page.setViewportSize({ width: 375, height: 800 })
+    await page.goto('/support#feedback')
+    const band = page.locator('.feedback-band')
+    await expect(band).toBeVisible({ timeout: 10_000 })
+
+    const width = await band.evaluate((el) => Math.round(el.getBoundingClientRect().width))
+    // ⚠️ پهنای body، نه clientWidth: ریشه جای نوارِ اسکرول را رزرو می‌کند
+    // (`scrollbar-gutter: stable`) و کرومِ دسکتاپ در ‎۳۷۵px آن ‎۱۰px را نشان می‌دهد
+    expect(width).toBe(
+      await page.evaluate(() => Math.round(document.body.getBoundingClientRect().width)),
+    )
+    expect(await band.evaluate((el) => getComputedStyle(el).backgroundImage)).toContain('gradient')
+
+    await page.getByRole('combobox', { name: 'نوعِ پیام' }).click()
+    await expect(page.getByRole('listbox')).toBeVisible()
+    const overflow = await page.evaluate(
+      () => document.documentElement.scrollWidth - document.documentElement.clientWidth,
+    )
+    expect(overflow).toBeLessThanOrEqual(1)
   })
 })
 

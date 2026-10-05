@@ -143,125 +143,128 @@ export function SupportPage() {
       </header>
 
       {/* ---------------- آکاردیون‌ها ---------------- */}
-      <main
-        id="main-content"
-        tabIndex={-1}
-        className="mx-auto max-w-3xl px-4 pb-24 sm:px-6"
-        dir="rtl"
-      >
-        {supportTopics.map((topic, topicIndex) => {
-          const Icon = topic.icon
-          const isActive = activeTopic === topic.id
+      {/*
+        `<main>` تمامِ عرض است و ستونِ باریکِ آکاردیون‌ها درونش (مرحلهٔ ۸ · فاز ۵):
+        بخشِ بازخورد پس‌زمینه‌ی جدای خودش را تا لبه‌ی صفحه دارد. «بیرون زدن» از
+        ستونِ باریک با `w-screen` پهنای نوارِ اسکرول را هم می‌گرفت و اسکرولِ افقی
+        می‌ساخت.
+      */}
+      <main id="main-content" tabIndex={-1} className="pb-24" dir="rtl">
+        <div className="mx-auto max-w-3xl px-4 sm:px-6">
+          {supportTopics.map((topic, topicIndex) => {
+            const Icon = topic.icon
+            const isActive = activeTopic === topic.id
 
-          return (
-            <motion.section
-              key={topic.id}
-              ref={(node) => {
-                sectionRefs.current[topic.id] = node
-              }}
-              initial={{ opacity: 0, y: 28 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true, margin: '-80px' }}
-              transition={{ duration: 0.5, delay: Math.min(topicIndex * 0.05, 0.2) }}
-              className="mb-6 overflow-hidden rounded-3xl border"
-              style={{
-                borderColor: isActive ? topic.color : 'var(--border-subtle)',
-                backgroundColor: 'var(--surface-base)',
-                boxShadow: isActive
-                  ? `0 0 0 3px color-mix(in srgb, ${topic.color} 14%, transparent)`
-                  : undefined,
-              }}
-            >
-              <div
-                className="flex items-center gap-3 border-b p-5"
+            return (
+              <motion.section
+                key={topic.id}
+                ref={(node) => {
+                  sectionRefs.current[topic.id] = node
+                }}
+                initial={{ opacity: 0, y: 28 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true, margin: '-80px' }}
+                transition={{ duration: 0.5, delay: Math.min(topicIndex * 0.05, 0.2) }}
+                className="mb-6 overflow-hidden rounded-3xl border"
                 style={{
-                  borderColor: 'var(--border-subtle)',
-                  background: `linear-gradient(120deg, color-mix(in srgb, ${topic.color} 9%, transparent), transparent 70%)`,
+                  borderColor: isActive ? topic.color : 'var(--border-subtle)',
+                  backgroundColor: 'var(--surface-base)',
+                  boxShadow: isActive
+                    ? `0 0 0 3px color-mix(in srgb, ${topic.color} 14%, transparent)`
+                    : undefined,
                 }}
               >
-                <span
-                  className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl text-white"
-                  style={{ backgroundColor: topic.color }}
+                <div
+                  className="flex items-center gap-3 border-b p-5"
+                  style={{
+                    borderColor: 'var(--border-subtle)',
+                    background: `linear-gradient(120deg, color-mix(in srgb, ${topic.color} 9%, transparent), transparent 70%)`,
+                  }}
                 >
-                  <Icon size={20} />
-                </span>
-
-                <div>
-                  <h2
-                    className="text-[17px] font-extrabold"
-                    style={{ color: 'var(--text-primary)' }}
+                  <span
+                    className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl text-white"
+                    style={{ backgroundColor: topic.color }}
                   >
-                    {topic.title}
-                  </h2>
-                  <p className="mt-0.5 text-[12px]" style={{ color: 'var(--text-tertiary)' }}>
-                    {topic.short}
-                  </p>
-                </div>
-              </div>
+                    <Icon size={20} />
+                  </span>
 
-              <div className="p-2 sm:p-3">
-                {topic.entries.map((entry, entryIndex) => {
-                  const key = `${topic.id}-${entryIndex}`
-                  const isOpen = openEntry === key
-
-                  return (
-                    <div
-                      key={key}
-                      className="border-b last:border-b-0"
-                      style={{ borderColor: 'var(--border-subtle)' }}
+                  <div>
+                    <h2
+                      className="text-[17px] font-extrabold"
+                      style={{ color: 'var(--text-primary)' }}
                     >
-                      <button
-                        onClick={() => setOpenEntry(isOpen ? null : key)}
-                        aria-expanded={isOpen}
-                        className="flex w-full items-center gap-3 rounded-xl px-3 py-4 text-right transition-colors hover:bg-(--surface-sunken)"
+                      {topic.title}
+                    </h2>
+                    <p className="mt-0.5 text-[12px]" style={{ color: 'var(--text-tertiary)' }}>
+                      {topic.short}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="p-2 sm:p-3">
+                  {topic.entries.map((entry, entryIndex) => {
+                    const key = `${topic.id}-${entryIndex}`
+                    const isOpen = openEntry === key
+
+                    return (
+                      <div
+                        key={key}
+                        className="border-b last:border-b-0"
+                        style={{ borderColor: 'var(--border-subtle)' }}
                       >
-                        <span
-                          className="text-[13.5px] font-bold leading-7"
-                          style={{ color: isOpen ? topic.color : 'var(--text-primary)' }}
+                        <button
+                          onClick={() => setOpenEntry(isOpen ? null : key)}
+                          aria-expanded={isOpen}
+                          className="flex w-full items-center gap-3 rounded-xl px-3 py-4 text-right transition-colors hover:bg-(--surface-sunken)"
                         >
-                          {entry.question}
-                        </span>
-
-                        <motion.span
-                          animate={{ rotate: isOpen ? 180 : 0 }}
-                          transition={{ duration: 0.25 }}
-                          className="mr-auto flex shrink-0 items-center"
-                          style={{ color: isOpen ? topic.color : 'var(--text-tertiary)' }}
-                        >
-                          <ChevronDown size={17} />
-                        </motion.span>
-                      </button>
-
-                      <AnimatePresence initial={false}>
-                        {isOpen && (
-                          <motion.div
-                            initial={{ height: 0, opacity: 0 }}
-                            animate={{ height: 'auto', opacity: 1 }}
-                            exit={{ height: 0, opacity: 0 }}
-                            transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
-                            className="overflow-hidden"
+                          <span
+                            className="text-[13.5px] font-bold leading-7"
+                            style={{ color: isOpen ? topic.color : 'var(--text-primary)' }}
                           >
-                            <SupportAnswer entry={entry} site={site} onFeedback={goToFeedback} />
-                          </motion.div>
-                        )}
-                      </AnimatePresence>
-                    </div>
-                  )
-                })}
-              </div>
-            </motion.section>
-          )
-        })}
+                            {entry.question}
+                          </span>
 
-        {/*
+                          <motion.span
+                            animate={{ rotate: isOpen ? 180 : 0 }}
+                            transition={{ duration: 0.25 }}
+                            className="mr-auto flex shrink-0 items-center"
+                            style={{ color: isOpen ? topic.color : 'var(--text-tertiary)' }}
+                          >
+                            <ChevronDown size={17} />
+                          </motion.span>
+                        </button>
+
+                        <AnimatePresence initial={false}>
+                          {isOpen && (
+                            <motion.div
+                              initial={{ height: 0, opacity: 0 }}
+                              animate={{ height: 'auto', opacity: 1 }}
+                              exit={{ height: 0, opacity: 0 }}
+                              transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
+                              className="overflow-hidden"
+                            >
+                              <SupportAnswer entry={entry} site={site} onFeedback={goToFeedback} />
+                            </motion.div>
+                          )}
+                        </AnimatePresence>
+                      </div>
+                    )
+                  })}
+                </div>
+              </motion.section>
+            )
+          })}
+
+          {/*
           ⚠️ فرمِ بازخورد تنبل بار می‌شود (مرحلهٔ ۷ · فاز ۴): zod و
           react-hook-form بارگذاریِ اولِ این صفحه را از ‎۱۷۲ به ‎۲۰۸KB (gzip)
           می‌بردند — برای فرمی که تهِ صفحه است. `id` روی قاب است تا پیوندِ
           `#feedback`ِ فوتر پیش از بارشدنش هم مقصد داشته باشد؛ اسکرول به آن
           همان چیزی است که بارش را راه می‌اندازد.
         */}
-        <div id="feedback" className="scroll-mt-24">
-          <LazyVisible load={() => import('./FeedbackSection')} height={640} />
+        </div>
+        <div id="feedback" className="scroll-mt-20">
+          <LazyVisible load={() => import('./FeedbackSection')} height={880} />
         </div>
       </main>
 

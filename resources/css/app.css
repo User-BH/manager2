@@ -510,6 +510,39 @@ button:disabled {
     background: var(--social-hover-bg);
 }
 
+/* بخشِ بازخوردِ صفحه‌ی پشتیبانی (مرحلهٔ ۸ · فاز ۵ · بندِ ۵): نوارِ تمام‌عرض با
+   تهِ‌رنگِ برند و نقشِ نقطه‌ای کم‌رنگ، و فرم روی کارتی برجسته — جدا از
+   آکاردیون‌های بالا. رنگ‌ها از متغیرها، پس تیره خودش درست است. */
+.feedback-band {
+    position: relative;
+    margin-top: 3.5rem;
+    padding: 3.5rem 0 4rem;
+    background:
+        radial-gradient(circle at 1px 1px, color-mix(in srgb, var(--color-brand-500) 16%, transparent) 1px, transparent 0) 0 0 / 22px 22px,
+        linear-gradient(
+            180deg,
+            color-mix(in srgb, var(--color-brand-500) 6%, var(--surface-canvas)),
+            color-mix(in srgb, var(--color-brand-500) 14%, var(--surface-canvas))
+        );
+    border-block: 1px solid color-mix(in srgb, var(--color-brand-500) 18%, transparent);
+}
+
+.feedback-card {
+    border-radius: 1.5rem;
+    border: 1px solid var(--border-subtle);
+    background-color: var(--surface-base);
+    box-shadow:
+        0 1px 2px color-mix(in srgb, var(--color-brand-700, #0b4d3c) 8%, transparent),
+        0 24px 48px -24px color-mix(in srgb, var(--color-brand-700, #0b4d3c) 35%, transparent);
+}
+
+@media (max-width: 639.98px) {
+    .feedback-band {
+        margin-top: 2.5rem;
+        padding: 2.5rem 0 3rem;
+    }
+}
+
 /* تصویرِ بلاگی که بار نشد (مرحلهٔ ۸ · فاز ۳): همان متنی که تصویر می‌گفت، در
    همان قاب — نه جعبه‌ی خالی. ریشه جای دیگری بسته شده؛ این فقط پس‌رفت است. */
 /* ⚠️ `.blog-main` لازم است: `.blog-card-cover img` پایین‌ترِ همین فایل همان

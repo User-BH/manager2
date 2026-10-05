@@ -2,11 +2,13 @@
 
 namespace Tests\Feature;
 
+use App\Enums\FeedbackCategory;
 use App\Enums\UserRole;
 use App\Models\Complex;
 use App\Models\Feedback;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Routing\Middleware\ThrottleRequests;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\RateLimiter;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -39,6 +41,8 @@ class FeedbackTest extends TestCase
         return array_merge([
             'category' => 'feature',
             'message' => 'کاش گزارشِ ماهانه را هم می‌شد PDF گرفت.',
+            // اجباری از مرحلهٔ ۸ · فاز ۵
+            'phone' => '09121234567',
         ], $overrides);
     }
 
@@ -110,7 +114,19 @@ class FeedbackTest extends TestCase
             'متنِ بیش از ۲۰۰۰' => [['message' => str_repeat('ا', 2001)], 'message'],
             'سه پیوند' => [['message' => 'ببینید http://a.ir و http://b.ir و www.c.ir را'], 'message'],
             'شماره‌ی نامعتبر' => [['phone' => '021123'], 'phone'],
-            'نامِ بلند' => [['name' => str_repeat('ن', 81)], 'name'],
+            'نامِ بلند' => [['name' => str_repeat('ن', 61)], 'name'],
+            // مرحلهٔ ۸ · فاز ۵: موبایل اجباری و فقط شماره‌ی ایرانی
+            'بی‌موبایل' => [['phone' => null], 'phone'],
+            'موبایلِ خالی' => [['phone' => '  '], 'phone'],
+            'هر رشته‌ی عددی موبایل نیست' => [['phone' => '12345678901'], 'phone'],
+            'موبایلِ کوتاه' => [['phone' => '0912123'], 'phone'],
+            'موبایل با حرف' => [['phone' => '0912abc4567'], 'phone'],
+            // نام فقط حرفِ فارسی
+            'نامِ انگلیسی' => [['name' => 'Maryam'], 'name'],
+            'نام با عدد' => [['name' => 'مریم ۲'], 'name'],
+            'نام با نماد' => [['name' => 'مریم!'], 'name'],
+            'نام با ویرگولِ فارسی' => [['name' => 'مریم، رضایی'], 'name'],
+            'نام با تگ' => [['name' => '<b>مریم</b>'], 'name'],
         ];
     }
 
@@ -122,6 +138,68 @@ class FeedbackTest extends TestCase
             ->assertJsonValidationErrors($field);
 
         $this->assertSame(0, Feedback::count());
+    }
+
+    /**
+     * نامِ فارسی (مرحلهٔ ۸ · فاز ۵ · بندِ ۹): فاصله‌ی میانِ نام و نام‌خانوادگی و
+     * نیم‌فاصله پذیرفته‌اند، «ي/ك» ِ عربی «ی/ک» ذخیره می‌شوند، فاصله‌ی پشتِ‌هم یکی
+     * می‌شود، و خالی خطا نیست.
+     */
+    public function test_a_persian_name_is_kept_clean_and_optional(): void
+    {
+        $this->postJson(self::URL, $this->valid(['name' => '  علي   كاظمي‌نژاد ']))->assertCreated();
+        $this->assertSame('علی کاظمی‌نژاد', Feedback::sole()->name);
+
+        Feedback::query()->delete();
+        $this->postJson(self::URL, $this->valid(['name' => '', 'message' => 'پیامی دیگر برای آزمونِ نامِ خالی']))->assertCreated();
+        $this->assertNull(Feedback::sole()->name);
+    }
+
+    /** همان قالب‌های شماره‌ای که ورود و ثبت‌نام می‌پذیرند (`Phone::normalize`) */
+    public function test_the_mobile_is_normalized_like_the_rest_of_the_project(): void
+    {
+        foreach (['+989121234567', '00989121234567', '۰۹۱۲۱۲۳۴۵۶۷'] as $i => $phone) {
+            $this->postJson(self::URL, $this->valid(['phone' => $phone, 'message' => "پیامِ آزمونِ شماره‌ی {$i} برای نرمال‌سازی"]))->assertCreated();
+        }
+
+        $this->assertSame(['09121234567'], Feedback::pluck('phone')->unique()->values()->all());
+    }
+
+    /** «سایر» و برچسب‌های همان فهرستِ «بررسی جدید» */
+    public function test_every_category_from_the_new_list_is_accepted(): void
+    {
+        // شش پیام پشتِ هم از سقفِ نرخ (۳ در دقیقه) می‌گذرد؛ سقف تستِ خودش را دارد
+        $this->withoutMiddleware(ThrottleRequests::class);
+
+        foreach (FeedbackCategory::cases() as $i => $category) {
+            $this->postJson(self::URL, $this->valid(['category' => $category->value, 'message' => "پیامِ آزمونِ نوعِ {$i} برای فهرستِ تازه"]))->assertCreated();
+        }
+
+        $this->assertSame(
+            ['پیشنهاد', 'انتقاد', 'گزارشِ مشکل', 'درخواستِ قابلیت', 'بازخورد درباره‌ی تجربه‌ی کاربری', 'سایر'],
+            array_map(fn (FeedbackCategory $c) => $c->label(), [
+                FeedbackCategory::Improvement, FeedbackCategory::Criticism, FeedbackCategory::Bug,
+                FeedbackCategory::Feature, FeedbackCategory::Feedback, FeedbackCategory::Other,
+            ]),
+        );
+        $this->assertSame(count(FeedbackCategory::cases()), Feedback::count());
+    }
+
+    /** فیلدی بیرون از فرم (وضعیت، کاربر، هش) از درخواست ذخیره نمی‌شود */
+    public function test_extra_fields_cannot_be_mass_assigned(): void
+    {
+        $other = User::factory()->create();
+
+        $this->postJson(self::URL, $this->valid([
+            'status' => 'archived',
+            'user_id' => $other->id,
+            'sender_hash' => str_repeat('a', 64),
+        ]))->assertCreated();
+
+        $row = Feedback::sole();
+        $this->assertSame('new', $row->status->value);
+        $this->assertNull($row->user_id);
+        $this->assertNotSame(str_repeat('a', 64), $row->sender_hash);
     }
 
     // ─── ضدِ هرزنامه ─────────────────────────────────────────────────────

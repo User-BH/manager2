@@ -21,14 +21,19 @@ enum FeedbackCategory: string
 
     case Bug = 'bug';
 
+    /** مرحلهٔ ۸ · فاز ۵: «سایر» در فهرستِ «بررسی جدید» بود و این‌جا نبود */
+    case Other = 'other';
+
     public function label(): string
     {
         return match ($this) {
-            self::Feedback => 'بازخورد',
-            self::Feature => 'پیشنهاد یا درخواستِ قابلیتِ تازه',
-            self::Improvement => 'پیشنهادِ بهبود',
+            // برچسب‌ها همان فهرستِ «بررسی جدید»؛ مقدارها دست نخوردند (پیام‌های ذخیره‌شده)
+            self::Feedback => 'بازخورد درباره‌ی تجربه‌ی کاربری',
+            self::Feature => 'درخواستِ قابلیت',
+            self::Improvement => 'پیشنهاد',
             self::Criticism => 'انتقاد',
             self::Bug => 'گزارشِ مشکل',
+            self::Other => 'سایر',
         };
     }
 }

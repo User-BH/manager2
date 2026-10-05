@@ -50,15 +50,24 @@ beforeEach(() => {
   apiMock.mockReset()
 })
 
+const PHONE_LABEL = 'شماره موبایل'
+
+/** «نوعِ پیام» حالا فهرستِ انتخابی است (مرحلهٔ ۸ · فاز ۵)، نه دکمه‌های کنارِ هم */
+async function pickCategory(user: ReturnType<typeof userEvent.setup>, label: string) {
+  await user.click(screen.getByRole('combobox', { name: 'نوعِ پیام' }))
+  await user.click(await screen.findByRole('option', { name: new RegExp(`^${label}`) }))
+}
+
 async function fillValid(user: ReturnType<typeof userEvent.setup>) {
-  await user.click(screen.getByText('گزارشِ مشکل', { exact: true }))
+  await pickCategory(user, 'گزارشِ مشکل')
   await user.type(screen.getByLabelText('متنِ پیام'), 'دکمه‌ی صدور قبض گاهی جواب نمی‌دهد.')
+  await user.type(screen.getByLabelText(PHONE_LABEL), '09121234567')
 }
 
 // ─── فرمِ بازخورد ──────────────────────────────────────────────────────────
 
 describe('فرمِ بازخورد', () => {
-  it('فرمِ خالی به سرور نمی‌رود و خطای هر فیلد را زیرِ خودش می‌گوید', async () => {
+  it('فرمِ خالی به سرور نمی‌رود، خطای هر فیلد زیرِ خودش، و فوکوس روی اولین خطا', async () => {
     const user = userEvent.setup()
     render(<FeedbackSection />)
 
@@ -66,6 +75,23 @@ describe('فرمِ بازخورد', () => {
 
     expect(await screen.findByText('نوعِ پیام را انتخاب کنید.')).toBeInTheDocument()
     expect(screen.getByText('متنِ پیام دستِ‌کم ۱۰ نویسه باشد.')).toBeInTheDocument()
+    // مرحلهٔ ۸ · فاز ۵: موبایل اجباری است
+    expect(screen.getByText('شماره موبایل را وارد کنید.')).toBeInTheDocument()
+    expect(screen.getByRole('combobox', { name: 'نوعِ پیام' })).toHaveFocus()
+    expect(apiMock).not.toHaveBeenCalled()
+  })
+
+  it('بی‌موبایل درخواستی نمی‌رود و فوکوس به موبایل می‌رسد', async () => {
+    const user = userEvent.setup()
+    render(<FeedbackSection />)
+
+    await pickCategory(user, 'انتقاد')
+    await user.type(screen.getByLabelText('متنِ پیام'), 'متنی به‌اندازه‌ی کافی بلند برای آزمون.')
+    await user.click(screen.getByRole('button', { name: 'ارسالِ پیام' }))
+
+    expect(await screen.findByText('شماره موبایل را وارد کنید.')).toBeInTheDocument()
+    expect(screen.getByLabelText(PHONE_LABEL)).toHaveFocus()
+    expect(screen.getByLabelText(PHONE_LABEL)).toHaveAttribute('aria-invalid', 'true')
     expect(apiMock).not.toHaveBeenCalled()
   })
 
@@ -73,9 +99,9 @@ describe('فرمِ بازخورد', () => {
     const user = userEvent.setup()
     render(<FeedbackSection />)
 
-    await user.click(screen.getByText('بازخورد', { exact: true }))
+    await pickCategory(user, 'سایر')
     await user.type(screen.getByLabelText('متنِ پیام'), 'http://a.ir و http://b.ir و www.c.ir')
-    await user.type(screen.getByLabelText('شماره موبایل برای پاسخ (اختیاری)'), '0212')
+    await user.type(screen.getByLabelText(PHONE_LABEL), '0212')
     await user.click(screen.getByRole('button', { name: 'ارسالِ پیام' }))
 
     expect(await screen.findByText('حداکثر ۲ پیوند در پیام مجاز است.')).toBeInTheDocument()
@@ -83,13 +109,45 @@ describe('فرمِ بازخورد', () => {
     expect(apiMock).not.toHaveBeenCalled()
   })
 
+  it('موبایل: حرف و نماد هنگامِ تایپ و چسباندن وارد نمی‌شوند؛ رقمِ فارسی لاتین می‌شود', async () => {
+    const user = userEvent.setup()
+    render(<FeedbackSection />)
+    const phone = screen.getByLabelText<HTMLInputElement>(PHONE_LABEL)
+
+    await user.type(phone, '09ab')
+    expect(phone.value).toBe('09')
+    expect(await screen.findByText('فقط عدد وارد کنید.')).toBeInTheDocument()
+
+    await user.clear(phone)
+    await user.click(phone)
+    await user.paste('۰۹۱۲-۱۲۳ ۴۵۶۷ تماس')
+    expect(phone.value).toBe('09121234567')
+  })
+
+  it('نام: فقط حرفِ فارسی — انگلیسی، عدد و نماد هنگامِ تایپ و چسباندن حذف می‌شوند', async () => {
+    const user = userEvent.setup()
+    render(<FeedbackSection />)
+    const name = screen.getByLabelText<HTMLInputElement>('نام (اختیاری)')
+
+    await user.type(name, 'Ali علی2')
+    expect(name.value).toBe('علی')
+    expect(await screen.findByText(/نام فقط با حروف فارسی/)).toBeInTheDocument()
+
+    await user.clear(name)
+    await user.click(name)
+    await user.paste('مریم! ۲ رضايي، <b>')
+    // فاصله‌ی ته هنگامِ نوشتن می‌ماند (شاید نامِ خانوادگی در راه است)؛ ارسال و سرور می‌بُرندش
+    expect(name.value.trim()).toBe('مریم رضایی')
+  })
+
   it('ارسالِ درست، رقم‌های لاتین می‌فرستد و حالتِ موفق را نشان می‌دهد', async () => {
     const user = userEvent.setup()
     apiMock.mockResolvedValue({ message: 'پیامِ شما رسید. ممنون که وقت گذاشتید.' })
     render(<FeedbackSection />)
 
-    await fillValid(user)
-    await user.type(screen.getByLabelText('شماره موبایل برای پاسخ (اختیاری)'), '۰۹۱۲۱۲۳۴۵۶۷')
+    await pickCategory(user, 'گزارشِ مشکل')
+    await user.type(screen.getByLabelText('متنِ پیام'), 'دکمه‌ی صدور قبض گاهی جواب نمی‌دهد.')
+    await user.type(screen.getByLabelText(PHONE_LABEL), '۰۹۱۲۱۲۳۴۵۶۷')
     await user.click(screen.getByRole('button', { name: 'ارسالِ پیام' }))
 
     expect(await screen.findByRole('status')).toHaveTextContent('پیامِ شما رسید')
@@ -140,6 +198,42 @@ describe('فرمِ بازخورد', () => {
     await user.click(screen.getByRole('button', { name: 'ارسالِ پیام' }))
 
     expect(await screen.findByText(/چند دقیقه‌ی دیگر دوباره امتحان کنید/)).toBeInTheDocument()
+  })
+
+  it('خطای سرور: نوشته‌ها می‌مانند، «رسید» نشان داده نمی‌شود، و «تلاش مجدد» همان را می‌فرستد', async () => {
+    const user = userEvent.setup()
+    apiMock
+      .mockRejectedValueOnce(new FakeApiError('Server Error', 500))
+      .mockResolvedValueOnce({ message: 'پیامِ شما رسید. ممنون که وقت گذاشتید.' })
+    render(<FeedbackSection />)
+
+    await fillValid(user)
+    await user.click(screen.getByRole('button', { name: 'ارسالِ پیام' }))
+
+    expect(await screen.findByText(/پیام فرستاده نشد/)).toBeInTheDocument()
+    expect(screen.queryByText(/پیامِ شما رسید/)).toBeNull()
+    expect(screen.getByLabelText<HTMLTextAreaElement>('متنِ پیام').value).toContain('صدور قبض')
+
+    await user.click(screen.getByRole('button', { name: 'تلاش مجدد' }))
+
+    expect(await screen.findByRole('status')).toHaveTextContent('پیامِ شما رسید')
+    expect(apiMock).toHaveBeenCalledTimes(2)
+    expect(apiMock.mock.calls[1][1]).toEqual(apiMock.mock.calls[0][1])
+  })
+
+  it('شمارنده‌ی متن: سقف در خودِ فیلد، و نزدیکِ سقف هشدار', async () => {
+    const user = userEvent.setup()
+    render(<FeedbackSection />)
+    const message = screen.getByLabelText<HTMLTextAreaElement>('متنِ پیام')
+
+    expect(message).toHaveAttribute('maxlength', '2000')
+    await user.click(message)
+    await user.paste('ا'.repeat(1950))
+    expect(screen.getByTestId('feedback-counter')).toHaveTextContent('۵۰ نویسه مانده')
+
+    await user.paste('ب'.repeat(80))
+    expect(message.value).toHaveLength(2000)
+    expect(screen.getByTestId('feedback-counter')).toHaveTextContent('به سقفِ متن رسیدید')
   })
 
   it('تله‌ی ربات برای انسان نادیدنی و بیرون از ترتیبِ Tab است', () => {
