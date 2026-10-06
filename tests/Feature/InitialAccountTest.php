@@ -10,9 +10,11 @@ use App\Models\Bill;
 use App\Models\Complex;
 use App\Models\ComplexInvitation;
 use App\Models\Plan;
+use App\Models\Subscription;
 use App\Models\Unit;
 use App\Models\User;
 use App\Services\Account\ComplexUpgrader;
+use App\Services\Subscription\ComplexPurchase;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Hash;
@@ -306,18 +308,10 @@ class InitialAccountTest extends TestCase
      */
     public function test_buying_creates_a_complex_and_promotes_the_buyer(): void
     {
-        Storage::fake('local');
-        $plan = $this->makePlan();
-
-        $this->actingAs($this->fresh)
-            ->postJson('/api/v1/subscription/receipt', [
-                'plan' => $plan->slug,
-                'complex_name' => 'مجتمع تازه‌ساز',
-                // نوع از فاز ۱ اجباری است
-                'complex_type' => 'residential',
-                'receipt' => UploadedFile::fake()->image('r.jpg', 30, 30),
-            ])
-            ->assertStatus(201);
+        // مرحلهٔ ۹ · فاز ۵: خرید فقط آنلاین و پس از تأییدِ درگاه (`ComplexPurchase`)
+        $purchase = app(ComplexPurchase::class);
+        $intent = $purchase->begin($this->fresh, $this->makePlan(), 'مجتمع تازه‌ساز', ComplexType::Residential, null);
+        $purchase->complete($intent, 'TRK-R21');
 
         $upgraded = $this->fresh->fresh();
 
@@ -329,15 +323,11 @@ class InitialAccountTest extends TestCase
 
     public function test_the_upgrade_removes_the_write_lock(): void
     {
-        Storage::fake('local');
-        $plan = $this->makePlan();
-
-        $this->actingAs($this->fresh)->postJson('/api/v1/subscription/receipt', [
-            'plan' => $plan->slug,
-            'complex_name' => 'مجتمع تازه‌ساز',
-            'complex_type' => 'residential',
-            'receipt' => UploadedFile::fake()->image('r.jpg', 30, 30),
-        ])->assertStatus(201);
+        $purchase = app(ComplexPurchase::class);
+        $purchase->complete(
+            $purchase->begin($this->fresh, $this->makePlan(), 'مجتمع تازه‌ساز', ComplexType::Residential, null),
+            'TRK-R21-LOCK',
+        );
 
         $this->actingAs($this->fresh->fresh())
             ->postJson('/api/v1/announcements', [
@@ -346,21 +336,37 @@ class InitialAccountTest extends TestCase
             ->assertSuccessful();
     }
 
-    public function test_buying_without_a_complex_name_is_refused(): void
+    /**
+     * 🔴 F1 و F2 (مرحلهٔ ۹ · فاز ۵): رسید هرگز حسابِ اولیه را مدیر نمی‌کند.
+     *
+     * ⚠️ این تست عمداً برعکسِ نسخه‌ی قبلی‌اش است: پیش از این «خرید با رسید
+     * مجتمع می‌سازد» سنجیده می‌شد — و Audit ِ ۹/۲ نشان داد همان مسیر پیش از هر
+     * تأییدِ پرداخت مدیر می‌ساخت، و با پلنِ نامعتبر حتی بی‌اشتراک. تصمیمِ قطعیِ
+     * کارفرما: فقط پرداختِ آنلاینِ تأییدشده.
+     */
+    public function test_a_receipt_never_makes_an_initial_account_a_manager(): void
     {
         Storage::fake('local');
         $plan = $this->makePlan();
 
-        $this->actingAs($this->fresh)
-            ->postJson('/api/v1/subscription/receipt', [
-                'plan' => $plan->slug,
-                'receipt' => UploadedFile::fake()->image('r.jpg', 30, 30),
-            ])
-            ->assertStatus(422)
-            ->assertJsonValidationErrors('complex_name');
+        foreach ([$plan->slug, 'no-such-plan'] as $slug) {
+            $this->actingAs($this->fresh)
+                ->postJson('/api/v1/subscription/receipt', [
+                    'plan' => $slug,
+                    'complex_name' => 'مجتمع تازه‌ساز',
+                    'complex_type' => 'residential',
+                    'receipt' => UploadedFile::fake()->image('r.jpg', 30, 30),
+                ])
+                ->assertForbidden()
+                ->assertJsonPath('message', 'ساختنِ مجتمع فقط با پرداختِ آنلاین است؛ رسید برای اشتراکِ مجتمعی است که از قبل دارید.');
+        }
 
-        // و هیچ مجتمعِ نیمه‌کاره‌ای ساخته نشده
-        $this->assertNull($this->fresh->fresh()->complex_id);
+        $fresh = $this->fresh->fresh();
+        $this->assertNull($fresh->complex_id);
+        $this->assertSame(AccountState::Initial, AccountState::of($fresh));
+        $this->assertSame(1, Complex::count(), 'مجتمعی ساخته شد (فقط مجتمعِ setUp باید باشد).');
+        $this->assertSame(0, Subscription::count());
+        Storage::disk('local')->assertDirectoryEmpty('/');
     }
 
     /**

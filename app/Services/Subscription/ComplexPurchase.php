@@ -13,6 +13,7 @@ use App\Models\User;
 use App\Services\Account\ComplexUpgrader;
 use App\Services\Payment\TrackingCodes;
 use App\Support\Audit;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 
 /**
@@ -40,13 +41,26 @@ class ComplexPurchase
      */
     public function plan(string $slug, ComplexType $type): Plan
     {
-        $plan = Plan::where('slug', $slug)->where('is_active', true)->forComplexType($type)->first();
+        $plan = $this->plans($type)->firstWhere('slug', $slug);
 
-        if (! $plan || $plan->price <= 0) {
+        if (! $plan) {
             throw DomainException::invalid('پکیجِ انتخاب‌شده برای این نوع مجتمع قابلِ خرید نیست.', 'subscription.invalid_plan');
         }
 
         return $plan;
+    }
+
+    /**
+     * همه‌ی پلن‌های قابلِ خریدِ آنلاین برای مجتمعِ تازه از این نوع.
+     *
+     * همان فهرستی که صفحه‌ی خرید نشان می‌دهد و همان که `plan()` می‌پذیرد — یک
+     * قاعده، تا صفحه پلنی را عرضه نکند که سرور رد می‌کند (مرحلهٔ ۹ · فاز ۵).
+     *
+     * @return Collection<int, Plan>
+     */
+    public function plans(ComplexType $type): Collection
+    {
+        return Plan::purchasable()->forComplexType($type)->where('price', '>', 0)->get();
     }
 
     /**

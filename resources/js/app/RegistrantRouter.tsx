@@ -38,15 +38,21 @@ const NotificationsPage = lazy(() =>
 const ProfilePage = lazy(() =>
   import('@/features/profile/ProfilePage').then((m) => ({ default: m.ProfilePage })),
 )
-const AccountPage = lazy(() =>
-  import('@/features/account/AccountPage').then((m) => ({ default: m.AccountPage })),
+/*
+ * «حساب و اشتراک» ِ حسابِ اولیه صفحه‌ی خودش را دارد (مرحلهٔ ۹ · فاز ۵): ساختِ
+ * مجتمع و خریدِ آنلاین، بی رسید. `AccountPage` ِ مشترک مالِ مدیر است و دست نمی‌خورد.
+ */
+const RegistrantPurchasePage = lazy(() =>
+  import('@/features/registrant/RegistrantPurchasePage').then((m) => ({
+    default: m.RegistrantPurchasePage,
+  })),
 )
 
 const PAGES: Record<(typeof REGISTRANT_NAV)[number]['to'], React.ReactElement> = {
   '/dashboard': <RegistrantDashboardPage />,
   '/notifications': <NotificationsPage />,
   '/profile': <ProfilePage />,
-  '/account': <AccountPage />,
+  '/account': <RegistrantPurchasePage />,
 }
 
 export function RegistrantRouter() {

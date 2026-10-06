@@ -714,6 +714,20 @@ class PhaseRegressionMapTest extends TestCase
             '🔴 حذفِ خریدار یا مجتمع سابقه‌ی مالی را پاک نمی‌کند' => [
                 'CheckoutIntentTest', 'test_deleting_the_buyer_or_the_complex_never_erases_payment_history', '۹',
             ],
+
+            /* ── مرحلهٔ ۹ · فاز ۵: بستنِ رسید، صفحه‌ی خرید، همزمانیِ واقعی ──────────── */
+            '🔴 رسید هرگز حسابِ اولیه را مدیر نمی‌کند (F1، F2)' => [
+                'InitialAccountTest', 'test_a_receipt_never_makes_an_initial_account_a_manager', '۹',
+            ],
+            'صفحه‌ی خرید همان پلن‌هایی را عرضه می‌کند که سرور می‌پذیرد' => [
+                'CheckoutIntentTest', 'test_the_purchase_page_offers_exactly_what_the_server_accepts', '۹',
+            ],
+            '🔴 callback ِ هم‌زمان در چند پردازه: دقیقاً یکی از همه‌چیز' => [
+                'CheckoutConcurrencyTest', 'test_concurrent_duplicate_callbacks_create_exactly_one_of_everything', '۹',
+            ],
+            'بازپخشِ هم‌زمان با رهگیری‌های متفاوت: یک پرداختِ موفق' => [
+                'CheckoutConcurrencyTest', 'test_concurrent_replays_with_different_tracking_codes_still_complete_once', '۹',
+            ],
             'زرین‌پال: مبلغِ تأیید از سفارش، نه از بازگشت' => [
                 'ZarinpalGatewayTest', 'test_verification_never_takes_the_amount_from_the_callback', '۹',
             ],
@@ -855,6 +869,8 @@ class PhaseRegressionMapTest extends TestCase
             'profileName' => ['۹/۳', 'دو بخش را می‌فرستد و `name` را نه'],
             // نسخه‌ی جدای فرمِ بازخورد (بودجه‌ی باندل) از قاعده‌ی مشترک جدا نمی‌افتد
             'personName' => ['۹/۳', 'الگوی هر دو نسخه یکی است'],
+            // مرحلهٔ ۹ · فاز ۵: خریدِ حسابِ اولیه فقط آنلاین؛ مبلغ از سرور
+            'registrantPurchase' => ['۹/۵', 'فقط slug و نام و نوع را به درگاه می‌فرستد — مبلغ نه'],
         ];
 
         // 🔴 مثلِ ردیف‌های PHP، این فهرست هم فقط بزرگ می‌شود (خرابکاریِ فاز ۸)

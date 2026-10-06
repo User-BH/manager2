@@ -5,14 +5,16 @@ import { expect, test, type Page } from '@playwright/test'
  *
  * مسیرِ سرور در مرورگرِ واقعی: فرمِ خرید ← درگاهِ sandbox ← بازگشت ← تأییدِ سرور
  * ← در یک تراکنش مجتمع + اشتراک + مدیر ← داشبوردِ مدیر. رابطِ انتخابِ پلن برای
- * حسابِ اولیه در ۹/۵ ساخته می‌شود؛ اینجا همان فرمِ پنهانی که صفحه‌ی حساب
- * می‌فرستد ساخته و فرستاده می‌شود.
+ * حسابِ اولیه از ۹/۵ صفحه‌ی خودش را دارد و همین تست از همان رابط می‌خرد.
  *
  * پیش‌نیاز: `SUBSCRIPTION_GATEWAY=sandbox` و `PAYMENT_SANDBOX_ENABLED=true` (مثلِ CI)
  * و `E2eSeeder::BUYERS`. هر موتور خریدارِ خودش را دارد.
  */
 
 /** همان `E2eSeeder::BUYERS` */
+/** پسوندِ فارسیِ هر موتور — فیلدِ نامِ مجتمع حرفِ لاتین را نمی‌پذیرد */
+const SUFFIX: Record<string, string> = { chromium: 'یک', firefox: 'دو', webkit: 'سه' }
+
 const BUYERS: Record<string, string> = {
   chromium: '09120000041',
   firefox: '09120000042',
@@ -54,33 +56,29 @@ async function me(page: Page) {
   })
 }
 
-/** همان فرمی که صفحه‌ی حساب به `checkoutAction` می‌فرستد */
+/**
+ * از رابطِ واقعی (مرحلهٔ ۹ · فاز ۵): داشبوردِ اولیه ← «مشاهده‌ی پکیج‌ها» ← نام و
+ * نوعِ مجتمع ← پلن ← «پرداختِ آنلاین». مبلغ را رابط نمی‌فرستد؛ سرور از پلن می‌خواند.
+ */
 async function submitCheckout(page: Page, complexName: string) {
-  await page.goto('/account')
-  await page.evaluate(async (complexName) => {
-    const { csrfToken } = (await (
-      await fetch('/api/csrf-token', { credentials: 'include' })
-    ).json()) as {
-      csrfToken: string
-    }
-    const form = document.createElement('form')
-    form.method = 'POST'
-    form.action = '/subscription/checkout'
-    for (const [name, value] of Object.entries({
-      _token: csrfToken,
-      plan: 'basic',
-      complex_name: complexName,
-      complex_type: 'residential',
-    })) {
-      const input = document.createElement('input')
-      input.type = 'hidden'
-      input.name = name
-      input.value = value
-      form.appendChild(input)
-    }
-    document.body.appendChild(form)
-    form.submit()
-  }, complexName)
+  await page.goto('/dashboard')
+  await page.getByRole('link', { name: 'مشاهده‌ی پکیج‌ها' }).click()
+  await expect(
+    page.getByRole('heading', { level: 1, name: 'ساختِ مجتمع و خریدِ اشتراک' }),
+  ).toBeVisible()
+  await page.getByLabel('نامِ مجتمع').fill(complexName)
+  await page.getByRole('radio', { name: 'مسکونی' }).check()
+  await page.getByRole('radio', { name: /^پایه / }).check()
+
+  /*
+   * رسید هیچ نقشی در مدیر شدن ندارد (F1، F2): نه فایلی، نه دکمه‌ی رسیدی.
+   * ⚠️ متن نه: «پرداخت با آپلود رسید» در امکاناتِ پلنِ پایه است و درباره‌ی
+   * پرداختِ قبضِ ساکنان — محتوای درست. نسخه‌ی اولِ این بررسی روی متن بود و فقط
+   * چون پیش از نمایشِ پلن‌ها اجرا می‌شد سبز می‌ماند.
+   */
+  await expect(page.locator('input[type="file"]')).toHaveCount(0)
+  await expect(page.getByRole('button', { name: /رسید/ })).toHaveCount(0)
+  await page.getByRole('button', { name: 'پرداختِ آنلاین' }).click()
 }
 
 test.describe.configure({ mode: 'serial' })
@@ -117,7 +115,7 @@ test.describe('خریدِ آنلاینِ اشتراک', () => {
       if (frame === page.mainFrame()) visited.push(frame.url())
     })
 
-    await submitCheckout(page, `مجتمع جعلی ${testInfo.project.name}`)
+    await submitCheckout(page, `مجتمع جعلی ${SUFFIX[testInfo.project.name] ?? 'چهار'}`)
 
     // سرور از وضعیتِ خودش هدایت می‌کند، نه از `success=1` ِ جعلی
     await expect
@@ -135,7 +133,7 @@ test.describe('خریدِ آنلاینِ اشتراک', () => {
     page,
   }, testInfo) => {
     const phone = BUYERS[testInfo.project.name] ?? BUYERS.chromium
-    const complexName = `مجتمع خریدار ${testInfo.project.name}`
+    const complexName = `مجتمع خریدار ${SUFFIX[testInfo.project.name] ?? 'چهار'}`
     await signIn(page, phone)
 
     let callbackUrl = ''

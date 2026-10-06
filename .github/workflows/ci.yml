@@ -358,7 +358,9 @@ jobs:
           DB_USERNAME: root
           DB_PASSWORD: root
           REQUIRE_DB_CONSTRAINTS: '1'
-        run: php artisan test --filter="SchemaConstraintTest|SecretHandlingTest|ChaosTest"
+        # CheckoutConcurrencyTest (مرحلهٔ ۹ · فاز ۵): چند پردازه‌ی هم‌زمان روی یک قصدِ خرید —
+        # فقط اینجا قفلِ ردیفِ واقعی است؛ روی SQLite قفلِ کلِ پایگاه‌داده جایش را می‌گیرد
+        run: php artisan test --filter="SchemaConstraintTest|SecretHandlingTest|ChaosTest|CheckoutConcurrencyTest"
 
   # ────────────────────────────────────────────────────────────────────────
   #  امنیت

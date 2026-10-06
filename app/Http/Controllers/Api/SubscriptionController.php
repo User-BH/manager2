@@ -11,7 +11,7 @@ use App\Http\Requests\UploadSubscriptionReceiptRequest;
 use App\Http\Resources\SubscriptionResource;
 use App\Models\Plan;
 use App\Models\Subscription;
-use App\Services\Account\ComplexUpgrader;
+use App\Services\Subscription\ComplexPurchase;
 use App\Services\Subscription\PlanGate;
 use App\Services\Subscription\SubscriptionGatewayManager;
 use App\Support\Jalali;
@@ -35,7 +35,7 @@ class SubscriptionController extends Controller
     public function __construct(
         protected SubscriptionGatewayManager $gateways,
         protected PlanGate $plans,
-        protected ComplexUpgrader $upgrader,
+        protected ComplexPurchase $purchase,
     ) {}
 
     public function show(): JsonResponse
@@ -62,6 +62,22 @@ class SubscriptionController extends Controller
 
             'freeFeatures' => SubscriptionPlan::Free->features(),
             'plans' => $this->purchasablePlans($this->complexType()),
+            /*
+             * حسابِ اولیه هنوز نوعی ندارد: پلن‌های قابلِ خریدِ آنلاین برای **هر** نوع،
+             * از همان قاعده‌ای که سرور هنگامِ خرید می‌پذیرد (مرحلهٔ ۹ · فاز ۵).
+             */
+            'newComplexPlans' => AccountState::of(Auth::user()) === AccountState::Initial
+                ? collect(ComplexType::cases())->mapWithKeys(fn (ComplexType $type) => [
+                    $type->value => $this->purchase->plans($type)->map(fn (Plan $p) => [
+                        'value' => $p->slug,
+                        'label' => $p->name,
+                        'price' => $p->price,
+                        'priceLabel' => Jalali::money($p->price),
+                        'months' => $p->months,
+                        'features' => $p->features ?? [],
+                    ])->values()->all(),
+                ])->all()
+                : null,
 
             'checkoutEnabled' => $this->gateways->isEnabled(),
             'checkoutAction' => route('subscription.checkout'),
@@ -88,31 +104,10 @@ class SubscriptionController extends Controller
     public function uploadReceipt(UploadSubscriptionReceiptRequest $request): JsonResponse
     {
         $user = Auth::user();
-        $this->authorize('purchase', Subscription::class);
-
         $data = $request->validated();
 
-        /*
-         * خریدارِ «حالتِ اولیه» هنوز مجتمعی ندارد؛ همین خرید مجتمعش را
-         * می‌سازد و او را مدیرش می‌کند (R21).
-         *
-         * پیش از این `requireComplex()` جلویش را می‌گرفت، یعنی کاربری که
-         * ثبت‌نام کرده بود حتی نمی‌توانست بخرد — و راهِ دیگری هم برای بیرون
-         * آمدن از آن حالت نداشت.
-         *
-         * ساختِ مجتمع **پیش از** تاییدِ رسید انجام می‌شود تا کاربر بلافاصله
-         * فضای کارش را ببیند؛ اشتراک همچنان `pending` است و تا تایید ادمین
-         * محدودیت‌های پلنِ رایگان اعمال می‌شود.
-         */
-        $complex = AccountState::of($user) === AccountState::Initial
-            ? $this->upgrader->upgrade(
-                $user,
-                $data['complex_name'],
-                $data['complex_address'] ?? null,
-                // ⚠️ نوع همین‌جا تثبیت می‌شود و بعد فقط ادمینِ کل عوضش می‌کند (R67)
-                ComplexType::from($data['complex_type']),
-            )
-            : $this->requireComplex();
+        // حسابِ اولیه به اینجا نمی‌رسد (`UploadSubscriptionReceiptRequest::authorize`)
+        $complex = $this->requireComplex();
 
         // هر مجتمع هم‌زمان فقط یک درخواست در انتظار بررسی داشته باشد، وگرنه
         // صف بررسی ادمین با درخواست‌های تکراری پر می‌شود.

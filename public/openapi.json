@@ -7844,15 +7844,6 @@
                                     "receipt": {
                                         "type": "string",
                                         "description": "فایل رسید"
-                                    },
-                                    "complex_name": {
-                                        "type": "string"
-                                    },
-                                    "complex_address": {
-                                        "type": "string"
-                                    },
-                                    "complex_type": {
-                                        "type": "string"
                                     }
                                 },
                                 "required": [

@@ -438,6 +438,45 @@ class CheckoutIntentTest extends TestCase
             ->assertFailed();
     }
 
+    /**
+     * صفحه‌ی خریدِ حسابِ اولیه (مرحلهٔ ۹ · فاز ۵) همان پلن‌هایی را می‌بیند که
+     * سرور هنگامِ خرید می‌پذیرد — نه پلنِ رایگان، نه خاموش، نه نوعِ دیگر.
+     */
+    public function test_the_purchase_page_offers_exactly_what_the_server_accepts(): void
+    {
+        Plan::create(['name' => 'تجاری', 'slug' => 'com', 'complex_type' => ComplexType::Commercial, 'price' => 1000, 'months' => 1, 'is_active' => true]);
+        Plan::create(['name' => 'رایگان', 'slug' => 'free', 'complex_type' => ComplexType::Residential, 'price' => 0, 'months' => 1, 'is_active' => true]);
+        Plan::create(['name' => 'خاموش', 'slug' => 'off', 'complex_type' => ComplexType::Residential, 'price' => 1000, 'months' => 1, 'is_active' => false]);
+        Plan::create(['name' => 'هر دو', 'slug' => 'both', 'complex_type' => null, 'price' => 5000, 'months' => 12, 'is_active' => true]);
+
+        $offered = $this->actingAs($this->initial())->getJson('/api/v1/subscription')->assertOk()->json('newComplexPlans');
+
+        // پلن‌های پیش‌فرضِ مهاجرت (basic، plus، business) هم هستند؛ قاعده سنجیده می‌شود، نه فهرستِ دقیق
+        $residential = array_column($offered['residential'], 'value');
+        $commercial = array_column($offered['commercial'], 'value');
+        $this->assertContains('res-test', $residential);
+        $this->assertContains('both', $residential);
+        $this->assertContains('both', $commercial);
+        $this->assertContains('com', $commercial);
+        foreach (['free', 'off', 'com'] as $never) {
+            $this->assertNotContains($never, $residential, "«{$never}» نباید برای مسکونی عرضه شود");
+        }
+        $this->assertNotContains('res-test', $commercial);
+        $this->assertSame(250000, collect($offered['residential'])->firstWhere('value', 'res-test')['price']);
+
+        // و هر پلنِ عرضه‌شده واقعاً پذیرفته می‌شود — یک قاعده
+        $purchase = app(ComplexPurchase::class);
+        foreach (['residential', 'commercial'] as $type) {
+            foreach ($offered[$type] as $plan) {
+                $this->assertSame($plan['value'], $purchase->plan($plan['value'], ComplexType::from($type))->slug);
+            }
+        }
+
+        // مدیرِ مجتمع این فهرست را نمی‌گیرد؛ صفحه‌ی خودش بی‌تغییر است
+        $manager = User::factory()->create(['role' => UserRole::ComplexAdmin, 'complex_id' => Complex::factory()->create()->id, 'is_active' => true]);
+        $this->actingAs($manager)->getJson('/api/v1/subscription')->assertOk()->assertJsonPath('newComplexPlans', null);
+    }
+
     /* ───────────────────── سابقه‌ی مالی ───────────────────── */
 
     public function test_deleting_the_buyer_or_the_complex_never_erases_payment_history(): void

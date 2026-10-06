@@ -4,11 +4,13 @@ namespace Tests\Feature;
 
 use App\Enums\ComplexType;
 use App\Enums\UserRole;
+use App\Models\CheckoutIntent;
 use App\Models\Complex;
 use App\Models\Plan;
 use App\Models\Subscription;
 use App\Models\User;
 use App\Services\Account\ComplexUpgrader;
+use App\Services\Subscription\ComplexPurchase;
 use App\Support\PrivateFiles;
 use Illuminate\Database\QueryException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -369,18 +371,13 @@ class ComplexTypeTest extends TestCase
 
     public function test_a_buyer_picks_the_type_when_the_purchase_creates_the_complex(): void
     {
-        $this->plan('com', ComplexType::Commercial, 300000);
+        $plan = $this->plan('com', ComplexType::Commercial, 300000);
 
         $buyer = User::factory()->create(['role' => UserRole::Owner->value, 'complex_id' => null, 'is_active' => true]);
 
-        $this->actingAs($buyer)
-            ->postJson('/api/v1/subscription/receipt', [
-                'plan' => 'com',
-                'complex_name' => 'برجِ تجاری',
-                'complex_type' => ComplexType::Commercial->value,
-                'receipt' => UploadedFile::fake()->image('r.jpg'),
-            ])
-            ->assertCreated();
+        // مرحلهٔ ۹ · فاز ۵: ساختنِ مجتمع فقط با خریدِ آنلاینِ تأییدشده
+        $purchase = app(ComplexPurchase::class);
+        $purchase->complete($purchase->begin($buyer, $plan, 'برجِ تجاری', ComplexType::Commercial, null), 'TRK-COM');
 
         $this->assertSame(ComplexType::Commercial, $buyer->fresh()->complex->type);
     }
@@ -407,20 +404,20 @@ class ComplexTypeTest extends TestCase
 
         $buyer = User::factory()->create(['role' => UserRole::Owner->value, 'complex_id' => null, 'is_active' => true]);
 
+        // مرحلهٔ ۹ · فاز ۵: همان قاعده روی تنها مسیرِ ساختنِ مجتمع — خریدِ آنلاین
         $this->actingAs($buyer)
-            ->postJson('/api/v1/subscription/receipt', [
+            ->post('/subscription/checkout', [
                 'plan' => 'both',
                 'complex_name' => 'مجتمعِ بی‌نوع',
-                'receipt' => UploadedFile::fake()->image('r.jpg'),
             ])
-            ->assertStatus(422)
-            ->assertJsonValidationErrors('complex_type');
+            ->assertSessionHasErrors('complex_type');
 
         /*
-         * ⚠️ ادعای اصلی این است، نه کدِ ۴۲۲: **هیچ مجتمعی ساخته نشده باشد.**
+         * ⚠️ ادعای اصلی این است، نه خطای اعتبارسنجی: **هیچ مجتمعی ساخته نشده باشد.**
          * اعتبارسنجی‌ای که رد کند ولی رکورد بسازد، بدتر از نبودنش است.
          */
         $this->assertNull($buyer->fresh()->complex_id, 'با وجودِ رد شدن، مجتمع ساخته شد.');
+        $this->assertSame(0, CheckoutIntent::count());
     }
 
     public function test_the_super_admin_creation_form_records_the_type(): void
@@ -544,16 +541,15 @@ class ComplexTypeTest extends TestCase
         $buyer = User::factory()->create(['role' => UserRole::Owner->value, 'complex_id' => null, 'is_active' => true]);
 
         $this->actingAs($buyer)
-            ->postJson('/api/v1/subscription/receipt', [
+            ->post('/subscription/checkout', [
                 'plan' => 'both',
                 'complex_name' => 'مجتمعِ جعلی',
                 'complex_type' => 'industrial',
-                'receipt' => UploadedFile::fake()->image('r.jpg'),
             ])
-            ->assertStatus(422)
-            ->assertJsonValidationErrors('complex_type');
+            ->assertSessionHasErrors('complex_type');
 
         $this->assertNull($buyer->fresh()->complex_id);
+        $this->assertSame(0, CheckoutIntent::count());
     }
 
     /** ⚠️ مسیرِ ادمینِ کل هم همان قاعده را دارد. */
