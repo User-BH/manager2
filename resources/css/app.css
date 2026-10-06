@@ -440,7 +440,10 @@ button:disabled {
     position: relative;
     flex: 0 0 auto;
     width: 280px;
-    height: 360px;
+    /* ۲۸۰×۳۵۰ = دقیقاً ۴:۵ ِ تصویرهای تور (۸۰۰×۱۰۰۰)؛ با ۳۶۰ و `object-cover`
+       لبه‌ها بریده می‌شد و تصویر در حالتِ عادی بزرگ‌نمایی‌شده دیده می‌شد
+       (مرحلهٔ ۹ · فاز ۱). */
+    height: 350px;
     margin-left: 20px;
     border-radius: 1rem;
     overflow: hidden;

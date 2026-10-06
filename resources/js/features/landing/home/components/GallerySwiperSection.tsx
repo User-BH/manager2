@@ -24,6 +24,18 @@ const loopedImages = Array.from({ length: REPEAT_COUNT }).flatMap(() => panelTou
 const PIXELS_PER_SECOND = 57
 const ANIMATION_DURATION_SECONDS = BLOCK_WIDTH_PX / PIXELS_PER_SECOND
 
+/*
+ * پس‌زمینه‌ی عنوانِ قاب (مرحلهٔ ۹ · فاز ۱).
+ *
+ * پیش از این گرادیان از پایین تا بالای همان نوارِ متن کم‌رنگ می‌شد، پس عنوان
+ * روی تیرگیِ ‎۰٫۳۵ تا ‎۰٫۵ می‌نشست؛ روی بخشِ سفیدِ تصویر کنتراستِ متنِ سفید
+ * حدودِ ۳:۱ بود. حالا کم‌رنگ‌شدن فقط در ‎۲۴px ِ بالای نوار است (`pt-8` = ۳۲px،
+ * پس متن هرگز در آن نیست) و زیرِ متن دست‌کم ‎۰٫۶۲ — حتی روی سفیدِ کامل
+ * بیش از ‎۴٫۵:۱. ظاهر همان نوارِ نیمه‌تیره است، فقط کمی تیره‌تر زیرِ متن.
+ */
+export const CAPTION_FADE_PX = 24
+export const CAPTION_SCRIM = `linear-gradient(180deg, rgba(0,0,0,0) 0px, rgba(0,0,0,0.62) ${CAPTION_FADE_PX}px, rgba(0,0,0,0.8) 100%)`
+
 const trackStyle = {
   '--gallery-block-width': `${BLOCK_WIDTH_PX}px`,
   '--gallery-marquee-duration': `${ANIMATION_DURATION_SECONDS}s`,
@@ -77,7 +89,8 @@ export function GallerySwiperSection() {
                   height={1000}
                   loading="lazy"
                   decoding="async"
-                  className="h-full w-full cursor-zoom-in object-cover transition-transform duration-700 group-hover:scale-110"
+                  // `object-contain`: کلِ تصویر و لبه‌هایش در حالتِ عادی؛ بزرگ‌نمایی فقط با هاور
+                  className="h-full w-full cursor-zoom-in object-contain transition-transform duration-700 group-hover:scale-110"
                   draggable={false}
                 />
 
@@ -89,11 +102,9 @@ export function GallerySwiperSection() {
                   تصویرها چه می‌گویند.
                 */}
                 <div
-                  className="pointer-events-none absolute inset-x-0 bottom-0 p-3 text-right"
-                  style={{
-                    background:
-                      'linear-gradient(0deg, rgba(0,0,0,0.78) 0%, rgba(0,0,0,0.35) 55%, transparent 100%)',
-                  }}
+                  className="pointer-events-none absolute inset-x-0 bottom-0 px-3 pb-3 pt-8 text-right"
+                  style={{ background: CAPTION_SCRIM }}
+                  data-tour-caption=""
                   dir="rtl"
                 >
                   <span className="block text-[12.5px] font-bold text-white drop-shadow">

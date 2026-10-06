@@ -33,7 +33,7 @@ export function HomePage() {
         */}
         {/*
           ارتفاع‌های جای‌گیر با سنجشِ واقعی در ‎۳۸۰، ‎۷۰۰ و ‎۱۲۸۰ (فاز ۵):
-          تبلیغ ‎۲۰۰/۲۴۸/۲۸۰، تور ‎۶۹۶/۶۷۲، نظرات ‎۶۰۲/۵۹۴.
+          تبلیغ ‎۲۰۰/۲۴۸/۲۸۰، تور ‎۶۸۶/۶۶۲ (مرحلهٔ ۹ · فاز ۱: قابِ ۳۵۰ به‌جای ۳۶۰)، نظرات ‎۶۰۲/۵۹۴.
         */}
         <LazyVisible
           load={() => import('./components/AdBannerSection')}
@@ -44,8 +44,8 @@ export function HomePage() {
         <LazyVisible
           id="panel-tour"
           load={() => import('./components/GallerySwiperSection')}
-          height={696}
-          heightClass="h-[696px] sm:h-[672px]"
+          height={686}
+          heightClass="h-[686px] sm:h-[662px]"
         />
         <LazyVisible
           id="testimonials"

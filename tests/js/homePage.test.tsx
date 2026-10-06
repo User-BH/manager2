@@ -1,11 +1,16 @@
 import { readFileSync, existsSync } from 'node:fs'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { act, render, screen, waitFor, within } from '@testing-library/react'
+import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { LazyVisible } from '@/shared/ui/LazyVisible'
 import { scrollToSection } from '@/shared/lib/scroll'
 import { HomeFooter } from '@/features/landing/home/components/HomeFooter'
-import { GallerySwiperSection } from '@/features/landing/home/components/GallerySwiperSection'
+import {
+  CAPTION_FADE_PX,
+  CAPTION_SCRIM,
+  GallerySwiperSection,
+} from '@/features/landing/home/components/GallerySwiperSection'
+import { GalleryLightbox } from '@/features/landing/home/components/GalleryLightbox'
 import { InstallPrompt } from '@/shared/pwa/InstallPrompt'
 import { features } from '@/features/landing/content/landingContent'
 import { PANEL_TOUR } from '@/features/landing/content/sections'
@@ -251,6 +256,96 @@ describe('تور پنل (جای «گالری»)', () => {
       // پارکینگ در پرونده‌ی واحد هست، ولی هیچ قاعده‌ی شارژی آن را نمی‌شمارد
       if (/پارکینگ/.test(text)) expect(text).not.toMatch(/شارژ|سهم هر واحد/)
     }
+  })
+})
+
+/*
+ * تور پنل در حالتِ عادی بی‌زوم (مرحلهٔ ۹ · فاز ۱).
+ *
+ * 🔴 با سنجش در مرورگر: قابِ ۲۸۰×۳۶۰ و لایت‌باکسِ ‎۵۴۵×۶۱۴ (در ۱۰۲۴) با
+ * `object-cover` تصویرِ ۴:۵ را می‌بریدند — در لایت‌باکس ‎۱۰٪ از ارتفاع و در
+ * گوشی حدودِ ‎۲۰٪ — پس حالتِ عادی و حالتِ توضیح زوم‌شده دیده می‌شدند.
+ * jsdom چیدمان ندارد؛ اینجا قرارداد سنجیده می‌شود و E2E ِ `tour-panel` خودِ
+ * چیدمان را در همه‌ی نمایه‌ها.
+ */
+describe('تور پنل: حالتِ عادی بی‌زوم، زوم فقط با هاور', () => {
+  /** کنتراستِ متن روی سیاهی با شفافیتِ α، بدترین حالت: تصویرِ سفیدِ کامل زیرش */
+  function contrastOverWhite(alpha: number, textWhite = 1): number {
+    const lin = (c: number) => (c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4)
+    const bg = 1 - alpha
+    const text = textWhite + (1 - textWhite) * bg
+    const [hi, lo] = [lin(text), lin(bg)].sort((x, y) => y - x)
+    return (hi + 0.05) / (lo + 0.05)
+  }
+
+  function stops(gradient: string): { alpha: number; px: number | null; pct: number | null }[] {
+    return [...gradient.matchAll(/rgba\(([^)]+)\)\s+([\d.]+)(px|%)/g)].map((m) => ({
+      alpha: Number(m[1].split(',')[3]),
+      px: m[3] === 'px' ? Number(m[2]) : null,
+      pct: m[3] === '%' ? Number(m[2]) : null,
+    }))
+  }
+
+  it('قابِ تور دقیقاً ۴:۵ ِ تصویر است و تصویر `contain` — هیچ لبه‌ای بریده نمی‌شود', () => {
+    const css = readFileSync('resources/css/app.css', 'utf8')
+    const block = css.slice(css.indexOf('.gallery-marquee-item {'))
+    const width = Number(block.match(/width:\s*(\d+)px/)![1])
+    const height = Number(block.match(/height:\s*(\d+)px/)![1])
+    expect(width / height).toBeCloseTo(800 / 1000, 3)
+
+    render(<GallerySwiperSection />)
+    const images = screen.getAllByRole('img')
+    expect(images.length).toBeGreaterThan(0)
+    for (const img of images) {
+      expect(img.className).toContain('object-contain')
+      expect(img.className).not.toContain('object-cover')
+      // مکانیزمِ هاورِ فعلی همان می‌ماند؛ بزرگ‌نماییِ بی‌شرط ممنوع
+      expect(img.className).toContain('group-hover:scale-110')
+      expect(img.className).not.toMatch(/(^|\s)scale-\d/)
+    }
+  })
+
+  it('حالتِ توضیح: تصویرِ کامل، بی‌ذره‌بین؛ ذره‌بین فقط با حرکتِ نشانگر', () => {
+    const { container } = render(
+      <GalleryLightbox items={panelTourItems} index={0} onClose={vi.fn()} onNavigate={vi.fn()} />,
+    )
+    const img = screen.getByRole('img', { name: panelTourItems[0].title })
+    const lens = () =>
+      [...container.querySelectorAll<HTMLElement>('div')].find((d) => d.style.backgroundSize)
+
+    expect(img.className).toContain('object-contain')
+    expect(img.className).not.toContain('object-cover')
+    expect(img.style.opacity).toBe('1')
+    expect(lens()).toBeUndefined()
+
+    fireEvent.mouseMove(img.parentElement!, { clientX: 10, clientY: 10 })
+    expect(lens()?.style.backgroundSize).toBe('240%')
+    expect(img.style.opacity).toBe('0')
+
+    fireEvent.mouseLeave(img.parentElement!)
+    expect(lens()).toBeUndefined()
+    expect(img.style.opacity).toBe('1')
+  })
+
+  it('پس‌زمینه‌ی عنوان: زیرِ متن دست‌کم ۴٫۵:۱ حتی روی سفید، ولی سنگین نه', () => {
+    const [top, band, bottom] = stops(CAPTION_SCRIM)
+    // بالای نوار شفاف است تا لبه‌ی تیره روی تصویر نیفتد
+    expect(top).toEqual({ alpha: 0, px: 0, pct: null })
+    expect(band.px).toBe(CAPTION_FADE_PX)
+    expect(bottom.pct).toBe(100)
+    // هرچه پایین‌تر تیره‌تر؛ پس کم‌ترین تیرگیِ زیرِ متن همان `band` است
+    expect(bottom.alpha).toBeGreaterThanOrEqual(band.alpha)
+    expect(contrastOverWhite(band.alpha)).toBeGreaterThanOrEqual(4.5)
+    // سرفصل‌ها با سفیدِ ۸۵٪ نوشته می‌شوند
+    expect(contrastOverWhite(band.alpha, 0.85)).toBeGreaterThanOrEqual(4.5)
+    // «ظریف»: نه سیاهِ یکدست
+    expect(bottom.alpha).toBeLessThanOrEqual(0.85)
+
+    render(<GallerySwiperSection />)
+    const caption = document.querySelector<HTMLElement>('[data-tour-caption]')!
+    // متن هرگز در ناحیه‌ی کم‌رنگ‌شدن نمی‌نشیند: `pt-8` = ۳۲px > ناحیه‌ی ۲۴px
+    expect(caption.className).toContain('pt-8')
+    expect(32).toBeGreaterThan(CAPTION_FADE_PX)
   })
 })
 
