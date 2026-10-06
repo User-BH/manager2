@@ -16,18 +16,21 @@ declare global {
   }
 }
 
-async function openTour(page: Page, colorScheme: 'light' | 'dark' = 'light') {
+async function openTour(page: Page, theme: 'light' | 'dark' = 'light') {
   /*
    * نوارِ گالری بی‌وقفه حرکت می‌کند و Playwright روی عنصرِ متحرک «پایدار»
    * نمی‌شود. «کاهشِ حرکت» تنظیمِ واقعیِ کاربر است و CSS در آن نوار را
    * می‌ایستاند؛ اندازه‌ی قاب، `object-fit`، هاور و ذره‌بین به حرکتِ نوار ربطی
    * ندارند. (`test.use({ reducedMotion })` در این پیکربندی اثر نکرد؛ سنجیده شد.)
    */
+  await page.emulateMedia({ reducedMotion: 'reduce' })
   /*
-   * ⚠️ `colorScheme` همین‌جا هم داده می‌شود: در Firefox، `emulateMedia` با فقط
-   * `reducedMotion` تیرگیِ `test.use({ colorScheme })` را پاک می‌کرد (CI قرمز شد).
+   * ⚠️ تمِ تیره‌ی سایت از `prefers-color-scheme` ِ سیستم‌عامل نمی‌آید (عمداً؛
+   * `critical-flows`)؛ کلاسِ `dark` است که انتخابِ کاربر در `sakena:theme`
+   * می‌گذارد. نسخه‌ی اولِ این تست حالتِ تیره‌ی سیستم‌عامل را می‌سنجید — در
+   * Firefox هم پایدار نبود — و اصلاً تمِ تیره‌ی سایت را روشن نمی‌کرد.
    */
-  await page.emulateMedia({ reducedMotion: 'reduce', colorScheme })
+  await page.addInitScript((value) => localStorage.setItem('sakena:theme', value), theme)
   /*
    * بزرگ‌نماییِ واقعیِ یک عنصر. ⚠️ Tailwind 4 `scale-110` را با ویژگیِ مستقلِ
    * `scale` می‌سازد، نه `transform` — نسخه‌ی اولِ همین تست فقط `transform`
@@ -130,8 +133,8 @@ test('زوم فقط با هاور: قابِ گالری و ذره‌بینِ حا
  * کنتراستِ عنوان و سرفصل روی بدترین زمینه — تصویرِ سفیدِ کامل — از روی
  * گرادیانِ واقعیِ محاسبه‌شده و جای واقعیِ هر خط در همین نمایه.
  */
-async function captionContrast(page: Page, colorScheme: 'light' | 'dark' = 'light') {
-  await openTour(page, colorScheme)
+async function captionContrast(page: Page, theme: 'light' | 'dark' = 'light') {
+  await openTour(page, theme)
   return page.evaluate(() => {
     const lin = (c: number) => (c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4)
     const ratio = (alpha: number, white: number) => {
@@ -185,11 +188,11 @@ test('عنوانِ زیرِ تصویر روی سفیدِ کامل هم دست‌
 })
 
 test.describe('حالتِ تیره', () => {
-  test.use({ colorScheme: 'dark' })
-
   test('همان کنتراست و همان حالتِ بی‌زوم', async ({ page }) => {
     const lines = await captionContrast(page, 'dark')
-    expect(await page.evaluate(() => matchMedia('(prefers-color-scheme: dark)').matches)).toBe(true)
+    expect(await page.evaluate(() => document.documentElement.classList.contains('dark'))).toBe(
+      true,
+    )
     for (const line of lines) {
       expect(line.contrast, `«${line.text}»`).toBeGreaterThanOrEqual(4.5)
     }
