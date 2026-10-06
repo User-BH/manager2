@@ -80,5 +80,8 @@
     "*.php": [
       "php vendor/bin/pint"
     ]
+  },
+  "overrides": {
+    "shell-quote": "1.12.0"
   }
 }
