@@ -44,6 +44,9 @@ class E2eSeeder extends Seeder
      */
     public const REGISTRANTS = ['09120000021', '09120000022', '09120000023'];
 
+    /** حسابِ اولیه برای خریدِ آنلاینِ اشتراک و ساختِ مجتمع (مرحلهٔ ۹ · فاز ۴) — یکی برای هر موتور */
+    public const BUYERS = ['09120000041', '09120000042', '09120000043'];
+
     /** بیش از هر قبضِ نمایشی، تا کیف قبض را کامل بپردازد نه بخشی از آن. */
     public const CREDIT = 5_000_000;
 
@@ -72,6 +75,15 @@ class E2eSeeder extends Seeder
 
         foreach (self::REGISTRANTS as $phone) {
             $this->freshRegistrant($phone);
+        }
+
+        foreach (self::BUYERS as $phone) {
+            $this->freshRegistrant($phone);
+            // خریدار با نام و نام خانوادگیِ جدا، مثلِ هر ثبت‌نامِ تازه
+            User::withoutGlobalScopes()->where('phone', $phone)->first()?->forceFill([
+                'first_name' => 'خریدار',
+                'last_name' => 'سرتاسری',
+            ])->save();
         }
 
         /*

@@ -22,6 +22,9 @@ return [
         'terminal_id' => env('SUBSCRIPTION_GATEWAY_TERMINAL'),
         'username' => env('SUBSCRIPTION_GATEWAY_USERNAME'),
         'password' => env('SUBSCRIPTION_GATEWAY_PASSWORD'),
+        // زرین‌پال (مرحلهٔ ۹ · فاز ۴): شناسه‌ی پذیرنده و حالتِ sandbox ِ خودِ زرین‌پال
+        'merchant_id' => env('SUBSCRIPTION_GATEWAY_MERCHANT'),
+        'sandbox' => (bool) env('SUBSCRIPTION_GATEWAY_SANDBOX', false),
     ],
 
     /** شماره‌ی پشتیبانی که در پیام «درگاه فعال نیست» نشان داده می‌شود. */

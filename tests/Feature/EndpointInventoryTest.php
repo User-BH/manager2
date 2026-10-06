@@ -314,7 +314,8 @@ class EndpointInventoryTest extends TestCase
         sort($exempt);
 
         $this->assertSame(
-            ['pay/callback/{payment}', 'subscription/callback/{subscription}'],
+            // checkout/callback (مرحلهٔ ۹ · فاز ۴): خریدارِ اولیه مجتمعی ندارد و بانک بی نشست برمی‌گردد
+            ['checkout/callback/{intent}', 'pay/callback/{payment}', 'subscription/callback/{subscription}'],
             $exempt,
             "مسیرهای مستثنا از زمینهٔ مستأجری عوض شده‌اند:\n  ".implode("\n  ", $exempt),
         );

@@ -200,6 +200,13 @@ Route::match(['get', 'post'], 'subscription/callback/{subscription}', [Subscript
     ->name('subscription.callback')
     ->withoutMiddleware([PreventRequestForgery::class, SetCurrentComplex::class]);
 
+// بازگشتِ خریدِ مجتمع توسطِ حسابِ اولیه (مرحلهٔ ۹ · فاز ۴) — همان سه محافظ؛
+// `{intent}` شناسه‌ی تصادفیِ `public_id` است، نه شمارنده‌ی ردیف
+Route::match(['get', 'post'], 'checkout/callback/{intent}', [SubscriptionCheckoutController::class, 'intentCallback'])
+    ->middleware('throttle:gateway-callback')
+    ->name('checkout.callback')
+    ->withoutMiddleware([PreventRequestForgery::class, SetCurrentComplex::class]);
+
 /*
 | بررسیِ سلامت (R43).
 |

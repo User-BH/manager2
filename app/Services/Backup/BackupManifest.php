@@ -74,6 +74,8 @@ final class BackupManifest
         'service_request_comments',
         'settings',
         'subscriptions',
+        // قصدِ خرید پیش از وجودِ مجتمع (مرحلهٔ ۹ · فاز ۴) — سابقه‌ی مالی
+        'checkout_intents',
         'sms_campaigns',
         'advertisements',
         // بلاگ (مرحلهٔ ۶ · فاز ۱۱) — دسته و برچسب پیش از مقاله، جدولِ واسط پس از آن

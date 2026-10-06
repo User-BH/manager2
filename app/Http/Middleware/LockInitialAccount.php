@@ -34,6 +34,10 @@ class LockInitialAccount
         '*/join-requests',
         // خرید اشتراک — راهِ دوم بیرون‌رفتن
         '*/subscription/*',
+        // خریدِ آنلاینِ اشتراک از مسیرِ وب (مرحلهٔ ۹ · فاز ۴): تنها راهِ مدیر شدنِ حسابِ اولیه.
+        // ⚠️ `*/subscription/*` با `subscription/checkout` جور نمی‌شود — پیش از آن «/» می‌خواهد.
+        'subscription/checkout',
+        'checkout/callback/*',
         '*/subscription',
         // حسابِ خودش
         '*/profile',

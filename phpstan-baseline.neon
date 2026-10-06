@@ -193,24 +193,6 @@ parameters:
 			path: app/Http/Controllers/GatewayController.php
 
 		-
-			message: '#^Offset ''fields'' on \*NEVER\* on left side of \?\? always exists and is not nullable\.$#'
-			identifier: nullCoalesce.offset
-			count: 1
-			path: app/Http/Controllers/SubscriptionCheckoutController.php
-
-		-
-			message: '#^Offset ''method'' on array\{redirect_url\: string, ref_id\: string\} on left side of \?\? does not exist\.$#'
-			identifier: nullCoalesce.offset
-			count: 1
-			path: app/Http/Controllers/SubscriptionCheckoutController.php
-
-		-
-			message: '#^Strict comparison using \=\=\= between ''GET'' and ''POST'' will always evaluate to false\.$#'
-			identifier: identical.alwaysFalse
-			count: 1
-			path: app/Http/Controllers/SubscriptionCheckoutController.php
-
-		-
 			message: '#^Cannot call method toDateString\(\) on string\.$#'
 			identifier: method.nonObject
 			count: 2

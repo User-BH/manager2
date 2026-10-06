@@ -626,6 +626,8 @@ class AuthorizationAttackTest extends TestCase
         'app/Http/Controllers/Api/JoinRequestController.php' => [2, 'متقاضی هنوز عضوِ هیچ مجتمعی نیست'],
         'app/Http/Controllers/Api/ResidentController.php' => [1, 'کاربرِ بی‌مجتمع، برای دعوت'],
         'app/Services/Account/ComplexUpgrader.php' => [1, 'کاربر در همین لحظه صاحبِ مجتمع می‌شود'],
+        // مرحلهٔ ۹ · فاز ۴: قفلِ خریدار — حسابِ اولیه هنوز مجتمعی ندارد
+        'app/Services/Subscription/ComplexPurchase.php' => [2, 'خریدار هنوز عضوِ هیچ مجتمعی نیست؛ قفل و بازخوانیِ همان کاربرِ خودش'],
         'app/Http/Middleware/EnsureComplexActive.php' => [1, 'خودِ مجتمع را می‌خواند تا زمینه ساخته شود'],
 
         // ── قفل و بازخوانی، **پس از** اینکه مجوز سنجیده شده ──

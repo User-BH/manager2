@@ -6,6 +6,7 @@ use App\Services\Payment\MellatGateway;
 use App\Services\Payment\PaymentGateway;
 use App\Services\Payment\SamanGateway;
 use App\Services\Payment\Sandbox;
+use App\Services\Payment\ZarinpalGateway;
 use RuntimeException;
 
 /**
@@ -21,7 +22,7 @@ use RuntimeException;
 class SubscriptionGatewayManager
 {
     /** درگاه‌هایی که واقعاً درایور دارند. */
-    private const SUPPORTED = ['sandbox', 'mellat', 'saman'];
+    private const SUPPORTED = ['sandbox', 'mellat', 'saman', 'zarinpal'];
 
     public function driver(): PaymentGateway
     {
@@ -32,6 +33,8 @@ class SubscriptionGatewayManager
             'sandbox' => Sandbox::gateway(),
             'mellat' => new MellatGateway($config, 'toman'),
             'saman' => new SamanGateway($config, 'toman'),
+            // درگاهِ سکو به انتخابِ کارفرما (مرحلهٔ ۹ · فاز ۴)
+            'zarinpal' => new ZarinpalGateway($config, 'toman'),
             default => throw new RuntimeException(
                 'درگاه پرداخت اشتراک هنوز فعال نشده است. می‌توانید با «واریز و آپلود رسید» '
                 .'خرید کنید یا با پشتیبانی '.config('subscription.support_phone').' تماس بگیرید.'
@@ -47,6 +50,11 @@ class SubscriptionGatewayManager
 
         // درگاه واقعی بدون شماره ترمینال کار نمی‌کند؛ بهتر است دکمه‌ی پرداخت
         // اصلاً نیاید تا اینکه کاربر وسط راه به خطای بانک بخورد.
+        // زرین‌پال با شناسه‌ی پذیرنده کار می‌کند، نه شماره‌ی ترمینال
+        if (config('subscription.gateway') === 'zarinpal') {
+            return filled(config('subscription.config.merchant_id'));
+        }
+
         if (config('subscription.gateway') !== 'sandbox') {
             return filled(config('subscription.config.terminal_id'));
         }

@@ -3,6 +3,7 @@
 namespace App\Services\Payment;
 
 use App\Enums\PaymentMethod;
+use App\Models\CheckoutIntent;
 use App\Models\Payment;
 use App\Models\Subscription;
 use Closure;
@@ -23,36 +24,31 @@ use Illuminate\Support\Facades\Cache;
  */
 class TrackingCodes
 {
-    public static function claimedElsewhere(string $tracking, Payment|Subscription $except): bool
+    public static function claimedElsewhere(string $tracking, Payment|Subscription|CheckoutIntent $except): bool
     {
         $payments = Payment::withoutGlobalScopes()
             ->where('method', PaymentMethod::Online->value)
             ->where('tracking_code', $tracking);
-
         $subscriptions = Subscription::withoutGlobalScopes()
             ->where('method', 'online')
             ->where('tracking_code', $tracking);
+        // قصدِ خرید (مرحلهٔ ۹ · فاز ۴): اشتراکِ ساخته‌ی خودش همان رهگیری را می‌گیرد
+        $intents = CheckoutIntent::query()->where('tracking_code', $tracking);
 
         if ($except instanceof Payment) {
             $payments->whereKeyNot($except->id);
-        } else {
+        } elseif ($except instanceof Subscription) {
             $subscriptions->whereKeyNot($except->id);
+        } else {
+            $intents->whereKeyNot($except->id);
+            if ($except->subscription_id !== null) {
+                $subscriptions->whereKeyNot($except->subscription_id);
+            }
         }
 
-        return $payments->exists() || $subscriptions->exists();
+        return $payments->exists() || $subscriptions->exists() || $intents->exists();
     }
 
-    /**
-     * «بررسی و ثبت» به‌صورتِ یک کار.
-     *
-     * ⚠️ بدونِ قفل، دو بازگشتِ هم‌زمان با یک کد هر دو «هنوز ثبت نشده» را
-     * می‌دیدند. قفلِ ردیفِ پرداخت اینجا کمکی نمی‌کند — دو پرداختِ متفاوت‌اند.
-     *
-     * @template T
-     *
-     * @param  Closure(): T  $work
-     * @return T
-     */
     public static function exclusively(string $tracking, Closure $work): mixed
     {
         return Cache::lock('gateway-tracking:'.sha1($tracking), 15)->block(10, $work);

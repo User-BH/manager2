@@ -5,6 +5,7 @@ namespace App\Console\Commands;
 use App\Enums\PaymentMethod;
 use App\Enums\PaymentStatus;
 use App\Models\AuditLog;
+use App\Models\CheckoutIntent;
 use App\Models\Payment;
 use App\Models\Subscription;
 use Illuminate\Console\Command;
@@ -72,13 +73,61 @@ class StalePayments extends Command
             ->where('created_at', '<', $before)
             ->count();
 
+        /*
+         * خریدِ مجتمع (مرحلهٔ ۹ · فاز ۴): دو حالتی که پولش شاید گرفته شده و هیچ‌کس
+         * دیگر به آن برنمی‌گردد — «نامعلوم» (نرسیدن به درگاه، مغایرتِ مبلغ) و
+         * «پرداخت‌شده ولی ساخته‌نشده». هر دو بررسیِ دستی می‌خواهند، مثلِ پرداختِ نامشخص.
+         */
+        $pendingIntents = CheckoutIntent::query()
+            ->where('status', CheckoutIntent::PENDING)
+            ->whereNotNull('authority')
+            ->where('created_at', '<', $before)
+            ->get();
+        $indeterminateIntents = AuditLog::query()
+            ->where('action', 'checkout.indeterminate')
+            ->where('subject_type', CheckoutIntent::class)
+            ->whereIn('subject_id', $pendingIntents->pluck('id'))
+            ->pluck('subject_id')
+            ->unique()
+            ->flip();
+        $intentsToReview = $pendingIntents
+            ->filter(fn (CheckoutIntent $intent) => $indeterminateIntents->has($intent->id))
+            ->concat(CheckoutIntent::where('status', CheckoutIntent::PAID)->get())
+            ->sortBy('id')
+            ->values();
+
         $this->line(sprintf(
-            'رهاشده: %d پرداخت  ·  اشتراکِ نیمه‌کاره: %d',
+            'رهاشده: %d پرداخت  ·  اشتراکِ نیمه‌کاره: %d  ·  خریدِ مجتمعِ رهاشده: %d',
             $abandoned->count(),
             $staleSubscriptions,
+            $pendingIntents->count() - $pendingIntents->filter(fn (CheckoutIntent $intent) => $indeterminateIntents->has($intent->id))->count(),
         ));
 
+        if ($intentsToReview->isNotEmpty()) {
+            $this->newLine();
+            $this->error($intentsToReview->count().' خریدِ مجتمع بررسیِ دستی می‌خواهد (نامعلوم یا پرداخت‌شده ولی ساخته‌نشده):');
+            $this->table(
+                ['شناسه', 'وضعیت', 'خریدار', 'مبلغ', 'مرجعِ درگاه', 'رهگیری', 'زمان'],
+                $intentsToReview->map(fn (CheckoutIntent $intent) => [
+                    $intent->id,
+                    $intent->status,
+                    $intent->user_id ?? '—',
+                    number_format($intent->amount),
+                    $intent->authority ?: '—',
+                    $intent->tracking_code ?: '—',
+                    $intent->created_at?->format('Y-m-d H:i') ?? '—',
+                ])->all(),
+            );
+        }
+
         if ($unknown->isEmpty()) {
+            if ($intentsToReview->isNotEmpty()) {
+                $this->newLine();
+                $this->line('رویه: docs/DISASTER_RECOVERY.md — سناریوی «درگاهِ پرداخت».');
+
+                return self::FAILURE;
+            }
+
             $this->info('هیچ پرداختِ نامشخصی وجود ندارد.');
 
             return self::SUCCESS;

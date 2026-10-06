@@ -2,6 +2,11 @@
 
 namespace App\Http\Requests;
 
+use App\Enums\AccountState;
+use App\Enums\ComplexType;
+use App\Models\User;
+use Illuminate\Validation\Rule;
+
 /**
  * شروعِ پرداختِ اشتراک از درگاه.
  *
@@ -17,6 +22,15 @@ class StartCheckoutRequest extends BaseFormRequest
     {
         return [
             'plan' => ['required', 'string'],
+
+            /*
+             * خریدارِ «حالتِ اولیه» با همین خرید مجتمعش را می‌سازد (مرحلهٔ ۹ · فاز ۴)؛
+             * برای مدیرِ فعلی (تمدید) بی‌معناست و نادیده گرفته می‌شود — مثلِ
+             * `UploadSubscriptionReceiptRequest`. نوع اجباری است، نه پیش‌فرضِ «مسکونی».
+             */
+            'complex_name' => [$this->needsComplex() ? 'required' : 'nullable', 'string', 'max:150'],
+            'complex_type' => [$this->needsComplex() ? 'required' : 'nullable', Rule::in(ComplexType::values())],
+            'complex_address' => ['nullable', 'string', 'max:255'],
         ];
     }
 
@@ -25,6 +39,19 @@ class StartCheckoutRequest extends BaseFormRequest
      */
     public function attributes(): array
     {
-        return ['plan' => 'پلن'];
+        return [
+            'plan' => 'پلن',
+            'complex_name' => 'نام مجتمع',
+            'complex_type' => 'نوع مجتمع',
+            'complex_address' => 'نشانی مجتمع',
+        ];
+    }
+
+    /** آیا این خرید باید مجتمع را هم بسازد؟ از واقعیت مشتق می‌شود، مثلِ `AccountState`. */
+    private function needsComplex(): bool
+    {
+        $user = $this->user();
+
+        return $user instanceof User && AccountState::of($user) === AccountState::Initial;
     }
 }

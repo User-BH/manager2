@@ -670,6 +670,53 @@ class PhaseRegressionMapTest extends TestCase
             'مدیر نامِ حسابِ خودنام را بی‌صدا عوض نمی‌کند' => [
                 'PersonNameTest', 'test_a_manager_cannot_silently_rename_a_self_named_account', '۹',
             ],
+
+            /* ── مرحلهٔ ۹ · فاز ۴: CheckoutIntent و پرداختِ آنلاینِ اشتراک ───────────── */
+            'پیش از پرداخت فقط قصد؛ مبلغ از سرور' => [
+                'CheckoutIntentTest', 'test_starting_creates_only_an_intent_with_the_server_amount', '۹',
+            ],
+            '🔴 پرداختِ تأییدشده: مجتمع + اشتراک + مدیر با هم' => [
+                'CheckoutIntentTest', 'test_a_verified_payment_creates_complex_subscription_and_manager_atomically', '۹',
+            ],
+            '🔴 بازگشتِ تکراری هیچ چیزِ دوم نمی‌سازد' => [
+                'CheckoutIntentTest', 'test_repeated_callbacks_create_nothing_twice_and_never_charge_again', '۹',
+            ],
+            'تکمیلِ دوباره بی‌اثر' => [
+                'CheckoutIntentTest', 'test_completing_twice_is_idempotent', '۹',
+            ],
+            'لغو: کاربر اولیه می‌ماند و دوباره می‌خرد' => [
+                'CheckoutIntentTest', 'test_a_cancelled_payment_leaves_the_user_initial_and_free_to_retry', '۹',
+            ],
+            '🔴 پارامترِ «موفق» ِ کلاینت خوانده نمی‌شود' => [
+                'CheckoutIntentTest', 'test_client_supplied_success_parameters_are_ignored', '۹',
+            ],
+            'مرجعِ بیگانه پیش از تأیید رد' => [
+                'CheckoutIntentTest', 'test_a_foreign_authority_is_rejected_before_verification', '۹',
+            ],
+            '🔴 مغایرتِ مبلغ و timeout نامعلوم‌اند، نه ناموفق' => [
+                'CheckoutIntentTest', 'test_amount_mismatch_and_timeouts_are_indeterminate_not_failed', '۹',
+            ],
+            'یک کدِ رهگیری، یک پرداخت — قصدِ خرید هم' => [
+                'CheckoutIntentTest', 'test_a_tracking_code_already_used_elsewhere_creates_nothing', '۹',
+            ],
+            'پرداخت برای حسابِ غیرِ اولیه نگه داشته و بررسی می‌شود' => [
+                'CheckoutIntentTest', 'test_a_payment_for_a_user_who_is_no_longer_initial_is_kept_for_review', '۹',
+            ],
+            'بازگشت فقط برای خریدار یا بانک' => [
+                'CheckoutIntentTest', 'test_only_the_buyer_or_the_bank_can_return_to_an_intent', '۹',
+            ],
+            'پلن و نوع در سرور سنجیده می‌شوند' => [
+                'CheckoutIntentTest', 'test_plans_are_checked_on_the_server', '۹',
+            ],
+            'خریدِ نامعلوم یا ساخته‌نشده در payments:stale' => [
+                'CheckoutIntentTest', 'test_indeterminate_and_unfulfilled_purchases_surface_for_manual_review', '۹',
+            ],
+            '🔴 حذفِ خریدار یا مجتمع سابقه‌ی مالی را پاک نمی‌کند' => [
+                'CheckoutIntentTest', 'test_deleting_the_buyer_or_the_complex_never_erases_payment_history', '۹',
+            ],
+            'زرین‌پال: مبلغِ تأیید از سفارش، نه از بازگشت' => [
+                'ZarinpalGatewayTest', 'test_verification_never_takes_the_amount_from_the_callback', '۹',
+            ],
             '۱۵ مقاله‌ی واقعی و اجرای دوباره‌ی بی‌اثر' => [
                 'BlogImporterTest', 'test_fifteen_real_articles_are_imported_and_a_second_run_changes_nothing', '۷',
             ],

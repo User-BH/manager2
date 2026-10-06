@@ -2,15 +2,19 @@
 
 namespace App\Http\Controllers;
 
+use App\Enums\AccountState;
+use App\Enums\ComplexType;
 use App\Enums\SubscriptionPlan;
 use App\Exceptions\DomainException;
 use App\Http\Middleware\SecurityHeaders;
 use App\Http\Requests\StartCheckoutRequest;
 use App\Models\AuditLog;
+use App\Models\CheckoutIntent;
 use App\Models\Plan;
 use App\Models\Subscription;
 use App\Services\Payment\GatewayUnreachable;
 use App\Services\Payment\TrackingCodes;
+use App\Services\Subscription\ComplexPurchase;
 use App\Services\Subscription\SubscriptionGatewayManager;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -24,7 +28,10 @@ use Illuminate\Support\Facades\Log;
  */
 class SubscriptionCheckoutController extends Controller
 {
-    public function __construct(protected SubscriptionGatewayManager $gateways) {}
+    public function __construct(
+        protected SubscriptionGatewayManager $gateways,
+        protected ComplexPurchase $purchase,
+    ) {}
 
     public function start(StartCheckoutRequest $request)
     {
@@ -35,6 +42,11 @@ class SubscriptionCheckoutController extends Controller
         $this->authorize('purchase', Subscription::class);
 
         $request->validated();
+
+        // حسابِ اولیه: خرید مجتمع را می‌سازد (مرحلهٔ ۹ · فاز ۴) — با قصدِ خرید، نه اشتراکِ بی‌مجتمع
+        if (AccountState::of($user) === AccountState::Initial) {
+            return $this->startNewComplex($request);
+        }
 
         $complex = $this->requireComplex();
 
@@ -95,21 +107,7 @@ class SubscriptionCheckoutController extends Controller
             return redirect('/account?checkout=error&message='.urlencode($e->getMessage()));
         }
 
-        if (($redirect['method'] ?? 'GET') === 'POST') {
-            /*
-             * ⚠️ بدونِ این، CSPِ همین صفحه فرمِ رفتن به بانک را بلاک می‌کند.
-             * `request()` و نه `$request`: FormRequest کپیِ جداگانه‌ای با
-             * کیسه‌ی attributesِ خودش است و میدل‌ور آن را نمی‌بیند.
-             */
-            SecurityHeaders::allowFormTarget(request(), $redirect['redirect_url']);
-
-            return view('payments.redirect', [
-                'action' => $redirect['redirect_url'],
-                'fields' => $redirect['fields'] ?? [],
-            ]);
-        }
-
-        return redirect()->away($redirect['redirect_url']);
+        return $this->toGateway($redirect);
     }
 
     public function callback(Request $request, Subscription $subscription)
@@ -124,7 +122,7 @@ class SubscriptionCheckoutController extends Controller
          * این مسیر باید **بدونِ نشست هم** کار کند (بازگشت از بانک پس از انقضای
          * نشست). قاعده اینجا شرطی است: «اگر نشستی هست، باید خودِ خریدار باشد».
          */
-        abort_unless(! Auth::check() || $subscription->user_id === Auth::id(), 403);
+        $this->ensureBuyerOrBank($subscription->user_id);
 
         // تراکنشی که تکلیفش روشن شده دوباره تایید نمی‌شود: بازگشت دوباره نباید
         // دوره را تمدید کند و نباید اشتراکِ فعال را «ناموفق» علامت بزند.
@@ -203,5 +201,150 @@ class SubscriptionCheckoutController extends Controller
         }
 
         return redirect('/account?checkout=success&tracking='.urlencode($tracking));
+    }
+
+    /* ─────────────── خریدِ مجتمع توسطِ حسابِ اولیه (مرحلهٔ ۹ · فاز ۴) ─────────────── */
+
+    /**
+     * پیش از پرداخت فقط `CheckoutIntent`؛ مجتمع، اشتراک و نقشِ مدیر پس از
+     * تأییدِ درگاه و در یک تراکنش (`ComplexPurchase::complete`).
+     */
+    private function startNewComplex(StartCheckoutRequest $request)
+    {
+        $data = $request->validated();
+        $type = ComplexType::from($data['complex_type']);
+
+        // مسیرِ وب است: خطای قاعده به صفحه‌ی حساب با پیامِ روشن برمی‌گردد، نه صفحه‌ی خطا
+        try {
+            $plan = $this->purchase->plan($data['plan'], $type);
+        } catch (DomainException $e) {
+            return redirect('/account?checkout=error&message='.urlencode($e->getMessage()));
+        }
+
+        // درگاهِ خاموش پیش از ساختنِ قصد گفته می‌شود، نه وسطِ راه
+        if (! $this->gateways->isEnabled()) {
+            return redirect('/account?checkout=error&message='.urlencode('پرداختِ آنلاینِ اشتراک هنوز فعال نشده است.'));
+        }
+
+        $intent = $this->purchase->begin(
+            Auth::user(),
+            $plan,
+            $data['complex_name'],
+            $type,
+            $data['complex_address'] ?? null,
+        );
+
+        try {
+            $redirect = $this->gateways->driver()->request($intent);
+        } catch (\Throwable $e) {
+            $this->purchase->fail($intent, 'درخواستِ درگاه ناموفق بود');
+
+            return redirect('/account?checkout=error&message='.urlencode($e->getMessage()));
+        }
+
+        return $this->toGateway($redirect);
+    }
+
+    /**
+     * فرستادنِ مرورگر به درگاه — مشترکِ تمدید و خریدِ مجتمع.
+     *
+     * @param  array<string, mixed>  $redirect
+     */
+    private function toGateway(array $redirect)
+    {
+        if (($redirect['method'] ?? 'GET') === 'POST') {
+            /*
+             * ⚠️ بدونِ این، CSPِ همین صفحه فرمِ رفتن به بانک را بلاک می‌کند.
+             * `request()` و نه `$request`: FormRequest کپیِ جداگانه‌ای با
+             * کیسه‌ی attributesِ خودش است و میدل‌ور آن را نمی‌بیند.
+             */
+            SecurityHeaders::allowFormTarget(request(), $redirect['redirect_url']);
+
+            return view('payments.redirect', [
+                'action' => $redirect['redirect_url'],
+                'fields' => $redirect['fields'] ?? [],
+            ]);
+        }
+
+        return redirect()->away($redirect['redirect_url']);
+    }
+
+    /**
+     * بازگشت از درگاه برای قصدِ خرید.
+     *
+     * مثلِ بازگشتِ قبض و اشتراک: بی CSRF و بی `auth` (نشست شاید تا بازگشت منقضی
+     * شده باشد)؛ اعتبار را تأییدِ خودِ درگاه می‌دهد، و اگر نشستی هست باید خودِ
+     * خریدار باشد. هیچ پارامترِ «موفق» ِ کلاینت خوانده نمی‌شود.
+     */
+    public function intentCallback(Request $request, CheckoutIntent $intent)
+    {
+        $this->ensureBuyerOrBank($intent->user_id);
+
+        // تکلیفِ روشن‌شده دوباره بررسی نمی‌شود: refresh و بازگشتِ تکراری بی‌اثرند
+        if (! $intent->isPending()) {
+            return $this->afterCheckout($intent);
+        }
+
+        try {
+            $tracking = $this->gateways->driver()->verify($intent, $request->all());
+        } catch (GatewayUnreachable $e) {
+            // نامعلوم، نه ناموفق (R59): pending می‌ماند و audit می‌شود
+            AuditLog::create([
+                'complex_id' => null,
+                'user_id' => $intent->user_id,
+                'action' => 'checkout.indeterminate',
+                'subject_type' => CheckoutIntent::class,
+                'subject_id' => $intent->id,
+                'description' => 'نتیجه‌ی پرداختِ خریدِ مجتمع از درگاه قطعی نشد',
+                'ip_address' => $request->ip(),
+                'properties' => [
+                    'gateway' => $e->gateway,
+                    'stage' => $e->stage,
+                    'authority' => $intent->authority,
+                    'reason' => $e->getMessage(),
+                ],
+                'created_at' => now(),
+            ]);
+
+            return redirect('/account?checkout=unknown');
+        }
+
+        if (! $tracking) {
+            return $this->afterCheckout($this->purchase->fail($intent, 'درگاه پرداخت را تأیید نکرد'));
+        }
+
+        $result = TrackingCodes::exclusively(
+            $tracking,
+            fn (): CheckoutIntent => $this->purchase->complete($intent, $tracking),
+        );
+
+        if ($result->status === CheckoutIntent::FAILED) {
+            Log::warning('[checkout] tracking code already used elsewhere', ['intent' => $intent->id]);
+        }
+
+        return $this->afterCheckout($result);
+    }
+
+    /**
+     * «اگر نشستی هست، باید خودِ خریدار باشد» — مشترکِ دو بازگشت.
+     *
+     * عمداً Policy نیست: `authorize()` همیشه کاربرِ واردشده می‌خواهد، ولی بازگشت
+     * از بانک باید بی نشست هم کار کند. یک جا، تا قاعده دو نسخه نشود.
+     */
+    private function ensureBuyerOrBank(?int $buyerId): void
+    {
+        abort_unless(! Auth::check() || $buyerId === Auth::id(), 403);
+    }
+
+    /** مقصد پس از بازگشت — از وضعیتِ سرور، نه از پارامترِ درگاه */
+    private function afterCheckout(CheckoutIntent $intent)
+    {
+        return match ($intent->status) {
+            // اکنون مدیر است؛ `/dashboard` داشبوردِ مدیر را باز می‌کند
+            CheckoutIntent::COMPLETED => redirect('/dashboard?checkout=success&tracking='.urlencode((string) $intent->tracking_code)),
+            CheckoutIntent::PAID => redirect('/account?checkout=review'),
+            CheckoutIntent::PENDING => redirect('/account?checkout=unknown'),
+            default => redirect('/account?checkout=failed'),
+        };
     }
 }

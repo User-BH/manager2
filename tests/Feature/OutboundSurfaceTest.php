@@ -37,6 +37,8 @@ class OutboundSurfaceTest extends TestCase
         return [
             'bpm.shaparak.ir',      // درگاهِ ملت
             'sep.shaparak.ir',      // درگاهِ سامان
+            'payment.zarinpal.com', // درگاهِ سکو برای اشتراک (مرحلهٔ ۹ · فاز ۴)
+            'sandbox.zarinpal.com', // sandbox ِ خودِ زرین‌پال — فقط با SUBSCRIPTION_GATEWAY_SANDBOX
             'api.kavenegar.com',    // پیامک
             'edge.ippanel.com',     // پیامک
             'rest.payamak-panel.com', // پیامک
