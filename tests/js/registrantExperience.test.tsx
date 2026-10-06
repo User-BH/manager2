@@ -41,6 +41,9 @@ function user(accountState: CurrentUser['accountState']): CurrentUser {
   return {
     id: 7,
     name: 'کاربر تازه‌ثبت‌نام',
+    firstName: 'کاربر',
+    lastName: 'تازه‌ثبت‌نام',
+    needsName: false,
     phone: '09120000002',
     role: 'owner',
     roleLabel: 'مالک',
@@ -144,5 +147,69 @@ describe('تجربه‌ی ثبت‌نام‌کننده‌ی اولیه', { timeo
     await waitFor(() => expect(container.querySelector('aside')).not.toBeNull(), SLOW)
     expect(currentPath).toBe('/my-bills')
     expect(container.querySelector('[data-experience="registrant"]')).toBeNull()
+  })
+})
+
+/*
+ * داشبوردِ اولیه: راهنما و تکمیلِ نام (مرحلهٔ ۹ · فاز ۳ · بندهای ۵ و ۳۰ ِ «بررسی جدید ۲»).
+ */
+describe('داشبوردِ اولیه: راهنما و تکمیلِ نام', { timeout: 20_000 }, () => {
+  async function renderDashboard(needsName: boolean) {
+    useAuthStore.setState({ user: { ...user('initial'), needsName }, isLoading: false })
+    const { RegistrantDashboardPage } =
+      await import('@/features/registrant/RegistrantDashboardPage')
+    const client = new QueryClient({ defaultOptions: { queries: { retry: false } } })
+    return render(
+      <QueryClientProvider client={client}>
+        <MemoryRouter>
+          <RegistrantDashboardPage />
+        </MemoryRouter>
+      </QueryClientProvider>,
+    )
+  }
+
+  it('راهنما چهار بخش دارد و کاربر برای فهمیدنِ مسیرش بیرون نمی‌رود', async () => {
+    const { container } = await renderDashboard(false)
+
+    const guide = await screen.findByRole('region', { name: 'راهنما' })
+    expect([...guide.querySelectorAll('summary')].map((s) => s.textContent)).toEqual([
+      'ساکنا چیست؟',
+      'چطور عضوِ مجتمعم شوم؟',
+      'چطور مدیرِ مجتمع شوم؟',
+      'پرسش دارید؟',
+    ])
+    expect(guide.querySelector('a[href="/account"]')).not.toBeNull()
+    expect(guide.querySelector('a[href="/support"]')).not.toBeNull()
+    // دمو همان صفحه‌ی موجود است؛ ویدیوی نهایی آخرِ پروژه ساخته می‌شود
+    expect(container.querySelector('a[href="/demo"]')).not.toBeNull()
+  })
+
+  /*
+   * 🔴 راهنما فقط چیزی را می‌گوید که ساخته شده: روشِ پرداخت نام برده نمی‌شود
+   * (پرداختِ آنلاینِ تأییدشده در ۹/۴ و ۹/۵ پیاده می‌شود و رسید دیگر راهِ مدیر
+   * شدن نیست)، و ویدیویی وعده داده نمی‌شود.
+   */
+  it('هیچ جمله‌ای قابلیتِ ساخته‌نشده یا روشِ پرداختِ کنارگذاشته را وعده نمی‌دهد', async () => {
+    await renderDashboard(false)
+    const guide = await screen.findByRole('region', { name: 'راهنما' })
+    const manager = [...guide.querySelectorAll('details')].find((d) =>
+      d.querySelector('summary')?.textContent?.includes('مدیرِ مجتمع'),
+    )
+
+    // پرداختِ آنلاینِ قبض در «ساکنا چیست؟» واقعی است؛ مسیرِ مدیر روش را نام نمی‌برد
+    expect(manager?.textContent).not.toMatch(/رسید|کارت به کارت|آنلاین|تأییدِ پشتیبانی/)
+    expect(manager?.textContent).toMatch(/پس از پرداختِ موفق/)
+    expect(guide.textContent).not.toMatch(/ویدیو/)
+  })
+
+  it('حسابِ پیش از مرحلهٔ ۹ فقط درخواستِ تکمیلِ نام می‌بیند، نه شکستنِ حدسی', async () => {
+    const { unmount } = await renderDashboard(true)
+    const link = await screen.findByText('نام و نام خانوادگی‌تان را جدا ثبت کنید.')
+    expect(link.closest('a')?.getAttribute('href')).toBe('/profile')
+    unmount()
+
+    await renderDashboard(false)
+    await screen.findByRole('region', { name: 'راهنما' })
+    expect(screen.queryByText('نام و نام خانوادگی‌تان را جدا ثبت کنید.')).toBeNull()
   })
 })

@@ -40,7 +40,12 @@ export interface ComplexSummary {
 /** شکلی که /api/me برمی‌گرداند */
 export interface CurrentUser {
   id: number
+  /** نامِ نمایشی؛ از نام و نام خانوادگی ساخته می‌شود */
   name: string
+  firstName: string | null
+  lastName: string | null
+  /** حسابِ پیش از مرحلهٔ ۹ که نام و نام خانوادگی‌اش هنوز جدا ثبت نشده */
+  needsName: boolean
   phone: string
   role: UserRole
   roleLabel: string

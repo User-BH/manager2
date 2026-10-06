@@ -89,6 +89,9 @@ class E2eSeeder extends Seeder
         $user->fill([
             'complex_id' => null,
             'name' => 'ثبت‌نام‌کننده‌ی سرتاسری',
+            // حسابِ پیش از مرحلهٔ ۹: نامِ تک‌رشته‌ای، تا مسیرِ «تکمیلِ نام» هم سنجیده شود
+            'first_name' => null,
+            'last_name' => null,
             'password' => Hash::make('password'),
             'role' => UserRole::Owner,
             'is_active' => true,

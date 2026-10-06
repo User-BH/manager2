@@ -18,6 +18,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Validation\ValidationException;
 
 class ResidentController extends Controller
 {
@@ -140,6 +141,18 @@ class ResidentController extends Controller
     {
         $this->guard($resident);
         $data = $request->validated();
+
+        /*
+         * نامِ حسابی که خودش نام و نام خانوادگی‌اش را ثبت کرده مالِ خودِ کاربر
+         * است (مرحلهٔ ۹ · فاز ۳) — در معماریِ چندمجتمعی هم بینِ مجتمع‌ها یکی است.
+         * مدل `name` را از آن دو می‌سازد؛ بی این خطا، ویرایشِ مدیر بی‌صدا نادیده
+         * گرفته می‌شد. حسابی که مدیر ساخته (بی دو بخش) مثلِ قبل ویرایش می‌شود.
+         */
+        if (! $resident->needsNameCompletion() && $data['name'] !== $resident->name) {
+            throw ValidationException::withMessages([
+                'name' => 'نامِ این حساب را خودِ کاربر در پروفایلش تعیین می‌کند.',
+            ]);
+        }
 
         $resident->update(array_filter([
             'name' => $data['name'],

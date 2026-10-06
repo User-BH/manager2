@@ -55,7 +55,7 @@ test.describe('قوانین در ثبت‌نام', () => {
   test('فرمِ نیمه‌پر و تیکِ قوانین با باز و بسته‌کردن دست نمی‌خورند', async ({ page }) => {
     await page.goto(REGISTER)
 
-    const name = page.getByLabel('نام و نام خانوادگی').locator('visible=true')
+    const name = page.getByLabel('نام', { exact: true }).locator('visible=true')
     await name.fill('مریم')
     const checkbox = page.getByRole('checkbox').locator('visible=true')
     await expect(checkbox).not.toBeChecked()

@@ -5607,9 +5607,13 @@
                             "schema": {
                                 "type": "object",
                                 "properties": {
-                                    "name": {
+                                    "first_name": {
                                         "type": "string",
                                         "description": "نام"
+                                    },
+                                    "last_name": {
+                                        "type": "string",
+                                        "description": "نام خانوادگی"
                                     },
                                     "email": {
                                         "type": "string",
@@ -5637,7 +5641,8 @@
                                     }
                                 },
                                 "required": [
-                                    "name"
+                                    "first_name",
+                                    "last_name"
                                 ]
                             }
                         }
@@ -6156,9 +6161,13 @@
                             "schema": {
                                 "type": "object",
                                 "properties": {
-                                    "name": {
+                                    "first_name": {
                                         "type": "string",
                                         "description": "نام"
+                                    },
+                                    "last_name": {
+                                        "type": "string",
+                                        "description": "نام خانوادگی"
                                     },
                                     "phone": {
                                         "type": "string",
@@ -6173,7 +6182,8 @@
                                     }
                                 },
                                 "required": [
-                                    "name",
+                                    "first_name",
+                                    "last_name",
                                     "phone",
                                     "password",
                                     "accept_terms"

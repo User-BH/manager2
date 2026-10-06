@@ -1,6 +1,15 @@
 import type { ReactNode } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { ArrowLeft, Building2, Check, PlayCircle, ShieldAlert, UserPlus, X } from 'lucide-react'
+import {
+  ArrowLeft,
+  Building2,
+  Check,
+  PlayCircle,
+  ShieldAlert,
+  UserRound,
+  UserPlus,
+  X,
+} from 'lucide-react'
 import { api } from '@/shared/lib/api'
 import { queryKeys } from '@/shared/lib/queryKeys'
 import { useDocumentTitle } from '@/shared/hooks'
@@ -8,6 +17,7 @@ import { useAction } from '@/shared/hooks/useAction'
 import { useAuth } from '@/shared/stores/authStore'
 import type { Invitation } from '@/shared/types'
 import { JoinByManagerPhone } from './JoinByManagerPhone'
+import { RegistrantGuide } from './RegistrantGuide'
 
 /**
  * داشبوردِ «ثبت‌نام‌کننده‌ی اولیه» (R21؛ از مرحلهٔ ۸ · فاز ۱ تجربه‌ی جدا با
@@ -30,9 +40,11 @@ export function RegistrantDashboardPage() {
         {user?.name ? `${user.name}، خوش آمدید` : 'خوش آمدید'}
       </h1>
       <StatusBanner />
+      {user?.needsName ? <CompleteName /> : null}
       <InvitationList />
       <JoinByManagerPhone />
       <NextSteps />
+      <RegistrantGuide />
       <DemoVideo />
       {user?.role === 'tenant' || user?.role === 'owner' ? <RoleHint /> : null}
     </div>
@@ -70,6 +82,31 @@ function StatusBanner() {
         </p>
       </div>
     </div>
+  )
+}
+
+/* ── تکمیلِ نام ─────────────────────────────────────────────────────────── */
+
+/**
+ * حسابِ پیش از مرحلهٔ ۹ نامش یک رشته است و عمداً با حدس شکسته نشد؛ فقط از
+ * خودِ کاربر خواسته می‌شود نام و نام خانوادگی را جدا ثبت کند (تصمیمِ ۱۲).
+ */
+function CompleteName() {
+  return (
+    <a
+      href="/profile"
+      className="flex items-center gap-3 rounded-2xl border p-4 text-[13px] leading-6"
+      style={{ borderColor: 'var(--border-default)', backgroundColor: 'var(--surface-base)' }}
+    >
+      <UserRound size={18} className="shrink-0" style={{ color: 'var(--color-brand-500)' }} />
+      <span className="flex-1" style={{ color: 'var(--text-secondary)' }}>
+        <span className="font-bold" style={{ color: 'var(--text-primary)' }}>
+          نام و نام خانوادگی‌تان را جدا ثبت کنید.
+        </span>{' '}
+        تا آن موقع نامِ فعلیِ حسابتان همان‌طور که هست می‌ماند.
+      </span>
+      <ArrowLeft size={14} style={{ color: 'var(--color-brand-500)' }} />
+    </a>
   )
 }
 

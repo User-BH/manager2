@@ -154,7 +154,8 @@ class MassAssignmentTest extends TestCase
     public function test_a_resident_cannot_promote_themselves_through_the_profile_form(): void
     {
         $this->as($this->resident, 'PUT', '/api/profile', [
-            'name' => 'نام تازه',
+            'first_name' => 'نام',
+            'last_name' => 'تازه',
             'role' => UserRole::SuperAdmin->value,
             'is_active' => true,
             'complex_id' => $this->other->id,

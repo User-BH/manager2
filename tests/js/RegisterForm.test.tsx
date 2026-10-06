@@ -51,7 +51,8 @@ function render(ui: React.ReactElement) {
 
 /** پرکردنِ گامِ اولِ فرم با داده‌ی معتبر. */
 async function fillStepOne(user: ReturnType<typeof userEvent.setup>) {
-  await user.type(screen.getByPlaceholderText('مثلاً علی محمدی'), 'علی محمدی')
+  await user.type(screen.getByPlaceholderText('مثلاً علی'), 'علی')
+  await user.type(screen.getByPlaceholderText('مثلاً محمدی'), 'محمدی')
   await user.type(screen.getByPlaceholderText('۰۹xxxxxxxxx'), '09123456789')
   await user.type(screen.getByPlaceholderText('حداقل ۸ نویسه'), 'Secret123')
   await user.type(screen.getByPlaceholderText('تکرار رمز عبور'), 'Secret123')
@@ -68,7 +69,8 @@ describe('RegisterForm — ثبت‌نام دومرحله‌ای', () => {
     const user = userEvent.setup()
     render(<RegisterForm />)
 
-    await user.type(screen.getByPlaceholderText('مثلاً علی محمدی'), 'علی محمدی')
+    await user.type(screen.getByPlaceholderText('مثلاً علی'), 'علی')
+    await user.type(screen.getByPlaceholderText('مثلاً محمدی'), 'محمدی')
     await user.type(screen.getByPlaceholderText('۰۹xxxxxxxxx'), '09123456789')
     await user.type(screen.getByPlaceholderText('حداقل ۸ نویسه'), 'Secret123')
     await user.type(screen.getByPlaceholderText('تکرار رمز عبور'), 'Different1')
@@ -83,7 +85,8 @@ describe('RegisterForm — ثبت‌نام دومرحله‌ای', () => {
     const user = userEvent.setup()
     render(<RegisterForm />)
 
-    await user.type(screen.getByPlaceholderText('مثلاً علی محمدی'), 'علی محمدی')
+    await user.type(screen.getByPlaceholderText('مثلاً علی'), 'علی')
+    await user.type(screen.getByPlaceholderText('مثلاً محمدی'), 'محمدی')
     await user.type(screen.getByPlaceholderText('۰۹xxxxxxxxx'), '09123456789')
     await user.type(screen.getByPlaceholderText('حداقل ۸ نویسه'), 'Secret123')
     await user.type(screen.getByPlaceholderText('تکرار رمز عبور'), 'Secret123')
@@ -92,6 +95,23 @@ describe('RegisterForm — ثبت‌نام دومرحله‌ای', () => {
 
     expect(await screen.findByText('برای ادامه باید قوانین را بپذیرید')).toBeInTheDocument()
     expect(apiMock).not.toHaveBeenCalled()
+  })
+
+  /*
+   * همان قاعده‌ی سرور (مرحلهٔ ۹ · فاز ۳): فقط حرف، فاصله و نیم‌فاصله. فیلترِ قبلی
+   * (`filterPersianLetters`) کلِ بلوکِ عربی را راه می‌داد، از جمله «،» و «؟».
+   */
+  it('نام و نام خانوادگی هنگامِ تایپ فقط حرفِ فارسی می‌گیرند', async () => {
+    const user = userEvent.setup()
+    render(<RegisterForm />)
+
+    const first = screen.getByPlaceholderText('مثلاً علی')
+    const last = screen.getByPlaceholderText('مثلاً محمدی')
+    await user.type(first, 'عليAli2،؟')
+    await user.type(last, 'محمدی‌نژاد')
+
+    expect(first).toHaveValue('علی')
+    expect(last).toHaveValue('محمدی‌نژاد')
   })
 
   it('گامِ اول فقط کد می‌فرستد و حساب نمی‌سازد', async () => {
@@ -104,6 +124,9 @@ describe('RegisterForm — ثبت‌نام دومرحله‌ای', () => {
 
     await waitFor(() => expect(apiMock).toHaveBeenCalledTimes(1))
     expect(apiMock.mock.calls[0][0]).toBe('/register')
+    // نام و نام خانوادگی جدا می‌روند (مرحلهٔ ۹ · فاز ۳)؛ `name` دیگر فرستاده نمی‌شود
+    expect(apiMock.mock.calls[0][1].body).toMatchObject({ first_name: 'علی', last_name: 'محمدی' })
+    expect(apiMock.mock.calls[0][1].body).not.toHaveProperty('name')
 
     // به گامِ کد رفته باشیم
     expect(await screen.findByText(/کد شش‌رقمی به شماره/)).toBeInTheDocument()

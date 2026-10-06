@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests;
 
+use App\Support\PersianName;
 use Illuminate\Validation\Rules\Password;
 
 /**
@@ -18,7 +19,9 @@ class RegisterRequest extends BaseFormRequest
     public function rules(): array
     {
         return [
-            'name' => ['required', 'string', 'max:255'],
+            // نام و نام خانوادگی جدا و فقط فارسی (مرحلهٔ ۹ · فاز ۳؛ تصمیمِ ۱۲)
+            'first_name' => PersianName::rules(),
+            'last_name' => PersianName::rules(),
             'phone' => ['required', 'string'],
             'password' => ['required', 'confirmed', Password::min(8)->letters()->numbers()],
             'accept_terms' => ['required', 'accepted'],
@@ -33,6 +36,8 @@ class RegisterRequest extends BaseFormRequest
         return [
             'accept_terms.required' => 'برای ادامه باید قوانین و مقررات را بپذیرید.',
             'accept_terms.accepted' => 'برای ادامه باید قوانین و مقررات را بپذیرید.',
+            'first_name.regex' => 'نام فقط با حروف فارسی نوشته شود.',
+            'last_name.regex' => 'نام خانوادگی فقط با حروف فارسی نوشته شود.',
         ];
     }
 
@@ -42,9 +47,18 @@ class RegisterRequest extends BaseFormRequest
     public function attributes(): array
     {
         return [
-            'name' => 'نام',
+            'first_name' => 'نام',
+            'last_name' => 'نام خانوادگی',
             'phone' => 'شماره تلفن',
             'password' => 'رمز عبور',
         ];
+    }
+
+    protected function prepareForValidation(): void
+    {
+        $this->merge([
+            'first_name' => PersianName::normalize($this->input('first_name')),
+            'last_name' => PersianName::normalize($this->input('last_name')),
+        ]);
     }
 }

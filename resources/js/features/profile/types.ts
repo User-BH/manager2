@@ -1,6 +1,9 @@
 export interface ProfileFields {
   id: number
   name: string
+  firstName: string | null
+  lastName: string | null
+  needsName: boolean
   phone: string
   email: string | null
   nationalId: string | null

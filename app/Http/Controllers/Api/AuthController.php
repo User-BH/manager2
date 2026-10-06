@@ -23,6 +23,7 @@ use App\Services\Auth\OtpService;
 use App\Services\Auth\PasswordConfirmation;
 use App\Services\Auth\SessionRegistry;
 use App\Services\Auth\TrustedDeviceService;
+use App\Support\PersianName;
 use App\Support\Phone;
 use App\Support\SystemSettings;
 use Illuminate\Http\JsonResponse;
@@ -389,7 +390,8 @@ class AuthController extends Controller
 
         // داده‌ها موقتاً در نشست؛ حساب هنوز ساخته نشده.
         $request->session()->put('register.pending', [
-            'name' => $data['name'],
+            'first_name' => $data['first_name'],
+            'last_name' => $data['last_name'],
             'phone' => $phone,
             'password' => Hash::make($data['password']),
             'at' => now()->timestamp,
@@ -446,7 +448,10 @@ class AuthController extends Controller
          */
         User::create([
             'complex_id' => null,
-            'name' => $pending['name'],
+            // `name` را مدل از این دو می‌سازد
+            'first_name' => $pending['first_name'],
+            'last_name' => $pending['last_name'],
+            'name' => PersianName::full($pending['first_name'], $pending['last_name']),
             'phone' => $pending['phone'],
             'password' => $pending['password'],
             'role' => UserRole::Owner,
@@ -521,6 +526,10 @@ class AuthController extends Controller
         return [
             'id' => $user->id,
             'name' => $user->name,
+            'firstName' => $user->first_name,
+            'lastName' => $user->last_name,
+            // حسابِ پیش از مرحلهٔ ۹: نامش حفظ شده و فقط درخواستِ تکمیل می‌بیند
+            'needsName' => $user->needsNameCompletion(),
             'phone' => $user->phone,
             'role' => $user->role->value,
             'roleLabel' => $user->role->label(),

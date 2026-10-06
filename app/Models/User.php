@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Enums\UserRole;
+use App\Support\PersianName;
 use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -13,7 +14,9 @@ use Illuminate\Notifications\Notifiable;
 
 /**
  * @property int $id
- * @property string $name
+ * @property string $name نامِ نمایشی؛ اگر نام و نام خانوادگی پر باشند، از آن دو ساخته می‌شود
+ * @property string|null $first_name
+ * @property string|null $last_name
  * @property string $phone
  * @property UserRole $role
  * @property int|null $complex_id
@@ -25,7 +28,7 @@ class User extends Authenticatable
     use HasFactory, Notifiable;
 
     protected $fillable = [
-        'complex_id', 'name', 'email', 'phone', 'national_id',
+        'complex_id', 'name', 'first_name', 'last_name', 'email', 'phone', 'national_id',
         'birth_date', 'emergency_phone', 'address', 'bio',
         'role', 'password', 'is_active', 'can_message', 'terms_accepted_at',
     ];
@@ -93,6 +96,28 @@ class User extends Authenticatable
     public function serviceRequests(): HasMany
     {
         return $this->hasMany(ServiceRequest::class);
+    }
+
+    /**
+     * `name` از نام و نام خانوادگی ساخته می‌شود (مرحلهٔ ۹ · فاز ۳).
+     *
+     * ⚠️ هر جا هر دو بخش پر باشند، `name` ِ ورودی نادیده گرفته می‌شود؛ وگرنه
+     * فرمی که هنوز فقط `name` می‌فرستد دو منبعِ ناسازگار می‌ساخت. حسابی که هنوز
+     * بخش‌ها را ندارد (قبلی) همان `name` ِ خودش را نگه می‌دارد.
+     */
+    protected static function booted(): void
+    {
+        static::saving(function (User $user): void {
+            if (filled($user->first_name) && filled($user->last_name)) {
+                $user->name = PersianName::full($user->first_name, $user->last_name);
+            }
+        });
+    }
+
+    /** نام و نام خانوادگی هنوز جدا ثبت نشده‌اند (حسابِ پیش از مرحلهٔ ۹). */
+    public function needsNameCompletion(): bool
+    {
+        return blank($this->first_name) || blank($this->last_name);
     }
 
     public function isSuperAdmin(): bool

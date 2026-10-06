@@ -16,12 +16,8 @@ import { RestrictedField } from './RestrictedField'
 import { PasswordStrength } from './PasswordStrength'
 import { OtpBoxes } from './OtpBoxes'
 import { registerSchema, type RegisterFormValues } from '../schemas/registerSchema'
-import {
-  filterAsciiPassword,
-  filterHints,
-  filterMobile,
-  filterPersianLetters,
-} from '@/shared/lib/inputFilters'
+import { filterAsciiPassword, filterHints, filterMobile } from '@/shared/lib/inputFilters'
+import { filterPersianName, PERSIAN_NAME_HINT } from '@/shared/lib/personName'
 import { toastTopSuccess } from '@/shared/lib/alert'
 import { api, ApiError } from '@/shared/lib/api'
 import { useAutoFocus } from '@/shared/hooks'
@@ -68,7 +64,8 @@ export function RegisterForm({
   } = useForm<RegisterFormValues>({
     resolver: zodResolver(registerSchema),
     defaultValues: {
-      fullName: '',
+      firstName: '',
+      lastName: '',
       phone: '',
       password: '',
       confirmPassword: '',
@@ -89,7 +86,8 @@ export function RegisterForm({
         {
           method: 'POST',
           body: {
-            name: values.fullName,
+            first_name: values.firstName,
+            last_name: values.lastName,
             phone: values.phone,
             password: values.password,
             password_confirmation: values.confirmPassword,
@@ -109,7 +107,8 @@ export function RegisterForm({
     } catch (error) {
       if (error instanceof ApiError) {
         const map: Record<string, keyof RegisterFormValues> = {
-          name: 'fullName',
+          first_name: 'firstName',
+          last_name: 'lastName',
           phone: 'phone',
           password: 'password',
           accept_terms: 'acceptTerms',
@@ -254,16 +253,30 @@ export function RegisterForm({
         </div>
       )}
 
-      <RestrictedField
-        control={control}
-        name="fullName"
-        label="نام و نام خانوادگی"
-        icon={User}
-        placeholder="مثلاً علی محمدی"
-        error={errors.fullName?.message}
-        filter={filterPersianLetters}
-        hint={filterHints.persianLetters}
-      />
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <RestrictedField
+          control={control}
+          name="firstName"
+          label="نام"
+          icon={User}
+          placeholder="مثلاً علی"
+          autoComplete="given-name"
+          error={errors.firstName?.message}
+          filter={filterPersianName}
+          hint={PERSIAN_NAME_HINT}
+        />
+        <RestrictedField
+          control={control}
+          name="lastName"
+          label="نام خانوادگی"
+          icon={User}
+          placeholder="مثلاً محمدی"
+          autoComplete="family-name"
+          error={errors.lastName?.message}
+          filter={filterPersianName}
+          hint={PERSIAN_NAME_HINT}
+        />
+      </div>
 
       <RestrictedField
         control={control}

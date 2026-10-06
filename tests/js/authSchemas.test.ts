@@ -8,7 +8,8 @@ import { registerSchema } from '@/features/auth/schemas/registerSchema'
  */
 
 const validRegister = {
-  fullName: 'علی محمدی',
+  firstName: 'علی',
+  lastName: 'محمدی',
   phone: '09123456789',
   password: 'Secret123',
   confirmPassword: 'Secret123',
@@ -100,7 +101,19 @@ describe('registerSchema', () => {
     expect(result.success).toBe(false)
   })
 
-  it('نامِ کوتاه‌تر از ۳ نویسه را رد می‌کند', () => {
-    expect(registerSchema.safeParse({ ...validRegister, fullName: 'ا' }).success).toBe(false)
+  it('نام و نام خانوادگی جدا، هر کدام دست‌کم ۲ حرف', () => {
+    expect(registerSchema.safeParse({ ...validRegister, firstName: 'ا' }).success).toBe(false)
+    expect(registerSchema.safeParse({ ...validRegister, lastName: '' }).success).toBe(false)
+  })
+
+  it('نام فقط با حروف فارسی — همان قاعده‌ی سرور', () => {
+    for (const bad of ['Ali', 'علی۲', 'علی!', 'علی،']) {
+      expect(registerSchema.safeParse({ ...validRegister, firstName: bad }).success, bad).toBe(
+        false,
+      )
+    }
+    expect(registerSchema.safeParse({ ...validRegister, lastName: 'حسینی‌نژاد' }).success).toBe(
+      true,
+    )
   })
 })

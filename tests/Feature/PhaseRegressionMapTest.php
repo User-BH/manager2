@@ -653,6 +653,23 @@ class PhaseRegressionMapTest extends TestCase
             'حسابِ اولیه اعلانِ خودش را خوانده می‌کند' => [
                 'InitialAccountTest', 'test_an_initial_account_can_mark_its_own_notifications_read', '۸',
             ],
+
+            /* ── مرحلهٔ ۹ · فاز ۳: نام و نام خانوادگیِ جدا، داشبوردِ اولیه ─────────── */
+            'ثبت‌نام دو بخش را ذخیره و نامِ نمایشی را از آن می‌سازد' => [
+                'PersonNameTest', 'test_registration_stores_both_parts_and_derives_the_display_name', '۹',
+            ],
+            'نامِ غیرفارسی در ثبت‌نام رد می‌شود' => [
+                'PersonNameTest', 'test_registration_rejects_what_is_not_a_persian_name', '۹',
+            ],
+            '🔴 نامِ حسابِ قبلی با حدس شکسته نمی‌شود' => [
+                'PersonNameTest', 'test_a_legacy_name_is_kept_and_only_asked_to_be_completed', '۹',
+            ],
+            '🔴 نامِ نمایشی از دو بخش جدا نمی‌افتد' => [
+                'PersonNameTest', 'test_the_display_name_cannot_drift_from_its_parts', '۹',
+            ],
+            'مدیر نامِ حسابِ خودنام را بی‌صدا عوض نمی‌کند' => [
+                'PersonNameTest', 'test_a_manager_cannot_silently_rename_a_self_named_account', '۹',
+            ],
             '۱۵ مقاله‌ی واقعی و اجرای دوباره‌ی بی‌اثر' => [
                 'BlogImporterTest', 'test_fifteen_real_articles_are_imported_and_a_second_run_changes_nothing', '۷',
             ],
@@ -787,6 +804,10 @@ class PhaseRegressionMapTest extends TestCase
             'blogImages' => ['۸/۳', 'گزارش می‌شود — یک بار برای هر نشانی'],
             // مرحلهٔ ۸ · فاز ۵: فهرستِ انتخابیِ سفارشی با کیبوردِ select ِ بومی
             'selectMenu' => ['۸/۵', 'Home/End، Esc بدونِ تغییر، و Tab انتخاب می‌کند و می‌رود'],
+            // مرحلهٔ ۹ · فاز ۳: فرمِ پروفایلِ مشترک دو بخش می‌فرستد و `name` را نه
+            'profileName' => ['۹/۳', 'دو بخش را می‌فرستد و `name` را نه'],
+            // نسخه‌ی جدای فرمِ بازخورد (بودجه‌ی باندل) از قاعده‌ی مشترک جدا نمی‌افتد
+            'personName' => ['۹/۳', 'الگوی هر دو نسخه یکی است'],
         ];
 
         // 🔴 مثلِ ردیف‌های PHP، این فهرست هم فقط بزرگ می‌شود (خرابکاریِ فاز ۸)

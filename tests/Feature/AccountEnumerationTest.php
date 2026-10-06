@@ -145,7 +145,7 @@ class AccountEnumerationTest extends TestCase
         $this->assertSame(422, $again(self::KNOWN)['status']);
 
         $register = fn (string $phone) => $this->comparable($this->postJson('/api/register', [
-            'name' => 'مهاجم', 'phone' => $phone, 'password' => 'newpass123',
+            'first_name' => 'مهاجم', 'last_name' => 'ناشناس', 'phone' => $phone, 'password' => 'newpass123',
             'password_confirmation' => 'newpass123', 'accept_terms' => true,
         ]), $phone);
         $this->flushSession();
@@ -344,7 +344,7 @@ class AccountEnumerationTest extends TestCase
             $this->flushSession();
 
             return $this->comparable($this->postJson('/api/register', [
-                'name' => 'کسی', 'phone' => $phone, 'password' => 'newpass123',
+                'first_name' => 'کسی', 'last_name' => 'ناشناس', 'phone' => $phone, 'password' => 'newpass123',
                 'password_confirmation' => 'newpass123', 'accept_terms' => true,
             ]), $phone);
         };
@@ -356,7 +356,7 @@ class AccountEnumerationTest extends TestCase
         // صاحبِ شماره کد را وارد می‌کند — حالا، و فقط حالا، می‌شنود که حساب دارد
         $this->flushSession();
         $code = $this->postJson('/api/register', [
-            'name' => 'صاحب', 'phone' => '09120000502', 'password' => 'newpass123',
+            'first_name' => 'صاحب', 'last_name' => 'شماره', 'phone' => '09120000502', 'password' => 'newpass123',
             'password_confirmation' => 'newpass123', 'accept_terms' => true,
         ])->json('dev_code');
         User::create(['name' => 'هم‌زمان', 'phone' => '09120000502', 'role' => UserRole::Owner, 'password' => Hash::make('x'), 'is_active' => true]);

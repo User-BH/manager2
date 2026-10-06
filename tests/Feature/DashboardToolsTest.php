@@ -291,7 +291,8 @@ class DashboardToolsTest extends TestCase
     public function test_profile_update_saves_fields_but_never_the_phone(): void
     {
         $this->actingAs($this->resident)->putJson('/api/profile', [
-            'name' => 'ساکن ویرایش‌شده',
+            'first_name' => 'ساکن',
+            'last_name' => 'ویرایش‌شده',
             'email' => 'resident@example.com',
             'address' => 'خیابان اول',
             // تلاش برای عوض کردن شماره باید بی‌اثر بماند
@@ -306,22 +307,25 @@ class DashboardToolsTest extends TestCase
     public function test_profile_update_rejects_an_invalid_national_id_and_phone(): void
     {
         $this->actingAs($this->resident)->putJson('/api/profile', [
-            'name' => 'ساکن نمونه',
+            'first_name' => 'ساکن',
+            'last_name' => 'نمونه',
             'national_id' => '1234567890', // رقم کنترلی غلط برای سرور فقط ۱۰ رقمی بودن مهم است
             'emergency_phone' => '12345',   // نه ۱۱ رقم و نه با شروع ۰
         ])->assertStatus(422)->assertJsonValidationErrors(['emergency_phone']);
 
         // نام با رقم هم رد می‌شود
         $this->actingAs($this->resident)->putJson('/api/profile', [
-            'name' => 'ساکن ۱۲۳',
-        ])->assertStatus(422)->assertJsonValidationErrors(['name']);
+            'first_name' => 'ساکن ۱۲۳',
+            'last_name' => 'نمونه',
+        ])->assertStatus(422)->assertJsonValidationErrors(['first_name']);
     }
 
     public function test_profile_update_accepts_persian_digits_in_national_id(): void
     {
         // کد ملی با ارقام فارسی باید به لاتین تبدیل و پذیرفته شود
         $this->actingAs($this->resident)->putJson('/api/profile', [
-            'name' => 'ساکن نمونه',
+            'first_name' => 'ساکن',
+            'last_name' => 'نمونه',
             'national_id' => '۰۰۱۲۳۴۵۶۷۸',
             'emergency_phone' => '۰۹۱۲۳۴۵۶۷۸۹',
         ])->assertOk();
@@ -332,7 +336,8 @@ class DashboardToolsTest extends TestCase
     public function test_profile_update_rejects_a_future_birth_date(): void
     {
         $this->actingAs($this->resident)->putJson('/api/profile', [
-            'name' => 'ساکن نمونه',
+            'first_name' => 'ساکن',
+            'last_name' => 'نمونه',
             'birth_date' => now()->addYear()->toDateString(),
         ])->assertStatus(422)->assertJsonValidationErrors(['birth_date']);
     }

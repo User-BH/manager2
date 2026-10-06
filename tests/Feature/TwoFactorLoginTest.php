@@ -315,7 +315,8 @@ class TwoFactorLoginTest extends TestCase
     {
         // گام ۱: ارسال کد (هنوز حسابی ساخته نمی‌شود)
         $code = $this->postJson('/api/register', [
-            'name' => 'کاربر تازه',
+            'first_name' => 'کاربر',
+            'last_name' => 'تازه',
             'phone' => '09120000077',
             'password' => 'newpass123',
             'password_confirmation' => 'newpass123',
@@ -348,7 +349,8 @@ class TwoFactorLoginTest extends TestCase
     {
         // شماره را می‌زند و کد می‌گیرد، ولی کد را تایید نمی‌کند و منصرف می‌شود
         $this->postJson('/api/register', [
-            'name' => 'منصرف',
+            'first_name' => 'منصرف',
+            'last_name' => 'شده',
             'phone' => '09120000088',
             'password' => 'newpass123',
             'password_confirmation' => 'newpass123',
@@ -362,7 +364,8 @@ class TwoFactorLoginTest extends TestCase
     public function test_registration_is_refused_without_accepting_terms(): void
     {
         $this->postJson('/api/register', [
-            'name' => 'کاربر تازه',
+            'first_name' => 'کاربر',
+            'last_name' => 'تازه',
             'phone' => '09120000078',
             'password' => 'newpass123',
             'password_confirmation' => 'newpass123',
@@ -376,7 +379,8 @@ class TwoFactorLoginTest extends TestCase
     {
         // نام مجتمع دیگر پرسیده نمی‌شود؛ مدیر هنگام تایید تعیینش می‌کند
         $code = $this->postJson('/api/register', [
-            'name' => 'بدون مجتمع',
+            'first_name' => 'بدون',
+            'last_name' => 'مجتمع',
             'phone' => '09120000079',
             'password' => 'newpass123',
             'password_confirmation' => 'newpass123',

@@ -21,6 +21,9 @@ function makeUser(role: CurrentUser['role']): CurrentUser {
   return {
     id: 1,
     name: 'کاربر',
+    firstName: 'کاربر',
+    lastName: 'آزمون',
+    needsName: false,
     phone: '09123456789',
     role,
     roleLabel: 'نقش',

@@ -1,11 +1,11 @@
 import { z } from 'zod'
+import { personNamePart } from '@/shared/lib/personName'
 
 export const registerSchema = z
   .object({
-    fullName: z
-      .string()
-      .min(1, 'نام و نام خانوادگی را وارد کنید')
-      .min(3, 'نام باید حداقل ۳ کاراکتر باشد'),
+    // جدا و فقط فارسی (مرحلهٔ ۹ · فاز ۳؛ تصمیمِ ۱۲) — همان قاعده‌ی سرور
+    firstName: personNamePart('نام'),
+    lastName: personNamePart('نام خانوادگی'),
     phone: z
       .string()
       .min(1, 'شماره موبایل را وارد کنید')

@@ -117,7 +117,8 @@ class AuthThrottleTest extends TestCase
         $blocked = false;
         for ($i = 0; $i < 8; $i++) {
             $status = $this->postJson('/api/register', [
-                'name' => 'کاربر تست',
+                'first_name' => 'کاربر',
+                'last_name' => 'آزمون',
                 'phone' => '0912900'.str_pad((string) $i, 4, '0', STR_PAD_LEFT),
                 'complex_name' => 'وجود ندارد',
                 'password' => 'secret123',

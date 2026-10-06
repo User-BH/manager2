@@ -97,6 +97,39 @@ test.describe('ثبت‌نام‌کننده‌ی اولیه', () => {
     await expect(page.getByText(NOT_A_MEMBER)).toBeVisible()
   })
 
+  /*
+   * نام و نام خانوادگیِ جدا (مرحلهٔ ۹ · فاز ۳): حسابِ قبلی نامش با حدس شکسته
+   * نمی‌شود؛ فقط درخواستِ تکمیل می‌بیند و خودش در پروفایل جدا می‌کند.
+   */
+  test('حسابِ قبلی نامش را خودش جدا می‌کند و درخواستِ تکمیل می‌رود', async ({ page }, testInfo) => {
+    await signIn(page, phoneFor(testInfo.project.name), PASSWORD)
+    await page.goto('/dashboard')
+
+    const prompt = page.getByText('نام و نام خانوادگی‌تان را جدا ثبت کنید.')
+    await expect(prompt).toBeVisible()
+    await expect(page.getByRole('region', { name: 'راهنما' })).toBeVisible()
+    await prompt.click()
+    await expect(page).toHaveURL(/\/profile$/)
+
+    await page.getByRole('button', { name: 'ویرایش پروفایل' }).click()
+    await expect(
+      page.getByRole('status').filter({ hasText: 'ثبت‌نام‌کننده‌ی سرتاسری' }),
+    ).toBeVisible()
+    await page.getByLabel('نام', { exact: true }).fill('ثبت‌نام‌کننده')
+    await page.getByLabel('نام خانوادگی').fill('سرتاسری')
+    const saved = page.waitForResponse(
+      (r) => new URL(r.url()).pathname.endsWith('/profile') && r.request().method() === 'PUT',
+    )
+    await page.getByRole('button', { name: /ذخیره تغییرات/ }).click()
+    expect((await saved).status()).toBe(200)
+
+    await page.goto('/dashboard')
+    await expect(
+      page.getByRole('heading', { level: 1, name: 'ثبت‌نام‌کننده سرتاسری، خوش آمدید' }),
+    ).toBeVisible()
+    await expect(prompt).toHaveCount(0)
+  })
+
   test('مدیر او را به واحد اضافه می‌کند؛ با پذیرش، داشبوردِ واحد باز می‌شود', async ({
     page,
   }, testInfo) => {

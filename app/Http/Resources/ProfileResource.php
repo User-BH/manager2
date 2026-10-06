@@ -31,6 +31,9 @@ class ProfileResource extends JsonResource
         return [
             'id' => $user->id,
             'name' => $user->name,
+            'firstName' => $user->first_name,
+            'lastName' => $user->last_name,
+            'needsName' => $user->needsNameCompletion(),
             'phone' => $user->phone,
             'email' => $user->email,
             'nationalId' => $user->national_id,

@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests;
 
+use App\Support\PersianName;
 use Illuminate\Validation\Rule;
 
 /**
@@ -18,7 +19,10 @@ class UpdateProfileRequest extends BaseFormRequest
     public function rules(): array
     {
         return [
-            'name' => ['required', 'string', 'max:255', 'regex:/^[\p{L}\s\x{200c}\'\-]+$/u'],
+            // نام و نام خانوادگی جدا (مرحلهٔ ۹ · فاز ۳)؛ `name` را مدل از این دو می‌سازد
+            // و دیگر از درخواست پذیرفته نمی‌شود — وگرنه دو منبعِ ناسازگار
+            'first_name' => PersianName::rules(),
+            'last_name' => PersianName::rules(),
             'email' => ['nullable', 'email', 'max:255', Rule::unique('users')->ignore($this->user()?->id)],
             // کد ملی: دقیقاً ۱۰ رقم (رقم کنترلی سمت کلاینت بررسی می‌شود)
             'national_id' => ['nullable', 'regex:/^\d{10}$/'],
@@ -36,7 +40,8 @@ class UpdateProfileRequest extends BaseFormRequest
     public function messages(): array
     {
         return [
-            'name.regex' => 'نام فقط می‌تواند شامل حروف باشد.',
+            'first_name.regex' => 'نام فقط با حروف فارسی نوشته شود.',
+            'last_name.regex' => 'نام خانوادگی فقط با حروف فارسی نوشته شود.',
             'national_id.regex' => 'کد ملی باید ۱۰ رقم باشد.',
             'emergency_phone.regex' => 'شماره تماس معتبر نیست.',
             'birth_date.before_or_equal' => 'تاریخ تولد نمی‌تواند در آینده باشد.',
@@ -49,7 +54,8 @@ class UpdateProfileRequest extends BaseFormRequest
     public function attributes(): array
     {
         return [
-            'name' => 'نام',
+            'first_name' => 'نام',
+            'last_name' => 'نام خانوادگی',
             'email' => 'ایمیل',
             'national_id' => 'کد ملی',
             'birth_date' => 'تاریخ تولد',
@@ -75,6 +81,8 @@ class UpdateProfileRequest extends BaseFormRequest
     protected function prepareForValidation(): void
     {
         $this->merge([
+            'first_name' => PersianName::normalize($this->input('first_name')),
+            'last_name' => PersianName::normalize($this->input('last_name')),
             'national_id' => self::latinDigits($this->input('national_id')),
             'emergency_phone' => self::latinDigits($this->input('emergency_phone')),
         ]);

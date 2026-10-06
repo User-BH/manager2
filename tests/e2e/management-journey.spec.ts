@@ -94,7 +94,9 @@ test.describe('سفرِ مدیریت', () => {
 
     await page.goto('/auth?tab=register')
 
-    await visible(page.getByPlaceholder('مثلاً علی محمدی')).fill('ساکنِ سرتاسری')
+    // نام و نام خانوادگیِ جدا (مرحلهٔ ۹ · فاز ۳)
+    await visible(page.getByPlaceholder('مثلاً علی')).fill('ساکن')
+    await visible(page.getByPlaceholder('مثلاً محمدی')).fill('سرتاسری')
     await visible(page.getByPlaceholder('۰۹xxxxxxxxx')).fill(phone)
     await visible(page.getByPlaceholder('حداقل ۸ نویسه')).fill(PASSWORD)
     await visible(page.getByPlaceholder('تکرار رمز عبور')).fill(PASSWORD)
@@ -122,6 +124,14 @@ test.describe('سفرِ مدیریت', () => {
 
     // حسابِ تازه واقعاً ساخته شده: با همان رمز وارد می‌شود
     expect(await signIn(page, phone, PASSWORD)).toBe(200)
+
+    // و به داشبوردِ اولیه با نامِ ساخته‌شده از دو بخش و راهنما می‌رسد — بی درخواستِ تکمیلِ نام
+    await page.goto('/dashboard')
+    await expect(
+      page.getByRole('heading', { level: 1, name: 'ساکن سرتاسری، خوش آمدید' }),
+    ).toBeVisible()
+    await expect(page.getByRole('region', { name: 'راهنما' })).toBeVisible()
+    await expect(page.getByText('نام و نام خانوادگی‌تان را جدا ثبت کنید.')).toHaveCount(0)
   })
 
   test('سوپرادمین مجتمعِ تازه با مدیرش می‌سازد', async ({ page }, testInfo) => {

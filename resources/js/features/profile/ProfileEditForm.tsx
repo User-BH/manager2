@@ -7,12 +7,8 @@ import { JalaliDatePicker } from '@/shared/ui/JalaliDatePicker'
 import { api, ApiError } from '@/shared/lib/api'
 import { alertError, toastSuccess } from '@/shared/lib/alert'
 import { toEnglishDigits } from '@/shared/lib/format'
-import {
-  nameField,
-  optionalEmail,
-  optionalNationalId,
-  optionalPhone,
-} from '@/shared/lib/validation'
+import { personNamePart } from '@/shared/lib/personName'
+import { optionalEmail, optionalNationalId, optionalPhone } from '@/shared/lib/validation'
 import type { ProfileFields } from './types'
 
 /**
@@ -21,7 +17,9 @@ import type { ProfileFields } from './types'
  * نمی‌پذیرد.
  */
 const schema = z.object({
-  name: nameField,
+  // نام و نام خانوادگیِ جدا (مرحلهٔ ۹ · فاز ۳)؛ نامِ نمایشی را سرور از این دو می‌سازد
+  first_name: personNamePart('نام'),
+  last_name: personNamePart('نام خانوادگی'),
   email: optionalEmail,
   national_id: optionalNationalId,
   birth_date: z
@@ -60,7 +58,8 @@ export function ProfileEditForm({
     // اعتبارسنجی هنگام از دست دادن فوکوس، تا کاربر همان لحظه خطا را ببیند
     mode: 'onTouched',
     defaultValues: {
-      name: profile.name,
+      first_name: profile.firstName ?? '',
+      last_name: profile.lastName ?? '',
       email: profile.email ?? '',
       national_id: profile.nationalId ?? '',
       birth_date: profile.birthDate ?? '',
@@ -101,8 +100,32 @@ export function ProfileEditForm({
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4" noValidate>
+      {profile.needsName && (
+        /*
+         * حسابِ پیش از مرحلهٔ ۹: نامش یک رشته است و عمداً با حدس شکسته نشد
+         * («وحید حسنعلی پور مرادی» کدام بخش است؟). خودِ کاربر جدا می‌کند.
+         */
+        <p
+          role="status"
+          className="rounded-xl px-3.5 py-2.5 text-[12.5px] leading-6"
+          style={{ backgroundColor: 'var(--surface-sunken)', color: 'var(--text-secondary)' }}
+        >
+          نامِ فعلیِ حساب «{profile.name}» است. لطفاً نام و نام خانوادگی را جدا وارد کنید.
+        </p>
+      )}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-        <TextField label="نام و نام خانوادگی" error={errors.name?.message} {...register('name')} />
+        <TextField
+          label="نام"
+          autoComplete="given-name"
+          error={errors.first_name?.message}
+          {...register('first_name')}
+        />
+        <TextField
+          label="نام خانوادگی"
+          autoComplete="family-name"
+          error={errors.last_name?.message}
+          {...register('last_name')}
+        />
         <TextField
           label="شماره تلفن"
           value={profile.phone}

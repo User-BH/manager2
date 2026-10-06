@@ -3,6 +3,7 @@
 namespace App\Http\Requests;
 
 use App\Enums\FeedbackCategory;
+use App\Support\PersianName;
 use App\Support\Phone;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Validator;
@@ -29,7 +30,7 @@ class StoreFeedbackRequest extends BaseFormRequest
      * نام فقط حرفِ فارسی، فاصله و نیم‌فاصله (مرحلهٔ ۸ · فاز ۵ · بندِ ۹) — همان
      * `PERSIAN_NAME_PATTERN` ِ `inputFilters.ts`. «ي/ك/ى» پیش از سنجش «ی/ک» می‌شوند.
      */
-    public const PERSIAN_NAME = '/^[\x{0621}-\x{063A}\x{0641}-\x{064A}\x{067E}\x{0686}\x{0698}\x{06A9}\x{06AF}\x{06CC}\x{200C} ]+$/u';
+    public const PERSIAN_NAME = PersianName::PATTERN;
 
     public function rules(): array
     {
