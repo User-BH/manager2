@@ -58,10 +58,8 @@ class PaymentController extends Controller
                 'bank' => $bill->complex?->settings['card_bank'] ?? null,
             ]) ?: null,
 
-            // موجودیِ کیفِ پولِ همین واحد، تا بتواند مستقیم از آن بپردازد
-            'walletBalance' => $bill->unit
-                ? app(WalletService::class)->balance($bill->unit)
-                : 0.0,
+            // موجودیِ کیفِ **خودِ پرداخت‌کننده** در همین مجتمع (کیف مالِ حساب است، نه واحد)
+            'walletBalance' => app(WalletService::class)->balance(Auth::user(), $bill->complex_id),
             // فرم پرداخت آنلاین باید به این مسیر POST شود تا مرورگر به درگاه برود
             'onlineAction' => route('payments.online', $bill),
         ]);

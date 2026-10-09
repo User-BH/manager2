@@ -7,6 +7,7 @@ import { AuthPage } from '@/features/auth/AuthPage'
 import { VerifyOtpPage } from '@/features/auth/VerifyOtpPage'
 import { ForgotPasswordPage } from '@/features/auth/ForgotPasswordPage'
 import { InvitePage } from '@/features/auth/InvitePage'
+import { takeInviteTokenFromUrl } from '@/features/auth/inviteToken'
 
 /**
  * Entryِ بخشِ ورود/ثبت‌نام (island).
@@ -20,6 +21,8 @@ import { InvitePage } from '@/features/auth/InvitePage'
  * این صفحه یک سندِ مستقل است، پس بازدیدش همین‌جا یک بار ثبت می‌شود
  * (برخلافِ SPA که ناوبریِ داخلی دارد و در روتر ثبت می‌کند).
  */
+// توکنِ پیوندِ دعوت پیش از هر پایش و تحلیلی از نشانی برداشته می‌شود (مرحلهٔ ۹)
+takeInviteTokenFromUrl()
 initObservability()
 trackPageView(window.location.pathname)
 

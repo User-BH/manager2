@@ -30,6 +30,8 @@ use App\Models\ServiceRequest;
 use App\Models\Subscription;
 use App\Models\Unit;
 use App\Models\User;
+use App\Models\WalletTransaction;
+use App\Services\Wallet\WalletService;
 use App\Support\Jalali;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -123,6 +125,12 @@ class ResponseShapeTest extends TestCase
             'user_id' => $this->admin->id, 'amount' => 1000,
             'method' => PaymentMethod::Receipt, 'status' => PaymentStatus::Pending,
         ]);
+
+        /*
+         * کیفِ شخصی (مرحلهٔ ۹ · اصلاحاتِ پس از فاز ۶): بی ردیف، هم جیب‌های خودِ
+         * کاربر (`wallets`) و هم جیب‌های اعضا برای مدیر (`members`) خالی ثبت می‌شدند.
+         */
+        app(WalletService::class)->credit($this->admin, $unit, 25000, WalletTransaction::SOURCE_ADJUSTMENT);
 
         /*
          * ─── دادهٔ چهار مسیرِ تازه (مرحلهٔ ۵، فاز ۱ — S4-29) ────────────────

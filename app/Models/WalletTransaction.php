@@ -18,6 +18,7 @@ use Illuminate\Support\Carbon;
  * @property int $id
  * @property int $complex_id
  * @property int $unit_id
+ * @property int $user_id صاحبِ کیف (مرحلهٔ ۹ · اصلاحاتِ پس از فاز ۶)
  * @property string $direction
  * @property string $amount
  * @property string $balance_after
@@ -86,7 +87,7 @@ class WalletTransaction extends Model
     ];
 
     protected $fillable = [
-        'complex_id', 'unit_id', 'direction', 'amount', 'balance_after',
+        'complex_id', 'unit_id', 'user_id', 'direction', 'amount', 'balance_after',
         'source', 'payment_id', 'bill_id', 'created_by', 'note',
     ];
 
@@ -96,6 +97,12 @@ class WalletTransaction extends Model
             'amount' => 'decimal:2',
             'balance_after' => 'decimal:2',
         ];
+    }
+
+    /** صاحبِ کیف — حسابِ شخص، نه واحد. @return BelongsTo<User, $this> */
+    public function owner(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'user_id');
     }
 
     /** @return BelongsTo<Unit, $this> */

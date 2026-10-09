@@ -76,13 +76,20 @@ export function registerServiceWorker(
 
         if (!installing) return
 
+        /*
+         * `controller` تهی یعنی این **اولین** نصب است، نه به‌روزرسانی.
+         * بدونِ این شرط، هر کاربرِ تازه‌وارد بلافاصله پیامِ «نسخه‌ی جدید
+         * آماده است» می‌گرفت.
+         *
+         * 🔴 لحظه‌ی `updatefound` سنجیده می‌شود، نه لحظه‌ی «installed» (مرحلهٔ ۹ ·
+         * اصلاحاتِ پس از فاز ۶): WebKit آن رویداد را پس از `clients.claim()` ِ
+         * همین نصبِ اول می‌رساند و آن وقت `controller` دیگر تهی نیست — آزمونِ
+         * مرورگر کاربرِ تازه‌ی سافاری را ۲ از ۳ بار با پیامِ دروغ گرفت.
+         */
+        const isUpdate = Boolean(navigator.serviceWorker.controller)
+
         installing.addEventListener('statechange', () => {
-          /*
-           * `controller` تهی یعنی این **اولین** نصب است، نه به‌روزرسانی.
-           * بدونِ این شرط، هر کاربرِ تازه‌وارد بلافاصله پیامِ «نسخه‌ی جدید
-           * آماده است» می‌گرفت.
-           */
-          if (installing.state === 'installed' && navigator.serviceWorker.controller) {
+          if (installing.state === 'installed' && isUpdate) {
             announce(installing)
           }
         })

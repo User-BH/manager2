@@ -57,16 +57,16 @@ class WalletLedgerTest extends TestCase
 
     public function test_a_new_wallet_is_empty(): void
     {
-        $this->assertSame(0.0, $this->wallet->balance($this->unit));
+        $this->assertSame(0.0, $this->wallet->balance($this->resident, $this->complex->id));
     }
 
     public function test_the_balance_is_the_sum_of_the_ledger(): void
     {
-        $this->wallet->credit($this->unit, 500000, WalletTransaction::SOURCE_TOPUP_RECEIPT);
-        $this->wallet->credit($this->unit, 200000, WalletTransaction::SOURCE_TOPUP_GATEWAY);
-        $this->wallet->debit($this->unit, 300000, WalletTransaction::SOURCE_ADJUSTMENT);
+        $this->wallet->credit($this->resident, $this->unit, 500000, WalletTransaction::SOURCE_TOPUP_RECEIPT);
+        $this->wallet->credit($this->resident, $this->unit, 200000, WalletTransaction::SOURCE_TOPUP_GATEWAY);
+        $this->wallet->debit($this->resident, $this->unit, 300000, WalletTransaction::SOURCE_ADJUSTMENT);
 
-        $this->assertSame(400000.0, $this->wallet->balance($this->unit));
+        $this->assertSame(400000.0, $this->wallet->balance($this->resident, $this->complex->id));
     }
 
     /**
@@ -90,44 +90,44 @@ class WalletLedgerTest extends TestCase
          * `balance_after` فقط عکسِ لحظه‌ای برای صورت‌حساب است. اگر روزی با
          * جمعِ دفتر واگرا شود، صورت‌حساب دروغ می‌گوید — پس سنجیده می‌شود.
          */
-        $this->wallet->credit($this->unit, 100000, WalletTransaction::SOURCE_TOPUP_RECEIPT);
-        $this->wallet->credit($this->unit, 50000, WalletTransaction::SOURCE_TOPUP_RECEIPT);
-        $this->wallet->debit($this->unit, 30000, WalletTransaction::SOURCE_ADJUSTMENT);
+        $this->wallet->credit($this->resident, $this->unit, 100000, WalletTransaction::SOURCE_TOPUP_RECEIPT);
+        $this->wallet->credit($this->resident, $this->unit, 50000, WalletTransaction::SOURCE_TOPUP_RECEIPT);
+        $this->wallet->debit($this->resident, $this->unit, 30000, WalletTransaction::SOURCE_ADJUSTMENT);
 
         $last = WalletTransaction::orderByDesc('id')->first();
 
-        $this->assertEquals($this->wallet->balance($this->unit), (float) $last->balance_after);
+        $this->assertEquals($this->wallet->balance($this->resident, $this->complex->id), (float) $last->balance_after);
     }
 
     /* ── اضافه‌برداشت ────────────────────────────────────────────────────── */
 
     public function test_a_wallet_cannot_go_negative(): void
     {
-        $this->wallet->credit($this->unit, 100000, WalletTransaction::SOURCE_TOPUP_RECEIPT);
+        $this->wallet->credit($this->resident, $this->unit, 100000, WalletTransaction::SOURCE_TOPUP_RECEIPT);
 
         $this->expectExceptionMessage('موجودی کیف پول کافی نیست');
-        $this->wallet->debit($this->unit, 150000, WalletTransaction::SOURCE_ADJUSTMENT);
+        $this->wallet->debit($this->resident, $this->unit, 150000, WalletTransaction::SOURCE_ADJUSTMENT);
     }
 
     public function test_a_refused_debit_writes_no_ledger_row(): void
     {
-        $this->wallet->credit($this->unit, 100000, WalletTransaction::SOURCE_TOPUP_RECEIPT);
+        $this->wallet->credit($this->resident, $this->unit, 100000, WalletTransaction::SOURCE_TOPUP_RECEIPT);
 
         try {
-            $this->wallet->debit($this->unit, 150000, WalletTransaction::SOURCE_ADJUSTMENT);
+            $this->wallet->debit($this->resident, $this->unit, 150000, WalletTransaction::SOURCE_ADJUSTMENT);
         } catch (\Throwable) {
             // انتظار همین بود
         }
 
         // یک ردیف (همان شارژ) — نه ردیفِ ناقصِ برداشت
         $this->assertSame(1, WalletTransaction::count());
-        $this->assertSame(100000.0, $this->wallet->balance($this->unit));
+        $this->assertSame(100000.0, $this->wallet->balance($this->resident, $this->complex->id));
     }
 
     public function test_a_zero_or_negative_amount_is_refused(): void
     {
         $this->expectExceptionMessage('مبلغ باید بزرگ‌تر از صفر باشد');
-        $this->wallet->credit($this->unit, 0, WalletTransaction::SOURCE_ADJUSTMENT);
+        $this->wallet->credit($this->resident, $this->unit, 0, WalletTransaction::SOURCE_ADJUSTMENT);
     }
 
     public function test_wallet_writes_take_a_row_lock(): void
@@ -147,13 +147,13 @@ class WalletLedgerTest extends TestCase
 
     public function test_paying_a_bill_moves_money_from_the_wallet_to_the_bill(): void
     {
-        $this->wallet->credit($this->unit, 500000, WalletTransaction::SOURCE_TOPUP_RECEIPT);
+        $this->wallet->credit($this->resident, $this->unit, 500000, WalletTransaction::SOURCE_TOPUP_RECEIPT);
         $bill = $this->makeBill(300000);
 
-        $paid = $this->wallet->payBill($this->unit, $bill);
+        $paid = $this->wallet->payBill($this->resident, $bill);
 
         $this->assertSame(300000.0, $paid);
-        $this->assertSame(200000.0, $this->wallet->balance($this->unit));
+        $this->assertSame(200000.0, $this->wallet->balance($this->resident, $this->complex->id));
         $this->assertSame('300000.00', $bill->fresh()->paid_amount);
         $this->assertSame('paid', $bill->fresh()->status->value);
     }
@@ -161,24 +161,24 @@ class WalletLedgerTest extends TestCase
     public function test_paying_more_than_the_debt_is_capped_at_the_debt(): void
     {
         // پرداختِ بیشتر از بدهی، اعتبارِ سرگردان روی قبض می‌ساخت
-        $this->wallet->credit($this->unit, 500000, WalletTransaction::SOURCE_TOPUP_RECEIPT);
+        $this->wallet->credit($this->resident, $this->unit, 500000, WalletTransaction::SOURCE_TOPUP_RECEIPT);
         $bill = $this->makeBill(100000);
 
-        $paid = $this->wallet->payBill($this->unit, $bill, 400000);
+        $paid = $this->wallet->payBill($this->resident, $bill, 400000);
 
         $this->assertSame(100000.0, $paid);
-        $this->assertSame(400000.0, $this->wallet->balance($this->unit));
+        $this->assertSame(400000.0, $this->wallet->balance($this->resident, $this->complex->id));
     }
 
     public function test_a_partial_balance_pays_what_it_can(): void
     {
-        $this->wallet->credit($this->unit, 120000, WalletTransaction::SOURCE_TOPUP_RECEIPT);
+        $this->wallet->credit($this->resident, $this->unit, 120000, WalletTransaction::SOURCE_TOPUP_RECEIPT);
         $bill = $this->makeBill(500000);
 
-        $paid = $this->wallet->payBill($this->unit, $bill);
+        $paid = $this->wallet->payBill($this->resident, $bill);
 
         $this->assertSame(120000.0, $paid);
-        $this->assertSame(0.0, $this->wallet->balance($this->unit));
+        $this->assertSame(0.0, $this->wallet->balance($this->resident, $this->complex->id));
         $this->assertSame('partial', $bill->fresh()->status->value);
     }
 
@@ -187,19 +187,19 @@ class WalletLedgerTest extends TestCase
         $bill = $this->makeBill(100000);
 
         $this->expectExceptionMessage('موجودی کیف پول شما صفر است');
-        $this->wallet->payBill($this->unit, $bill);
+        $this->wallet->payBill($this->resident, $bill);
     }
 
     public function test_a_settled_bill_cannot_be_paid_again(): void
     {
-        $this->wallet->credit($this->unit, 500000, WalletTransaction::SOURCE_TOPUP_RECEIPT);
+        $this->wallet->credit($this->resident, $this->unit, 500000, WalletTransaction::SOURCE_TOPUP_RECEIPT);
         $bill = $this->makeBill(100000);
 
-        $this->wallet->payBill($this->unit, $bill);
+        $this->wallet->payBill($this->resident, $bill);
 
         // دومی نباید دوباره از کیف کم کند
         $this->expectExceptionMessage('بدهی باز ندارد');
-        $this->wallet->payBill($this->unit, $bill->fresh());
+        $this->wallet->payBill($this->resident, $bill->fresh());
     }
 
     /**
@@ -210,7 +210,7 @@ class WalletLedgerTest extends TestCase
      */
     public function test_a_wallet_cannot_pay_another_units_bill(): void
     {
-        $this->wallet->credit($this->unit, 500000, WalletTransaction::SOURCE_TOPUP_RECEIPT);
+        $this->wallet->credit($this->resident, $this->unit, 500000, WalletTransaction::SOURCE_TOPUP_RECEIPT);
 
         $otherUnit = Unit::factory()->create(['complex_id' => $this->complex->id]);
         $otherBill = Bill::create([
@@ -219,15 +219,15 @@ class WalletLedgerTest extends TestCase
             'status' => 'unpaid', 'due_date' => now()->addDays(5),
         ]);
 
-        $this->expectExceptionMessage('متعلق به این واحد نیست');
-        $this->wallet->payBill($this->unit, $otherBill);
+        $this->expectExceptionMessage('متعلق به واحدِ شما نیست');
+        $this->wallet->payBill($this->resident, $otherBill);
     }
 
     /* ── دسترسی از راه API ──────────────────────────────────────────────── */
 
     public function test_a_resident_sees_their_own_wallet(): void
     {
-        $this->wallet->credit($this->unit, 250000, WalletTransaction::SOURCE_TOPUP_RECEIPT);
+        $this->wallet->credit($this->resident, $this->unit, 250000, WalletTransaction::SOURCE_TOPUP_RECEIPT);
 
         $this->actingAs($this->resident)
             ->getJson('/api/v1/wallet')
@@ -243,14 +243,27 @@ class WalletLedgerTest extends TestCase
             'is_active' => true,
         ]);
 
+        /*
+         * مرحلهٔ ۹ · اصلاحاتِ پس از فاز ۶: کیف مالِ حساب است؛ `/wallet/{مجتمع}`
+         * همیشه کیفِ **خودِ** درخواست‌کننده را می‌دهد. همسایه همان شناسه‌ها را
+         * بزند، فقط جیبِ خالیِ خودش را می‌بیند — و صورت‌حسابِ اعضا مالِ مدیر است.
+         */
+        $this->wallet->credit($this->resident, $this->unit, 90000, WalletTransaction::SOURCE_TOPUP_RECEIPT);
+
         $this->actingAs($stranger)
-            ->getJson("/api/v1/wallet/{$this->unit->id}")
-            ->assertNotFound();
+            ->getJson("/api/v1/wallet/{$this->complex->id}")
+            ->assertOk()
+            ->assertJsonPath('balance', 0)
+            ->assertJsonCount(0, 'transactions');
+
+        $this->actingAs($stranger)
+            ->getJson("/api/v1/wallet/members/{$this->resident->id}")
+            ->assertForbidden();
     }
 
     public function test_paying_through_the_api_updates_both_sides(): void
     {
-        $this->wallet->credit($this->unit, 500000, WalletTransaction::SOURCE_TOPUP_RECEIPT);
+        $this->wallet->credit($this->resident, $this->unit, 500000, WalletTransaction::SOURCE_TOPUP_RECEIPT);
         $bill = $this->makeBill(200000);
 
         $this->actingAs($this->resident)
@@ -300,7 +313,7 @@ class WalletLedgerTest extends TestCase
 
     public function test_the_pay_page_shows_the_wallet_balance(): void
     {
-        $this->wallet->credit($this->unit, 75000, WalletTransaction::SOURCE_TOPUP_RECEIPT);
+        $this->wallet->credit($this->resident, $this->unit, 75000, WalletTransaction::SOURCE_TOPUP_RECEIPT);
         $bill = $this->makeBill(100000);
 
         $this->actingAs($this->resident)
@@ -339,7 +352,7 @@ class WalletLedgerTest extends TestCase
 
     public function test_a_receipt_surplus_shows_a_persian_source_in_the_statement(): void
     {
-        $this->wallet->credit($this->unit, 40000, WalletTransaction::SOURCE_PAYMENT_SURPLUS);
+        $this->wallet->credit($this->resident, $this->unit, 40000, WalletTransaction::SOURCE_PAYMENT_SURPLUS);
 
         $row = WalletTransaction::where('unit_id', $this->unit->id)->latest('id')->firstOrFail();
 

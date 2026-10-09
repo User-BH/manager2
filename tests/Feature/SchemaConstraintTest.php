@@ -3,11 +3,16 @@
 namespace Tests\Feature;
 
 use App\Enums\BillStatus;
+use App\Enums\PaymentMethod;
+use App\Enums\PaymentStatus;
 use App\Enums\UserRole;
 use App\Models\Bill;
 use App\Models\Complex;
+use App\Models\Payment;
+use App\Models\PaymentAllocation;
 use App\Models\Unit;
 use App\Models\User;
+use App\Models\WalletTransaction;
 use App\Services\Charge\BillGenerator;
 use App\Services\Wallet\WalletService;
 use App\Support\Jalali;
@@ -325,10 +330,24 @@ class SchemaConstraintTest extends TestCase
             'due_date' => now()->addDays(10),
         ]);
 
+        /*
+         * مرحلهٔ ۹ · اصلاحاتِ پس از فاز ۶: پولِ پرداخت‌شده صاحب دارد — همان کسی که
+         * پرداخت کرد — و بازگشت به کیفِ **او** می‌رود، نه به «کیفِ واحد».
+         */
+        $payer = User::factory()->create(['complex_id' => $this->complex->id, 'role' => UserRole::Owner]);
+        $payment = Payment::withoutGlobalScopes()->create([
+            'complex_id' => $this->complex->id, 'unit_id' => $this->unit->id, 'bill_id' => $bill->id,
+            'user_id' => $payer->id, 'amount' => 100000, 'method' => PaymentMethod::Online,
+            'status' => PaymentStatus::Success, 'period' => $bill->period,
+        ]);
+        PaymentAllocation::withoutGlobalScopes()->create([
+            'complex_id' => $this->complex->id, 'payment_id' => $payment->id, 'bill_id' => $bill->id, 'amount' => 100000,
+        ]);
+
         app(BillGenerator::class)->generate($this->complex, Jalali::currentPeriod());
 
         $fresh = $bill->fresh();
-        $wallet = app(WalletService::class)->balance($this->unit);
+        $wallet = app(WalletService::class)->balance($payer, $this->complex->id);
 
         // ⚠️ ناوردایی: هر ریالی که پرداخت شده یا روی قبض است یا در کیف
         $this->assertEqualsWithDelta(
@@ -360,7 +379,7 @@ class SchemaConstraintTest extends TestCase
 
         app(BillGenerator::class)->generate($this->complex, Jalali::currentPeriod());
 
-        $this->assertEqualsWithDelta(0.0, app(WalletService::class)->balance($this->unit), 0.01);
+        $this->assertSame(0, WalletTransaction::withoutGlobalScopes()->where('complex_id', $this->complex->id)->count());
     }
 
     // ─────────────────────────────────────────────────────────────────────

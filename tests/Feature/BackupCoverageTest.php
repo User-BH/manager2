@@ -127,10 +127,11 @@ class BackupCoverageTest extends TestCase
     public function test_the_wallet_ledger_survives_a_backup(): void
     {
         [$complex, $unit] = $this->seedComplex();
+        $owner = User::withoutGlobalScopes()->where('complex_id', $complex->id)->firstOrFail();
 
-        app(WalletService::class)->credit($unit, 250000, WalletTransaction::SOURCE_ADJUSTMENT);
+        app(WalletService::class)->credit($owner, $unit, 250000, WalletTransaction::SOURCE_ADJUSTMENT);
 
-        $balanceBefore = app(WalletService::class)->balance($unit);
+        $balanceBefore = app(WalletService::class)->balance($owner, $complex->id);
         $this->assertSame(250000.0, $balanceBefore, 'مقدمه‌ی تست درست ساخته نشد.');
 
         $snapshot = $this->buildSnapshot();

@@ -289,7 +289,9 @@ Route::middleware('auth')->group(function () {
      * دست‌کاری نمی‌کنند.
      */
     Route::get('wallet', [WalletController::class, 'index'])->name('wallet.index');
-    Route::get('wallet/{unit}', [WalletController::class, 'statement'])->name('wallet.statement');
+    // کیفِ شخصی: صاحب همیشه کاربرِ واردشده است؛ شناسه فقط «کدام مجتمع» (مرحلهٔ ۹ · اصلاحاتِ پس از فاز ۶)
+    Route::get('wallet/{complexId}', [WalletController::class, 'statement'])
+        ->whereNumber('complexId')->name('wallet.statement');
     Route::post('wallet/pay/{bill}', [WalletController::class, 'payBill'])->name('wallet.pay');
 
     // زنگوله‌ی هدر. منبعش همان اطلاعیه‌هاست، فقط با وضعیت خوانده/نخوانده.
@@ -449,6 +451,10 @@ Route::middleware('auth')->group(function () {
             ->name('residents.toggle-active');
         Route::patch('residents/{resident}/toggle-messaging', [ResidentController::class, 'toggleMessaging'])
             ->name('residents.toggle-messaging');
+
+        // صورت‌حسابِ کیفِ یک عضو، فقط بخشِ همین مجتمع (مرحلهٔ ۹ · اصلاحاتِ پس از فاز ۶)
+        Route::get('wallet/members/{member}', [WalletController::class, 'memberStatement'])
+            ->name('wallet.members.statement');
 
         // دعوت‌های فرستاده‌ی همین مجتمع: دیدن و ابطال (مرحلهٔ ۹ · فاز ۶)
         Route::get('sent-invitations', [SentInvitationController::class, 'index'])->name('sent-invitations.index');

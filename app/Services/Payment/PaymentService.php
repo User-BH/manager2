@@ -130,12 +130,17 @@ class PaymentService
         }
 
         $unit = Unit::withoutGlobalScopes()->find($surplus['unit_id']);
+        // کیف مالِ پرداخت‌کننده است، نه واحد (مرحلهٔ ۹ · اصلاحاتِ پس از فاز ۶)
+        $payer = $payment->user_id !== null ? User::withoutGlobalScopes()->find($payment->user_id) : null;
 
-        if (! $unit) {
+        if (! $unit || ! $payer) {
+            report(new \RuntimeException("مازادِ پرداختِ #{$payment->id} صاحبِ قطعی نداشت."));
+
             return;
         }
 
         app(WalletService::class)->credit(
+            $payer,
             $unit,
             $surplus['amount'],
             WalletTransaction::SOURCE_PAYMENT_SURPLUS,

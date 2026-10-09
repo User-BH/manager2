@@ -75,7 +75,16 @@ export function dedupe<T>(
       if (settled) return
       detach()
       // آخرین نفر که رفت، چراغ را خاموش کند
-      if (shared.subscribers <= 0) shared.controller.abort()
+      if (shared.subscribers <= 0) {
+        /*
+         * 🔴 کلید **همین حالا** آزاد می‌شود، نه با نشستنِ promise (مرحلهٔ ۹ ·
+         * اصلاحاتِ پس از فاز ۶). React Query درخواستِ تازه را در همان تیکِ لغو
+         * می‌فرستد؛ با کلیدِ هنوز ثبت‌شده، آن درخواست به همین درخواستِ مُرده
+         * می‌چسبید و خطای لغوش را می‌گرفت — بی آنکه به شبکه برود.
+         */
+        if (inflight.get(key) === shared) inflight.delete(key)
+        shared.controller.abort()
+      }
       reject(abortError(signal))
     }
 

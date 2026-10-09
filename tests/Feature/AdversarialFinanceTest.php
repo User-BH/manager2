@@ -140,14 +140,14 @@ class AdversarialFinanceTest extends TestCase
         $wallet = app(WalletService::class);
 
         // اشتباه: مبلغِ غلط واریز شد
-        $wrong = $wallet->credit($this->unit, 250000, WalletTransaction::SOURCE_ADJUSTMENT, null, 'اشتباه');
+        $wrong = $wallet->credit($this->resident, $this->unit, 250000, WalletTransaction::SOURCE_ADJUSTMENT, null, 'اشتباه');
 
-        $this->assertSame(250000.0, $wallet->balance($this->unit));
+        $this->assertSame(250000.0, $wallet->balance($this->resident, $this->unit->complex_id));
 
         // اصلاح: ردیفِ معکوس، نه ویرایش و نه حذف
-        $wallet->debit($this->unit, 250000, WalletTransaction::SOURCE_ADJUSTMENT, null, 'برگشتِ اشتباه');
+        $wallet->debit($this->resident, $this->unit, 250000, WalletTransaction::SOURCE_ADJUSTMENT, null, 'برگشتِ اشتباه');
 
-        $this->assertSame(0.0, $wallet->balance($this->unit), 'سندِ معکوس موجودی را برنگرداند.');
+        $this->assertSame(0.0, $wallet->balance($this->resident, $this->unit->complex_id), 'سندِ معکوس موجودی را برنگرداند.');
 
         /*
          * 🔴 ادعای اصلی: **هر دو ردیف سرِ جایشان‌اند.**
@@ -187,10 +187,10 @@ class AdversarialFinanceTest extends TestCase
     {
         $wallet = app(WalletService::class);
 
-        $wallet->credit($this->unit, 100000, 'manual', null, 'اول');
-        $wallet->credit($this->unit, 150000, 'manual', null, 'دوم');
+        $wallet->credit($this->resident, $this->unit, 100000, 'manual', null, 'اول');
+        $wallet->credit($this->resident, $this->unit, 150000, 'manual', null, 'دوم');
 
-        $this->assertSame(250000.0, $wallet->balance($this->unit), 'جمعِ دو واریز درست نیست.');
+        $this->assertSame(250000.0, $wallet->balance($this->resident, $this->unit->complex_id), 'جمعِ دو واریز درست نیست.');
 
         $last = WalletTransaction::withoutGlobalScopes()
             ->where('unit_id', $this->unit->id)
@@ -220,9 +220,9 @@ class AdversarialFinanceTest extends TestCase
         $wallet = app(WalletService::class);
         $bill = $this->bill(total: 200000);
 
-        $wallet->credit($this->unit, 500000, 'manual', null, 'شارژ');
+        $wallet->credit($this->resident, $this->unit, 500000, 'manual', null, 'شارژ');
 
-        $wallet->payBill($this->unit, $bill);
+        $wallet->payBill($this->resident, $bill);
 
         /*
          * 🔴 کلیکِ دوم — و رد شدنش با استثنا **نتیجهٔ درستی است**.
@@ -232,14 +232,14 @@ class AdversarialFinanceTest extends TestCase
          * سنجه پایین است، نه اینجا.
          */
         try {
-            $wallet->payBill($this->unit, $bill->fresh());
+            $wallet->payBill($this->resident, $bill->fresh());
         } catch (\Throwable) {
             // بدهیِ باز ندارد — همان محافظ است
         }
 
         $this->assertSame(
             300000.0,
-            $wallet->balance($this->unit),
+            $wallet->balance($this->resident, $this->unit->complex_id),
             '🔴 پرداختِ دوباره از کیف دوباره پول برداشت.',
         );
 

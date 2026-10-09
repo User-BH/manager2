@@ -127,6 +127,37 @@ describe('dedupe', () => {
     expect(inner?.aborted).toBe(true)
   })
 
+  /*
+   * 🔴 ریشه‌ی شکستِ `messenger-journey` روی WebKit (مرحلهٔ ۹ · اصلاحاتِ پس از فاز ۶).
+   *
+   * React Query با باطل‌سازیِ دوم، درخواستِ درجریان را لغو و **در همان تیک**
+   * درخواستِ تازه را شروع می‌کند. کلیدِ لغوشده فقط پس از نشستنِ promise (چند
+   * microtask بعد) پاک می‌شد؛ پس درخواستِ تازه به همان درخواستِ مُرده می‌چسبید،
+   * خطای لغوِ **او** را می‌گرفت و هرگز به شبکه نمی‌رفت ← صفحه‌ی خطای پیام‌رسان.
+   */
+  it('درخواستی که همان لحظه پس از لغوِ آخرین مصرف‌کننده می‌آید، تازه به شبکه می‌رود', async () => {
+    const signals: AbortSignal[] = []
+    const run = vi.fn(
+      (signal: AbortSignal) =>
+        new Promise<string>((resolve, reject) => {
+          signals.push(signal)
+          signal.addEventListener('abort', () => reject(new Error('aborted')))
+          setTimeout(() => resolve(`fresh-${signals.length}`), 10)
+        }),
+    )
+
+    const first = new AbortController()
+    const a = dedupe('GET /x', run, first.signal)
+    first.abort()
+    const b = dedupe('GET /x', run, new AbortController().signal)
+
+    await expect(a).rejects.toThrow()
+    await expect(b).resolves.toBe('fresh-2')
+    expect(run).toHaveBeenCalledTimes(2)
+    expect(signals[0].aborted).toBe(true)
+    expect(signals[1].aborted).toBe(false)
+  })
+
   it('سیگنالی که از قبل لغو شده، بی‌درنگ رد می‌شود', async () => {
     const controller = new AbortController()
     controller.abort()

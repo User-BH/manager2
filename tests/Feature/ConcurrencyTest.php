@@ -69,6 +69,12 @@ class ConcurrencyTest extends TestCase
             'role' => UserRole::Owner->value,
             'is_active' => true,
         ]);
+
+        // پرداخت از کیف فقط برای قبضِ واحدِ خودِ پرداخت‌کننده است (`BillPolicy::pay`)
+        $this->unit->residents()->attach($this->resident->id, [
+            'relation' => 'owner',
+            'complex_id' => $this->complex->id,
+        ]);
     }
 
     private function bill(float $total = 500000, float $paid = 0): Bill
@@ -136,16 +142,16 @@ class ConcurrencyTest extends TestCase
     {
         $wallet = app(WalletService::class);
 
-        $wallet->credit($this->unit, 100000, 'manual', null, 'شارژ');
+        $wallet->credit($this->resident, $this->unit, 100000, 'manual', null, 'شارژ');
 
-        $wallet->debit($this->unit, 100000, 'manual', null, 'برداشتِ کامل');
+        $wallet->debit($this->resident, $this->unit, 100000, 'manual', null, 'برداشتِ کامل');
 
-        $this->assertSame(0.0, $wallet->balance($this->unit));
+        $this->assertSame(0.0, $wallet->balance($this->resident, $this->unit->complex_id));
 
         // برداشتِ دوم باید رد شود، نه اینکه موجودی را منفی کند
         $this->expectException(DomainException::class);
 
-        $wallet->debit($this->unit, 1, 'manual', null, 'برداشتِ اضافه');
+        $wallet->debit($this->resident, $this->unit, 1, 'manual', null, 'برداشتِ اضافه');
     }
 
     /**
@@ -161,12 +167,12 @@ class ConcurrencyTest extends TestCase
     {
         $wallet = app(WalletService::class);
 
-        $wallet->credit($this->unit, 500000, 'manual', null, 'شارژ');
-        $wallet->debit($this->unit, 120000, 'manual', null, 'برداشت');
-        $wallet->credit($this->unit, 30000, 'manual', null, 'شارژ دوم');
-        $wallet->debit($this->unit, 10000, 'manual', null, 'برداشت دوم');
+        $wallet->credit($this->resident, $this->unit, 500000, 'manual', null, 'شارژ');
+        $wallet->debit($this->resident, $this->unit, 120000, 'manual', null, 'برداشت');
+        $wallet->credit($this->resident, $this->unit, 30000, 'manual', null, 'شارژ دوم');
+        $wallet->debit($this->resident, $this->unit, 10000, 'manual', null, 'برداشت دوم');
 
-        $balance = $wallet->balance($this->unit);
+        $balance = $wallet->balance($this->resident, $this->unit->complex_id);
 
         $last = WalletTransaction::withoutGlobalScopes()
             ->where('unit_id', $this->unit->id)
@@ -234,9 +240,9 @@ class ConcurrencyTest extends TestCase
         $bill = $this->bill(total: 100000);
 
         $wallet = app(WalletService::class);
-        $wallet->credit($this->unit, 500000, 'manual', null, 'شارژ زیاد');
+        $wallet->credit($this->resident, $this->unit, 500000, 'manual', null, 'شارژ زیاد');
 
-        $wallet->payBill($this->unit, $bill);
+        $wallet->payBill($this->resident, $bill);
 
         $fresh = $bill->fresh();
 
@@ -249,7 +255,7 @@ class ConcurrencyTest extends TestCase
         // پرداختِ دوباره روی قبضِ تسویه‌شده باید رد شود
         $this->expectException(DomainException::class);
 
-        $wallet->payBill($this->unit, $fresh);
+        $wallet->payBill($this->resident, $fresh);
     }
 
     // ─────────────────────────────────────────────────────────────────────
@@ -310,17 +316,17 @@ class ConcurrencyTest extends TestCase
     {
         $wallet = app(WalletService::class);
 
-        $wallet->credit($this->unit, 50000, 'manual', null, 'شارژ');
+        $wallet->credit($this->resident, $this->unit, 50000, 'manual', null, 'شارژ');
 
-        // نمونه‌ی کهنه‌ای که هیچ خبری از شارژ ندارد
-        $stale = Unit::withoutGlobalScopes()->find($this->unit->id);
+        // نمونه‌ی کهنه‌ی صاحبِ کیف که هیچ خبری از شارژ ندارد (کیف مالِ حساب است)
+        $stale = User::withoutGlobalScopes()->find($this->resident->id);
 
-        $wallet->credit($this->unit, 20000, 'manual', null, 'شارژ دوم');
+        $wallet->credit($this->resident, $this->unit, 20000, 'manual', null, 'شارژ دوم');
 
         // با نمونه‌ی کهنه برداشت می‌کنیم؛ باید مانده‌ی واقعی (۷۰٬۰۰۰) را ببیند
-        $wallet->debit($stale, 70000, 'manual', null, 'برداشتِ کامل');
+        $wallet->debit($stale, $this->unit, 70000, 'manual', null, 'برداشتِ کامل');
 
-        $this->assertEqualsWithDelta(0.0, $wallet->balance($this->unit), 0.01);
+        $this->assertEqualsWithDelta(0.0, $wallet->balance($this->resident, $this->unit->complex_id), 0.01);
     }
 
     // ─────────────────────────────────────────────────────────────────────

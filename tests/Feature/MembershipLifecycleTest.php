@@ -14,11 +14,9 @@ use App\Models\TrustedDevice;
 use App\Models\Unit;
 use App\Models\UnitTenure;
 use App\Models\User;
-use App\Models\WalletTransaction;
 use App\Services\Account\Membership;
 use App\Services\Messenger\ConversationDirectory;
 use App\Services\Units\TenureService;
-use App\Services\Wallet\WalletService;
 use App\Support\Jalali;
 use App\Support\TenantContext;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -165,6 +163,46 @@ class MembershipLifecycleTest extends TestCase
         $this->assertTrue(Hash::check('secret123', $alice->password));
     }
 
+    /** مدیرِ مجتمعِ A به هیچ مسیری کاربرِ مجتمعِ B را عوض نمی‌کند. */
+    public function test_a_manager_cannot_modify_another_complexes_users(): void
+    {
+        $other = Complex::factory()->create();
+        $otherUnit = Unit::factory()->create(['complex_id' => $other->id]);
+        $stranger = User::factory()->create([
+            'complex_id' => $other->id, 'role' => UserRole::Owner, 'is_active' => true, 'can_message' => true,
+            'name' => 'ساکنِ مجتمعِ دیگر', 'email' => 'stranger@example.test',
+        ]);
+        $otherManager = User::factory()->create(['complex_id' => $other->id, 'role' => UserRole::ComplexAdmin, 'is_active' => true]);
+        $before = $stranger->fresh()->getAttributes();
+
+        $attempts = [
+            fn () => $this->putJson("/api/v1/residents/{$stranger->id}", ['name' => 'تصاحب', 'role' => 'tenant', 'unit_id' => $this->unit->id]),
+            fn () => $this->putJson("/api/v1/residents/{$stranger->id}", ['name' => 'تصاحب', 'role' => 'tenant', 'unit_id' => $otherUnit->id]),
+            fn () => $this->patchJson("/api/v1/residents/{$stranger->id}/toggle-active"),
+            fn () => $this->patchJson("/api/v1/residents/{$stranger->id}/toggle-messaging"),
+            fn () => $this->deleteJson("/api/v1/residents/{$stranger->id}"),
+            fn () => $this->withConfirmedPassword()->deleteJson("/api/v1/managers/{$otherManager->id}"),
+        ];
+        foreach ($attempts as $i => $attempt) {
+            $this->as($this->manager);
+            $this->assertContains($attempt()->status(), [403, 404, 422], "تلاشِ {$i} به کاربرِ مجتمعِ دیگر رسید.");
+        }
+
+        $this->assertSame($before, $stranger->fresh()->getAttributes());
+        $this->assertSame(UserRole::ComplexAdmin, $otherManager->fresh()->role);
+        $this->assertSame($other->id, $otherManager->fresh()->complex_id);
+    }
+
+    /** مسیرِ امنِ خودِ کاربر سر جایش است: رمز را خودش با رمزِ فعلی عوض می‌کند. */
+    public function test_the_account_owner_still_changes_their_own_password(): void
+    {
+        $this->as($this->alice)->putJson('/api/v1/profile/password', [
+            'current_password' => 'secret123', 'password' => 'newSecret456', 'password_confirmation' => 'newSecret456',
+        ])->assertOk();
+
+        $this->assertTrue(Hash::check('newSecret456', $this->alice->fresh()->password));
+    }
+
     /* ── F4: مدیرِ دوم ────────────────────────────────────────────────── */
 
     public function test_removing_a_manager_ends_the_role_not_the_account(): void
@@ -205,42 +243,6 @@ class MembershipLifecycleTest extends TestCase
             ?? $this->as($bob)->getJson('/api/v1/dashboard')->json('data.units');
         $this->assertNotNull($units);
         $this->assertSame($own->id, $units[0]['latestBill']['id']);
-    }
-
-    /**
-     * 🔴 گردشِ کیفِ واحد هم از شروعِ دوره‌ی ساکنِ تازه (F4).
-     *
-     * کیف مالِ واحد است؛ پیش از این ساکنِ تازه واریزِ ساکنِ قبلی را در گردش
-     * می‌دید، و ساکنِ رفته (اگر در همان مجتمع جابه‌جا شده بود) هنوز به کیفِ
-     * واحدِ قبلی دسترسی داشت.
-     */
-    public function test_the_next_tenant_does_not_see_the_previous_tenants_wallet_history(): void
-    {
-        $this->travel(-30)->days();
-        $old = app(WalletService::class)->credit($this->unit, 150000, WalletTransaction::SOURCE_ADJUSTMENT, null, 'واریزِ ساکنِ قبلی');
-        $this->travelBack();
-
-        $bob = $this->nextTenant();
-
-        $ids = collect($this->as($bob)->getJson("/api/v1/wallet/{$this->unit->id}")->assertOk()->json('transactions'))
-            ->pluck('id')->all();
-        $this->assertNotContains($old->id, $ids);
-
-        // مدیر همه را می‌بیند
-        $all = collect($this->as($this->manager)->getJson("/api/v1/wallet/{$this->unit->id}")->assertOk()->json('transactions'))
-            ->pluck('id')->all();
-        $this->assertContains($old->id, $all);
-    }
-
-    public function test_a_resident_who_moved_loses_the_old_units_wallet(): void
-    {
-        $other = Unit::factory()->create(['complex_id' => $this->complex->id, 'unit_number' => '13']);
-        app(TenureService::class)->open($other, $this->alice, ResidentRelation::Tenant);
-
-        $this->as($this->alice->fresh())->getJson("/api/v1/wallet/{$this->unit->id}")->assertNotFound();
-        $units = collect($this->as($this->alice->fresh())->getJson('/api/v1/wallet')->assertOk()->json('wallets'))
-            ->pluck('unitId')->all();
-        $this->assertSame([$other->id], $units);
     }
 
     public function test_the_next_tenant_does_not_read_the_previous_tenants_thread(): void
@@ -341,6 +343,108 @@ class MembershipLifecycleTest extends TestCase
 
         $this->as($this->manager)->deleteJson("/api/v1/system/members/{$this->alice->id}")->assertForbidden();
         $this->assertTrue((bool) $this->alice->fresh()->is_active);
+    }
+
+    /* ── ادمینِ کل (تصمیمِ کارفرما Q4) ─────────────────────────────────── */
+
+    /**
+     * مجتمعِ موجود → انتخاب → دعوتِ مدیر؛ صدورِ دوباره پیوندِ قبلی را می‌کشد و
+     * هیچ حسابی پیش از پذیرش ساخته یا مدیر نمی‌شود.
+     */
+    public function test_the_super_admin_reissues_a_manager_invitation_for_an_existing_complex(): void
+    {
+        $superAdmin = $this->superAdmin();
+        $phone = '09126660077';
+
+        $this->as($superAdmin)->postJson("/api/v1/system/complexes/{$this->complex->id}/select")->assertOk();
+        $first = $this->withConfirmedPassword()->postJson('/api/v1/managers', ['phone' => $phone])->assertCreated();
+        $second = $this->withConfirmedPassword()->postJson('/api/v1/managers', ['phone' => $phone])->assertCreated();
+
+        $this->assertNotSame($first->json('link'), $second->json('link'));
+        $this->assertSame(ComplexInvitation::REVOKED, ComplexInvitation::find($first->json('invitation.id'))->status);
+        $this->assertNull(User::where('phone', $phone)->first(), 'پیش از پذیرش حسابی ساخته شد.');
+
+        $person = User::factory()->create(['complex_id' => null, 'role' => UserRole::Owner, 'is_active' => true, 'phone' => $phone]);
+        app(Membership::class)->accept(ComplexInvitation::find($second->json('invitation.id')), $person);
+
+        $this->assertSame(UserRole::ComplexAdmin, $person->fresh()->role);
+        $this->assertSame($this->complex->id, $person->fresh()->complex_id);
+    }
+
+    /** عملیاتِ حساسِ ادمینِ کل همه ردِ حسابرسی دارند، با کننده‌ی واقعی. */
+    public function test_sensitive_super_admin_operations_are_audited(): void
+    {
+        $superAdmin = $this->superAdmin();
+
+        $this->as($superAdmin)->postJson("/api/v1/system/complexes/{$this->complex->id}/suspend", ['reason' => 'بدهیِ اشتراک'])->assertOk();
+        $this->as($superAdmin)->postJson("/api/v1/system/complexes/{$this->complex->id}/activate")->assertOk();
+        $this->as($superAdmin)->withConfirmedPassword()->deleteJson("/api/v1/system/members/{$this->alice->id}")->assertOk();
+        $this->as($superAdmin)->withConfirmedPassword()->patchJson("/api/v1/system/members/{$this->alice->id}", [
+            'role' => UserRole::Owner->value, 'is_active' => true,
+        ])->assertOk();
+        $this->as($superAdmin)->postJson('/api/v1/system/complexes', [
+            'name' => 'مجتمعِ حسابرسی', 'type' => 'residential', 'admin_phone' => '09126660088',
+        ])->assertCreated();
+
+        foreach (['complex.suspended', 'complex.activated', 'member.deactivated', 'member.updated', 'invitation.sent'] as $action) {
+            $this->assertDatabaseHas('audit_logs', ['action' => $action, 'user_id' => $superAdmin->id]);
+        }
+        $update = AuditLog::where('action', 'member.updated')->firstOrFail();
+        $this->assertSame(['role' => 'tenant', 'is_active' => false], $update->properties['before']);
+        $this->assertSame(['role' => 'owner', 'is_active' => true], $update->properties['after']);
+    }
+
+    /**
+     * حذفِ سختِ مجتمع **عمداً ساخته نشده**: تعلیق جایش است و هیچ سابقه‌ی مالی،
+     * عضو یا دفترِ کیفی را دست نمی‌زند؛ بازفعال‌سازی همه را همان‌طور برمی‌گرداند.
+     */
+    public function test_suspending_a_complex_keeps_every_record_and_no_hard_delete_exists(): void
+    {
+        $counts = fn () => [
+            Bill::withoutGlobalScopes()->where('complex_id', $this->complex->id)->count(),
+            Payment::withoutGlobalScopes()->where('complex_id', $this->complex->id)->count(),
+            User::withoutGlobalScopes()->where('complex_id', $this->complex->id)->count(),
+            UnitTenure::withoutGlobalScopes()->where('user_id', $this->alice->id)->count(),
+        ];
+        $before = $counts();
+        $superAdmin = $this->superAdmin();
+
+        $this->as($superAdmin)->postJson("/api/v1/system/complexes/{$this->complex->id}/suspend", ['reason' => 'آزمون'])->assertOk();
+        $this->assertSame($before, $counts());
+        // هیچ مسیرِ حذفی برای مجتمع نیست — نه در سیستم نه در پنلِ مدیر
+        $this->assertContains($this->as($superAdmin)->deleteJson("/api/v1/system/complexes/{$this->complex->id}")->status(), [404, 405]);
+        $deletes = collect(app('router')->getRoutes()->getRoutes())
+            ->filter(fn ($route) => in_array('DELETE', $route->methods(), true) && str_contains($route->uri(), 'complexes'))
+            ->map(fn ($route) => $route->uri())->values()->all();
+        $this->assertSame([], $deletes, 'مسیرِ حذفِ مجتمع پیدا شد.');
+        $this->as($superAdmin)->postJson("/api/v1/system/complexes/{$this->complex->id}/activate")->assertOk();
+
+        $this->assertSame($before, $counts());
+        $this->assertNotNull(Complex::find($this->complex->id));
+    }
+
+    /** مدیر هیچ مسیرِ ادمینِ کل را نمی‌زند. */
+    public function test_a_manager_cannot_use_super_admin_routes(): void
+    {
+        $other = Complex::factory()->create();
+        $calls = [
+            ['getJson', '/api/v1/system/complexes', []],
+            ['postJson', '/api/v1/system/complexes', ['name' => 'x', 'type' => 'residential', 'admin_phone' => '09126660099']],
+            ['postJson', "/api/v1/system/complexes/{$other->id}/select", []],
+            ['postJson', "/api/v1/system/complexes/{$this->complex->id}/suspend", ['reason' => 'x']],
+            ['postJson', "/api/v1/system/complexes/{$this->complex->id}/activate", []],
+            ['patchJson', "/api/v1/system/complexes/{$this->complex->id}/type", ['type' => 'commercial']],
+            ['getJson', '/api/v1/system/members', []],
+            ['patchJson', "/api/v1/system/members/{$this->manager->id}", ['role' => 'super_admin']],
+            ['getJson', '/api/v1/system/audit-logs', []],
+        ];
+        foreach ($calls as [$method, $uri, $body]) {
+            $this->as($this->manager)->withConfirmedPassword()->{$method}($uri, $body)->assertForbidden();
+        }
+
+        $this->assertSame(UserRole::ComplexAdmin, $this->manager->fresh()->role);
+        $this->assertTrue((bool) $this->complex->fresh()->is_active);
+        $this->assertSame(0, Complex::where('name', 'x')->count());
     }
 
     /* ── کمکی ──────────────────────────────────────────────────────────── */

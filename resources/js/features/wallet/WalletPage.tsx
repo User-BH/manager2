@@ -10,10 +10,12 @@ import { queryKeys } from '@/shared/lib/queryKeys'
 import { useDocumentTitle } from '@/shared/hooks'
 import { formatMoney } from '@/shared/lib/format'
 
+/** یک «جیب» ِ کیف: (صاحب، مجتمع). `statement` نشانیِ صورت‌حسابش در API است. */
 interface WalletSummary {
-  unitId: number
-  unitLabel: string
+  key: string
+  label: string
   balance: number
+  statement: string
 }
 
 interface WalletTransaction {
@@ -27,25 +29,28 @@ interface WalletTransaction {
 }
 
 /**
- * کیفِ پولِ واحد (R22).
+ * کیفِ پولِ **شخصی** (R22؛ مالکیت از مرحلهٔ ۹ · اصلاحاتِ پس از فاز ۶).
  *
- * مانده هیچ‌جا ذخیره نمی‌شود و سرور آن را از جمعِ دفتر می‌دهد؛ پس این صفحه
- * هیچ محاسبه‌ای نمی‌کند و فقط نشان می‌دهد. اگر روزی عددی اینجا با
- * صورت‌حساب نخواند، مشکل در دفتر است نه در رابط.
+ * کیف مالِ حسابِ خودِ کاربر است، به تفکیکِ مجتمع؛ پس از پایانِ عضویت هم همین
+ * صفحه (در داشبوردِ اولیه) آن را نشان می‌دهد. مدیر جیب‌های اعضای همین مجتمع را
+ * هم می‌بیند. مانده از سرور و از جمعِ دفتر می‌آید؛ این صفحه چیزی حساب نمی‌کند.
  */
 export function WalletPage() {
-  const [selected, setSelected] = useState<number | null>(null)
+  const [selected, setSelected] = useState<string | null>(null)
 
   useDocumentTitle('کیف پول')
 
   const { data, error, isLoading, refetch } = useQuery({
     queryKey: queryKeys.wallet.all(),
-    queryFn: ({ signal }) => api<{ wallets: WalletSummary[] }>('/wallet', { signal }),
+    queryFn: ({ signal }) =>
+      api<{ wallets: WalletSummary[]; members?: WalletSummary[] }>('/wallet', { signal }),
   })
 
-  const wallets = data?.wallets ?? []
-  // تا وقتی کاربر انتخابی نکرده، صورت‌حسابِ اولین واحد نشان داده می‌شود
-  const activeUnit = selected ?? wallets[0]?.unitId ?? null
+  const own = data?.wallets ?? []
+  const members = data?.members ?? []
+  const all = [...own, ...members]
+  // تا وقتی کاربر انتخابی نکرده، صورت‌حسابِ اولین جیب نشان داده می‌شود
+  const active = all.find((wallet) => wallet.key === selected) ?? all[0] ?? null
 
   if (isLoading) return <CardListSkeleton items={2} />
   if (error) return <ErrorState error={error} onRetry={() => void refetch()} />
@@ -57,27 +62,48 @@ export function WalletPage() {
           کیف پول
         </h1>
         <p className="mt-1 text-[13px]" style={{ color: 'var(--text-tertiary)' }}>
-          موجودی هر واحد و گردش آن
+          کیفِ شخصیِ شما و گردشِ آن
         </p>
       </header>
 
-      {wallets.length === 0 ? (
-        <EmptyState message="واحدی برای نمایش وجود ندارد." />
+      {all.length === 0 ? (
+        <EmptyState message="کیفِ پولِ شما هنوز گردشی ندارد." />
       ) : (
         <>
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
-            {wallets.map((wallet, index) => (
-              <BalanceCard
-                key={wallet.unitId}
-                wallet={wallet}
-                active={wallet.unitId === activeUnit}
-                onSelect={() => setSelected(wallet.unitId)}
-                delay={Math.min(index * 0.04, 0.3)}
-              />
-            ))}
-          </div>
+          {own.length > 0 && (
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
+              {own.map((wallet, index) => (
+                <BalanceCard
+                  key={wallet.key}
+                  wallet={wallet}
+                  active={wallet.key === active?.key}
+                  onSelect={() => setSelected(wallet.key)}
+                  delay={Math.min(index * 0.04, 0.3)}
+                />
+              ))}
+            </div>
+          )}
 
-          {activeUnit !== null && <Statement unitId={activeUnit} />}
+          {members.length > 0 && (
+            <section className="flex flex-col gap-3">
+              <h2 className="text-sm font-bold" style={{ color: 'var(--text-primary)' }}>
+                کیفِ اعضای این مجتمع
+              </h2>
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
+                {members.map((wallet, index) => (
+                  <BalanceCard
+                    key={wallet.key}
+                    wallet={wallet}
+                    active={wallet.key === active?.key}
+                    onSelect={() => setSelected(wallet.key)}
+                    delay={Math.min(index * 0.04, 0.3)}
+                  />
+                ))}
+              </div>
+            </section>
+          )}
+
+          {active !== null && <Statement wallet={active} />}
         </>
       )}
     </div>
@@ -114,7 +140,7 @@ function BalanceCard({
         style={{ color: 'var(--text-tertiary)' }}
       >
         <Wallet size={15} style={{ color: 'var(--color-brand-500)' }} />
-        {wallet.unitLabel}
+        {wallet.label}
       </span>
       <span
         className="text-lg font-extrabold tabular-nums"
@@ -126,11 +152,11 @@ function BalanceCard({
   )
 }
 
-function Statement({ unitId }: { unitId: number }) {
+function Statement({ wallet }: { wallet: WalletSummary }) {
   const { data, error, isLoading, refetch } = useQuery({
-    queryKey: queryKeys.wallet.statement(unitId),
+    queryKey: queryKeys.wallet.statement(wallet.key),
     queryFn: ({ signal }) =>
-      api<{ balance: number; transactions: WalletTransaction[] }>(`/wallet/${unitId}`, { signal }),
+      api<{ balance: number; transactions: WalletTransaction[] }>(wallet.statement, { signal }),
   })
 
   if (isLoading) return <TableSkeleton rows={5} columns={4} />

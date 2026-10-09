@@ -355,8 +355,7 @@ class MassAssignmentTest extends TestCase
      */
     public function test_the_wallet_payment_is_capped_by_the_balance_and_the_debt(): void
     {
-        app(WalletService::class)->credit(
-            $this->unit,
+        app(WalletService::class)->credit($this->resident, $this->unit,
             120000,
             'manual',
             null,
@@ -375,7 +374,7 @@ class MassAssignmentTest extends TestCase
 
         $this->assertSame(
             0.0,
-            (float) app(WalletService::class)->balance($this->unit->fresh()),
+            (float) app(WalletService::class)->balance($this->resident, $this->unit->complex_id),
             'موجودیِ کیف پس از پرداخت درست نیست.',
         );
     }
@@ -383,7 +382,7 @@ class MassAssignmentTest extends TestCase
     /** و مبلغِ منفی نباید کیف را شارژ کند. */
     public function test_a_negative_wallet_amount_is_rejected(): void
     {
-        app(WalletService::class)->credit($this->unit, 50000, 'manual', null, 'شارژ');
+        app(WalletService::class)->credit($this->resident, $this->unit, 50000, 'manual', null, 'شارژ');
 
         $this->as($this->resident, 'POST', '/api/wallet/pay/'.$this->bill->id, [
             'amount' => -70000,
@@ -391,7 +390,7 @@ class MassAssignmentTest extends TestCase
 
         $this->assertSame(
             50000.0,
-            (float) app(WalletService::class)->balance($this->unit->fresh()),
+            (float) app(WalletService::class)->balance($this->resident, $this->unit->complex_id),
             'مبلغِ منفی موجودیِ کیف را عوض کرد.',
         );
 

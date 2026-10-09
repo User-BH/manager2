@@ -157,6 +157,8 @@ class Notifications
             isset($data['serviceRequestId']) => '/requests',
             // پاسخ به بازخورد: متنِ کامل در تاریخچه‌ی اعلان‌ها (مرحلهٔ ۸ · فاز ۶)
             isset($data['feedbackReplyId']) => '/notifications',
+            // درخواستِ عضویت برای مدیر: صندوقِ درخواست‌ها در صفحه‌ی ساکنین (مرحلهٔ ۹ · اصلاحاتِ پس از فاز ۶)
+            isset($data['joinRequestId']) => '/residents',
             default => null,
         };
     }

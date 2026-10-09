@@ -11,6 +11,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\DB;
 
 /**
  * @property int|null $conversation_id
@@ -208,6 +209,30 @@ class Message extends Model
                 ->where('audience', MessageAudience::Management->value)
                 ->where('unit_id', $tenure->unit_id)
                 ->where('created_at', '<', $tenure->start_date));
+        }
+
+        /*
+         * گروه‌های چندواحده‌ی مدیر هم (تصمیمِ کارفرما، مرحلهٔ ۹ · اصلاحاتِ پس از فاز ۶):
+         * تاریخچه‌ی کامل **فقط** مالِ گروهِ عمومیِ مجتمع (`CHANNEL`) است — که این‌جا
+         * دست نمی‌خورد. در گروهی که ساکن از راهِ واحدش عضوش است، پیامِ پیش از
+         * زودترین دوره‌ی او روی واحدهای همان گروه برایش نیست.
+         */
+        $startByUnit = $starts->pluck('start_date', 'unit_id');
+        if ($startByUnit->isNotEmpty()) {
+            $groups = DB::table('conversation_units')
+                ->join('conversations', 'conversations.id', '=', 'conversation_units.conversation_id')
+                ->where('conversations.type', Conversation::GROUP)
+                ->whereIn('conversation_units.unit_id', $startByUnit->keys())
+                ->get(['conversation_units.conversation_id', 'conversation_units.unit_id']);
+
+            foreach ($groups->groupBy('conversation_id') as $conversationId => $rows) {
+                $since = $rows->map(fn ($row) => $startByUnit[$row->unit_id])->min();
+
+                $query->whereNot(fn (Builder $q) => $q
+                    ->where('conversation_id', (int) $conversationId)
+                    ->whereNotNull('created_at')
+                    ->where('created_at', '<', $since));
+            }
         }
     }
 

@@ -68,6 +68,8 @@ class MemberController extends Controller
             ]);
         }
 
+        $before = ['role' => $target->role->value, 'is_active' => (bool) $target->is_active];
+
         $target->role = $role;
 
         if (array_key_exists('is_active', $data)) {
@@ -81,6 +83,19 @@ class MemberController extends Controller
         }
 
         $target->save();
+
+        /*
+         * نقش و فعال‌بودن حساسِ‌ترین تغییرِ این پنل‌اند (ارتقا تا ادمینِ کل،
+         * برگرداندنِ حسابِ غیرفعال) و تا مرحلهٔ ۹ · اصلاحاتِ پس از فاز ۶ هیچ
+         * ردی نمی‌گذاشتند — برخلافِ غیرفعال‌سازی. حالا قبل و بعد ثبت می‌شود.
+         */
+        $after = ['role' => $target->role->value, 'is_active' => (bool) $target->is_active];
+        if ($after !== $before) {
+            Audit::log('member.updated', 'تغییرِ نقش یا وضعیتِ عضو سامانه', $target, [
+                'before' => $before,
+                'after' => $after,
+            ], $target->complex_id);
+        }
 
         return response()->json([
             'message' => 'نقشِ کاربر به‌روزرسانی شد.',

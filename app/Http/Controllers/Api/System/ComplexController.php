@@ -161,6 +161,11 @@ class ComplexController extends Controller
             'suspension_reason' => $request->validated()['reason'],
         ]);
 
+        // تعلیق و بازفعال‌سازی ردِ حسابرسی دارند (مرحلهٔ ۹ · اصلاحاتِ پس از فاز ۶)
+        Audit::log('complex.suspended', 'تعلیقِ دسترسیِ مجتمع', $complex, [
+            'reason' => $complex->suspension_reason,
+        ], $complex->id);
+
         return response()->json([
             'message' => 'دسترسی این مجتمع تعلیق شد.',
             'complex' => $this->presentOne($complex->refresh()),
@@ -175,6 +180,8 @@ class ComplexController extends Controller
             'suspended_at' => null,
             'suspension_reason' => null,
         ]);
+
+        Audit::log('complex.activated', 'بازگرداندنِ دسترسیِ مجتمع', $complex, [], $complex->id);
 
         return response()->json([
             'message' => 'دسترسی این مجتمع بازگردانده شد.',

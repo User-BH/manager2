@@ -163,7 +163,7 @@ export const queryKeys = {
   // کیفِ پولِ واحد (R22)
   wallet: {
     all: () => ['wallet'] as const,
-    statement: (unitId: number) => ['wallet', 'statement', unitId] as const,
+    statement: (key: string) => ['wallet', 'statement', key] as const,
   },
 
   system: {

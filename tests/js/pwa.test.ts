@@ -164,7 +164,7 @@ describe('اعلانِ نسخه‌ی تازه', () => {
    * یعنی نصبِ **اولِ** کاربر می‌توانست بی‌سروصدا پیامِ «نسخه‌ی جدید» بگیرد
    * و هیچ‌کس نمی‌فهمید.
    */
-  async function driveUpdateFound(controller: unknown) {
+  async function driveUpdateFound(controller: unknown, claimedBeforeInstalled = false) {
     const installed = { state: 'installing', listeners: [] as Array<() => void> }
     const worker = {
       get state() {
@@ -194,6 +194,13 @@ describe('اعلانِ نسخه‌ی تازه', () => {
     await vi.waitFor(() => expect(onUpdateFound).not.toBeNull())
 
     onUpdateFound!()
+    if (claimedBeforeInstalled) {
+      // ترتیبِ WebKit: `clients.claim()` ِ نصبِ اول پیش از رسیدنِ رویدادِ «installed»
+      Object.defineProperty(navigator.serviceWorker, 'controller', {
+        value: { scriptURL: '/sw.js' },
+        configurable: true,
+      })
+    }
     installed.state = 'installed'
     installed.listeners.forEach((fn) => fn())
 
@@ -202,6 +209,16 @@ describe('اعلانِ نسخه‌ی تازه', () => {
 
   it('نصبِ اولِ کاربر از مسیرِ updatefound هم پیام نمی‌گیرد', async () => {
     expect(await driveUpdateFound(null)).not.toHaveBeenCalled()
+  })
+
+  /*
+   * 🔴 مرحلهٔ ۹ · اصلاحاتِ پس از فاز ۶: آزمونِ مرورگر نشان داد کاربرِ تازه در WebKit
+   * (۲ از ۳ بار) پیامِ «نسخه‌ی تازه آماده است» می‌گرفت، بی هیچ نسخه‌ی منتظری.
+   * WebKit رویدادِ «installed» را پس از `clients.claim()` می‌رساند و آن لحظه
+   * `controller` دیگر تهی نیست؛ ملاک باید لحظه‌ی `updatefound` باشد.
+   */
+  it('نصبِ اول در ترتیبِ WebKit (کنترل پیش از «installed») هم پیام نمی‌گیرد', async () => {
+    expect(await driveUpdateFound(null, true)).not.toHaveBeenCalled()
   })
 
   it('به‌روزرسانیِ واقعی از مسیرِ updatefound پیام می‌دهد', async () => {

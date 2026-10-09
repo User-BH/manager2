@@ -59,20 +59,21 @@ export function RegistrantLayout() {
         </div>
 
         <nav aria-label="منوی حساب" className="mx-auto max-w-3xl px-2">
-          <ul className="scrollbar-thin flex gap-1 overflow-x-auto">
+          <ul className="scrollbar-thin flex gap-0 overflow-x-auto min-[420px]:gap-1">
             {REGISTRANT_NAV.map(({ to, label, icon: Icon }) => (
               <li key={to} className="shrink-0">
                 <NavLink
                   to={to}
-                  className="flex items-center gap-1.5 border-b-2 px-3 py-2.5 text-[13px] font-semibold transition-colors"
+                  className="flex items-center gap-1.5 border-b-2 px-1.5 py-2.5 text-xs font-semibold transition-colors min-[360px]:px-2 min-[360px]:text-[13px] min-[420px]:px-3"
                   style={({ isActive }) => ({
                     borderColor: isActive ? 'var(--color-brand-500)' : 'transparent',
                     color: isActive ? 'var(--color-brand-600)' : 'var(--text-secondary)',
                   })}
                 >
-                  {/* زیرِ ‎۴۲۰px چهار زبانه با آیکون جا نمی‌شوند (‎۴۰۰px در ‎۳۵۹px) و آخری
-                      پشتِ اسکرول پنهان می‌ماند؛ آن‌جا فقط متن */}
-                  <Icon size={16} aria-hidden="true" className="hidden min-[420px]:block" />
+                  {/* زبانه‌ها با آیکون فقط از ‎۵۶۰px جا می‌شوند؛ پایین‌تر فقط متن، زیرِ
+                      ‎۴۲۰px فاصله‌ها تنگ‌تر و زیرِ ‎۳۶۰px متن هم ریزتر — وگرنه زبانه‌ی پنجم («کیف پول»، مرحلهٔ ۹ ·
+                      اصلاحاتِ پس از فاز ۶) در ‎۳۶۰px پشتِ اسکرول پنهان می‌ماند (‎۵۱px سرریز) */}
+                  <Icon size={16} aria-hidden="true" className="hidden min-[560px]:block" />
                   {label}
                 </NavLink>
               </li>

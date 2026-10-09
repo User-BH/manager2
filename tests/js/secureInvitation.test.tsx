@@ -2,6 +2,8 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router-dom'
+import { readFileSync } from 'node:fs'
+import { resolve } from 'node:path'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { ResidentForm } from '@/features/residents/ResidentForm'
 import { JoinRequestInbox } from '@/features/residents/JoinRequestInbox'
@@ -267,6 +269,25 @@ describe('پیوندِ دعوت', () => {
       body: { token: 'secret-token-123' },
     })
     expect(window.location.hash).toBe('')
+  })
+
+  it('توکن پیش از راه‌افتادنِ پایش و تحلیل از نشانی برداشته می‌شود', async () => {
+    const { takeInviteTokenFromUrl, inviteToken } = await import('@/features/auth/inviteToken')
+    window.history.replaceState(null, '', '/invite#early-token-456')
+
+    takeInviteTokenFromUrl()
+
+    expect(window.location.href).not.toContain('early-token-456')
+    expect(inviteToken()).toBe('early-token-456')
+
+    // نقطه‌ی ورود: برداشتنِ توکن **پیش از** `initObservability`
+    const entry = readFileSync(
+      resolve(__dirname, '../../resources/js/app/entries/auth.tsx'),
+      'utf8',
+    )
+    const take = entry.indexOf('takeInviteTokenFromUrl()')
+    expect(take).toBeGreaterThan(-1)
+    expect(take).toBeLessThan(entry.indexOf('initObservability()'))
   })
 
   it('پیوندِ نامعتبر پیامِ روشن می‌دهد', async () => {

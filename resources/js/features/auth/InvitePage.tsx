@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { Building2, Loader2 } from 'lucide-react'
 import { AuthScreen } from './components/AuthScreen'
+import { inviteToken } from './inviteToken'
 import { api } from '@/shared/lib/api'
 import { useDocumentTitle } from '@/shared/hooks'
 
@@ -29,18 +30,13 @@ type State =
 export function InvitePage() {
   useDocumentTitle('دعوت به مجتمع')
 
-  // توکن یک بار از نشانی خوانده می‌شود؛ پاک‌کردنِ نشانی آن را از دست نمی‌دهد
-  const [token] = useState(() => window.location.hash.replace(/^#/, ''))
+  // توکن را نقطه‌ی ورود پیش از پایش و تحلیل از نشانی برداشته است (`inviteToken`)
+  const [token] = useState(inviteToken)
   const [state, setState] = useState<State>(() =>
     token ? { kind: 'loading' } : { kind: 'invalid' },
   )
 
   useEffect(() => {
-    // توکن روی صفحه یا در تاریخچه‌ی «بازگشت» نماند
-    if (window.location.hash) {
-      window.history.replaceState(null, '', window.location.pathname)
-    }
-
     if (!token) return
 
     const controller = new AbortController()

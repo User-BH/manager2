@@ -102,31 +102,27 @@ describe('تجربه‌ی ثبت‌نام‌کننده‌ی اولیه', { timeo
     expect([...menu.querySelectorAll('a')].map((a) => a.getAttribute('href'))).toEqual(
       REGISTRANT_NAV.map((item) => item.to),
     )
-    // هیچ مقصدِ ساکن یا مدیر در صفحه نیست
-    for (const path of ['/my-bills', '/wallet', '/requests', '/messenger', '/units']) {
+    // هیچ مقصدِ ساکن یا مدیر در صفحه نیست — کیفِ پول از مرحلهٔ ۹ · اصلاحاتِ پس از فاز ۶
+    // مالِ همین حالت هم هست (کیف مالِ حسابِ شخص است، نه عضویت)
+    for (const path of ['/my-bills', '/requests', '/messenger', '/units']) {
       expect(container.querySelector(`a[href="${path}"]`), path).toBeNull()
     }
   })
 
-  it.each([
-    '/my-bills',
-    '/wallet',
-    '/requests',
-    '/messenger',
-    '/units',
-    '/system/feedback',
-    '/چیزی',
-  ])('%s مالِ این حالت نیست و به داشبوردِ خودش برمی‌گردد', async (path) => {
-    useAuthStore.setState({ user: user('initial'), isLoading: false })
-    renderAt(path)
+  it.each(['/my-bills', '/requests', '/messenger', '/units', '/system/feedback', '/چیزی'])(
+    '%s مالِ این حالت نیست و به داشبوردِ خودش برمی‌گردد',
+    async (path) => {
+      useAuthStore.setState({ user: user('initial'), isLoading: false })
+      renderAt(path)
 
-    await waitFor(() => expect(currentPath).toBe('/dashboard'), SLOW)
-    expect(
-      await screen.findByText('ثبت‌نام شما کامل است؛ هنوز عضو هیچ مجتمعی نیستید', {}, SLOW),
-    ).toBeInTheDocument()
-  })
+      await waitFor(() => expect(currentPath).toBe('/dashboard'), SLOW)
+      expect(
+        await screen.findByText('ثبت‌نام شما کامل است؛ هنوز عضو هیچ مجتمعی نیستید', {}, SLOW),
+      ).toBeInTheDocument()
+    },
+  )
 
-  it('هر چهار مقصدِ منو در همین تجربه باز می‌شوند', async () => {
+  it('هر پنج مقصدِ منو (با کیفِ شخصی) در همین تجربه باز می‌شوند', async () => {
     useAuthStore.setState({ user: user('initial'), isLoading: false })
 
     for (const { to } of REGISTRANT_NAV) {

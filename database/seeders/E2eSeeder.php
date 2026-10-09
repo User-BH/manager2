@@ -65,12 +65,12 @@ class E2eSeeder extends Seeder
 
             $unit = $owner->units()->withoutGlobalScopes()->first();
 
-            // دوباره‌اجرا اعتبار را دوبرابر نمی‌کند
-            if ($unit === null || $wallet->balance($unit) >= self::CREDIT) {
+            // دوباره‌اجرا اعتبار را دوبرابر نمی‌کند — کیف مالِ خودِ مالک است، نه واحد
+            if ($unit === null || $wallet->balance($owner, $unit->complex_id) >= self::CREDIT) {
                 continue;
             }
 
-            $wallet->credit($unit, self::CREDIT, WalletTransaction::SOURCE_ADJUSTMENT, null, 'اعتبارِ آزمونِ سرتاسری');
+            $wallet->credit($owner, $unit, self::CREDIT, WalletTransaction::SOURCE_ADJUSTMENT, null, 'اعتبارِ آزمونِ سرتاسری');
         }
 
         foreach (self::REGISTRANTS as $phone) {

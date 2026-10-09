@@ -38,11 +38,20 @@ abstract class Controller
 
     protected function currentComplex(): ?Complex
     {
-        if ($this->resolvedComplex !== null) {
+        $id = ComplexResolver::idFor(Auth::user());
+
+        /*
+         * 🔴 حافظه فقط برای **همان** مجتمع (مرحلهٔ ۹ · اصلاحاتِ پس از فاز ۶).
+         *
+         * لاراول نمونه‌ی کنترلر را روی خودِ Route نگه می‌دارد؛ در هر فرایندِ
+         * ماندگار (تست، صف، Octane) درخواستِ بعدی — کاربرِ دیگر، مجتمعِ دیگر —
+         * همان نمونه را می‌گیرد. حافظه‌ی بی‌کلید مجتمعِ کاربرِ قبلی را برمی‌گرداند:
+         * `WalletOwnershipTest` دید مدیرِ مجتمعِ دیگر صورت‌حسابِ عضوِ این مجتمع را
+         * گرفت. php-fpm هر درخواست را از نو می‌سازد، ولی مرزِ مستأجر نباید به آن تکیه کند.
+         */
+        if ($this->resolvedComplex !== null && $this->resolvedComplex->id === $id) {
             return $this->resolvedComplex;
         }
-
-        $id = ComplexResolver::idFor(Auth::user());
 
         return $this->resolvedComplex = $id ? Complex::find($id) : null;
     }

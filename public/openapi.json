@@ -12894,6 +12894,70 @@
                 }
             }
         },
+        "/api/v1/wallet/members/{member}": {
+            "get": {
+                "summary": "api.wallet.members.statement",
+                "tags": [
+                    "wallet"
+                ],
+                "parameters": [
+                    {
+                        "name": "member",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "موفق"
+                    },
+                    "422": {
+                        "description": "خطای اعتبارسنجی",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    },
+                    "429": {
+                        "description": "عبور از محدودیتِ نرخ",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "وارد نشده‌اید",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "دسترسی ندارید",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    }
+                },
+                "description": "فقط برای نقشِ: super_admin,complex_admin"
+            }
+        },
         "/api/v1/wallet/pay/{bill}": {
             "post": {
                 "summary": "api.wallet.pay",
@@ -12957,7 +13021,7 @@
                 }
             }
         },
-        "/api/v1/wallet/{unit}": {
+        "/api/v1/wallet/{complexId}": {
             "get": {
                 "summary": "api.wallet.statement",
                 "tags": [
@@ -12965,7 +13029,7 @@
                 ],
                 "parameters": [
                     {
-                        "name": "unit",
+                        "name": "complexId",
                         "in": "path",
                         "required": true,
                         "schema": {

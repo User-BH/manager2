@@ -48,11 +48,17 @@ const RegistrantPurchasePage = lazy(() =>
   })),
 )
 
+/* کیفِ شخصی — همان صفحه‌ی مشترک؛ سرور فقط کیفِ خودِ کاربر را می‌دهد */
+const WalletPage = lazy(() =>
+  import('@/features/wallet/WalletPage').then((m) => ({ default: m.WalletPage })),
+)
+
 const PAGES: Record<(typeof REGISTRANT_NAV)[number]['to'], React.ReactElement> = {
   '/dashboard': <RegistrantDashboardPage />,
   '/notifications': <NotificationsPage />,
   '/profile': <ProfilePage />,
   '/account': <RegistrantPurchasePage />,
+  '/wallet': <WalletPage />,
 }
 
 export function RegistrantRouter() {

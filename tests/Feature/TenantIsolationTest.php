@@ -227,8 +227,8 @@ class TenantIsolationTest extends TestCase
 
             'خواندنِ واحد' => ['GET', 'units/%d', 'unit', []],
             'ویرایشِ جزئیِ واحد' => ['PATCH', 'units/%d', 'unit', ['floor' => 9]],
-            // 🔴 موجودیِ کیفِ پولِ واحدِ مجتمعِ دیگر
-            'موجودیِ کیفِ واحد' => ['GET', 'wallet/%d', 'unit', []],
+            // 🔴 صورت‌حسابِ کیفِ عضوِ مجتمعِ دیگر (کیف مالِ حساب است؛ مرحلهٔ ۹ · اصلاحاتِ پس از فاز ۶)
+            'صورت‌حسابِ کیفِ عضو' => ['GET', 'wallet/members/%d', 'resident', []],
             'انتقالِ مالکیتِ واحد' => ['POST', 'units/%d/transfer-ownership', 'unit', []],
 
             'خواندنِ درخواستِ خدمات' => ['GET', 'service-requests/%d', 'serviceRequest', []],

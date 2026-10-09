@@ -760,8 +760,65 @@ class PhaseRegressionMapTest extends TestCase
             '🔴 ساکنِ تازه قبض و پرداختِ ساکنِ قبلی را نمی‌بیند' => [
                 'MembershipLifecycleTest', 'test_the_next_tenant_does_not_see_the_previous_tenants_bills', '۹',
             ],
-            '🔴 ساکنِ تازه گردشِ کیفِ ساکنِ قبلی را نمی‌بیند' => [
-                'MembershipLifecycleTest', 'test_the_next_tenant_does_not_see_the_previous_tenants_wallet_history', '۹',
+            '🔴 کیف مالِ حساب است: ساکنِ تازه کیفِ ساکنِ قبلی را نه می‌بیند نه خرج می‌کند' => [
+                'WalletOwnershipTest', 'test_the_next_tenant_can_neither_see_nor_spend_the_previous_tenants_wallet', '۹',
+            ],
+            '🔴 پایانِ عضویت مانده و دسترسیِ کیفِ شخص را دست نمی‌زند' => [
+                'WalletOwnershipTest', 'test_ending_membership_keeps_the_balance_and_the_access', '۹',
+            ],
+            '🔴 برداشتِ هم‌زمانِ کیف در چند پردازه: نه منفی، نه ناسازگار با دفتر' => [
+                'WalletConcurrencyTest', 'test_concurrent_debits_never_overdraw_or_desync_the_ledger', '۹',
+            ],
+            '🔴 پذیرشِ هم‌زمانِ یک دعوت در چند پردازه: یک عضویت' => [
+                'InvitationConcurrencyTest', 'test_one_invitation_accepted_concurrently_makes_one_membership', '۹',
+            ],
+            '🔴 پذیرشِ هم‌زمانِ دو دعوتِ دو مجتمع: یک عضویت' => [
+                'InvitationConcurrencyTest', 'test_two_invitations_accepted_concurrently_make_one_membership', '۹',
+            ],
+            'کدِ OTP ِ منقضی برای پذیرشِ دعوت رد می‌شود' => [
+                'SecureInvitationTest', 'test_an_expired_code_is_refused', '۹',
+            ],
+            'دعوتِ مجتمعِ دیگر پس از عضویت مُرده است' => [
+                'SecureInvitationTest', 'test_another_complexes_invitation_dies_once_the_account_joins', '۹',
+            ],
+            'عضویتِ تکراری در خودِ سرویس رد می‌شود' => [
+                'SecureInvitationTest', 'test_a_duplicate_membership_is_refused_by_the_service', '۹',
+            ],
+            '🔴 ساکنِ تازه کلِ تاریخچه‌ی گروهِ عمومی را می‌بیند' => [
+                'MessengerHistoryPolicyTest', 'test_the_new_resident_sees_the_whole_public_group_history', '۹',
+            ],
+            '🔴 هیچ چیزِ خصوصیِ ساکنِ قبلی به ساکنِ تازه نمی‌رسد' => [
+                'MessengerHistoryPolicyTest', 'test_nothing_private_of_the_previous_resident_reaches_the_new_one', '۹',
+            ],
+            'گروهِ چندواحده فقط از شروعِ دوره‌ی ساکن' => [
+                'MessengerHistoryPolicyTest', 'test_a_unit_group_shows_only_messages_from_the_new_residents_tenure', '۹',
+            ],
+            '🔴 بازگشتِ بخشیِ قبض از تازه‌ترین پرداخت‌کننده و تا سقفِ سهمش' => [
+                'WalletOwnershipTest', 'test_a_partial_refund_goes_to_the_latest_payer_first_and_never_beyond_their_share', '۹',
+            ],
+            '🔴 توکنِ دعوت نه در لاگ، نه در حسابرسی، نه در گزارشِ خطا' => [
+                'SecureInvitationTest', 'test_the_token_never_reaches_logs_audit_or_error_reports', '۹',
+            ],
+            '🔴 مدیرِ مجتمعِ A کاربرِ مجتمعِ B را عوض نمی‌کند' => [
+                'MembershipLifecycleTest', 'test_a_manager_cannot_modify_another_complexes_users', '۹',
+            ],
+            'صاحبِ حساب رمزش را خودش عوض می‌کند' => [
+                'MembershipLifecycleTest', 'test_the_account_owner_still_changes_their_own_password', '۹',
+            ],
+            'ادمینِ کل برای مجتمعِ موجود دوباره دعوتِ مدیر می‌فرستد' => [
+                'MembershipLifecycleTest', 'test_the_super_admin_reissues_a_manager_invitation_for_an_existing_complex', '۹',
+            ],
+            '🔴 عملیاتِ حساسِ ادمینِ کل ردِ حسابرسی دارند' => [
+                'MembershipLifecycleTest', 'test_sensitive_super_admin_operations_are_audited', '۹',
+            ],
+            '🔴 تعلیقِ مجتمع هیچ سابقه‌ای را دست نمی‌زند؛ حذفِ سخت نیست' => [
+                'MembershipLifecycleTest', 'test_suspending_a_complex_keeps_every_record_and_no_hard_delete_exists', '۹',
+            ],
+            '🔴 مدیر مسیرهای ادمینِ کل را نمی‌زند' => [
+                'MembershipLifecycleTest', 'test_a_manager_cannot_use_super_admin_routes', '۹',
+            ],
+            'مدیر از درخواستِ عضویت با اعلانِ داشبورد باخبر می‌شود' => [
+                'JoinRequestTest', 'test_the_complexes_managers_get_a_dashboard_notification_once', '۹',
             ],
             '🔴 ساکنِ تازه رشته‌ی واحدِ ساکنِ قبلی را نمی‌خواند' => [
                 'MembershipLifecycleTest', 'test_the_next_tenant_does_not_read_the_previous_tenants_thread', '۹',
@@ -914,6 +971,8 @@ class PhaseRegressionMapTest extends TestCase
             'registrantPurchase' => ['۹/۵', 'فقط slug و نام و نوع را به درگاه می‌فرستد — مبلغ نه'],
             // مرحلهٔ ۹ · فاز ۶: دعوت نه نام می‌فرستد نه رمز؛ توکن در بدنه، نه در نشانی
             'secureInvitation' => ['۹/۶', 'فقط شماره، نقش و واحد می‌رود — نه نام، نه رمز'],
+            // اصلاحاتِ پس از ۹/۶: تلاشِ دومِ E2E شکستِ اول را پنهان نمی‌کند
+            'e2eEvidence' => ['۹/۶', 'تستی که فقط در تلاشِ دوم سبز شد کارِ CI را قرمز می‌کند'],
         ];
 
         // 🔴 مثلِ ردیف‌های PHP، این فهرست هم فقط بزرگ می‌شود (خرابکاریِ فاز ۸)

@@ -152,7 +152,8 @@ class FinancialIntegrityTest extends TestCase
         $payments->settle($this->onlinePayment($bill, 100000));
 
         $paidOnBill = (float) $bill->fresh()->paid_amount;
-        $inWallet = $wallet->balance($this->unit);
+        // مازاد به کیفِ **پرداخت‌کننده** می‌رود (کیف مالِ حساب است؛ این‌جا پرداخت‌ها را مدیر زده)
+        $inWallet = $wallet->balance($this->manager, $this->unit->complex_id);
 
         $chargedAtBank = (float) Payment::withoutGlobalScopes()
             ->where('bill_id', $bill->id)
@@ -266,7 +267,7 @@ class FinancialIntegrityTest extends TestCase
      */
     public function test_a_ledger_row_can_never_be_edited(): void
     {
-        app(WalletService::class)->credit($this->unit, 50000, 'manual', null, 'شارژ');
+        app(WalletService::class)->credit($this->resident, $this->unit, 50000, 'manual', null, 'شارژ');
 
         $row = WalletTransaction::withoutGlobalScopes()->firstOrFail();
 
@@ -277,7 +278,7 @@ class FinancialIntegrityTest extends TestCase
 
     public function test_a_ledger_row_can_never_be_deleted(): void
     {
-        app(WalletService::class)->credit($this->unit, 50000, 'manual', null, 'شارژ');
+        app(WalletService::class)->credit($this->resident, $this->unit, 50000, 'manual', null, 'شارژ');
 
         $row = WalletTransaction::withoutGlobalScopes()->firstOrFail();
 
@@ -297,10 +298,10 @@ class FinancialIntegrityTest extends TestCase
     {
         $wallet = app(WalletService::class);
 
-        $wallet->credit($this->unit, 50000, 'manual', null, 'شارژِ اشتباه');
-        $wallet->debit($this->unit, 50000, 'manual', null, 'برگشتِ شارژِ اشتباه');
+        $wallet->credit($this->resident, $this->unit, 50000, 'manual', null, 'شارژِ اشتباه');
+        $wallet->debit($this->resident, $this->unit, 50000, 'manual', null, 'برگشتِ شارژِ اشتباه');
 
-        $this->assertEqualsWithDelta(0.0, $wallet->balance($this->unit), 0.01);
+        $this->assertEqualsWithDelta(0.0, $wallet->balance($this->resident, $this->unit->complex_id), 0.01);
 
         // و هر دو ردیف سرِ جایشان هستند — تاریخچه دست‌نخورده
         $this->assertSame(2, WalletTransaction::withoutGlobalScopes()->count());

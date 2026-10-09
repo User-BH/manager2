@@ -81,11 +81,22 @@ test.describe('ثبت‌نام‌کننده‌ی اولیه', () => {
       'اعلان‌ها',
       'پروفایل',
       'حساب و اشتراک',
+      'کیف پول',
     ])
     await expect(page.locator('aside')).toHaveCount(0)
 
-    // هر چهار زبانه در گوشیِ باریک هم بی‌اسکرولِ پنهان جا می‌شوند
-    for (const width of [360, 430]) {
+    /*
+     * کیف مالِ حساب است (مرحلهٔ ۹ · اصلاحاتِ پس از فاز ۶): حسابِ اولیه هم — مثلاً
+     * ساکنِ رفته — از همین داشبورد به کیفِ خودش می‌رسد.
+     */
+    await menu.getByRole('link', { name: 'کیف پول' }).click()
+    await expect(page).toHaveURL(/\/wallet$/)
+    await expect(page.getByRole('heading', { name: 'کیف پول', level: 1 })).toBeVisible()
+    await expect(page.getByText('کیفِ پولِ شما هنوز گردشی ندارد.')).toBeVisible()
+    await page.goto('/dashboard')
+
+    // هر پنج زبانه در گوشیِ باریک هم بی‌اسکرولِ پنهان جا می‌شوند
+    for (const width of [320, 360, 430]) {
       await page.setViewportSize({ width, height: 800 })
       const fit = await menu.locator('ul').evaluate((ul) => ul.scrollWidth - ul.clientWidth)
       expect(fit, `${width}px: زبانه‌ای پشتِ اسکرول است`).toBeLessThanOrEqual(1)

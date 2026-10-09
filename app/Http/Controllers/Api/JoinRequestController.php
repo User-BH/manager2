@@ -10,6 +10,7 @@ use App\Http\Requests\ApproveJoinRequestRequest;
 use App\Models\ComplexInvitation;
 use App\Models\Unit;
 use App\Models\User;
+use App\Notifications\JoinRequestNotification;
 use App\Services\Account\Membership;
 use App\Support\Audit;
 use App\Support\ComplexResolver;
@@ -98,6 +99,20 @@ class JoinRequestController extends Controller
         Audit::log('join_request.sent', 'ارسال درخواست پیوستن به مجتمع', $invitation, [
             'complex_id' => $manager->complex_id,
         ]);
+
+        /*
+         * اعلانِ داشبورد به همه‌ی مدیرانِ فعالِ همین مجتمع (تصمیمِ کارفرما؛ مرحلهٔ ۹ ·
+         * اصلاحاتِ پس از فاز ۶). فقط بارِ اول: ارسالِ دوباره‌ی همان درخواست صندوق و
+         * اعلان‌ها را پر نمی‌کند.
+         */
+        if ($invitation->wasRecentlyCreated) {
+            User::withoutGlobalScopes()
+                ->where('complex_id', $manager->complex_id)
+                ->where('role', UserRole::ComplexAdmin->value)
+                ->where('is_active', true)
+                ->get()
+                ->each(fn (User $admin) => $admin->notify(new JoinRequestNotification($invitation, $user->name)));
+        }
 
         return response()->json([
             'message' => 'درخواست شما برای مدیر «'.$manager->complex->name.'» ارسال شد. '

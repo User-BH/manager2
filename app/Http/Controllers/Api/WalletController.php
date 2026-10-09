@@ -4,72 +4,133 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Bill;
-use App\Models\Unit;
-use App\Models\UnitTenure;
+use App\Models\User;
 use App\Models\WalletTransaction;
 use App\Services\Wallet\WalletService;
 use App\Support\Jalali;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Auth;
 
 /**
- * کیفِ پولِ واحد (R22).
+ * کیفِ پولِ **شخصی** (R22؛ مالکیت از مرحلهٔ ۹ · اصلاحاتِ پس از فاز ۶).
  *
- * ساکن موجودی و صورت‌حسابِ واحدهای خودش را می‌بیند و می‌تواند با آن قبض
- * پرداخت کند. شارژِ کیف از مسیرِ رسید یا درگاه انجام می‌شود (همان مسیرهای
- * پرداختِ موجود)، نه از اینجا — اینجا فقط خرج‌کردن و دیدن است.
+ * ─── چه کسی چه می‌بیند ─────────────────────────────────────────────────────
+ * • هر کس — ساکن، مدیر، و حسابِ اولیه پس از پایانِ عضویت — **فقط کیفِ خودش**
+ *   را می‌بیند، به تفکیکِ مجتمع (جیب). هیچ شناسه‌ی واحد یا مجتمعی در درخواست
+ *   صاحبِ کیف را عوض نمی‌کند: صاحب همیشه کاربرِ واردشده است.
+ * • مدیر علاوه بر آن، جیب‌های اعضای **همین مجتمع** را برای حسابداری می‌بیند —
+ *   فقط بخشی که در همین مجتمع است.
+ *
+ * شارژِ کیف از مسیرِ پرداخت (مازاد) انجام می‌شود، نه از اینجا.
  */
 class WalletController extends Controller
 {
     public function __construct(private readonly WalletService $wallet) {}
 
-    /** موجودی و صورت‌حسابِ واحدهای کاربر. */
+    /** جیب‌های کیفِ خودِ کاربر؛ برای مدیر، جیب‌های اعضای همین مجتمع هم. */
     public function index(): JsonResponse
     {
+        /** @var User $user */
         $user = Auth::user();
 
-        $units = $user->role->isAdmin()
-            ? Unit::orderBy('unit_number')->get()
-            // فقط واحدهای فعلی (مرحلهٔ ۹ · فاز ۶، F4)
-            : $user->currentUnits()->get();
+        $wallets = collect($this->wallet->pockets($user))->map(fn (array $pocket) => [
+            'key' => 'own-'.$pocket['complexId'],
+            'label' => $pocket['complexName'] ?? 'مجتمع',
+            'balance' => $pocket['balance'],
+            'statement' => '/wallet/'.$pocket['complexId'],
+        ]);
+
+        $members = [];
+        if ($user->role->isAdmin() && ($complex = $this->currentComplex())) {
+            $members = User::query()
+                ->whereIn('id', WalletTransaction::query()->where('complex_id', $complex->id)->select('user_id'))
+                ->orderBy('name')
+                ->get()
+                ->map(fn (User $member) => [
+                    'key' => 'member-'.$member->id,
+                    'label' => $member->name,
+                    'balance' => $this->wallet->balance($member, $complex->id),
+                    'statement' => '/wallet/members/'.$member->id,
+                ])
+                ->values()
+                ->all();
+        }
+
+        return response()->json(['wallets' => $wallets->values()->all(), 'members' => $members]);
+    }
+
+    /** صورت‌حسابِ جیبِ **خودِ** کاربر در یک مجتمع — حتی پس از پایانِ عضویت. */
+    public function statement(int $complexId): JsonResponse
+    {
+        /** @var User $user */
+        $user = Auth::user();
+
+        return response()->json($this->statementOf($user, $complexId));
+    }
+
+    /**
+     * صورت‌حسابِ یک عضو برای مدیرِ همین مجتمع.
+     *
+     * `User` با دامنه‌ی مستأجر بایند می‌شود: عضوِ مجتمعِ دیگر ۴۰۴ است. و فقط
+     * ردیف‌های همین مجتمع، نه جیب‌های او جای دیگر.
+     */
+    public function memberStatement(User $member): JsonResponse
+    {
+        $complexId = $this->requireComplex()->id;
+
+        /*
+         * 🔴 `User` دامنه‌ی مستأجر ندارد؛ بی این، مدیرِ مجتمعِ دیگر برای هر کاربری
+         * ۲۰۰ می‌گرفت (`TenantIsolationTest` گرفت). فقط کسی که در همین مجتمع
+         * عضو است یا کیفش در همین مجتمع ردیف دارد (عضوِ رفته)؛ بقیه ۴۰۴.
+         */
+        abort_unless(
+            $member->complex_id === $complexId
+                || WalletTransaction::withoutGlobalScopes()->where('user_id', $member->id)->where('complex_id', $complexId)->exists(),
+            404,
+        );
+
+        return response()->json($this->statementOf($member, $complexId));
+    }
+
+    /** پرداختِ یک قبض از کیفِ خودِ پرداخت‌کننده (جیبِ همان مجتمع). */
+    public function payBill(Request $request, Bill $bill): JsonResponse
+    {
+        $this->authorize('pay', $bill);
+
+        /** @var User $user */
+        $user = Auth::user();
+
+        $paid = $this->wallet->payBill(
+            $user,
+            $bill,
+            $request->filled('amount') ? (float) $request->input('amount') : null,
+        );
 
         return response()->json([
-            'wallets' => $units->map(fn (Unit $unit) => [
-                'unitId' => $unit->id,
-                'unitLabel' => 'واحد '.$unit->unit_number,
-                'balance' => $this->wallet->balance($unit),
-            ])->values(),
+            'message' => 'مبلغ '.number_format($paid).' از کیف پول پرداخت شد.',
+            'paid' => $paid,
+            'balance' => $this->wallet->balance($user, $bill->complex_id),
         ]);
     }
 
-    /** صورت‌حسابِ یک واحد. */
-    public function statement(Unit $unit): JsonResponse
+    /** @return array{balance: float, transactions: list<array<string, mixed>>} */
+    private function statementOf(User $owner, int $complexId): array
     {
-        $this->authorizeUnit($unit);
-
         /*
-         * 🔴 گردشِ کیف از شروعِ دوره‌ی خودِ ساکن (مرحلهٔ ۹ · فاز ۶، F4): بی این،
-         * ساکنِ تازه واریزها و مازادِ پرداختِ ساکنِ قبلی را می‌دید. مدیر همه را.
+         * ⚠️ `withoutGlobalScopes`: صاحبِ کیف شاید دیگر عضوِ این مجتمع نباشد (حسابِ
+         * اولیه) و دامنه‌ی مستأجر برایش «هیچ‌چیز» است. مرزِ دسترسی همان
+         * `user_id = صاحب` است.
          */
-        $user = Auth::user();
-        $since = $user->role->isAdmin()
-            ? null
-            : UnitTenure::query()
-                ->where('user_id', $user->id)
-                ->where('unit_id', $unit->id)
-                ->where('is_current', true)
-                ->value('start_date');
-
-        $rows = WalletTransaction::where('unit_id', $unit->id)
-            ->when($since, fn ($q) => $q->where('created_at', '>=', Carbon::parse($since)->startOfDay()))
+        $rows = WalletTransaction::withoutGlobalScopes()
+            ->where('user_id', $owner->id)
+            ->where('complex_id', $complexId)
             ->orderByDesc('id')
             ->limit(50)
             ->get();
 
-        return response()->json([
-            'balance' => $this->wallet->balance($unit),
+        return [
+            'balance' => $this->wallet->balance($owner, $complexId),
             'transactions' => $rows->map(fn (WalletTransaction $row) => [
                 'id' => $row->id,
                 'direction' => $row->direction,
@@ -78,37 +139,7 @@ class WalletController extends Controller
                 'sourceLabel' => $row->sourceLabel(),
                 'note' => $row->note,
                 'date' => Jalali::date($row->created_at),
-            ])->values(),
-        ]);
-    }
-
-    /** پرداختِ یک قبض از موجودیِ کیف. */
-    public function payBill(Request $request, Bill $bill): JsonResponse
-    {
-        $unit = Unit::findOrFail($bill->unit_id);
-
-        $this->authorizeUnit($unit);
-
-        $paid = $this->wallet->payBill(
-            $unit,
-            $bill,
-            $request->filled('amount') ? (float) $request->input('amount') : null,
-        );
-
-        return response()->json([
-            'message' => 'مبلغ '.number_format($paid).' از کیف پول پرداخت شد.',
-            'paid' => $paid,
-            'balance' => $this->wallet->balance($unit),
-        ]);
-    }
-
-    /**
-     * فقط ساکنِ همان واحد (یا مدیرِ همان مجتمع).
-     *
-     * ۴۰۴ و نه ۴۰۳: وجود یا نبودِ یک واحد در مجتمعِ دیگر هم اطلاعات است.
-     */
-    private function authorizeUnit(Unit $unit): void
-    {
-        abort_unless($this->wallet->isAccessibleBy($unit, Auth::user()), 404);
+            ])->values()->all(),
+        ];
     }
 }

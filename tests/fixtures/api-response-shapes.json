@@ -13,10 +13,13 @@
         "typeLabel": "string",
         "unitLabel": "string"
       },
+      "firstName": "null",
       "id": "int",
       "isAdmin": "bool",
       "isSuperAdmin": "bool",
+      "lastName": "null",
       "name": "string",
+      "needsName": "bool",
       "pendingInvitations": "int",
       "phone": "null",
       "role": "string",
@@ -334,11 +337,20 @@
     }
   },
   "/api/v1/wallet": {
+    "members": [
+      {
+        "balance": "int",
+        "key": "string",
+        "label": "string",
+        "statement": "string"
+      }
+    ],
     "wallets": [
       {
         "balance": "int",
-        "unitId": "int",
-        "unitLabel": "string"
+        "key": "string",
+        "label": "string",
+        "statement": "string"
       }
     ]
   },
@@ -452,7 +464,13 @@
         "audienceLabel": "string",
         "authorName": "string",
         "body": "string",
+        "canDelete": "bool",
+        "canEdit": "bool",
+        "clientId": "null",
+        "conversationId": "null",
         "id": "int",
+        "isDeleted": "bool",
+        "isEdited": "bool",
         "isHidden": "bool",
         "isMine": "bool",
         "poll": {
@@ -487,8 +505,11 @@
           "weightUnavailable": "bool",
           "weightUnit": "string"
         },
+        "reactions": "array:empty",
         "readCount": "int",
+        "replyTo": "null",
         "sentAt": "string",
+        "status": "string",
         "unitLabel": "null"
       }
     ],
@@ -580,12 +601,15 @@
       },
       "email": "string",
       "emergencyPhone": "null",
+      "firstName": "null",
       "id": "int",
       "isActive": "bool",
       "isAdmin": "bool",
       "joinedAt": "string",
+      "lastName": "null",
       "name": "string",
       "nationalId": "null",
+      "needsName": "bool",
       "phone": "null",
       "role": "string",
       "roleLabel": "string"
@@ -666,6 +690,7 @@
         "trackingCode": "null"
       }
     ],
+    "newComplexPlans": "null",
     "plans": [
       {
         "features": ["string"],
@@ -768,6 +793,8 @@
   },
   "/api/v1/features": {
     "data": {
+      "blog": "bool",
+      "maintenance_mode": "bool",
       "messenger": "bool",
       "online_payment": "bool",
       "polls": "bool",

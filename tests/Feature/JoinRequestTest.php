@@ -168,6 +168,34 @@ class JoinRequestTest extends TestCase
         $this->assertSame(1, ComplexInvitation::requests()->pending()->count());
     }
 
+    /**
+     * مدیر از راهِ اعلانِ داشبورد باخبر می‌شود (تصمیمِ کارفرما؛ مرحلهٔ ۹ ·
+     * اصلاحاتِ پس از فاز ۶) — فقط مدیرانِ همین مجتمع، یک بار، بی شماره‌ی متقاضی.
+     */
+    public function test_the_complexes_managers_get_a_dashboard_notification_once(): void
+    {
+        $resident = User::factory()->create(['complex_id' => $this->complex->id, 'role' => UserRole::Owner, 'is_active' => true]);
+        $foreignManager = User::factory()->create([
+            'complex_id' => Complex::factory()->create()->id, 'role' => UserRole::ComplexAdmin, 'is_active' => true,
+        ]);
+
+        $this->actingAs($this->applicant)->postJson('/api/v1/join-requests', ['phone' => '09120001111'])->assertStatus(202);
+        $this->actingAs($this->applicant)->postJson('/api/v1/join-requests', ['phone' => '09120001111'])->assertStatus(202);
+
+        $notifications = $this->manager->fresh()->notifications;
+        $this->assertCount(1, $notifications);
+        $this->assertSame('join_request.received', $notifications->first()->data['type']);
+        $this->assertStringContainsString('زهرا کریمی', $notifications->first()->data['body']);
+        $this->assertStringNotContainsString('09125556666', json_encode($notifications->first()->data, JSON_UNESCAPED_UNICODE));
+
+        $this->assertCount(0, $resident->fresh()->notifications);
+        $this->assertCount(0, $foreignManager->fresh()->notifications);
+
+        // در فهرستِ اعلان‌های داشبورد، با پیوند به صندوقِ درخواست‌ها
+        $this->actingAs($this->manager)->getJson('/api/v1/notifications')->assertOk()
+            ->assertJsonFragment(['title' => 'درخواستِ تازه‌ی عضویت', 'link' => '/residents']);
+    }
+
     /* ── تاییدِ مدیر ────────────────────────────────────────────────────── */
 
     public function test_approving_adds_the_applicant_to_the_complex(): void

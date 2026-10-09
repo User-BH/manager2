@@ -7,7 +7,6 @@ use App\Models\Bill;
 use App\Models\Complex;
 use App\Models\Discount;
 use App\Models\Unit;
-use App\Models\WalletTransaction;
 use App\Services\Wallet\WalletService;
 use App\Support\Jalali;
 use Carbon\Carbon;
@@ -28,7 +27,7 @@ class BillGenerator
     /**
      * مازادهایی که هنگامِ کاهشِ مبلغِ قبض پیدا می‌شوند.
      *
-     * @var array<int, array{unit_id: int, amount: float, period: string}>
+     * @var array<int, array{unit_id: int, bill_id: int, amount: float, period: string}>
      */
     private array $surpluses = [];
 
@@ -124,6 +123,7 @@ class BillGenerator
 
                 if ($alreadyPaid > $total) {
                     $this->surpluses[] = [
+                        'bill_id' => $bill->id,
                         'unit_id' => $unit->id,
                         'amount' => round($alreadyPaid - $total, 2),
                         'period' => $period,
@@ -159,17 +159,20 @@ class BillGenerator
         $this->surpluses = [];
 
         foreach ($surpluses as $surplus) {
-            $unit = Unit::withoutGlobalScopes()->find($surplus['unit_id']);
+            $bill = Bill::withoutGlobalScopes()->find($surplus['bill_id']);
 
-            if (! $unit) {
+            if (! $bill) {
                 continue;
             }
 
-            app(WalletService::class)->credit(
-                $unit,
+            /*
+             * به کسانی که این قبض را پرداختند، نه به «کیفِ واحد» (مرحلهٔ ۹ ·
+             * اصلاحاتِ پس از فاز ۶): کیف مالِ حسابِ شخص است و ساکنِ امروزِ واحد
+             * شاید همان کسی نباشد که پرداخته.
+             */
+            app(WalletService::class)->refundBillOverpayment(
+                $bill,
                 $surplus['amount'],
-                WalletTransaction::SOURCE_BILL_REDUCTION,
-                null,
                 'مازادِ کاهشِ قبضِ دوره‌ی '.$surplus['period'],
             );
         }

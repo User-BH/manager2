@@ -6,17 +6,21 @@ use App\Enums\UserRole;
 use App\Exceptions\DomainException;
 use App\Models\Complex;
 use App\Models\ComplexInvitation;
+use App\Models\ErrorEvent;
 use App\Models\TrustedDevice;
 use App\Models\Unit;
 use App\Models\UnitTenure;
 use App\Models\User;
 use App\Services\Account\Membership;
 use App\Services\Auth\OtpService;
+use App\Services\ErrorRecorder;
 use App\Support\SystemSettings;
 use App\Support\TenantContext;
 use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Log\Events\MessageLogged;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use Illuminate\Testing\TestResponse;
 use Tests\TestCase;
@@ -87,6 +91,36 @@ class SecureInvitationTest extends TestCase
             $this->assertStringNotContainsString($token, $response->getContent());
             $this->assertStringNotContainsString(hash('sha256', $token), $response->getContent());
         }
+    }
+
+    /**
+     * توکن نه در لاگ، نه در حسابرسی، نه در گزارشِ خطا (تصمیمِ کارفرما) — حتی
+     * وقتی گزارشِ خطای مرورگر نشانیِ کاملِ پیوند را با خودش بیاورد.
+     */
+    public function test_the_token_never_reaches_logs_audit_or_error_reports(): void
+    {
+        $logged = [];
+        Log::listen(function (MessageLogged $event) use (&$logged): void {
+            $logged[] = $event->message.' '.json_encode($event->context, JSON_UNESCAPED_UNICODE);
+        });
+        config(['observability.error_log.enabled' => true]);
+
+        [$id, $link] = $this->inviteViaApi();
+        $token = $this->tokenOf($link);
+        $recipient = $this->registrant();
+        $this->postJson('/api/v1/invitations/preview', ['token' => $token])->assertOk();
+        $this->acceptWithCode($recipient, $id)->assertOk();
+        ErrorRecorder::fromClient(['type' => 'Error', 'message' => 'آزمون', 'stack' => '', 'url' => $link]);
+
+        $this->assertSame(1, ErrorEvent::count(), 'گزارشِ خطا ثبت نشد؛ آزمون بی‌اثر است.');
+        $stored = json_encode([
+            DB::table('audit_logs')->get(),
+            DB::table('error_events')->get(),
+            DB::table('notifications')->get(),
+        ], JSON_UNESCAPED_UNICODE).implode("\n", $logged);
+
+        $this->assertStringNotContainsString($token, $stored);
+        $this->assertStringNotContainsString(hash('sha256', $token), $stored);
     }
 
     /* ── پیوند: فقط پیش‌نمایش ─────────────────────────────────────────── */
@@ -172,6 +206,20 @@ class SecureInvitationTest extends TestCase
         ]);
 
         $this->as($recipient)->postJson("/api/v1/invitations/{$id}/accept")
+            ->assertStatus(422)->assertJsonValidationErrors('code');
+        $this->assertNull($recipient->fresh()->complex_id);
+    }
+
+    /** کدِ منقضی (پس از `OtpService::TTL_SECONDS`) پذیرفته نیست. */
+    public function test_an_expired_code_is_refused(): void
+    {
+        [$id] = $this->inviteViaApi();
+        $recipient = $this->registrant();
+        $code = $this->as($recipient)->postJson("/api/v1/invitations/{$id}/code")->assertOk()->json('devCode');
+
+        $this->travel(OtpService::TTL_SECONDS + 1)->seconds();
+
+        $this->as($recipient)->postJson("/api/v1/invitations/{$id}/accept", ['code' => $code])
             ->assertStatus(422)->assertJsonValidationErrors('code');
         $this->assertNull($recipient->fresh()->complex_id);
     }
@@ -358,6 +406,46 @@ class SecureInvitationTest extends TestCase
 
         $this->as($recipient->fresh())->postJson("/api/v1/invitations/{$id}/accept", ['code' => $code])->assertStatus(422);
         $this->assertSame($elsewhere->id, $recipient->fresh()->complex_id);
+    }
+
+    /** دعوتِ مجتمعِ دیگر پس از عضویت مُرده است: نه پذیرفته می‌شود نه حساب را جابه‌جا می‌کند. */
+    public function test_another_complexes_invitation_dies_once_the_account_joins(): void
+    {
+        $other = Complex::factory()->create();
+        $otherUnit = Unit::factory()->create(['complex_id' => $other->id]);
+        $otherManager = User::factory()->create(['complex_id' => $other->id, 'role' => UserRole::ComplexAdmin, 'is_active' => true]);
+        [$foreign] = app(Membership::class)->invite($other, self::TARGET, UserRole::Tenant, $otherUnit, $otherManager);
+        [$id] = $this->inviteViaApi();
+        $recipient = $this->registrant();
+
+        $this->acceptWithCode($recipient, $id)->assertOk();
+        $code = $this->as($recipient->fresh())->postJson("/api/v1/invitations/{$foreign->id}/code");
+        $this->assertContains($code->status(), [404, 422], 'برای دعوتِ مُرده کد صادر شد.');
+        $this->as($recipient->fresh())->postJson("/api/v1/invitations/{$foreign->id}/accept", ['code' => '123456'])->assertNotFound();
+
+        $this->assertSame($this->complex->id, $recipient->fresh()->complex_id);
+        $this->assertSame(1, UnitTenure::where('user_id', $recipient->id)->count());
+        $this->assertSame(ComplexInvitation::DECLINED, $foreign->fresh()->status);
+        $this->assertNull($foreign->fresh()->live_key);
+    }
+
+    /** عضویتِ تکراری: حتی اگر دعوتی زنده مانده باشد، عضوِ همین مجتمع دوباره عضو نمی‌شود. */
+    public function test_a_duplicate_membership_is_refused_by_the_service(): void
+    {
+        [$invitation] = app(Membership::class)->invite($this->complex, self::TARGET, UserRole::Owner, $this->unit, $this->manager);
+        $recipient = $this->registrant();
+        $recipient->forceFill(['complex_id' => $this->complex->id, 'role' => UserRole::Tenant])->save();
+
+        try {
+            app(Membership::class)->accept($invitation, $recipient);
+            $this->fail('عضویتِ تکراری رد نشد.');
+        } catch (DomainException $e) {
+            $this->assertSame('account.already_member', $e->errorCode);
+        }
+
+        $this->assertSame(0, UnitTenure::where('user_id', $recipient->id)->count());
+        $this->assertSame(ComplexInvitation::PENDING, $invitation->fresh()->status);
+        $this->assertSame(UserRole::Tenant, $recipient->fresh()->role);
     }
 
     /**

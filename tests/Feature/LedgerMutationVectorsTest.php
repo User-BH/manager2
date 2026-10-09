@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Models\Complex;
 use App\Models\Unit;
+use App\Models\User;
 use App\Models\WalletTransaction;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
@@ -55,6 +56,8 @@ class LedgerMutationVectorsTest extends TestCase
         return WalletTransaction::withoutGlobalScopes()->create([
             'complex_id' => $this->complex->id,
             'unit_id' => $this->unit->id,
+            // کیف مالِ حساب است (مرحلهٔ ۹ · اصلاحاتِ پس از فاز ۶)
+            'user_id' => User::factory()->create(['complex_id' => $this->complex->id])->id,
             'direction' => WalletTransaction::CREDIT,
             'amount' => 1000,
             'balance_after' => 1000,
