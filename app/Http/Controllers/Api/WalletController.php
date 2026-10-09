@@ -5,11 +5,13 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\Bill;
 use App\Models\Unit;
+use App\Models\UnitTenure;
 use App\Models\WalletTransaction;
 use App\Services\Wallet\WalletService;
 use App\Support\Jalali;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Auth;
 
 /**
@@ -30,7 +32,8 @@ class WalletController extends Controller
 
         $units = $user->role->isAdmin()
             ? Unit::orderBy('unit_number')->get()
-            : $user->units()->get();
+            // فقط واحدهای فعلی (مرحلهٔ ۹ · فاز ۶، F4)
+            : $user->currentUnits()->get();
 
         return response()->json([
             'wallets' => $units->map(fn (Unit $unit) => [
@@ -46,7 +49,21 @@ class WalletController extends Controller
     {
         $this->authorizeUnit($unit);
 
+        /*
+         * 🔴 گردشِ کیف از شروعِ دوره‌ی خودِ ساکن (مرحلهٔ ۹ · فاز ۶، F4): بی این،
+         * ساکنِ تازه واریزها و مازادِ پرداختِ ساکنِ قبلی را می‌دید. مدیر همه را.
+         */
+        $user = Auth::user();
+        $since = $user->role->isAdmin()
+            ? null
+            : UnitTenure::query()
+                ->where('user_id', $user->id)
+                ->where('unit_id', $unit->id)
+                ->where('is_current', true)
+                ->value('start_date');
+
         $rows = WalletTransaction::where('unit_id', $unit->id)
+            ->when($since, fn ($q) => $q->where('created_at', '>=', Carbon::parse($since)->startOfDay()))
             ->orderByDesc('id')
             ->limit(50)
             ->get();

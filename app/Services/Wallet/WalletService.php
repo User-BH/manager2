@@ -221,6 +221,11 @@ class WalletService
             return $unit->complex_id === $user->complex_id;
         }
 
-        return $user->units()->whereKey($unit->id)->exists();
+        /*
+         * فقط ساکنِ **فعلیِ** واحد (مرحلهٔ ۹ · فاز ۶، F4). پیش از این هر کس که روزی
+         * آن‌جا ساکن بود — حتی پس از جابه‌جایی در همان مجتمع — کیفِ واحد را می‌دید
+         * و با موجودیِ آن قبض می‌پرداخت.
+         */
+        return $user->currentUnits()->whereKey($unit->id)->exists();
     }
 }

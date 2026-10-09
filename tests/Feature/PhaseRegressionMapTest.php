@@ -760,6 +760,9 @@ class PhaseRegressionMapTest extends TestCase
             '🔴 ساکنِ تازه قبض و پرداختِ ساکنِ قبلی را نمی‌بیند' => [
                 'MembershipLifecycleTest', 'test_the_next_tenant_does_not_see_the_previous_tenants_bills', '۹',
             ],
+            '🔴 ساکنِ تازه گردشِ کیفِ ساکنِ قبلی را نمی‌بیند' => [
+                'MembershipLifecycleTest', 'test_the_next_tenant_does_not_see_the_previous_tenants_wallet_history', '۹',
+            ],
             '🔴 ساکنِ تازه رشته‌ی واحدِ ساکنِ قبلی را نمی‌خواند' => [
                 'MembershipLifecycleTest', 'test_the_next_tenant_does_not_read_the_previous_tenants_thread', '۹',
             ],

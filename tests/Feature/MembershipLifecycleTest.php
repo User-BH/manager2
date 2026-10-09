@@ -14,9 +14,11 @@ use App\Models\TrustedDevice;
 use App\Models\Unit;
 use App\Models\UnitTenure;
 use App\Models\User;
+use App\Models\WalletTransaction;
 use App\Services\Account\Membership;
 use App\Services\Messenger\ConversationDirectory;
 use App\Services\Units\TenureService;
+use App\Services\Wallet\WalletService;
 use App\Support\Jalali;
 use App\Support\TenantContext;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -203,6 +205,42 @@ class MembershipLifecycleTest extends TestCase
             ?? $this->as($bob)->getJson('/api/v1/dashboard')->json('data.units');
         $this->assertNotNull($units);
         $this->assertSame($own->id, $units[0]['latestBill']['id']);
+    }
+
+    /**
+     * 🔴 گردشِ کیفِ واحد هم از شروعِ دوره‌ی ساکنِ تازه (F4).
+     *
+     * کیف مالِ واحد است؛ پیش از این ساکنِ تازه واریزِ ساکنِ قبلی را در گردش
+     * می‌دید، و ساکنِ رفته (اگر در همان مجتمع جابه‌جا شده بود) هنوز به کیفِ
+     * واحدِ قبلی دسترسی داشت.
+     */
+    public function test_the_next_tenant_does_not_see_the_previous_tenants_wallet_history(): void
+    {
+        $this->travel(-30)->days();
+        $old = app(WalletService::class)->credit($this->unit, 150000, WalletTransaction::SOURCE_ADJUSTMENT, null, 'واریزِ ساکنِ قبلی');
+        $this->travelBack();
+
+        $bob = $this->nextTenant();
+
+        $ids = collect($this->as($bob)->getJson("/api/v1/wallet/{$this->unit->id}")->assertOk()->json('transactions'))
+            ->pluck('id')->all();
+        $this->assertNotContains($old->id, $ids);
+
+        // مدیر همه را می‌بیند
+        $all = collect($this->as($this->manager)->getJson("/api/v1/wallet/{$this->unit->id}")->assertOk()->json('transactions'))
+            ->pluck('id')->all();
+        $this->assertContains($old->id, $all);
+    }
+
+    public function test_a_resident_who_moved_loses_the_old_units_wallet(): void
+    {
+        $other = Unit::factory()->create(['complex_id' => $this->complex->id, 'unit_number' => '13']);
+        app(TenureService::class)->open($other, $this->alice, ResidentRelation::Tenant);
+
+        $this->as($this->alice->fresh())->getJson("/api/v1/wallet/{$this->unit->id}")->assertNotFound();
+        $units = collect($this->as($this->alice->fresh())->getJson('/api/v1/wallet')->assertOk()->json('wallets'))
+            ->pluck('unitId')->all();
+        $this->assertSame([$other->id], $units);
     }
 
     public function test_the_next_tenant_does_not_read_the_previous_tenants_thread(): void
