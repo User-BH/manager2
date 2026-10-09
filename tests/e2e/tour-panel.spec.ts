@@ -60,6 +60,16 @@ test('حالتِ عادی: قاب هم‌نسبتِ تصویر، `contain`، ب�
   // نشانگر بیرون از گالری؛ وگرنه هاورِ مجاز را با «زوم در حالتِ عادی» اشتباه می‌گیریم
   await page.mouse.move(0, 0)
 
+  /*
+   * ⚠️ تصویر `loading="lazy"` است: پیش از بار شدن `naturalWidth` صفر است و
+   * نسبت NaN می‌شد. در CI ِ `0f45f77` همین روی Chromium و Firefox یک بار شکست
+   * و با تلاشِ دوباره سبز شد — «ناپایدار» ِ پنهان. حالا تا بار شدنِ واقعیِ
+   * تصویر صبر می‌شود، نه به تلاشِ دوباره.
+   */
+  await expect
+    .poll(() => tile.evaluate((el) => el.querySelector('img')!.naturalWidth), { timeout: 10_000 })
+    .toBeGreaterThan(0)
+
   const state = await tile.evaluate((el) => {
     const img = el.querySelector('img')!
     const r = el.getBoundingClientRect()
