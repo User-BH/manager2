@@ -49,6 +49,9 @@ class SchemaConstraintTest extends TestCase
 
     private Unit $unit;
 
+    /** صاحبِ ردیف‌های دفترِ کیف — کیف مالِ حساب است (مرحلهٔ ۹ · اصلاحاتِ پس از فاز ۶) */
+    private User $owner;
+
     protected function setUp(): void
     {
         parent::setUp();
@@ -58,6 +61,7 @@ class SchemaConstraintTest extends TestCase
             'complex_id' => $this->complex->id,
             'unit_number' => '۱',
         ]);
+        $this->owner = User::factory()->create(['complex_id' => $this->complex->id, 'role' => UserRole::Owner]);
     }
 
     /**
@@ -150,10 +154,17 @@ class SchemaConstraintTest extends TestCase
 
             $this->fail("دیتابیس {$why} را پذیرفت؛ قید اعمال نمی‌شود.");
         } catch (QueryException $e) {
+            /*
+             * ⚠️ «check constraint»، نه فقط «constraint» (مرحلهٔ ۹ · اصلاحاتِ پس از
+             * فاز ۶): SQLite ستونِ اجباریِ جاافتاده را با «NOT NULL constraint
+             * failed» رد می‌کند؛ پس ردیفی که `user_id` ِ تازه‌ی دفترِ کیف را نداشت
+             * این‌جا سبز بود و فقط MySQL ِ CI (خطای ۱۳۶۴) لو داد که قیدِ CHECK اصلاً
+             * سنجیده نشده.
+             */
             $this->assertStringContainsStringIgnoringCase(
-                'constraint',
+                'check constraint',
                 $e->getMessage(),
-                "درج رد شد ولی نه به‌خاطرِ قید: {$e->getMessage()}",
+                "درج رد شد ولی نه به‌خاطرِ قیدِ CHECK: {$e->getMessage()}",
             );
         }
     }
@@ -207,7 +218,7 @@ class SchemaConstraintTest extends TestCase
     {
         $keys = [];
 
-        foreach (['complex_id' => $this->complex->id, 'unit_id' => $this->unit->id] as $column => $value) {
+        foreach (['complex_id' => $this->complex->id, 'unit_id' => $this->unit->id, 'user_id' => $this->owner->id] as $column => $value) {
             if (Schema::hasColumn($table, $column)) {
                 $keys[$column] = $value;
             }
