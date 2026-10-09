@@ -114,7 +114,11 @@ class ConversationController extends Controller
         $user = Auth::user();
         $this->ensureVisible($conversation, $user);
 
-        $base = Message::query()->where('conversation_id', $conversation->id)->with(MessageResource::RELATIONS);
+        /*
+         * `visibleTo` جز دیدنِ گفت‌وگو، مرزِ دوره‌ی سکونت را هم دارد: در رشته‌ی
+         * واحد، پیامِ ساکنِ قبلی برای ساکنِ تازه نیست (مرحلهٔ ۹ · فاز ۶، F4).
+         */
+        $base = Message::query()->where('conversation_id', $conversation->id)->visibleTo($user)->with(MessageResource::RELATIONS);
         $present = fn (Message $m) => $this->present($m, $user);
 
         if (($since = $request->integer('since')) > 0) {
@@ -132,7 +136,7 @@ class ConversationController extends Controller
             'hasOlder' => $page['hasMore'],
             'nextCursor' => $page['nextCursor'],
             // پیامی که پس از رسیدن به کلاینت پنهان شده، با پرسشِ `since` برنمی‌گشت
-            'hiddenIds' => Message::where('conversation_id', $conversation->id)->where('is_hidden', true)->pluck('id')->all(),
+            'hiddenIds' => Message::where('conversation_id', $conversation->id)->visibleTo($user)->where('is_hidden', true)->pluck('id')->all(),
             /*
              * 🔴 وضعیتِ «خوانده شد» برای پیام‌هایی که **از قبل** در کلاینت‌اند.
              *
@@ -222,6 +226,7 @@ class ConversationController extends Controller
 
         return Message::query()
             ->where('conversation_id', $conversation->id)
+            ->visibleTo($user)
             ->where('id', '<=', $since)
             ->where('updated_at', '>=', Carbon::createFromTimestamp($changedAfter))
             ->with(MessageResource::RELATIONS)
@@ -241,6 +246,7 @@ class ConversationController extends Controller
         }
 
         $message = Message::query()->where('conversation_id', $conversation->id)
+            ->visibleTo($user)
             ->whereKey($conversation->pinned_message_id)
             ->whereNull('deleted_at')
             ->with(MessageResource::RELATIONS)

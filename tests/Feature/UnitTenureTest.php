@@ -6,9 +6,11 @@ use App\Enums\ResidentRelation;
 use App\Enums\UserRole;
 use App\Models\Bill;
 use App\Models\Complex;
+use App\Models\ComplexInvitation;
 use App\Models\Unit;
 use App\Models\UnitTenure;
 use App\Models\User;
+use App\Services\Account\Membership;
 use App\Services\Units\TenureService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -339,19 +341,19 @@ class UnitTenureTest extends TestCase
         $old = $this->unit('1');
         $new = $this->unit('2');
 
+        // مرحلهٔ ۹ · فاز ۶: «ساکن جدید» دعوت است؛ صاحبِ شماره خودش ثبت‌نام می‌کند و می‌پذیرد
         $this->actingAs($this->manager)->postJson('/api/v1/residents', [
-            'name' => 'مستاجر آزمایشی',
             'phone' => '09123334444',
             'role' => UserRole::Tenant->value,
             'unit_id' => $old->id,
-            'password' => 'secret1234',
         ])->assertCreated();
 
-        $resident = User::where('phone', '09123334444')->firstOrFail();
+        $resident = User::factory()->create([
+            'phone' => '09123334444', 'complex_id' => null, 'role' => UserRole::Owner, 'is_active' => true,
+        ]);
+        app(Membership::class)->accept(ComplexInvitation::where('phone', '09123334444')->firstOrFail(), $resident);
 
         $this->actingAs($this->manager)->putJson("/api/v1/residents/{$resident->id}", [
-            'name' => 'مستاجر آزمایشی',
-            'phone' => '09123334444',
             'role' => UserRole::Tenant->value,
             'unit_id' => $new->id,
         ])->assertOk();

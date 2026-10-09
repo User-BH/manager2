@@ -111,6 +111,9 @@ class E2eSeeder extends Seeder
         ])->save();
 
         $user->units()->withoutGlobalScopes()->detach();
-        ComplexInvitation::withoutGlobalScopes()->where('user_id', $user->id)->delete();
+        // از مرحلهٔ ۹ · فاز ۶ دعوت به شماره بسته است، نه فقط به حساب
+        ComplexInvitation::withoutGlobalScopes()
+            ->where(fn ($q) => $q->where('user_id', $user->id)->orWhere('phone', $phone))
+            ->delete();
     }
 }

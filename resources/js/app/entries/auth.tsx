@@ -6,6 +6,7 @@ import { BrowserRouter, Route, Routes } from 'react-router-dom'
 import { AuthPage } from '@/features/auth/AuthPage'
 import { VerifyOtpPage } from '@/features/auth/VerifyOtpPage'
 import { ForgotPasswordPage } from '@/features/auth/ForgotPasswordPage'
+import { InvitePage } from '@/features/auth/InvitePage'
 
 /**
  * Entryِ بخشِ ورود/ثبت‌نام (island).
@@ -49,6 +50,8 @@ createRoot(document.getElementById('root')!).render(
           <Route path="/auth" element={<AuthPage />} />
           <Route path="/auth/verify" element={<VerifyOtpPage />} />
           <Route path="/auth/forgot" element={<ForgotPasswordPage />} />
+          {/* پیوندِ دعوت (مرحلهٔ ۹ · فاز ۶): فقط پیش‌نمایش؛ توکن پس از # */}
+          <Route path="/invite" element={<InvitePage />} />
         </Routes>
       </BrowserRouter>
     </MotionConfig>

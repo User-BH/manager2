@@ -43,7 +43,7 @@ class TenureService
             $this->closeAllFor($user, $start);
 
             if ($relation === ResidentRelation::Owner) {
-                $this->guardOwnershipShare($unit, $sharePercent);
+                $this->ensureOwnerShare($unit, $sharePercent);
             }
 
             return UnitTenure::create([
@@ -143,6 +143,16 @@ class TenureService
             ->get();
     }
 
+    /**
+     * پایانِ همه‌ی دوره‌های جاریِ یک کاربر — پایانِ عضویت (مرحلهٔ ۹ · فاز ۶، F4).
+     *
+     * ردیف‌ها می‌مانند و فقط بسته می‌شوند؛ سابقه‌ی واحد همان است که بود.
+     */
+    public function endAllFor(User $user, ?Carbon $at = null): void
+    {
+        $this->closeAllFor($user, $at ?? now());
+    }
+
     /** بستنِ همه‌ی دوره‌های جاریِ یک کاربر (روی هر واحدی). */
     private function closeAllFor(User $user, Carbon $at): void
     {
@@ -169,7 +179,7 @@ class TenureService
      * خطا می‌دهد و سهم را خودش کم نمی‌کند: تصحیحِ خودکار یعنی مدیر عددی را
      * ببیند که خودش وارد نکرده.
      */
-    private function guardOwnershipShare(Unit $unit, float $incoming): void
+    public function ensureOwnerShare(Unit $unit, float $incoming): void
     {
         $existing = (float) $unit->tenures()->current()->owners()->sum('share_percent');
 

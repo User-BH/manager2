@@ -3,13 +3,16 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Models\Bill;
 use App\Models\Complex;
 use App\Models\Message;
 use App\Models\MessagePoll;
 use App\Models\ServiceRequest;
+use App\Models\Unit;
 use App\Services\Poll\PollService;
 use App\Services\ReportService;
 use App\Support\Jalali;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Auth;
 
@@ -104,14 +107,23 @@ class DashboardController extends Controller
     private function residentData(): array
     {
         $user = Auth::user();
-        $units = $user->currentUnits()->with(['bills' => fn ($q) => $q->latest('period')->limit(1)])->get();
+        /** @var Collection<int, Unit> $units */
+        $units = $user->currentUnits()->get();
+
+        // آخرین قبضِ **دوره‌ی خودش** — نه قبضِ ساکنِ قبلی (مرحلهٔ ۹ · فاز ۶، F4)
+        $latestBills = Bill::query()->visibleToResident($user)
+            ->orderByDesc('period')
+            ->get()
+            ->unique('unit_id')
+            ->keyBy('unit_id');
 
         return [
             'unitCount' => $units->count(),
             'totalDebt' => (float) $units->sum('balance'),
             'currency' => $user->complex?->currencyLabel() ?? 'تومان',
-            'units' => $units->map(function ($unit) {
-                $latest = $unit->bills->first();
+            'units' => $units->map(function (Unit $unit) use ($latestBills) {
+                /** @var Bill|null $latest */
+                $latest = $latestBills->get($unit->id);
 
                 return [
                     'id' => $unit->id,

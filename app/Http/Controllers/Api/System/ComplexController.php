@@ -9,19 +9,22 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreComplexRequest;
 use App\Http\Requests\SuspendComplexRequest;
 use App\Http\Requests\UpdateComplexTypeRequest;
+use App\Http\Resources\InvitationPresenter;
 use App\Models\Complex;
-use App\Models\User;
+use App\Services\Account\Membership;
 use App\Services\Subscription\PlanGate;
 use App\Support\Audit;
 use App\Support\Jalali;
-use App\Support\Phone;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
 class ComplexController extends Controller
 {
-    public function __construct(private readonly PlanGate $plans) {}
+    public function __construct(
+        private readonly PlanGate $plans,
+        private readonly Membership $membership,
+    ) {}
 
     public function index(): JsonResponse
     {
@@ -58,33 +61,47 @@ class ComplexController extends Controller
         ]);
     }
 
+    /**
+     * مجتمعِ تازه + **دعوتِ امنِ مدیر** (مرحلهٔ ۹ · فاز ۶، تصمیمِ کارفرما).
+     *
+     * حسابی ساخته نمی‌شود: صاحبِ شماره خودش با OTP ثبت‌نام و با کدِ تازه
+     * دعوت را می‌پذیرد. هر دو در یک تراکنش: اگر شماره قابلِ دعوت نباشد
+     * (عضوِ مجتمعی است)، مجتمعِ بی‌مدیر هم ساخته نمی‌ماند.
+     */
     public function store(StoreComplexRequest $request): JsonResponse
     {
-        $request->merge(['admin_phone' => Phone::normalize($request->input('admin_phone'))]);
-
         $data = $request->validated();
 
-        $complex = Complex::create([
-            'name' => $data['name'],
-            'slug' => Str::slug($data['name']).'-'.Str::random(4),
-            // نوع (R67) — تعرفه‌ی پکیج‌های اشتراک از روی همین تعیین می‌شود
-            'type' => ComplexType::from($data['type']),
-            'address' => $data['address'] ?? null,
-            'payment_gateway' => 'none',
-        ]);
+        [$complex, $invitation, $token] = DB::transaction(function () use ($data, $request): array {
+            $complex = Complex::create([
+                'name' => $data['name'],
+                'slug' => Str::slug($data['name']).'-'.Str::random(4),
+                // نوع (R67) — تعرفه‌ی پکیج‌های اشتراک از روی همین تعیین می‌شود
+                'type' => ComplexType::from($data['type']),
+                'address' => $data['address'] ?? null,
+                'payment_gateway' => 'none',
+            ]);
 
-        User::create([
+            [$invitation, $token] = $this->membership->invite(
+                $complex,
+                $data['admin_phone'],
+                UserRole::ComplexAdmin,
+                null,
+                $request->user(),
+            );
+
+            return [$complex, $invitation, $token];
+        });
+
+        Audit::log('invitation.sent', 'ارسال دعوتِ مدیرِ مجتمعِ تازه', $invitation, [
+            'phone' => $invitation->phone,
             'complex_id' => $complex->id,
-            'name' => $data['admin_name'],
-            'phone' => $data['admin_phone'],
-            'email' => $data['admin_email'] ?? null,
-            'password' => Hash::make($data['admin_password']),
-            'role' => UserRole::ComplexAdmin,
-            'is_active' => true,
         ]);
 
         return response()->json([
-            'message' => 'مجتمع جدید به همراه حساب مدیر ایجاد شد.',
+            'message' => 'مجتمع ساخته شد. پیوندِ دعوت را برای مدیرش بفرستید؛ با همان شماره ثبت‌نام می‌کند و می‌پذیرد.',
+            'link' => InvitationPresenter::link($token),
+            'invitation' => InvitationPresenter::forSender($invitation),
         ], 201);
     }
 

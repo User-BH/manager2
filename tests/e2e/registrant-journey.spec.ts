@@ -142,16 +142,14 @@ test.describe('ثبت‌نام‌کننده‌ی اولیه', () => {
     const unit = list.find((u) => u.unitNumber === '5')
     expect(unit, 'واحدِ ۵ ِ دمو پیدا نشد').toBeTruthy()
 
+    // مرحلهٔ ۹ · فاز ۶: فقط شماره، نقش و واحد — نه نام و نه رمز؛ دعوت، نه وصلِ بی‌اجازه
     const added = await call(page, 'POST', '/api/v1/residents', {
-      name: 'ثبت‌نام‌کننده‌ی سرتاسری',
       phone,
       role: 'tenant',
       unit_id: unit!.id,
-      // فرم رمز می‌خواهد؛ برای حسابِ موجود به کار نمی‌رود (دعوت ساخته می‌شود)
-      password: 'Secret123x',
     })
-    // حسابِ موجود دعوت می‌گیرد (۲۰۲)، نه وصلِ بی‌اجازه
-    expect(added.status, JSON.stringify(added.json)).toBe(202)
+    expect(added.status, JSON.stringify(added.json)).toBe(201)
+    expect(added.json.invited).toBe(true)
 
     // ── خودِ ثبت‌نام‌کننده ──
     await signIn(page, phone, PASSWORD)

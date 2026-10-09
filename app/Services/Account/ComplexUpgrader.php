@@ -85,11 +85,14 @@ class ComplexUpgrader
              * است و پذیرفتنِ دعوتِ قدیمی او را بی‌سروصدا از مجتمعِ خودش بیرون
              * می‌برد و ساکنِ جای دیگری می‌کند.
              */
-            ComplexInvitation::where('user_id', $fresh->id)
+            // از مرحلهٔ ۹ · فاز ۶ دعوت به شماره است، نه به حساب؛ `live_key` آزاد می‌شود
+            ComplexInvitation::query()
                 ->pending()
+                ->where(fn ($q) => $q->where('user_id', $fresh->id)->orWhere('phone', $fresh->phone))
                 ->update([
                     'status' => ComplexInvitation::DECLINED,
                     'responded_at' => now(),
+                    'live_key' => null,
                 ]);
 
             Audit::log('account.upgraded', 'ارتقا به مدیر مجتمع', $complex, [

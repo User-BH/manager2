@@ -249,29 +249,35 @@ class MaintenanceAndLimitsTest extends TestCase
 
     /* --------------------- رمز عبور و پیام‌رسان --------------------- */
 
-    public function test_creating_a_resident_requires_a_strong_password(): void
+    /**
+     * 🔴 مرحلهٔ ۹ · فاز ۶ (F5): مدیر **هیچ رمزی** برای ساکن یا مدیرِ دیگر نمی‌گذارد.
+     *
+     * تا اینجا این دو تست سیاستِ رمز را می‌سنجیدند (رمزِ ضعیف رد، قوی پذیرفته).
+     * حالا هر رمزی رد می‌شود: صاحبِ شماره خودش با OTP ثبت‌نام می‌کند. و
+     * هیچ حسابی ساخته نمی‌شود.
+     */
+    public function test_creating_a_resident_never_takes_a_password(): void
     {
-        $payload = [
-            'name' => 'ساکن تازه', 'phone' => '09127779999', 'role' => 'owner',
-        ];
+        $unit = Unit::factory()->create(['complex_id' => $this->complex->id]);
 
-        // فقط حرف، بدون رقم
-        $this->actingAs($this->admin)->postJson('/api/residents', $payload + ['password' => 'onlyletters'])
-            ->assertStatus(422)->assertJsonValidationErrors('password');
+        foreach (['a1b2', 'strong123'] as $password) {
+            $this->actingAs($this->admin)->postJson('/api/residents', [
+                'phone' => '09127779999', 'role' => 'owner', 'unit_id' => $unit->id, 'password' => $password,
+            ])->assertStatus(422)->assertJsonValidationErrors('password');
+        }
 
-        // کوتاه
-        $this->actingAs($this->admin)->postJson('/api/residents', $payload + ['password' => 'a1b2'])
-            ->assertStatus(422)->assertJsonValidationErrors('password');
-
-        $this->actingAs($this->admin)->postJson('/api/residents', $payload + ['password' => 'strong123'])
-            ->assertStatus(201);
+        $this->assertDatabaseMissing('users', ['phone' => '09127779999']);
     }
 
-    public function test_manager_creation_requires_a_strong_password(): void
+    public function test_manager_creation_never_takes_a_password(): void
     {
-        $this->actingAs($this->admin)->postJson('/api/managers', [
-            'name' => 'مدیر تازه', 'phone' => '09127778888', 'password' => '123456',
-        ])->assertStatus(422)->assertJsonValidationErrors('password');
+        foreach (['123456', 'strong123'] as $password) {
+            $this->actingAs($this->admin)->postJson('/api/managers', [
+                'phone' => '09127778888', 'password' => $password,
+            ])->assertStatus(422)->assertJsonValidationErrors('password');
+        }
+
+        $this->assertDatabaseMissing('users', ['phone' => '09127778888']);
     }
 
     public function test_admin_can_close_and_reopen_messaging_for_a_resident(): void

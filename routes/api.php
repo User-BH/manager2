@@ -30,6 +30,7 @@ use App\Http\Controllers\Api\ProfileController;
 use App\Http\Controllers\Api\ResidentController;
 use App\Http\Controllers\Api\SearchController;
 use App\Http\Controllers\Api\SecurityController;
+use App\Http\Controllers\Api\SentInvitationController;
 use App\Http\Controllers\Api\ServiceRequestController;
 use App\Http\Controllers\Api\SettingController;
 use App\Http\Controllers\Api\SiteContentController;
@@ -96,6 +97,18 @@ Route::post('register', [AuthController::class, 'register'])
     ->middleware(['throttle:register', 'feature:public_registration'])->name('register');
 Route::post('register/verify', [AuthController::class, 'registerVerify'])
     ->middleware(['throttle:otp-verify', 'feature:public_registration'])->name('register.verify');
+
+/*
+| پیش‌نمایشِ پیوندِ دعوت (مرحلهٔ ۹ · فاز ۶) — برای مهمان هم، چون دارنده‌ی پیوند
+| شاید هنوز حساب ندارد. فقط نامِ مجتمع، نقش، واحد و دو رقمِ آخرِ شماره؛ هیچ
+| دسترسی‌ای نمی‌دهد. سقفِ نرخ جلوی پیمودنِ توکن را می‌گیرد (توکن ۲۵۶ بیتی است).
+|
+| ⚠️ POST و توکن در بدنه، نه در مسیر: نشانیِ درخواست در لاگِ دسترسیِ وب‌سرور
+| می‌ماند. در پیوند هم توکن پس از `#` است (`/invite#…`) که نه به سرور می‌رود و
+| نه در بازدیدِ صفحه به آمار.
+*/
+Route::post('invitations/preview', [InvitationController::class, 'preview'])
+    ->middleware('throttle:search')->name('invitations.preview');
 
 // وضعیت کاربر برای مهمان هم قابل فراخوانی است و null برمی‌گرداند؛ کلاینت
 // هنگام بالا آمدن یک‌بار صدایش می‌زند تا بفهمد نشست فعالی هست یا نه.
@@ -347,8 +360,11 @@ Route::middleware('auth')->group(function () {
     });
 
     Route::get('invitations', [InvitationController::class, 'index'])->name('invitations.index');
+    // پذیرش کدِ OTP ِ تازه می‌خواهد (مرحلهٔ ۹ · فاز ۶) — با همان سقف‌های نرخِ ورود
+    Route::post('invitations/{invitation}/code', [InvitationController::class, 'requestCode'])
+        ->middleware('throttle:otp-request')->name('invitations.code');
     Route::post('invitations/{invitation}/accept', [InvitationController::class, 'accept'])
-        ->name('invitations.accept');
+        ->middleware('throttle:otp-verify')->name('invitations.accept');
     Route::post('invitations/{invitation}/decline', [InvitationController::class, 'decline'])
         ->name('invitations.decline');
 
@@ -433,6 +449,11 @@ Route::middleware('auth')->group(function () {
             ->name('residents.toggle-active');
         Route::patch('residents/{resident}/toggle-messaging', [ResidentController::class, 'toggleMessaging'])
             ->name('residents.toggle-messaging');
+
+        // دعوت‌های فرستاده‌ی همین مجتمع: دیدن و ابطال (مرحلهٔ ۹ · فاز ۶)
+        Route::get('sent-invitations', [SentInvitationController::class, 'index'])->name('sent-invitations.index');
+        Route::delete('sent-invitations/{invitation}', [SentInvitationController::class, 'destroy'])
+            ->name('sent-invitations.destroy');
 
         Route::get('bills', [BillController::class, 'index'])->name('bills.index');
         Route::post('bills/generate', [BillController::class, 'generate'])

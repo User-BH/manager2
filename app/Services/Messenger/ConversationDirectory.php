@@ -131,7 +131,8 @@ class ConversationDirectory
         $page = $rows->take(self::PAGE);
 
         $unread = $this->unreadCounts($viewer, $page->pluck('id')->all());
-        $last = Message::query()->whereIn('id', $page->pluck('last_message_id')->filter()->all())->get()->keyBy('id');
+        // پیش‌نمایش هم همان قاعده‌ی دید: آخرین پیامِ ساکنِ قبلی پیش‌نمایشِ ساکنِ تازه نیست (F4)
+        $last = Message::query()->visibleTo($viewer)->whereIn('id', $page->pluck('last_message_id')->filter()->all())->get()->keyBy('id');
 
         return [
             'data' => $page->map(fn (Conversation $c) => $this->present($c, $viewer, $unread[$c->id] ?? 0, $last->get($c->last_message_id)))->values()->all(),
@@ -155,6 +156,7 @@ class ConversationDirectory
 
         return Message::query()
             ->whereIn('conversation_id', $conversationIds)
+            ->visibleTo($viewer)
             ->where(fn (Builder $q) => $q->whereNull('user_id')->orWhere('user_id', '!=', $viewer->id))
             ->where('is_hidden', false)
             ->whereNull('deleted_at')

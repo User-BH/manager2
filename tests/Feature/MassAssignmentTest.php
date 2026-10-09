@@ -9,6 +9,7 @@ use App\Enums\UserRole;
 use App\Http\Requests\StoreResidentRequest;
 use App\Models\Bill;
 use App\Models\Complex;
+use App\Models\ComplexInvitation;
 use App\Models\Expense;
 use App\Models\Message;
 use App\Models\Payment;
@@ -198,17 +199,17 @@ class MassAssignmentTest extends TestCase
     /** همان فرم با نقشِ مجاز باید کار کند — وگرنه تستِ بالا چیزی ثابت نمی‌کند. */
     public function test_the_same_form_still_accepts_an_allowed_role(): void
     {
+        // مرحلهٔ ۹ · فاز ۶: فرم دعوت می‌سازد؛ نقشِ دعوت همان نقشِ مجاز است
         $this->as($this->manager, 'POST', '/api/residents', [
-            'name' => 'ساکنِ تازه',
             'phone' => '09339999999',
             'role' => UserRole::Tenant->value,
-            'password' => 'Str0ngPass',
+            'unit_id' => $this->unit->id,
         ])->assertSuccessful();
 
-        $created = User::withoutGlobalScopes()->where('phone', '09339999999')->first();
+        $invitation = ComplexInvitation::where('phone', '09339999999')->first();
 
-        $this->assertNotNull($created);
-        $this->assertSame(UserRole::Tenant, $created->role);
+        $this->assertNotNull($invitation);
+        $this->assertSame(UserRole::Tenant, $invitation->role);
     }
 
     // ─────────────────────────────────────────────────────────────────────
@@ -453,13 +454,20 @@ class MassAssignmentTest extends TestCase
         'UpdatePasswordRequest.php' => ['password'],
         // تأییدِ دوباره پیش از عملیاتِ حساس؛ فقط سنجیده می‌شود، ذخیره نه (فاز ۱۰)
         'ConfirmPasswordRequest.php' => ['password'],
+
+        // ── مرحلهٔ ۹ · فاز ۶: `prohibited` — نامِ ستون در قواعد هست تا **رد** شود ──
+        // مدیر دیگر برای کسی رمز نمی‌گذارد؛ دعوت می‌فرستد (F5)
         'StoreManagerRequest.php' => ['password'],
 
         // ⚠️ رمزِ **پنلِ پیامک** است، نه رمزِ کاربر
         'UpdateSmsSettingsRequest.php' => ['password'],
 
-        // ── مدیر ساکن می‌سازد: رمزِ اولیه، و نقشی که به owner/tenant محدود است ──
+        // ── مدیر ساکن دعوت می‌کند: رمز `prohibited`، نقش به owner/tenant محدود ──
         'StoreResidentRequest.php' => ['password', 'role'],
+        // ویرایشِ ساکن: رمز `prohibited` (تصاحبِ حساب)، نقش به owner/tenant محدود
+        'UpdateResidentRequest.php' => ['password', 'role'],
+        // تأییدِ درخواستِ پیوستن: نقش به owner/tenant محدود (F6)
+        'ApproveJoinRequestRequest.php' => ['role'],
 
         // ── فقط ادمینِ کل: انتخابِ مجتمعِ هدف ──
         'GrantPlanRequest.php' => ['complex_id'],

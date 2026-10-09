@@ -83,14 +83,13 @@ class CrossTenantReferenceTest extends TestCase
     public function test_resident_cannot_be_linked_to_a_unit_of_another_complex(): void
     {
         $this->actingAs($this->admin)->postJson('/api/residents', [
-            'name' => 'ساکن تازه',
             'phone' => '09125559999',
             'role' => 'owner',
-            'password' => 'secret123',
             'unit_id' => $this->foreignUnit->id,
         ])->assertStatus(422)->assertJsonValidationErrors('unit_id');
 
         $this->assertNull(User::where('phone', '09125559999')->first());
+        $this->assertDatabaseMissing('complex_invitations', ['phone' => '09125559999']);
     }
 
     /** قید تازه نباید مسیر درست را بشکند. */
@@ -113,10 +112,10 @@ class CrossTenantReferenceTest extends TestCase
             'unit_id' => $ownUnit->id, 'period' => '1405-04', 'amount' => 50000,
         ])->assertStatus(201);
 
+        // مرحلهٔ ۹ · فاز ۶: «ساکن جدید» دعوت می‌سازد، نه حساب
         $this->actingAs($this->admin)->postJson('/api/residents', [
-            'name' => 'ساکن خودی', 'phone' => '09125558888', 'role' => 'owner',
-            'password' => 'secret123', 'unit_id' => $ownUnit->id,
-        ])->assertStatus(201);
+            'phone' => '09125558888', 'role' => 'owner', 'unit_id' => $ownUnit->id,
+        ])->assertStatus(201)->assertJsonPath('invited', true);
     }
 
     /** دوره باید الگوی شمسی داشته باشد، وگرنه تخفیفی ثبت می‌شد که هرگز اعمال نمی‌شد. */

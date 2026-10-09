@@ -88,6 +88,18 @@ class MemberController extends Controller
         ]);
     }
 
+    /**
+     * «حذفِ عضو» در پنلِ ادمینِ کل = **غیرفعال‌سازی** (مرحلهٔ ۹ · فاز ۶).
+     *
+     * رابط و مسیر همان ماندند (تصمیمِ کارفرما)؛ فقط پشتِ آن دیگر حذفِ سخت
+     * نیست. پیش از این ردیفِ `users` می‌رفت و با آن دوره‌های واحد
+     * (`cascadeOnDelete`)، ورودها، دستگاه‌ها و درخواست‌های خدمات؛ پرداخت‌ها و
+     * خریدهای اشتراک پرداخت‌کننده‌شان را گم می‌کردند (`NULL`).
+     *
+     * حالا حساب، مجتمع، نقش، دوره‌ها و همه‌ی سابقه می‌مانند و فقط `is_active`
+     * خاموش می‌شود: `EnsureActive` نشستِ باز را در درخواستِ بعدی می‌بندد و ورود
+     * رد می‌شود. برگرداندن همان ویرایشِ عضو با `is_active` است.
+     */
     public function destroy(string $user): JsonResponse
     {
         $target = User::withoutGlobalScopes()->findOrFail($user);
@@ -98,16 +110,20 @@ class MemberController extends Controller
             ]);
         }
 
-        // پیش از این حذفِ عضو هیچ ردی به جا نمی‌گذاشت
-        Audit::log('member.deleted', 'حذف عضو سامانه', $target, [
+        Audit::log('member.deactivated', 'غیرفعال‌سازیِ عضو سامانه', $target, [
             'name' => $target->name,
             'phone' => $target->phone,
             'role' => $target->role->value,
         ]);
 
-        $target->delete();
+        $target->forceFill(['is_active' => false])->save();
 
-        return response()->json(['message' => 'کاربر حذف شد.']);
+        // «مرا به خاطر بسپار» هم نباید حساب را زنده نگه دارد
+        $target->trustedDevices()->delete();
+
+        return response()->json([
+            'message' => 'حسابِ کاربر غیرفعال شد؛ داده‌ها و سابقه‌اش حفظ شد.',
+        ]);
     }
 
     /**

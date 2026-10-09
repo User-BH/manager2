@@ -85,13 +85,22 @@ test('ساکن می‌نویسد، مدیر پاسخ می‌دهد، ساکن «
   await expect(row.getByLabel(/پیامِ نخوانده/)).toBeVisible()
 
   await row.click()
-  await expect(manager.getByText(question)).toBeVisible()
+  /*
+   * ⚠️ فقط درونِ فهرستِ پیام‌ها. پیش‌نمایشِ همان پیام در فهرستِ گفت‌وگوها هم
+   * همین متن را دارد و پس از هر ارسال/خواندن به‌روز می‌شود؛ `getByText` ِ کلِ
+   * صفحه بسته به اینکه آن به‌روزرسانی زودتر برسد یا ادعا، یک یا دو عنصر
+   * می‌یافت (ناپایدار در WebKit، مرحلهٔ ۹ · فاز ۶). ریشه مکان‌یابِ مبهم بود.
+   */
+  const managerThread = manager.getByRole('list', { name: 'پیام‌ها' })
+  await expect(managerThread.getByText(question)).toBeVisible()
   await manager.getByLabel('متنِ پیام').fill(answer)
   await manager.getByRole('button', { name: 'ارسال پیام' }).click()
-  await expect(manager.getByText(answer)).toBeVisible()
+  await expect(managerThread.getByText(answer)).toBeVisible()
 
   // ── ساکن، بی‌بارگذاریِ دوباره ──
-  await expect(resident.getByText(answer)).toBeVisible({ timeout: 25_000 })
+  await expect(resident.getByRole('list', { name: 'پیام‌ها' }).getByText(answer)).toBeVisible({
+    timeout: 25_000,
+  })
   await expect(mine.getByText('خوانده شد')).toBeAttached({ timeout: 25_000 })
 
   await resident.context().close()

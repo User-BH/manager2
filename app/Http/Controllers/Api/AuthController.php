@@ -555,7 +555,7 @@ class AuthController extends Controller
             'canWrite' => AccountState::of($user)->canWrite(),
             'pendingInvitations' => AccountState::of($user)->canWrite()
                 ? 0
-                : ComplexInvitation::where('user_id', $user->id)->pending()->count(),
+                : ComplexInvitation::invites()->live()->where('phone', $user->phone)->count(),
         ];
     }
 }

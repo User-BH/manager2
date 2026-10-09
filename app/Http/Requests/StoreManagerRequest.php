@@ -2,27 +2,32 @@
 
 namespace App\Http\Requests;
 
-use Illuminate\Validation\Rule;
-use Illuminate\Validation\Rules\Password;
+use App\Support\Phone;
 
 /**
- * افزودنِ مدیر به مجتمع.
+ * «مدیر جدید» = **دعوتِ امن با نقشِ مدیر** (مرحلهٔ ۹ · فاز ۶، F5).
  *
- * از `Api/ManagerController.php::store()` بیرون کشیده شد (R9b). قواعد کلمه‌به‌کلمه همان‌اند؛ این
- * جابه‌جایی عمداً رفتار را عوض نمی‌کند.
+ * پیش از این مدیر برای شماره حساب می‌ساخت و رمزش را خودش تعیین می‌کرد. حالا
+ * فقط شماره؛ صاحبِ شماره خودش با OTP ثبت‌نام می‌کند و دعوت را می‌پذیرد.
  */
 class StoreManagerRequest extends BaseFormRequest
 {
+    protected function prepareForValidation(): void
+    {
+        if ($this->has('phone')) {
+            $this->merge(['phone' => Phone::normalize((string) $this->input('phone'))]);
+        }
+    }
+
     /**
      * @return array<string, mixed>
      */
     public function rules(): array
     {
         return [
-            'name' => ['required', 'string', 'max:120'],
-            'phone' => ['required', 'regex:/^09\d{9}$/', Rule::unique('users', 'phone')],
-            // مدیر مجتمع دسترسی مالی کامل دارد؛ رمزش نباید ضعیف‌تر از رمز پروفایل باشد.
-            'password' => ['required', Password::min(8)->letters()->numbers()],
+            'phone' => ['required', 'regex:/^09\d{9}$/'],
+            'name' => ['prohibited'],
+            'password' => ['prohibited'],
         ];
     }
 
@@ -33,7 +38,8 @@ class StoreManagerRequest extends BaseFormRequest
     {
         return [
             'phone.regex' => 'شماره تلفن همراه باید به شکل ۰۹xxxxxxxxx باشد.',
-            'phone.unique' => 'این شماره قبلا ثبت شده است.',
+            'name.prohibited' => 'نام را خودِ کاربر هنگامِ ثبت‌نام وارد می‌کند.',
+            'password.prohibited' => 'رمز را خودِ کاربر هنگامِ ثبت‌نام انتخاب می‌کند.',
         ];
     }
 
@@ -42,6 +48,6 @@ class StoreManagerRequest extends BaseFormRequest
      */
     public function attributes(): array
     {
-        return ['name' => 'نام', 'phone' => 'شماره تلفن', 'password' => 'رمز عبور'];
+        return ['phone' => 'شماره تلفن'];
     }
 }

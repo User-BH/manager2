@@ -2084,9 +2084,106 @@
                 }
             }
         },
+        "/api/v1/invitations/preview": {
+            "post": {
+                "summary": "api.invitations.preview",
+                "tags": [
+                    "invitations"
+                ],
+                "parameters": [],
+                "responses": {
+                    "200": {
+                        "description": "موفق"
+                    },
+                    "422": {
+                        "description": "خطای اعتبارسنجی",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    },
+                    "429": {
+                        "description": "عبور از محدودیتِ نرخ",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/api/v1/invitations/{invitation}/accept": {
             "post": {
                 "summary": "api.invitations.accept",
+                "tags": [
+                    "invitations"
+                ],
+                "parameters": [
+                    {
+                        "name": "invitation",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "موفق"
+                    },
+                    "422": {
+                        "description": "خطای اعتبارسنجی",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    },
+                    "429": {
+                        "description": "عبور از محدودیتِ نرخ",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "وارد نشده‌اید",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "دسترسی ندارید",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/invitations/{invitation}/code": {
+            "post": {
+                "summary": "api.invitations.code",
                 "tags": [
                     "invitations"
                 ],
@@ -2432,7 +2529,31 @@
                         }
                     }
                 },
-                "description": "فقط برای نقشِ: super_admin,complex_admin"
+                "description": "فقط برای نقشِ: super_admin,complex_admin",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "role": {
+                                        "type": "string",
+                                        "description": "نقش"
+                                    },
+                                    "unit_id": {
+                                        "type": "string",
+                                        "description": "واحد"
+                                    }
+                                },
+                                "required": [
+                                    "role",
+                                    "unit_id"
+                                ]
+                            }
+                        }
+                    }
+                }
             }
         },
         "/api/v1/join-requests/{invitation}/reject": {
@@ -2811,23 +2932,19 @@
                             "schema": {
                                 "type": "object",
                                 "properties": {
-                                    "name": {
-                                        "type": "string",
-                                        "description": "نام"
-                                    },
                                     "phone": {
                                         "type": "string",
                                         "description": "شماره تلفن"
                                     },
+                                    "name": {
+                                        "type": "string"
+                                    },
                                     "password": {
-                                        "type": "string",
-                                        "description": "رمز عبور"
+                                        "type": "string"
                                     }
                                 },
                                 "required": [
-                                    "name",
-                                    "phone",
-                                    "password"
+                                    "phone"
                                 ]
                             }
                         }
@@ -6360,38 +6477,29 @@
                             "schema": {
                                 "type": "object",
                                 "properties": {
-                                    "name": {
-                                        "type": "string",
-                                        "description": "نام"
-                                    },
                                     "phone": {
                                         "type": "string",
                                         "description": "شماره تلفن"
-                                    },
-                                    "email": {
-                                        "type": "string",
-                                        "description": "ایمیل"
-                                    },
-                                    "national_id": {
-                                        "type": "string"
                                     },
                                     "role": {
                                         "type": "string",
                                         "description": "نقش"
                                     },
                                     "unit_id": {
+                                        "type": "string",
+                                        "description": "واحد"
+                                    },
+                                    "name": {
                                         "type": "string"
                                     },
                                     "password": {
-                                        "type": "string",
-                                        "description": "رمز عبور"
+                                        "type": "string"
                                     }
                                 },
                                 "required": [
-                                    "name",
                                     "phone",
                                     "role",
-                                    "password"
+                                    "unit_id"
                                 ]
                             }
                         }
@@ -6472,10 +6580,6 @@
                                         "type": "string",
                                         "description": "نام"
                                     },
-                                    "phone": {
-                                        "type": "string",
-                                        "description": "شماره تلفن"
-                                    },
                                     "email": {
                                         "type": "string",
                                         "description": "ایمیل"
@@ -6488,18 +6592,20 @@
                                         "description": "نقش"
                                     },
                                     "unit_id": {
+                                        "type": "string",
+                                        "description": "واحد"
+                                    },
+                                    "phone": {
                                         "type": "string"
                                     },
                                     "password": {
-                                        "type": "string",
-                                        "description": "رمز عبور"
+                                        "type": "string"
                                     }
                                 },
                                 "required": [
                                     "name",
-                                    "phone",
                                     "role",
-                                    "password"
+                                    "unit_id"
                                 ]
                             }
                         }
@@ -6578,10 +6684,6 @@
                                         "type": "string",
                                         "description": "نام"
                                     },
-                                    "phone": {
-                                        "type": "string",
-                                        "description": "شماره تلفن"
-                                    },
                                     "email": {
                                         "type": "string",
                                         "description": "ایمیل"
@@ -6594,18 +6696,20 @@
                                         "description": "نقش"
                                     },
                                     "unit_id": {
+                                        "type": "string",
+                                        "description": "واحد"
+                                    },
+                                    "phone": {
                                         "type": "string"
                                     },
                                     "password": {
-                                        "type": "string",
-                                        "description": "رمز عبور"
+                                        "type": "string"
                                     }
                                 },
                                 "required": [
                                     "name",
-                                    "phone",
                                     "role",
-                                    "password"
+                                    "unit_id"
                                 ]
                             }
                         }
@@ -6855,6 +6959,125 @@
                         }
                     }
                 }
+            }
+        },
+        "/api/v1/sent-invitations": {
+            "get": {
+                "summary": "api.sent-invitations.index",
+                "tags": [
+                    "sent-invitations"
+                ],
+                "parameters": [],
+                "responses": {
+                    "200": {
+                        "description": "موفق"
+                    },
+                    "422": {
+                        "description": "خطای اعتبارسنجی",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    },
+                    "429": {
+                        "description": "عبور از محدودیتِ نرخ",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "وارد نشده‌اید",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "دسترسی ندارید",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    }
+                },
+                "description": "فقط برای نقشِ: super_admin,complex_admin"
+            }
+        },
+        "/api/v1/sent-invitations/{invitation}": {
+            "delete": {
+                "summary": "api.sent-invitations.destroy",
+                "tags": [
+                    "sent-invitations"
+                ],
+                "parameters": [
+                    {
+                        "name": "invitation",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "موفق"
+                    },
+                    "422": {
+                        "description": "خطای اعتبارسنجی",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    },
+                    "429": {
+                        "description": "عبور از محدودیتِ نرخ",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "وارد نشده‌اید",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "دسترسی ندارید",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    }
+                },
+                "description": "فقط برای نقشِ: super_admin,complex_admin"
             }
         },
         "/api/v1/service-requests": {
@@ -9415,29 +9638,24 @@
                                     "address": {
                                         "type": "string"
                                     },
-                                    "admin_name": {
-                                        "type": "string",
-                                        "description": "نام مدیر"
-                                    },
                                     "admin_phone": {
                                         "type": "string",
                                         "description": "شماره مدیر"
                                     },
+                                    "admin_name": {
+                                        "type": "string"
+                                    },
                                     "admin_email": {
-                                        "type": "string",
-                                        "description": "ایمیل مدیر"
+                                        "type": "string"
                                     },
                                     "admin_password": {
-                                        "type": "string",
-                                        "description": "رمز عبور مدیر"
+                                        "type": "string"
                                     }
                                 },
                                 "required": [
                                     "name",
                                     "type",
-                                    "admin_name",
-                                    "admin_phone",
-                                    "admin_password"
+                                    "admin_phone"
                                 ]
                             }
                         }

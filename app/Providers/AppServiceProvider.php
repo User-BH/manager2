@@ -411,7 +411,13 @@ class AppServiceProvider extends ServiceProvider
     /** کلید یکتا بر پایه‌ی شماره‌ی نرمال‌شده + IP. */
     private function phoneKey(Request $request): string
     {
-        $phone = (string) $request->input('phone', '');
+        /*
+         * 🔴 مسیرهای واردشده (کدِ پذیرشِ دعوت، مرحلهٔ ۹ · فاز ۶) شماره در بدنه
+         * ندارند؛ بی این جایگزین کلید `|IP` می‌شد و همه‌ی کاربرانِ پشتِ یک IP
+         * (CGNAT ِ اپراتورها) یک سهمیه‌ی سه‌تایی را با هم می‌شکستند. شماره‌ی
+         * خودِ حساب همان چیزی است که کد به آن می‌رود.
+         */
+        $phone = (string) ($request->input('phone') ?: $request->user()->phone ?? '');
 
         return Phone::normalize($phone).'|'.$request->ip();
     }

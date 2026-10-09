@@ -14,11 +14,13 @@ use App\Models\Subscription;
 use App\Models\Unit;
 use App\Models\User;
 use App\Services\Account\ComplexUpgrader;
+use App\Services\Account\Membership;
 use App\Services\Subscription\ComplexPurchase;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Testing\TestResponse;
 use Tests\TestCase;
 
 /**
@@ -39,6 +41,8 @@ class InitialAccountTest extends TestCase
 
     private User $fresh;
 
+    private Unit $unit;
+
     protected function setUp(): void
     {
         parent::setUp();
@@ -49,6 +53,8 @@ class InitialAccountTest extends TestCase
             'role' => UserRole::ComplexAdmin,
             'is_active' => true,
         ]);
+
+        $this->unit = Unit::factory()->create(['complex_id' => $this->complex->id]);
 
         // کاربری که خودش ثبت‌نام کرده: فعال، ولی بدونِ مجتمع
         $this->fresh = User::factory()->create([
@@ -167,14 +173,15 @@ class InitialAccountTest extends TestCase
     {
         $this->actingAs($this->manager)
             ->postJson('/api/v1/residents', [
-                'name' => 'ساکن تازه', 'phone' => '09121110000',
-                'role' => 'owner', 'password' => 'goodpass99',
+                'phone' => '09121110000', 'role' => 'owner', 'unit_id' => $this->unit->id,
             ])
-            ->assertStatus(202)
+            ->assertCreated()
             ->assertJsonPath('invited', true);
 
+        // دعوت به شماره بسته است و تا پذیرش به هیچ حسابی وصل نیست (مرحلهٔ ۹ · فاز ۶)
         $this->assertDatabaseHas('complex_invitations', [
-            'user_id' => $this->fresh->id,
+            'phone' => '09121110000',
+            'user_id' => null,
             'complex_id' => $this->complex->id,
             'status' => ComplexInvitation::PENDING,
         ]);
@@ -190,16 +197,15 @@ class InitialAccountTest extends TestCase
         $this->actingAs($this->fresh)
             ->getJson('/api/v1/invitations')
             ->assertOk()
-            ->assertJsonPath('data.0.complexName', 'مجتمع آفتاب');
+            ->assertJsonPath('data.0.complexName', 'مجتمع آفتاب')
+            ->assertJsonPath('data.0.unitLabel', 'واحد '.$this->unit->unit_number);
     }
 
     public function test_accepting_joins_the_complex(): void
     {
         $invitation = $this->invite();
 
-        $this->actingAs($this->fresh)
-            ->postJson("/api/v1/invitations/{$invitation->id}/accept")
-            ->assertOk();
+        $this->accept($this->fresh, $invitation)->assertOk();
 
         $joined = $this->fresh->fresh();
         $this->assertSame($this->complex->id, $joined->complex_id);
@@ -210,7 +216,7 @@ class InitialAccountTest extends TestCase
     {
         // اثباتِ رفتاری: قفل واقعاً برداشته می‌شود، نه فقط یک پرچم عوض می‌شود
         $invitation = $this->invite();
-        $this->actingAs($this->fresh)->postJson("/api/v1/invitations/{$invitation->id}/accept")->assertOk();
+        $this->accept($this->fresh, $invitation)->assertOk();
 
         $this->actingAs($this->fresh->fresh())
             ->postJson('/api/v1/messenger', ['body' => 'سلام'])
@@ -218,7 +224,7 @@ class InitialAccountTest extends TestCase
     }
 
     /**
-     * فقط گیرنده می‌تواند پاسخ بدهد.
+     * فقط صاحبِ شماره می‌تواند پاسخ بدهد.
      *
      * بدونِ این، هرکسی با حدسِ شناسه می‌توانست دعوتِ دیگری را بپذیرد و آن
      * حساب را وارد مجتمعی کند که صاحبش نخواسته.
@@ -230,7 +236,10 @@ class InitialAccountTest extends TestCase
         $other = User::factory()->create(['complex_id' => null, 'is_active' => true]);
 
         $this->actingAs($other)
-            ->postJson("/api/v1/invitations/{$invitation->id}/accept")
+            ->postJson("/api/v1/invitations/{$invitation->id}/code")
+            ->assertNotFound();
+        $this->actingAs($other)
+            ->postJson("/api/v1/invitations/{$invitation->id}/accept", ['code' => '123456'])
             ->assertNotFound();
 
         $this->assertNull($other->fresh()->complex_id);
@@ -251,12 +260,12 @@ class InitialAccountTest extends TestCase
     {
         $invitation = $this->invite();
 
-        $this->actingAs($this->fresh)->postJson("/api/v1/invitations/{$invitation->id}/accept")->assertOk();
+        $this->accept($this->fresh, $invitation)->assertOk();
 
-        // دومی باید رد شود، نه اینکه دوباره وصل کند
+        // دعوتِ مصرف‌شده دیگر «زنده» نیست: همان ۴۰۴ ِ نامعتبر، نه وصلِ دوباره
         $this->actingAs($this->fresh->fresh())
-            ->postJson("/api/v1/invitations/{$invitation->id}/accept")
-            ->assertStatus(422);
+            ->postJson("/api/v1/invitations/{$invitation->id}/accept", ['code' => '123456'])
+            ->assertNotFound();
     }
 
     /**
@@ -275,26 +284,33 @@ class InitialAccountTest extends TestCase
 
         $this->actingAs($this->manager)
             ->postJson('/api/v1/residents', [
-                'name' => 'ساکن رقیب', 'phone' => '09125554444',
-                'role' => 'owner', 'password' => 'goodpass99',
+                'phone' => '09125554444', 'role' => 'owner', 'unit_id' => $this->unit->id,
             ])
             ->assertStatus(422)
             ->assertJsonValidationErrors('phone');
+
+        $this->assertDatabaseMissing('complex_invitations', ['phone' => '09125554444']);
     }
 
-    public function test_a_brand_new_phone_is_created_directly_as_before(): void
+    /**
+     * 🔴 F5 (مرحلهٔ ۹ · فاز ۶): شماره‌ی بی‌حساب دیگر حساب نمی‌گیرد.
+     *
+     * پیش از این همین درخواست حسابی با رمزِ انتخابیِ مدیر و بی OTP می‌ساخت.
+     */
+    public function test_a_brand_new_phone_gets_an_invitation_not_an_account(): void
     {
-        // مسیرِ عادی نباید عوض شده باشد
         $this->actingAs($this->manager)
             ->postJson('/api/v1/residents', [
-                'name' => 'کاملاً تازه', 'phone' => '09127778888',
-                'role' => 'owner', 'password' => 'goodpass99',
+                'phone' => '09127778888', 'role' => 'owner', 'unit_id' => $this->unit->id,
             ])
-            ->assertStatus(201);
+            ->assertCreated()
+            ->assertJsonPath('invited', true);
 
-        $this->assertDatabaseHas('users', [
+        $this->assertDatabaseMissing('users', ['phone' => '09127778888']);
+        $this->assertDatabaseHas('complex_invitations', [
             'phone' => '09127778888',
-            'complex_id' => $this->complex->id,
+            'user_id' => null,
+            'status' => ComplexInvitation::PENDING,
         ]);
     }
 
@@ -410,14 +426,29 @@ class InitialAccountTest extends TestCase
         ]);
     }
 
+    /** دعوتِ واقعی از همان سرویسِ `POST /residents` (مرحلهٔ ۹ · فاز ۶). */
     private function invite(): ComplexInvitation
     {
-        return ComplexInvitation::create([
-            'complex_id' => $this->complex->id,
-            'user_id' => $this->fresh->id,
-            'role' => UserRole::Owner,
-            'invited_by' => $this->manager->id,
-            'status' => ComplexInvitation::PENDING,
-        ]);
+        [$invitation] = app(Membership::class)->invite(
+            $this->complex,
+            $this->fresh->phone,
+            UserRole::Owner,
+            $this->unit,
+            $this->manager,
+        );
+
+        return $invitation;
+    }
+
+    /** پذیرش با کدِ OTP ِ تازه — همان دو گامِ رابط. */
+    private function accept(User $user, ComplexInvitation $invitation): TestResponse
+    {
+        $code = $this->actingAs($user)
+            ->postJson("/api/v1/invitations/{$invitation->id}/code")
+            ->assertOk()
+            ->json('devCode');
+
+        return $this->actingAs($user)
+            ->postJson("/api/v1/invitations/{$invitation->id}/accept", ['code' => $code]);
     }
 }

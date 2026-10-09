@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react'
+import { useState, type ReactNode } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import {
   ArrowLeft,
@@ -18,6 +18,7 @@ import { useAuth } from '@/shared/stores/authStore'
 import type { Invitation } from '@/shared/types'
 import { JoinByManagerPhone } from './JoinByManagerPhone'
 import { RegistrantGuide } from './RegistrantGuide'
+import { AcceptInvitationForm } from './AcceptInvitationForm'
 
 /**
  * داشبوردِ «ثبت‌نام‌کننده‌ی اولیه» (R21؛ از مرحلهٔ ۸ · فاز ۱ تجربه‌ی جدا با
@@ -112,8 +113,16 @@ function CompleteName() {
 
 /* ── دعوت‌ها ─────────────────────────────────────────────────────────────── */
 
+/** گامِ کدِ پذیرش برای یک دعوت (مرحلهٔ ۹ · فاز ۶) */
+interface CodeStep {
+  id: number
+  message: string
+  devCode: string | null
+}
+
 function InvitationList() {
   const { run, pendingKey } = useAction()
+  const [codeStep, setCodeStep] = useState<CodeStep | null>(null)
 
   const { data, isLoading } = useQuery({
     queryKey: queryKeys.invitations.all(),
@@ -121,18 +130,34 @@ function InvitationList() {
     queryFn: ({ signal }) => api<{ data: Invitation[] }>('/invitations', { signal }),
   })
 
+  /*
+   * «پیوستن» اول کدِ تازه به شماره‌ی خودِ کاربر می‌فرستد (مرحلهٔ ۹ · فاز ۶).
+   * فقط وقتی ادمینِ کل OTP را برای کلِ سامانه خاموش کرده باشد (پیش از آماده‌شدنِ
+   * پیامک) مستقیم پذیرفته می‌شود — همان قاعده‌ی گامِ دومِ ورود.
+   */
   const accept = (id: number) =>
-    run(() => api(`/invitations/${id}/accept`, { method: 'POST' }), {
-      key: id,
-      onDone: () => {
-        /*
-         * پذیرش، حالتِ حساب را عوض می‌کند و کلِ ناوبری باید از نو ساخته شود.
-         * بارگذاریِ کاملِ صفحه ساده‌ترین راهِ درست است: هر حالتِ محلی که روی
-         * «حالتِ اولیه» بنا شده هم پاک می‌شود.
-         */
+    run(
+      async () => {
+        const step = await api<{ otpRequired: boolean; message?: string; devCode?: string | null }>(
+          `/invitations/${id}/code`,
+          { method: 'POST' },
+        )
+
+        if (step.otpRequired) {
+          setCodeStep({
+            id,
+            message: step.message ?? 'کدِ تأیید فرستاده شد.',
+            devCode: step.devCode ?? null,
+          })
+          return
+        }
+
+        await api(`/invitations/${id}/accept`, { method: 'POST' })
+        // پذیرش، حالتِ حساب را عوض می‌کند؛ بارگذاریِ کامل همه‌ی حالتِ محلیِ «اولیه» را پاک می‌کند
         window.location.replace('/dashboard')
       },
-    })
+      { key: id },
+    )
 
   const decline = (id: number) =>
     run(() => api(`/invitations/${id}/decline`, { method: 'POST' }), {
@@ -173,26 +198,35 @@ function InvitationList() {
             </div>
           </div>
 
-          <div className="flex gap-2">
-            <button
-              onClick={() => void accept(invitation.id)}
-              disabled={pendingKey !== null}
-              className="flex items-center gap-1.5 rounded-xl px-4 py-2 text-xs font-bold text-white disabled:opacity-60"
-              style={{ backgroundColor: 'var(--color-brand-500)' }}
-            >
-              <Check size={14} />
-              پیوستن
-            </button>
-            <button
-              onClick={() => void decline(invitation.id)}
-              disabled={pendingKey !== null}
-              className="flex items-center gap-1.5 rounded-xl border px-3 py-2 text-xs font-semibold disabled:opacity-60"
-              style={{ borderColor: 'var(--border-default)', color: 'var(--text-secondary)' }}
-            >
-              <X size={14} />
-              رد
-            </button>
-          </div>
+          {codeStep?.id === invitation.id ? (
+            <AcceptInvitationForm
+              invitationId={invitation.id}
+              message={codeStep.message}
+              devCode={codeStep.devCode}
+              onCancel={() => setCodeStep(null)}
+            />
+          ) : (
+            <div className="flex gap-2">
+              <button
+                onClick={() => void accept(invitation.id)}
+                disabled={pendingKey !== null}
+                className="flex items-center gap-1.5 rounded-xl px-4 py-2 text-xs font-bold text-white disabled:opacity-60"
+                style={{ backgroundColor: 'var(--color-brand-500)' }}
+              >
+                <Check size={14} />
+                پیوستن
+              </button>
+              <button
+                onClick={() => void decline(invitation.id)}
+                disabled={pendingKey !== null}
+                className="flex items-center gap-1.5 rounded-xl border px-3 py-2 text-xs font-semibold disabled:opacity-60"
+                style={{ borderColor: 'var(--border-default)', color: 'var(--text-secondary)' }}
+              >
+                <X size={14} />
+                رد
+              </button>
+            </div>
+          )}
         </div>
       ))}
     </section>

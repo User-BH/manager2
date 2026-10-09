@@ -225,7 +225,8 @@ class ProfileController extends Controller
             return ['unitsCount' => 0, 'billsCount' => 0, 'paidCount' => 0, 'totalDebt' => 0.0];
         }
 
-        $bills = Bill::whereIn('unit_id', $unitIds);
+        // همان مرزِ «قبض‌های من»: فقط دوره‌های خودش (مرحلهٔ ۹ · فاز ۶، F4)
+        $bills = Bill::query()->visibleToResident($user);
 
         return [
             'unitsCount' => $unitIds->count(),

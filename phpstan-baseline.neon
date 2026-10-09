@@ -1,62 +1,8 @@
 parameters:
 	ignoreErrors:
 		-
-			message: '#^Cannot call method label\(\) on string\.$#'
-			identifier: method.nonObject
-			count: 1
-			path: app/Exports/BillsExport.php
-
-		-
-			message: '#^Cannot access property \$value on string\.$#'
-			identifier: property.nonObject
-			count: 1
-			path: app/Http/Controllers/Api/BillController.php
-
-		-
-			message: '#^Cannot call method label\(\) on string\.$#'
-			identifier: method.nonObject
-			count: 1
-			path: app/Http/Controllers/Api/BillController.php
-
-		-
-			message: '#^Parameter \#1 \$callback of method Illuminate\\Database\\Eloquent\\Collection\<int,App\\Models\\Bill\>\:\:map\(\) contains unresolvable type\.$#'
-			identifier: argument.unresolvableType
-			count: 1
-			path: app/Http/Controllers/Api/BillController.php
-
-		-
-			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$balance\.$#'
-			identifier: property.notFound
-			count: 1
-			path: app/Http/Controllers/Api/DashboardController.php
-
-		-
-			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$bills\.$#'
-			identifier: property.notFound
-			count: 1
-			path: app/Http/Controllers/Api/DashboardController.php
-
-		-
-			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$id\.$#'
-			identifier: property.notFound
-			count: 1
-			path: app/Http/Controllers/Api/DashboardController.php
-
-		-
-			message: '#^Call to an undefined method Illuminate\\Database\\Eloquent\\Model\:\:label\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: app/Http/Controllers/Api/DashboardController.php
-
-		-
 			message: '#^Offset ''on_time'' on array\{unit\: App\\Models\\Unit, on_time\: int, total_paid\: float, tier\: string\} on left side of \?\? always exists and is not nullable\.$#'
 			identifier: nullCoalesce.offset
-			count: 1
-			path: app/Http/Controllers/Api/DashboardController.php
-
-		-
-			message: '#^Parameter \#1 \$callback of method Illuminate\\Database\\Eloquent\\Collection\<int,Illuminate\\Database\\Eloquent\\Model\>\:\:map\(\) contains unresolvable type\.$#'
-			identifier: argument.unresolvableType
 			count: 1
 			path: app/Http/Controllers/Api/DashboardController.php
 
@@ -133,12 +79,6 @@ parameters:
 			path: app/Http/Controllers/Api/MyBillController.php
 
 		-
-			message: '#^Cannot call method label\(\) on string\.$#'
-			identifier: method.nonObject
-			count: 1
-			path: app/Http/Controllers/Api/PaymentController.php
-
-		-
 			message: '#^Access to an undefined property App\\Models\\Unit\:\:\$pivot\.$#'
 			identifier: property.notFound
 			count: 8
@@ -148,12 +88,6 @@ parameters:
 			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$unit_number\.$#'
 			identifier: property.notFound
 			count: 1
-			path: app/Http/Controllers/Api/SearchController.php
-
-		-
-			message: '#^Cannot call method label\(\) on string\.$#'
-			identifier: method.nonObject
-			count: 2
 			path: app/Http/Controllers/Api/SearchController.php
 
 		-
@@ -197,18 +131,6 @@ parameters:
 			identifier: method.nonObject
 			count: 2
 			path: app/Http/Resources/AdvertisementResource.php
-
-		-
-			message: '#^Cannot access property \$value on string\.$#'
-			identifier: property.nonObject
-			count: 1
-			path: app/Http/Resources/BillResource.php
-
-		-
-			message: '#^Cannot call method label\(\) on string\.$#'
-			identifier: method.nonObject
-			count: 1
-			path: app/Http/Resources/BillResource.php
 
 		-
 			message: '#^Cannot access property \$value on string\.$#'
@@ -319,24 +241,6 @@ parameters:
 			path: app/Models/Advertisement.php
 
 		-
-			message: '#^Property App\\Models\\Bill\:\:\$status \(string\) does not accept App\\Enums\\BillStatus\:\:Paid\.$#'
-			identifier: assign.propertyType
-			count: 1
-			path: app/Models/Bill.php
-
-		-
-			message: '#^Property App\\Models\\Bill\:\:\$status \(string\) does not accept App\\Enums\\BillStatus\:\:Partial\.$#'
-			identifier: assign.propertyType
-			count: 1
-			path: app/Models/Bill.php
-
-		-
-			message: '#^Property App\\Models\\Bill\:\:\$status \(string\) does not accept App\\Enums\\BillStatus\:\:Unpaid\.$#'
-			identifier: assign.propertyType
-			count: 1
-			path: app/Models/Bill.php
-
-		-
 			message: '#^Cannot call method isFuture\(\) on string\.$#'
 			identifier: method.nonObject
 			count: 1
@@ -363,18 +267,6 @@ parameters:
 		-
 			message: '#^Property App\\Models\\Bill\:\:\$breakdown \(string\|null\) does not accept array\.$#'
 			identifier: assign.propertyType
-			count: 1
-			path: app/Services/Charge/BillGenerator.php
-
-		-
-			message: '#^Result of && is always false\.$#'
-			identifier: booleanAnd.alwaysFalse
-			count: 1
-			path: app/Services/Charge/BillGenerator.php
-
-		-
-			message: '#^Strict comparison using \=\=\= between string and App\\Enums\\BillStatus\:\:Paid will always evaluate to false\.$#'
-			identifier: identical.alwaysFalse
 			count: 1
 			path: app/Services/Charge/BillGenerator.php
 

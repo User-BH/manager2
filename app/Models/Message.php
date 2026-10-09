@@ -173,6 +173,42 @@ class Message extends Model
                 });
             });
         });
+
+        /*
+         * 🔴 رشته‌ی خصوصیِ واحد با مدیریت فقط **از شروعِ دوره‌ی خودِ کاربر**
+         * (مرحلهٔ ۹ · فاز ۶، F4؛ تصمیمِ ۱۳: «مستأجرِ تازه ≠ مستأجرِ قبلی»).
+         *
+         * پیش از این مستأجرِ تازه کلِ گفت‌وگوی واحد با مدیریت را — پیام‌های
+         * مستأجرِ قبلی — می‌خواند. حالا پیامِ پیش از `start_date` ِ دوره‌ی
+         * جاری‌اش روی همان واحد برایش نیست؛ مدیر همه را می‌بیند (بالا).
+         *
+         * ⚠️ `whereNotNull`ها عمدی‌اند: `NOT (... NULL ...)` در SQL تهی است و
+         * ردیفِ بی‌ربط را هم حذف می‌کرد.
+         */
+        $starts = UnitTenure::query()
+            ->where('user_id', $user->id)
+            ->where('is_current', true)
+            ->whereNotNull('start_date')
+            ->get(['unit_id', 'start_date']);
+
+        foreach ($starts as $tenure) {
+            $query->whereNot(fn (Builder $q) => $q
+                ->whereNotNull('conversation_id')
+                ->whereNotNull('created_at')
+                ->whereIn('conversation_id', Conversation::query()
+                    ->where('type', Conversation::UNIT)
+                    ->where('unit_id', $tenure->unit_id)
+                    ->select('id'))
+                ->where('created_at', '<', $tenure->start_date));
+
+            $query->whereNot(fn (Builder $q) => $q
+                ->whereNull('conversation_id')
+                ->whereNotNull('unit_id')
+                ->whereNotNull('created_at')
+                ->where('audience', MessageAudience::Management->value)
+                ->where('unit_id', $tenure->unit_id)
+                ->where('created_at', '<', $tenure->start_date));
+        }
     }
 
     /** @return BelongsTo<Conversation, $this> */

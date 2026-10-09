@@ -6,23 +6,24 @@ use App\Enums\ResidentRelation;
 use App\Enums\UserRole;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreResidentRequest;
+use App\Http\Requests\UpdateResidentRequest;
+use App\Http\Resources\InvitationPresenter;
 use App\Http\Resources\ResidentResource;
-use App\Models\Complex;
-use App\Models\ComplexInvitation;
 use App\Models\Unit;
 use App\Models\User;
+use App\Services\Account\Membership;
 use App\Services\Units\TenureService;
 use App\Support\Audit;
-use App\Support\Phone;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\ValidationException;
 
 class ResidentController extends Controller
 {
-    public function __construct(private readonly TenureService $tenures) {}
+    public function __construct(
+        private readonly TenureService $tenures,
+        private readonly Membership $membership,
+    ) {}
 
     public function index(Request $request): JsonResponse
     {
@@ -59,85 +60,46 @@ class ResidentController extends Controller
         ]);
     }
 
+    /**
+     * «ساکن جدید» = دعوتِ امن به شماره (مرحلهٔ ۹ · فاز ۶، F5 و F6).
+     *
+     * هیچ حسابی اینجا ساخته نمی‌شود و هیچ کس به مجتمع وصل نمی‌شود. پاسخ پیوندِ
+     * یک‌بارمصرف را **فقط همین یک بار** دارد؛ مدیر خودش آن را برای صاحبِ شماره
+     * می‌فرستد (پیامکِ سامانه فقط برای OTP و یادآورِ بدهی است). صاحبِ شماره
+     * با OTP ثبت‌نام یا وارد می‌شود و با کدِ تازه می‌پذیرد.
+     *
+     * ─── چرا وصلِ مستقیمِ حسابِ موجود هنوز انتخاب نمی‌شود (R21) ────────────
+     * یعنی هر مدیری با دانستنِ یک شماره می‌توانست آن حساب را به مجتمعِ خودش
+     * بکشد و نقشش را عوض کند، بی اطلاعِ صاحبش.
+     */
     public function store(StoreResidentRequest $request): JsonResponse
     {
         $complex = $this->requireComplex();
         $data = $request->validated();
 
-        /*
-         * شماره‌ای که از قبل ثبت شده، دعوت می‌گیرد نه خطا (R21).
-         *
-         * پیش از این، کاربری که خودش ثبت‌نام کرده بود در بن‌بستِ کامل می‌ماند:
-         * خودش نمی‌توانست وارد شود (حساب غیرفعال ساخته می‌شد) و مدیر هم
-         * نمی‌توانست اضافه‌اش کند چون شماره یکتاست. سنجیده شد و اثبات شد.
-         *
-         * وصل‌کردنِ مستقیمِ حسابِ موجود عمداً انتخاب **نشد**: یعنی هر مدیری با
-         * دانستنِ یک شماره می‌توانست آن حساب را به مجتمعِ خودش بکشد و نقشش را
-         * عوض کند، بدونِ اطلاعِ صاحبش.
-         */
-        if ($existing = $this->existingUnattachedUser($data['phone'])) {
-            return $this->invite($existing, $complex, $data);
-        }
-
-        $resident = User::create([
-            'complex_id' => $complex->id,
-            'name' => $data['name'],
-            'phone' => $data['phone'],
-            'email' => $data['email'] ?? null,
-            'national_id' => $data['national_id'] ?? null,
-            'role' => $data['role'],
-            'password' => Hash::make($data['password']),
-            'is_active' => true,
-        ]);
-
-        $this->syncUnit($resident, $data);
-
-        return response()->json(['resident' => $this->present($resident->load('currentUnits'))], 201);
-    }
-
-    /**
-     * کاربرِ موجودی که هنوز به هیچ مجتمعی وصل نیست — یعنی «حالتِ اولیه».
-     *
-     * کاربری که از قبل عضوِ مجتمعِ دیگری است اینجا برنمی‌گردد و مسیرِ عادیِ
-     * اعتبارسنجی ۴۲۲ می‌دهد. عمدی است: بیرون‌کشیدنِ ساکنِ مجتمعِ دیگر کارِ
-     * این فرم نیست.
-     */
-    private function existingUnattachedUser(string $phone): ?User
-    {
-        return User::withoutGlobalScopes()
-            ->where('phone', Phone::normalize($phone))
-            ->whereNull('complex_id')
-            ->first();
-    }
-
-    /** @param  array<string, mixed>  $data */
-    private function invite(User $user, Complex $complex, array $data): JsonResponse
-    {
-        $invitation = ComplexInvitation::updateOrCreate(
-            [
-                'complex_id' => $complex->id,
-                'user_id' => $user->id,
-                'status' => ComplexInvitation::PENDING,
-            ],
-            [
-                'unit_id' => $data['unit_id'] ?? null,
-                'role' => $data['role'],
-                'invited_by' => Auth::id(),
-            ],
+        [$invitation, $token] = $this->membership->invite(
+            $complex,
+            $data['phone'],
+            UserRole::from($data['role']),
+            Unit::findOrFail($data['unit_id']),
+            $request->user(),
         );
 
-        Audit::log('invitation.sent', 'ارسال دعوت به کاربر موجود', $invitation, [
-            'phone' => $user->phone,
+        Audit::log('invitation.sent', 'ارسال دعوت به شماره', $invitation, [
+            'phone' => $invitation->phone,
+            'role' => $invitation->role->value,
         ]);
 
         return response()->json([
             'invited' => true,
-            'message' => 'این شماره از قبل در سامانه حساب دارد. دعوت برایش فرستاده شد و '
-                .'پس از پذیرشِ خودش به مجتمع اضافه می‌شود.',
-        ], 202);
+            'invitation' => InvitationPresenter::forSender($invitation->load('unit')),
+            'link' => InvitationPresenter::link($token),
+            'message' => 'دعوت ساخته شد. پیوند را برای صاحبِ این شماره بفرستید؛ '
+                .'با همان شماره وارد یا ثبت‌نام می‌کند و با کدِ پیامکی می‌پذیرد.',
+        ], 201);
     }
 
-    public function update(StoreResidentRequest $request, User $resident): JsonResponse
+    public function update(UpdateResidentRequest $request, User $resident): JsonResponse
     {
         $this->guard($resident);
         $data = $request->validated();
@@ -148,20 +110,18 @@ class ResidentController extends Controller
          * مدل `name` را از آن دو می‌سازد؛ بی این خطا، ویرایشِ مدیر بی‌صدا نادیده
          * گرفته می‌شد. حسابی که مدیر ساخته (بی دو بخش) مثلِ قبل ویرایش می‌شود.
          */
-        if (! $resident->needsNameCompletion() && $data['name'] !== $resident->name) {
+        if (isset($data['name']) && ! $resident->needsNameCompletion() && $data['name'] !== $resident->name) {
             throw ValidationException::withMessages([
                 'name' => 'نامِ این حساب را خودِ کاربر در پروفایلش تعیین می‌کند.',
             ]);
         }
 
+        // شماره و رمز اینجا نیستند: `UpdateResidentRequest` هر دو را رد می‌کند
         $resident->update(array_filter([
-            'name' => $data['name'],
-            'phone' => $data['phone'],
+            'name' => $data['name'] ?? null,
             'email' => $data['email'] ?? null,
             'national_id' => $data['national_id'] ?? null,
             'role' => $data['role'],
-            // رمز فقط وقتی عوض می‌شود که مقدار جدیدی داده شده باشد
-            'password' => filled($data['password'] ?? null) ? Hash::make($data['password']) : null,
         ], fn ($value) => $value !== null));
 
         $this->syncUnit($resident, $data);
@@ -169,18 +129,28 @@ class ResidentController extends Controller
         return response()->json(['resident' => $this->present($resident->fresh('currentUnits'))]);
     }
 
+    /**
+     * «حذفِ ساکن» = **پایانِ عضویت**، نه حذفِ حساب (مرحلهٔ ۹ · فاز ۶، F4).
+     *
+     * پیش از این ردیفِ `users` حذف می‌شد: دوره‌های واحد (`cascadeOnDelete`)،
+     * پرداخت‌کننده‌ی پرداخت‌ها (`NULL`) و حسابِ ساکنا همه می‌رفتند. حالا
+     * دوره‌ها بسته و حساب به حالتِ اولیه برمی‌گردد؛ هیچ ردیفی حذف نمی‌شود.
+     */
     public function destroy(User $resident): JsonResponse
     {
         $this->guard($resident);
 
-        Audit::log('resident.deleted', 'حذف ساکن', $resident, [
+        Audit::log('resident.removed', 'پایانِ عضویتِ ساکن', $resident, [
             'name' => $resident->name,
             'phone' => $resident->phone,
+            'complex_id' => $resident->complex_id,
         ]);
 
-        $resident->delete();
+        $this->membership->end($resident);
 
-        return response()->json(['message' => 'ساکن حذف شد.']);
+        return response()->json([
+            'message' => 'عضویتِ ساکن در مجتمع پایان یافت. حساب و سابقه‌اش حفظ شد.',
+        ]);
     }
 
     public function toggleActive(User $resident): JsonResponse
@@ -257,11 +227,21 @@ class ResidentController extends Controller
         }
 
         $unit = Unit::findOrFail($data['unit_id']);
+        $relation = $resident->role === UserRole::Owner ? ResidentRelation::Owner : ResidentRelation::Tenant;
+
+        /*
+         * همان واحد و همان نسبت: دوره‌ی جاری ادامه دارد. واحد حالا در ویرایش
+         * اجباری است (F6)؛ بی این شرط، هر ویرایشِ ایمیل یک دوره‌ی تازه می‌ساخت
+         * و سابقه‌ی واحد را با دوره‌های یک‌روزه پر می‌کرد.
+         */
+        if ($resident->currentUnits()->whereKey($unit->id)->wherePivot('relation', $relation->value)->exists()) {
+            return;
+        }
 
         $this->tenures->open(
             $unit,
             $resident,
-            $resident->role === UserRole::Owner ? ResidentRelation::Owner : ResidentRelation::Tenant,
+            $relation,
             // سهمِ مالکیت اختیاری است؛ نبودش یعنی تک‌مالکی
             (float) ($data['share_percent'] ?? 100),
         );

@@ -194,7 +194,8 @@ class MessageSender
             return null;
         }
 
-        $target = Message::query()->where('conversation_id', $conversation->id)->whereKey((int) $replyToId)->first();
+        // پاسخ به پیامی که برایش دیدنی نیست (ساکنِ قبلیِ واحد) پیش‌نمایشش را لو می‌داد (F4)
+        $target = Message::query()->where('conversation_id', $conversation->id)->visibleTo($user)->whereKey((int) $replyToId)->first();
 
         if ($target === null || $target->isDeleted() || ($target->is_hidden && ! $user->isAdmin())) {
             throw DomainException::invalid('پیامی که به آن پاسخ می‌دهید در دسترس نیست.', 'messenger.reply_unavailable');

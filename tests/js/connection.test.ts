@@ -273,6 +273,36 @@ describe('شکستِ شبکه‌ای از میانِ رهگیر', () => {
   })
 
   /**
+   * 🔴 لغوِ عمدی (React Query هنگامِ باطل‌سازیِ دوباره) آفلاین نیست (مرحلهٔ ۹ · فاز ۶).
+   *
+   * در پیام‌رسانِ مدیر روی WebKit، «خواندم» و «ارسال» پشتِ هم درخواستِ فهرست
+   * را لغو می‌کردند و صفحه با نوارِ «اتصال برقرار نیست» به حالتِ خطا می‌رفت.
+   */
+  it('درخواستِ لغوشده وضعیت را آفلاین نمی‌کند', async () => {
+    const { http } = await import('@/shared/lib/http')
+
+    const controller = new AbortController()
+    http.defaults.adapter = (config) =>
+      new Promise((_, reject) => {
+        config.signal?.addEventListener?.('abort', () =>
+          reject(
+            Object.assign(new Error('canceled'), {
+              __CANCEL__: true,
+              name: 'CanceledError',
+              config,
+            }),
+          ),
+        )
+      })
+
+    const pending = http.get('/whatever', { signal: controller.signal })
+    controller.abort()
+
+    await expect(pending).rejects.toBeDefined()
+    expect(useConnectionStore.getState().state).toBe('online')
+  })
+
+  /**
    * ⚠️ متقارن، و لازم: **هر پاسخی** — حتی ۵۰۰ — ثابت می‌کند اتصال هست.
    *
    * بدونِ این، «هر خطا یعنی آفلاین» هم سبز می‌شد و نشانگر با اولین

@@ -210,7 +210,8 @@ class OperationalHardeningTest extends TestCase
     {
         $this->actingAs($this->admin)->deleteJson("/api/residents/{$this->resident->id}")->assertOk();
 
-        $log = AuditLog::where('action', 'resident.deleted')->latest('id')->first();
+        // مرحلهٔ ۹ · فاز ۶: «حذف» حالا پایانِ عضویت است (F4)
+        $log = AuditLog::where('action', 'resident.removed')->latest('id')->first();
 
         $this->assertNotNull($log);
         $this->assertSame('ساکن', $log->properties['name']);
@@ -268,8 +269,8 @@ class OperationalHardeningTest extends TestCase
 
         $this->actingAs($this->superAdmin)->getJson('/api/system/audit-logs')
             ->assertOk()
-            ->assertJsonPath('data.0.action', 'resident.deleted')
-            ->assertJsonPath('data.0.actionLabel', 'حذف ساکن');
+            ->assertJsonPath('data.0.action', 'resident.removed')
+            ->assertJsonPath('data.0.actionLabel', 'پایانِ عضویتِ ساکن');
     }
 
     public function test_a_complex_admin_cannot_read_the_audit_log(): void

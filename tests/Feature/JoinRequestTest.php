@@ -6,6 +6,7 @@ use App\Enums\AccountState;
 use App\Enums\UserRole;
 use App\Models\Complex;
 use App\Models\ComplexInvitation;
+use App\Models\Unit;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -26,6 +27,8 @@ class JoinRequestTest extends TestCase
 
     private User $applicant;
 
+    private Unit $unit;
+
     protected function setUp(): void
     {
         parent::setUp();
@@ -37,6 +40,8 @@ class JoinRequestTest extends TestCase
             'phone' => '09120001111',
             'is_active' => true,
         ]);
+
+        $this->unit = Unit::factory()->create(['complex_id' => $this->complex->id]);
 
         $this->applicant = User::factory()->create([
             'complex_id' => null,
@@ -170,12 +175,52 @@ class JoinRequestTest extends TestCase
         $request = $this->makeRequest();
 
         $this->actingAs($this->manager)
-            ->postJson("/api/v1/join-requests/{$request->id}/approve")
+            ->postJson("/api/v1/join-requests/{$request->id}/approve", $this->placement())
             ->assertOk();
 
         $joined = $this->applicant->fresh();
         $this->assertSame($this->complex->id, $joined->complex_id);
         $this->assertSame(AccountState::Member, AccountState::of($joined));
+
+        // F6 (مرحلهٔ ۹ · فاز ۶): با دوره‌ی جاری روی همان واحد، نه عضوِ بی‌واحد
+        $this->assertSame([$this->unit->id], $joined->currentUnits()->pluck('units.id')->all());
+    }
+
+    /**
+     * 🔴 F6: تأیید بی واحد پذیرفته نیست.
+     *
+     * پیش از این همین درخواست عضوِ مجتمع **بی هیچ واحدی** می‌ساخت (Audit ِ ۹/۲:
+     * `unit_user` صفر ردیف).
+     */
+    public function test_approving_without_a_unit_is_refused(): void
+    {
+        $request = $this->makeRequest();
+
+        $this->actingAs($this->manager)
+            ->postJson("/api/v1/join-requests/{$request->id}/approve", ['role' => 'owner'])
+            ->assertStatus(422)
+            ->assertJsonValidationErrors('unit_id');
+
+        $this->assertNull($this->applicant->fresh()->complex_id);
+        $this->assertSame(ComplexInvitation::PENDING, $request->fresh()->status);
+    }
+
+    /** واحدِ مجتمعِ دیگر یا واحدِ حذف‌شده هم نه. */
+    public function test_a_foreign_or_deleted_unit_is_refused(): void
+    {
+        $request = $this->makeRequest();
+        $foreign = Unit::factory()->create(['complex_id' => Complex::factory()->create()->id]);
+        $deleted = Unit::factory()->create(['complex_id' => $this->complex->id]);
+        $deleted->delete();
+
+        foreach ([$foreign, $deleted] as $unit) {
+            $this->actingAs($this->manager)
+                ->postJson("/api/v1/join-requests/{$request->id}/approve", ['role' => 'owner', 'unit_id' => $unit->id])
+                ->assertStatus(422)
+                ->assertJsonValidationErrors('unit_id');
+        }
+
+        $this->assertNull($this->applicant->fresh()->complex_id);
     }
 
     public function test_the_manager_chooses_the_role(): void
@@ -183,7 +228,7 @@ class JoinRequestTest extends TestCase
         $request = $this->makeRequest();
 
         $this->actingAs($this->manager)
-            ->postJson("/api/v1/join-requests/{$request->id}/approve", ['role' => 'tenant'])
+            ->postJson("/api/v1/join-requests/{$request->id}/approve", $this->placement('tenant'))
             ->assertOk();
 
         $this->assertSame(UserRole::Tenant, $this->applicant->fresh()->role);
@@ -210,14 +255,17 @@ class JoinRequestTest extends TestCase
     {
         $request = $this->makeRequest();
 
+        $otherComplex = Complex::factory()->create();
         $otherManager = User::factory()->create([
-            'complex_id' => Complex::factory()->create()->id,
+            'complex_id' => $otherComplex->id,
             'role' => UserRole::ComplexAdmin,
             'is_active' => true,
         ]);
+        // ورودیِ معتبر برای مجتمعِ خودش، تا فقط مالکیتِ درخواست سنجیده شود
+        $ownUnit = Unit::factory()->create(['complex_id' => $otherComplex->id]);
 
         $this->actingAs($otherManager)
-            ->postJson("/api/v1/join-requests/{$request->id}/approve")
+            ->postJson("/api/v1/join-requests/{$request->id}/approve", ['role' => 'owner', 'unit_id' => $ownUnit->id])
             ->assertNotFound();
 
         $this->assertNull($this->applicant->fresh()->complex_id);
@@ -227,10 +275,10 @@ class JoinRequestTest extends TestCase
     {
         $request = $this->makeRequest();
 
-        $this->actingAs($this->manager)->postJson("/api/v1/join-requests/{$request->id}/approve")->assertOk();
+        $this->actingAs($this->manager)->postJson("/api/v1/join-requests/{$request->id}/approve", $this->placement())->assertOk();
 
         $this->actingAs($this->manager)
-            ->postJson("/api/v1/join-requests/{$request->id}/approve")
+            ->postJson("/api/v1/join-requests/{$request->id}/approve", $this->placement())
             ->assertStatus(422);
     }
 
@@ -246,7 +294,7 @@ class JoinRequestTest extends TestCase
         $elsewhere = $this->applicant->fresh()->complex_id;
 
         $this->actingAs($this->manager)
-            ->postJson("/api/v1/join-requests/{$request->id}/approve")
+            ->postJson("/api/v1/join-requests/{$request->id}/approve", $this->placement())
             ->assertStatus(422);
 
         $this->assertSame($elsewhere, $this->applicant->fresh()->complex_id);
@@ -266,6 +314,12 @@ class JoinRequestTest extends TestCase
     }
 
     /* ── کمکی ──────────────────────────────────────────────────────────── */
+
+    /** @return array{role: string, unit_id: int} */
+    private function placement(string $role = 'owner'): array
+    {
+        return ['role' => $role, 'unit_id' => $this->unit->id];
+    }
 
     private function makeRequest(): ComplexInvitation
     {

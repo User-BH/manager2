@@ -20,9 +20,8 @@ class MyBillController extends Controller
     public function index(): JsonResponse
     {
         $user = Auth::user();
-        $unitIds = $user->currentUnits()->pluck('units.id');
-
-        $bills = Bill::whereIn('unit_id', $unitIds)
+        // فقط دوره‌های سکونتِ خودش، نه سابقه‌ی ساکنِ قبلیِ واحد (مرحلهٔ ۹ · فاز ۶، F4)
+        $bills = Bill::query()->visibleToResident($user)
             ->with('unit')
             ->orderByDesc('period')
             ->paginate(15);

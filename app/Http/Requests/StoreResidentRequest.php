@@ -2,53 +2,45 @@
 
 namespace App\Http\Requests;
 
+use App\Support\Phone;
 use Illuminate\Validation\Rule;
-use Illuminate\Validation\Rules\Password;
 
 /**
- * ساکن — همان قواعد برای ساخت و ویرایش.
+ * «ساکن جدید» = **دعوتِ امن به یک شماره** (مرحلهٔ ۹ · فاز ۶، F5 و F6).
  *
- * از `Api/ResidentController.php::validateData()` بیرون کشیده شد (R9b). قواعد کلمه‌به‌کلمه همان‌اند؛ این
- * جابه‌جایی عمداً رفتار را عوض نمی‌کند.
+ * پیش از این مدیر برای شماره‌ی بی‌حساب حساب می‌ساخت — با نامی که خودش می‌نوشت
+ * و رمزی که خودش انتخاب می‌کرد، بی OTP. حالا فقط شماره، نقش و واحد می‌گیرد؛
+ * حساب، نام و رمز را صاحبِ شماره خودش با OTP می‌سازد (`Membership::invite`).
+ *
+ * `name` و `password` دیگر پذیرفته نمی‌شوند (`prohibited`)، نه بی‌صدا نادیده:
+ * کلاینتِ کهنه‌ای که رمز بفرستد باید بفهمد رمزی ساخته نشد.
  */
 class StoreResidentRequest extends BaseFormRequest
 {
+    protected function prepareForValidation(): void
+    {
+        if ($this->has('phone')) {
+            $this->merge(['phone' => Phone::normalize((string) $this->input('phone'))]);
+        }
+    }
+
     /**
      * @return array<string, mixed>
      */
     public function rules(): array
     {
         return [
-            'name' => ['required', 'string', 'max:120'],
-            /*
-             * یکتایی فقط میانِ کاربرانی که **از قبل به مجتمعی وصل‌اند** (R21).
-             *
-             * شماره‌ای که متعلق به کاربرِ ثبت‌نام‌کرده‌ی بدونِ مجتمع است باید از
-             * اعتبارسنجی رد شود تا کنترلر بتواند برایش دعوت بفرستد. پیش از این
-             * همین‌جا ۴۲۲ می‌گرفت و آن کاربر در بن‌بستِ دائمی می‌ماند.
-             *
-             * ساکنِ مجتمعِ دیگر همچنان رد می‌شود؛ بیرون‌کشیدنش کارِ این فرم نیست.
-             */
-            'phone' => [
-                'required',
-                'regex:/^09\d{9}$/',
-                Rule::unique('users', 'phone')
-                    ->whereNotNull('complex_id')
-                    ->ignore($this->route('resident')?->id),
-            ],
-            'email' => ['nullable', 'email', Rule::unique('users', 'email')->ignore($this->route('resident')?->id)],
-            'national_id' => ['nullable', 'string', 'max:20'],
+            'phone' => ['required', 'regex:/^09\d{9}$/'],
             'role' => ['required', 'in:owner,tenant'],
-            // exists خام به مجتمع محدود نیست و ComplexScope هم روی کوئریِ
-            // اعتبارسنجی اعمال نمی‌شود؛ بدون این قید، شناسه‌ی واحدِ مجتمع
-            // دیگری هم پذیرفته می‌شد.
+            // F6: ساکن بی‌واحد نیست؛ واحدِ همین مجتمع و حذف‌نشده
             'unit_id' => [
-                'nullable',
-                Rule::exists('units', 'id')->where('complex_id', $this->currentComplexId()),
+                'required',
+                Rule::exists('units', 'id')
+                    ->where('complex_id', $this->currentComplexId())
+                    ->whereNull('deleted_at'),
             ],
-            // همان قاعده‌ی تغییر رمز در پروفایل؛ پیش از این min:6 بود و حساب‌هایی
-            // که مدیر می‌ساخت می‌توانستند رمز بسیار ضعیف داشته باشند.
-            'password' => [$this->route('resident') ? 'nullable' : 'required', 'nullable', Password::min(8)->letters()->numbers()],
+            'name' => ['prohibited'],
+            'password' => ['prohibited'],
         ];
     }
 
@@ -59,7 +51,9 @@ class StoreResidentRequest extends BaseFormRequest
     {
         return [
             'phone.regex' => 'شماره تلفن همراه باید به شکل ۰۹xxxxxxxxx باشد.',
-            'phone.unique' => 'این شماره تلفن قبلا ثبت شده است.',
+            'unit_id.required' => 'برای مالک و مستأجر انتخابِ واحد لازم است.',
+            'name.prohibited' => 'نام را خودِ کاربر هنگامِ ثبت‌نام وارد می‌کند.',
+            'password.prohibited' => 'رمز را خودِ کاربر هنگامِ ثبت‌نام انتخاب می‌کند.',
         ];
     }
 
@@ -68,9 +62,6 @@ class StoreResidentRequest extends BaseFormRequest
      */
     public function attributes(): array
     {
-        return [
-            'name' => 'نام', 'email' => 'ایمیل', 'phone' => 'شماره تلفن',
-            'role' => 'نقش', 'password' => 'رمز عبور',
-        ];
+        return ['phone' => 'شماره تلفن', 'role' => 'نقش', 'unit_id' => 'واحد'];
     }
 }

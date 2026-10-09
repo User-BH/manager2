@@ -255,10 +255,13 @@ jobs:
           # پنجره‌ی کوتاهِ تأییدِ رمز تا سفرِ امنیت پنجره‌ی رمز را واقعاً ببیند (فاز ۱۰)
           AUTH_PASSWORD_TIMEOUT: '5'
 
+      # ⚠️ نه فقط با شکستِ کار: تستِ «ناپایدار» کار را سبز می‌کند و ردِ شکستِ اولش
+      # همین‌جاست (`retain-on-first-failure`، مرحلهٔ ۹ · فاز ۶). بی شکست، پوشه تقریباً خالی است.
       - name: نگه‌داشتنِ گزارشِ شکست
-        if: failure()
+        if: ${{ !cancelled() }}
         uses: actions/upload-artifact@v4
         with:
+          if-no-files-found: ignore
           name: playwright-report
           path: |
             playwright-report

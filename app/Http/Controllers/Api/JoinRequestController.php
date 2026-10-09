@@ -6,15 +6,17 @@ use App\Enums\AccountState;
 use App\Enums\UserRole;
 use App\Exceptions\DomainException;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\ApproveJoinRequestRequest;
 use App\Models\ComplexInvitation;
+use App\Models\Unit;
 use App\Models\User;
+use App\Services\Account\Membership;
 use App\Support\Audit;
 use App\Support\ComplexResolver;
 use App\Support\Phone;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\DB;
 
 /**
  * درخواستِ پیوستن از سمتِ واحد (R21b).
@@ -28,6 +30,8 @@ use Illuminate\Support\Facades\DB;
  */
 class JoinRequestController extends Controller
 {
+    public function __construct(private readonly Membership $membership) {}
+
     /**
      * آیا این شماره متعلق به مدیرِ یک مجتمع است؟ (اعتبارسنجیِ لحظه‌ای)
      *
@@ -71,19 +75,25 @@ class JoinRequestController extends Controller
             );
         }
 
-        $invitation = ComplexInvitation::updateOrCreate(
-            [
+        /*
+         * یک درخواستِ در انتظار برای هر (مجتمع، کاربر) — در خودِ پایگاه‌داده
+         * (`live_key` ِ یکتا؛ مرحلهٔ ۹ · فاز ۶). ارسالِ دوباره همان را تازه می‌کند.
+         */
+        $key = 'request:'.$manager->complex_id.':'.$user->id;
+        $invitation = ComplexInvitation::where('live_key', $key)->first()
+            ?? new ComplexInvitation([
                 'complex_id' => $manager->complex_id,
                 'user_id' => $user->id,
-                'status' => ComplexInvitation::PENDING,
-            ],
-            [
+                'phone' => $user->phone,
                 'direction' => ComplexInvitation::REQUEST,
-                // نقشِ پیشنهادی؛ مدیر هنگام تایید می‌تواند عوضش کند
-                'role' => UserRole::Owner,
-                'invited_by' => $user->id,
-            ],
-        );
+                'status' => ComplexInvitation::PENDING,
+            ]);
+        $invitation->fill([
+            // نقشِ پیشنهادی؛ مدیر هنگام تایید می‌تواند عوضش کند
+            'role' => UserRole::Owner,
+            'invited_by' => $user->id,
+        ]);
+        $invitation->forceFill(['live_key' => $key])->save();
 
         Audit::log('join_request.sent', 'ارسال درخواست پیوستن به مجتمع', $invitation, [
             'complex_id' => $manager->complex_id,
@@ -121,68 +131,34 @@ class JoinRequestController extends Controller
         ]);
     }
 
-    public function approve(Request $request, ComplexInvitation $invitation): JsonResponse
+    /**
+     * تأیید — با نقش و **واحد** (F6). شرط‌ها زیرِ قفل در `Membership::approveRequest`
+     * دوباره خوانده می‌شوند: دو کلیکِ هم‌زمانِ مدیر یک بار کاربر را وصل می‌کند.
+     */
+    public function approve(ApproveJoinRequestRequest $request, ComplexInvitation $invitation): JsonResponse
     {
         $this->authorizeManagerOf($invitation);
 
-        $role = $request->input('role') === UserRole::Tenant->value
-            ? UserRole::Tenant
-            : UserRole::Owner;
+        $data = $request->validated();
 
-        DB::transaction(function () use ($invitation, $role): void {
-            /*
-             * وضعیت داخلِ قفل دوباره خوانده می‌شود: دو کلیکِ هم‌زمانِ مدیر
-             * نباید دو بار کاربر را وصل کند.
-             */
-            $fresh = ComplexInvitation::lockForUpdate()->find($invitation->id);
+        $this->membership->approveRequest(
+            $invitation,
+            UserRole::from($data['role']),
+            Unit::findOrFail($data['unit_id']),
+        );
 
-            if (! $fresh || $fresh->status !== ComplexInvitation::PENDING) {
-                throw DomainException::invalid('این درخواست دیگر معتبر نیست.', 'invitation.not_pending');
-            }
+        Audit::log('join_request.approved', 'تایید درخواست پیوستن', $invitation, [
+            'unit_id' => (int) $data['unit_id'],
+        ]);
 
-            $applicant = User::withoutGlobalScopes()->lockForUpdate()->find($fresh->user_id);
-
-            /*
-             * ممکن است بینِ ارسال و تایید، خودش جای دیگری عضو شده باشد.
-             * تاییدِ کورکورانه او را بی‌خبر از مجتمعِ فعلی‌اش بیرون می‌کشید.
-             */
-            if (! $applicant || $applicant->complex_id !== null) {
-                throw DomainException::invalid(
-                    'این کاربر دیگر در انتظار پیوستن نیست.',
-                    'join_request.user_unavailable',
-                );
-            }
-
-            $applicant->forceFill([
-                'complex_id' => $fresh->complex_id,
-                'role' => $role,
-            ])->save();
-
-            $fresh->update([
-                'status' => ComplexInvitation::ACCEPTED,
-                'role' => $role,
-                'responded_at' => now(),
-            ]);
-
-            // بقیه‌ی درخواست‌ها/دعوت‌های در انتظارِ همین کاربر باطل می‌شوند
-            ComplexInvitation::where('user_id', $applicant->id)
-                ->pending()
-                ->update(['status' => ComplexInvitation::DECLINED, 'responded_at' => now()]);
-        }, attempts: 3);
-
-        Audit::log('join_request.approved', 'تایید درخواست پیوستن', $invitation);
-
-        return response()->json(['message' => 'کاربر به مجتمع اضافه شد.']);
+        return response()->json(['message' => 'کاربر به مجتمع و واحدش اضافه شد.']);
     }
 
     public function reject(ComplexInvitation $invitation): JsonResponse
     {
         $this->authorizeManagerOf($invitation);
 
-        $invitation->update([
-            'status' => ComplexInvitation::DECLINED,
-            'responded_at' => now(),
-        ]);
+        $invitation->close(ComplexInvitation::DECLINED);
 
         return response()->json(['message' => 'درخواست رد شد.']);
     }

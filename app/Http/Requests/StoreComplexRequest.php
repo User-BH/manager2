@@ -3,17 +3,24 @@
 namespace App\Http\Requests;
 
 use App\Enums\ComplexType;
+use App\Support\Phone;
 use Illuminate\Validation\Rule;
-use Illuminate\Validation\Rules\Password;
 
 /**
  * ساختِ مجتمعِ تازه (ادمینِ کل).
  *
- * از `Api/System/ComplexController.php::store()` بیرون کشیده شد (R9b). قواعد کلمه‌به‌کلمه همان‌اند؛ این
- * جابه‌جایی عمداً رفتار را عوض نمی‌کند.
+ * از `Api/System/ComplexController.php::store()` بیرون کشیده شد (R9b). از مرحلهٔ ۹ ·
+ * فاز ۶ مدیر با دعوتِ امن می‌آید، نه با حسابی که ادمینِ کل می‌سازد.
  */
 class StoreComplexRequest extends BaseFormRequest
 {
+    protected function prepareForValidation(): void
+    {
+        if ($this->has('admin_phone')) {
+            $this->merge(['admin_phone' => Phone::normalize((string) $this->input('admin_phone'))]);
+        }
+    }
+
     /**
      * @return array<string, mixed>
      */
@@ -30,21 +37,19 @@ class StoreComplexRequest extends BaseFormRequest
              */
             'type' => ['required', Rule::in(ComplexType::values())],
             'address' => ['nullable', 'string', 'max:255'],
-            'admin_name' => ['required', 'string', 'max:120'],
             // ورود سامانه با شماره تلفن است، پس مدیر مجتمع حتماً باید شماره
             // داشته باشد؛ نسخه‌ی قبلی فقط ایمیل می‌گرفت و حساب ساخته‌شده
             // عملاً قابل ورود نبود.
-            'admin_phone' => ['required', 'regex:/^09\d{9}$/', Rule::unique('users', 'phone')],
-            'admin_email' => ['nullable', 'email', Rule::unique('users', 'email')],
+            'admin_phone' => ['required', 'regex:/^09\d{9}$/'],
             /*
-             * همان سیاستِ رمزِ بقیه‌ی سامانه (R18).
-             *
-             * پیش از این `min:6` بدونِ هیچ قیدی بود — یعنی سست‌ترین قاعده‌ی
-             * پروژه دقیقاً روی پرقدرت‌ترین حسابِ داخلِ یک مجتمع اعمال می‌شد.
-             * حسابِ مدیرِ مجتمع به قبض، پرداخت و همه‌ی ساکنین دسترسی دارد؛
-             * «123456» برایش قابل قبول نیست.
+             * 🔴 مرحلهٔ ۹ · فاز ۶ (تصمیمِ کارفرما): ادمینِ کل دیگر **حساب نمی‌سازد**.
+             * پیش از این نام و رمزِ مدیر را خودش تعیین می‌کرد و حساب بی OTP
+             * ساخته می‌شد (همان F5). حالا برای شماره‌ی مدیر دعوتِ امن صادر
+             * می‌شود؛ نام و رمز را صاحبِ شماره خودش هنگامِ ثبت‌نام می‌گذارد.
              */
-            'admin_password' => ['required', Password::min(8)->letters()->numbers()],
+            'admin_name' => ['prohibited'],
+            'admin_email' => ['prohibited'],
+            'admin_password' => ['prohibited'],
         ];
     }
 
@@ -55,7 +60,8 @@ class StoreComplexRequest extends BaseFormRequest
     {
         return [
             'admin_phone.regex' => 'شماره تلفن همراه باید به شکل ۰۹xxxxxxxxx باشد.',
-            'admin_phone.unique' => 'این شماره تلفن قبلا ثبت شده است.',
+            'admin_name.prohibited' => 'نامِ مدیر را خودش هنگامِ ثبت‌نام وارد می‌کند.',
+            'admin_password.prohibited' => 'رمزِ مدیر را خودش هنگامِ ثبت‌نام انتخاب می‌کند.',
         ];
     }
 
@@ -67,10 +73,7 @@ class StoreComplexRequest extends BaseFormRequest
         return [
             'name' => 'نام مجتمع',
             'type' => 'نوع مجتمع',
-            'admin_name' => 'نام مدیر',
             'admin_phone' => 'شماره مدیر',
-            'admin_email' => 'ایمیل مدیر',
-            'admin_password' => 'رمز عبور مدیر',
         ];
     }
 }

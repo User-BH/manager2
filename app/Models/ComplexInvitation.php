@@ -9,7 +9,16 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Support\Carbon;
 
 /**
- * دعوتِ یک کاربرِ موجود به یک مجتمع (R21).
+ * دعوت به یک مجتمع (R21) — و از مرحلهٔ ۹ · فاز ۶، **دعوتِ امن به یک شماره**.
+ *
+ * ─── قاعده‌های دعوتِ مدیر (`direction = invite`) ───────────────────────────
+ * • به **شماره** بسته است (`phone`)، نه به حساب؛ گیرنده شاید هنوز حساب ندارد.
+ * • توکنِ ۲۵۶ بیتی با `random_bytes`؛ فقط SHA-256 ِ آن ذخیره می‌شود و خودش
+ *   یک بار به دعوت‌کننده نشان داده می‌شود (`issue`).
+ * • انقضا (`TTL_DAYS`)، ابطال، و یک‌بارمصرف: فقط «زنده» (`live`) پذیرفتنی است
+ *   و پاسخ زیرِ قفلِ ردیف ثبت می‌شود.
+ * • **دعوت به‌تنهایی دسترسی نمی‌دهد:** پذیرش فقط از حسابِ همان شماره، با کدِ
+ *   OTP ِ تازه، و فقط برای حسابِ اولیه (`Membership::accept`).
  *
  * ⚠️ این مدل عمداً `BelongsToComplex` **ندارد**.
  *
@@ -20,7 +29,11 @@ use Illuminate\Support\Carbon;
  *
  * @property int $id
  * @property int $complex_id
- * @property int $user_id
+ * @property int|null $user_id
+ * @property string|null $phone
+ * @property string|null $token_hash
+ * @property Carbon|null $expires_at
+ * @property string|null $live_key
  * @property int|null $unit_id
  * @property UserRole $role
  * @property string $direction
@@ -37,23 +50,109 @@ class ComplexInvitation extends Model
 
     public const DECLINED = 'declined';
 
+    /** دعوت‌کننده پس گرفت. */
+    public const REVOKED = 'revoked';
+
+    /** عمرِ دعوت؛ پس از آن پذیرفتنی نیست و دعوتِ تازه لازم است. */
+    public const TTL_DAYS = 7;
+
     /** مدیر فرستاده؛ کاربر تایید می‌کند. */
     public const INVITE = 'invite';
 
     /** کاربر فرستاده؛ مدیر تایید می‌کند. */
     public const REQUEST = 'request';
 
+    /*
+     * ⚠️ `token_hash`، `live_key` و `expires_at` fillable نیستند: فقط `issue`
+     * و `close` آن‌ها را می‌نویسند، تا هیچ ورودیِ درخواستی توکن یا عمرِ دعوت را
+     * تعیین نکند.
+     */
     protected $fillable = [
-        'complex_id', 'user_id', 'unit_id', 'role',
+        'complex_id', 'user_id', 'phone', 'unit_id', 'role',
         'direction', 'invited_by', 'status', 'responded_at',
     ];
+
+    protected $hidden = ['token_hash', 'live_key'];
 
     protected function casts(): array
     {
         return [
             'role' => UserRole::class,
             'responded_at' => 'datetime',
+            'expires_at' => 'datetime',
         ];
+    }
+
+    /**
+     * ساختِ دعوتِ تازه؛ توکنِ خام **فقط** همین‌جا برمی‌گردد.
+     *
+     * `live_key` یکتاست: دعوتِ زنده‌ی دوم برای همان (مجتمع، شماره) در خودِ
+     * پایگاه‌داده رد می‌شود — حتی با دو درخواستِ هم‌زمان.
+     *
+     * @param  array<string, mixed>  $attributes
+     * @return array{0: self, 1: string}
+     */
+    public static function issue(array $attributes): array
+    {
+        $token = rtrim(strtr(base64_encode(random_bytes(32)), '+/', '-_'), '=');
+
+        $invitation = new self($attributes + ['direction' => self::INVITE, 'status' => self::PENDING]);
+        $invitation->forceFill([
+            'token_hash' => self::hashToken($token),
+            'expires_at' => now()->addDays(self::TTL_DAYS),
+            'live_key' => self::liveKey($invitation->complex_id, (string) $invitation->phone),
+        ])->save();
+
+        return [$invitation, $token];
+    }
+
+    public static function hashToken(string $token): string
+    {
+        return hash('sha256', $token);
+    }
+
+    /** دعوتِ زنده با این توکن — یا null (نامعتبر، مصرف‌شده، باطل، منقضی). */
+    public static function findLiveByToken(string $token): ?self
+    {
+        if ($token === '' || strlen($token) > 128) {
+            return null;
+        }
+
+        return self::query()->invites()->live()->where('token_hash', self::hashToken($token))->first();
+    }
+
+    public static function liveKey(int $complexId, string $phone): string
+    {
+        return 'invite:'.$complexId.':'.$phone;
+    }
+
+    /** پایانِ زندگیِ دعوت: وضعیتِ نهایی، و آزاد شدنِ جای «دعوتِ زنده». */
+    public function close(string $status, ?int $userId = null): void
+    {
+        $this->forceFill(array_filter([
+            'status' => $status,
+            'responded_at' => now(),
+            'live_key' => null,
+            'user_id' => $userId,
+        ], fn ($value, $key) => $value !== null || $key === 'live_key', ARRAY_FILTER_USE_BOTH))->save();
+    }
+
+    public function isExpired(): bool
+    {
+        return $this->expires_at !== null && $this->expires_at->isPast();
+    }
+
+    /** در انتظار و منقضی‌نشده. */
+    public function isLive(): bool
+    {
+        return $this->status === self::PENDING && ! $this->isExpired();
+    }
+
+    /** @param  Builder<ComplexInvitation>  $query */
+    public function scopeLive(Builder $query): void
+    {
+        $query->where('status', self::PENDING)
+            ->where(fn (Builder $q) => $q->whereNull('expires_at')->orWhere('expires_at', '>', now()));
     }
 
     /** @param  Builder<ComplexInvitation>  $query */

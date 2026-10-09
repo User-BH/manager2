@@ -5,13 +5,13 @@ namespace App\Http\Controllers\Api;
 use App\Enums\UserRole;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreManagerRequest;
+use App\Http\Resources\InvitationPresenter;
 use App\Models\User;
+use App\Services\Account\Membership;
 use App\Support\Audit;
 use App\Support\Jalali;
-use App\Support\Phone;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Hash;
 
 class ManagerController extends Controller
 {
@@ -37,23 +37,39 @@ class ManagerController extends Controller
         ]);
     }
 
+    public function __construct(private readonly Membership $membership) {}
+
+    /**
+     * «مدیر جدید» = دعوتِ امن با نقشِ مدیر (مرحلهٔ ۹ · فاز ۶، F5).
+     *
+     * پیش از این حساب با رمزی که همین مدیر انتخاب می‌کرد ساخته می‌شد؛ یعنی
+     * او رمزِ حسابِ مدیرِ دوم را می‌دانست. حالا صاحبِ شماره خودش با OTP
+     * ثبت‌نام می‌کند و با کدِ تازه می‌پذیرد. دادنِ نقشِ مدیر همچنان تأییدِ
+     * دوباره‌ی رمز می‌خواهد (`reauth`).
+     */
     public function store(StoreManagerRequest $request): JsonResponse
     {
         $complex = $this->requireComplex();
-        $request->merge(['phone' => Phone::normalize($request->input('phone'))]);
 
-        $data = $request->validated();
+        [$invitation, $token] = $this->membership->invite(
+            $complex,
+            $request->validated()['phone'],
+            UserRole::ComplexAdmin,
+            null,
+            $request->user(),
+        );
 
-        User::create([
-            'complex_id' => $complex->id,
-            'name' => $data['name'],
-            'phone' => $data['phone'],
-            'password' => Hash::make($data['password']),
-            'role' => UserRole::ComplexAdmin,
-            'is_active' => true,
+        Audit::log('invitation.sent', 'ارسال دعوتِ مدیر', $invitation, [
+            'phone' => $invitation->phone,
+            'role' => UserRole::ComplexAdmin->value,
         ]);
 
-        return response()->json(['message' => 'مدیر جدید برای مجتمع اضافه شد.'], 201);
+        return response()->json([
+            'invited' => true,
+            'invitation' => InvitationPresenter::forSender($invitation),
+            'link' => InvitationPresenter::link($token),
+            'message' => 'دعوتِ مدیر ساخته شد. پیوند را برای صاحبِ این شماره بفرستید.',
+        ], 201);
     }
 
     public function destroy(User $manager): JsonResponse
@@ -77,14 +93,16 @@ class ManagerController extends Controller
             ], 422);
         }
 
-        Audit::log('manager.deleted', 'حذف مدیر مجتمع', $manager, [
+        Audit::log('manager.removed', 'پایانِ مدیریتِ مجتمع', $manager, [
             'name' => $manager->name,
             'phone' => $manager->phone,
+            'complex_id' => $manager->complex_id,
         ]);
 
-        $manager->delete();
+        // F4: پایانِ عضویت، نه حذفِ حساب — سابقه‌ی کارهای مدیر (تأییدها، پیام‌ها) می‌ماند
+        $this->membership->end($manager);
 
-        return response()->json(['message' => 'مدیر حذف شد.']);
+        return response()->json(['message' => 'دسترسیِ مدیریتیِ این کاربر پایان یافت. حسابش حفظ شد.']);
     }
 
     /** قاعده‌اش حالا در `UserPolicy::manageManager` است، نه اینجا. */

@@ -36,7 +36,7 @@ class MessageActionController extends Controller
 
     public function update(UpdateMessageRequest $request, Conversation $conversation, Message $message): JsonResponse
     {
-        $user = $this->viewer($conversation);
+        $user = $this->viewer($conversation, $message);
 
         $this->actions->edit($this->requireComplex(), $conversation, $message, $user, (string) $request->input('body', ''));
 
@@ -45,7 +45,7 @@ class MessageActionController extends Controller
 
     public function destroy(Conversation $conversation, Message $message): JsonResponse
     {
-        $user = $this->viewer($conversation);
+        $user = $this->viewer($conversation, $message);
 
         $this->actions->delete($conversation, $message, $user);
 
@@ -54,7 +54,7 @@ class MessageActionController extends Controller
 
     public function react(ReactMessageRequest $request, Conversation $conversation, Message $message): JsonResponse
     {
-        $user = $this->viewer($conversation);
+        $user = $this->viewer($conversation, $message);
 
         $this->actions->react($this->requireComplex(), $message, $user, (string) $request->validated('emoji'));
 
@@ -63,7 +63,7 @@ class MessageActionController extends Controller
 
     public function report(ReportMessageRequest $request, Conversation $conversation, Message $message): JsonResponse
     {
-        $user = $this->viewer($conversation);
+        $user = $this->viewer($conversation, $message);
 
         [, $created] = $this->actions->report($this->requireComplex(), $message, $user, $request->validated('reason'));
 
@@ -106,6 +106,8 @@ class MessageActionController extends Controller
 
         $results = Message::query()
             ->where('conversation_id', $conversation->id)
+            // مرزِ دوره‌ی سکونت: جست‌وجو پیامِ ساکنِ قبلیِ واحد را بیرون نمی‌کشد (مرحلهٔ ۹ · فاز ۶، F4)
+            ->visibleTo($user)
             ->whereNull('deleted_at')
             ->when(! $user->isAdmin(), fn ($q) => $q->where('is_hidden', false))
             ->where('body', 'like', "%{$term}%")
@@ -123,10 +125,19 @@ class MessageActionController extends Controller
         return response()->json(['query' => $term, 'results' => $results]);
     }
 
-    private function viewer(Conversation $conversation): User
+    private function viewer(Conversation $conversation, ?Message $message = null): User
     {
         $user = Auth::user();
         abort_unless($conversation->isVisibleTo($user), 404);
+
+        /*
+         * خودِ پیام هم باید برای او دیدنی باشد (مرحلهٔ ۹ · فاز ۶، F4): در رشته‌ی
+         * واحد، واکنش یا گزارش روی شناسه‌ی پیامِ ساکنِ قبلی متنش را برمی‌گرداند.
+         */
+        abort_if(
+            $message !== null && ! Message::query()->visibleTo($user)->whereKey($message->id)->exists(),
+            404,
+        );
 
         return $user;
     }

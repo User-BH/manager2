@@ -193,7 +193,8 @@ class BlogApiTest extends TestCase
 
         // نامِ نویسنده هیچ‌جا — نه در داده، نه در HTML
         $this->assertArrayNotHasKey('author', $response->json('data'));
-        $this->assertStringNotContainsString('نویسنده‌ی پنهان', $response->getContent());
+        // ⚠️ متنِ خامِ JSON فرارِ یونیکد دارد؛ بی رمزگشایی این ادعا همیشه سبز بود (یافته‌ی مرحلهٔ ۹ · فاز ۶)
+        $this->assertStringNotContainsString('نویسنده‌ی پنهان', (string) json_encode($response->json(), JSON_UNESCAPED_UNICODE));
         $this->get('/blog/'.rawurlencode($post->slug))->assertOk()->assertDontSee('نویسنده‌ی پنهان');
     }
 

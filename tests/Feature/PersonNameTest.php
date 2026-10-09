@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Enums\UserRole;
 use App\Http\Requests\StoreFeedbackRequest;
 use App\Models\Complex;
+use App\Models\Unit;
 use App\Models\User;
 use App\Support\PersianName;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -173,19 +174,22 @@ class PersonNameTest extends TestCase
             'role' => UserRole::Owner, 'complex_id' => $complex->id, 'is_active' => true,
         ]);
 
+        // مرحلهٔ ۹ · فاز ۶: ویرایش واحد می‌خواهد (F6) و شماره نمی‌پذیرد
+        [$unitA, $unitB] = Unit::factory()->count(2)->create(['complex_id' => $complex->id])->all();
+
         $this->actingAs($manager)->putJson("/api/v1/residents/{$selfNamed->id}", [
-            'name' => 'نامِ دیگر', 'phone' => '09125551111', 'role' => 'owner',
+            'name' => 'نامِ دیگر', 'role' => 'owner', 'unit_id' => $unitA->id,
         ])->assertStatus(422)->assertJsonValidationErrors('name');
         $this->assertSame('سارا امینی', $selfNamed->fresh()->name);
 
         // همان نام: ویرایشِ بقیه‌ی فیلدها بی‌مانع
         $this->actingAs($manager)->putJson("/api/v1/residents/{$selfNamed->id}", [
-            'name' => 'سارا امینی', 'phone' => '09125551111', 'role' => 'tenant',
+            'name' => 'سارا امینی', 'role' => 'tenant', 'unit_id' => $unitA->id,
         ])->assertOk();
         $this->assertSame(UserRole::Tenant, $selfNamed->fresh()->role);
 
         $this->actingAs($manager)->putJson("/api/v1/residents/{$legacy->id}", [
-            'name' => 'ساکنِ تازه‌نام', 'phone' => '09125552222', 'role' => 'owner',
+            'name' => 'ساکنِ تازه‌نام', 'role' => 'owner', 'unit_id' => $unitB->id,
         ])->assertOk();
         $this->assertSame('ساکنِ تازه‌نام', $legacy->fresh()->name);
     }

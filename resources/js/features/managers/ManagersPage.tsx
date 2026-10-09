@@ -13,17 +13,20 @@ import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { queryKeys } from '@/shared/lib/queryKeys'
 import { useDocumentTitle } from '@/shared/hooks'
 import { api, ApiError } from '@/shared/lib/api'
-import { strongPassword } from '@/shared/lib/validation'
 import { confirmAction, toastSuccess } from '@/shared/lib/alert'
+import { InviteLinkPanel } from '@/shared/ui/InviteLinkPanel'
+import { PendingInvitations } from '@/shared/ui/PendingInvitations'
 
+/**
+ * «مدیر جدید» = دعوتِ امن با نقشِ مدیر (مرحلهٔ ۹ · فاز ۶، F5).
+ *
+ * نه نام و نه رمز: پیش از این مدیر رمزِ مدیرِ دوم را خودش می‌گذاشت (و می‌دانست).
+ */
 const managerSchema = z.object({
-  name: z.string().min(1, 'نام را وارد کنید').max(120, 'نام طولانی است'),
   phone: z
     .string()
     .min(1, 'شماره موبایل را وارد کنید')
     .regex(/^09\d{9}$/, 'شماره موبایل باید به‌فرمت ۰۹xxxxxxxxx باشد'),
-  // مدیر مجتمع دسترسی مالی کامل دارد؛ رمزش نباید ضعیف باشد.
-  password: strongPassword,
 })
 
 type ManagerFormValues = z.infer<typeof managerSchema>
@@ -39,6 +42,8 @@ interface Manager {
 
 export function ManagersPage() {
   const [creating, setCreating] = useState(false)
+  // پیوندِ دعوتِ تازه — فقط همین یک بار (مرحلهٔ ۹ · فاز ۶)
+  const [invited, setInvited] = useState<InviteResult | null>(null)
   const [actionError, setActionError] = useState<string | null>(null)
 
   useDocumentTitle('مدیران مجتمع')
@@ -54,9 +59,10 @@ export function ManagersPage() {
   })
 
   async function handleDelete(manager: Manager) {
+    // «حذف» = پایانِ مدیریت در این مجتمع؛ حسابِ او و سابقه‌ی کارهایش می‌ماند (F4)
     const ok = await confirmAction({
       title: `${manager.name} از مدیران مجتمع حذف شود؟`,
-      text: 'دسترسی مدیریتی این کاربر بلافاصله قطع می‌شود.',
+      text: 'دسترسی مدیریتی این کاربر بلافاصله قطع می‌شود. حسابش در ساکنا و سابقه‌ی کارهایش حفظ می‌شود.',
       confirmLabel: 'حذف کن',
       danger: true,
     })
@@ -188,20 +194,46 @@ export function ManagersPage() {
         </Card>
       )}
 
-      <Modal open={creating} title="مدیر جدید" onClose={() => setCreating(false)}>
-        <ManagerForm
-          onSaved={() => {
-            setCreating(false)
-            void refetch()
-          }}
-          onCancel={() => setCreating(false)}
-        />
+      <PendingInvitations kind="managers" />
+
+      <Modal
+        open={creating || invited !== null}
+        title={invited ? 'پیوندِ دعوتِ مدیر' : 'مدیر جدید'}
+        onClose={() => {
+          setCreating(false)
+          setInvited(null)
+        }}
+      >
+        {invited ? (
+          <InviteLinkPanel {...invited} onDone={() => setInvited(null)} />
+        ) : (
+          <ManagerForm
+            onSaved={(result) => {
+              setCreating(false)
+              setInvited(result)
+              void queryClient.invalidateQueries({ queryKey: queryKeys.sentInvitations.all() })
+            }}
+            onCancel={() => setCreating(false)}
+          />
+        )}
       </Modal>
     </div>
   )
 }
 
-function ManagerForm({ onSaved, onCancel }: { onSaved: () => void; onCancel: () => void }) {
+interface InviteResult {
+  link: string
+  phone: string | null
+  expiresAt: string | null
+}
+
+function ManagerForm({
+  onSaved,
+  onCancel,
+}: {
+  onSaved: (result: InviteResult) => void
+  onCancel: () => void
+}) {
   const [formError, setFormError] = useState<string | null>(null)
 
   const {
@@ -211,15 +243,22 @@ function ManagerForm({ onSaved, onCancel }: { onSaved: () => void; onCancel: () 
     formState: { errors, isSubmitting },
   } = useForm<ManagerFormValues>({
     resolver: zodResolver(managerSchema),
-    defaultValues: { name: '', phone: '', password: '' },
+    defaultValues: { phone: '' },
   })
 
   async function onSubmit(values: ManagerFormValues) {
     setFormError(null)
 
     try {
-      await api('/managers', { method: 'POST', body: values })
-      onSaved()
+      const result = await api<{
+        link: string
+        invitation: { phone: string | null; expiresAt: string | null }
+      }>('/managers', { method: 'POST', body: values })
+      onSaved({
+        link: result.link,
+        phone: result.invitation.phone,
+        expiresAt: result.invitation.expiresAt,
+      })
     } catch (err) {
       if (err instanceof ApiError) {
         let handled = false
@@ -249,20 +288,16 @@ function ManagerForm({ onSaved, onCancel }: { onSaved: () => void; onCancel: () 
         </div>
       )}
 
-      <TextField label="نام و نام خانوادگی" error={errors.name?.message} {...register('name')} />
+      <p className="text-xs leading-6" style={{ color: 'var(--text-tertiary)' }}>
+        برای این شماره دعوت با نقشِ مدیر ساخته می‌شود. صاحبِ شماره خودش ثبت‌نام می‌کند، نام و رمزش
+        را خودش می‌گذارد و با کدِ پیامکی می‌پذیرد.
+      </p>
       <TextField
         label="شماره موبایل"
         dir="ltr"
         inputMode="numeric"
         error={errors.phone?.message}
         {...register('phone')}
-      />
-      <TextField
-        label="رمز عبور"
-        type="password"
-        dir="ltr"
-        error={errors.password?.message}
-        {...register('password')}
       />
 
       <div className="mt-2 flex items-center gap-2">
@@ -273,7 +308,7 @@ function ManagerForm({ onSaved, onCancel }: { onSaved: () => void; onCancel: () 
           style={{ backgroundColor: 'var(--color-brand-500)' }}
         >
           {isSubmitting ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
-          افزودن مدیر
+          ساختِ دعوت
         </button>
         <button
           type="button"

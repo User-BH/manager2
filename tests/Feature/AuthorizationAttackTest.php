@@ -540,7 +540,9 @@ class AuthorizationAttackTest extends TestCase
      * @return array<int, array{0: string, 1: string}>
      */
     /** مسیرهای شناسه‌دارِ عمداً عمومی؛ دلیلِ هر کدام کنارِ فیلتر آمده. */
-    private const PUBLIC_PARAMETERISED = ['api/blog/posts/{slug}'];
+    private const PUBLIC_PARAMETERISED = [
+        'api/blog/posts/{slug}',
+    ];
 
     private function guestReachableRoutes(): array
     {
@@ -624,8 +626,9 @@ class AuthorizationAttackTest extends TestCase
         // ── پیش از آنکه کاربر عضوِ مجتمعی باشد ──
         // یکی کمتر از پیش: بررسیِ «قبلاً ثبت شده» در گامِ اولِ ثبت‌نام برداشته شد (شمارشِ حساب)
         'app/Http/Controllers/Api/AuthController.php' => [1, 'یکتاییِ شماره در کلِ پلتفرم سنجیده می‌شود — فقط پس از تأییدِ کد'],
-        'app/Http/Controllers/Api/JoinRequestController.php' => [2, 'متقاضی هنوز عضوِ هیچ مجتمعی نیست'],
-        'app/Http/Controllers/Api/ResidentController.php' => [1, 'کاربرِ بی‌مجتمع، برای دعوت'],
+        'app/Http/Controllers/Api/JoinRequestController.php' => [1, 'یافتنِ مدیر با شماره؛ متقاضی هنوز عضوِ هیچ مجتمعی نیست'],
+        'app/Http/Controllers/Api/InvitationController.php' => [3, 'گیرنده‌ی دعوت هنوز عضو نیست؛ واحد و دعوت‌کننده‌ی همان دعوتِ خودش (مرحلهٔ ۹ · فاز ۶)'],
+        'app/Services/Account/Membership.php' => [5, 'پیوستن و پایانِ عضویت: حسابِ بی‌مجتمع، و واحدِ دعوت زیرِ قفل (مرحلهٔ ۹ · فاز ۶)'],
         'app/Services/Account/ComplexUpgrader.php' => [1, 'کاربر در همین لحظه صاحبِ مجتمع می‌شود'],
         // مرحلهٔ ۹ · فاز ۴: قفلِ خریدار — حسابِ اولیه هنوز مجتمعی ندارد
         'app/Services/Subscription/ComplexPurchase.php' => [2, 'خریدار هنوز عضوِ هیچ مجتمعی نیست؛ قفل و بازخوانیِ همان کاربرِ خودش'],

@@ -30,8 +30,14 @@ class BillPolicy
         return $this->ownsUnit($user, $bill);
     }
 
+    /**
+     * قبضِ دوره‌ای که خودِ این کاربر ساکنِ واحد بوده (مرحلهٔ ۹ · فاز ۶، F4).
+     *
+     * پیش از این «یک بار ساکنِ این واحد بوده» کافی بود — یعنی ساکنِ تازه با
+     * شناسه‌ی قبض، قبض و پرداخت‌های ساکنِ قبلی را هم باز می‌کرد.
+     */
     private function ownsUnit(User $user, Bill $bill): bool
     {
-        return $user->units()->whereKey($bill->unit_id)->exists();
+        return Bill::query()->visibleToResident($user, includePast: true)->whereKey($bill->id)->exists();
     }
 }

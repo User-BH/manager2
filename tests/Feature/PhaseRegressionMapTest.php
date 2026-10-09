@@ -731,6 +731,44 @@ class PhaseRegressionMapTest extends TestCase
             'زرین‌پال: مبلغِ تأیید از سفارش، نه از بازگشت' => [
                 'ZarinpalGatewayTest', 'test_verification_never_takes_the_amount_from_the_callback', '۹',
             ],
+
+            /* ── مرحلهٔ ۹ · فاز ۶: دعوتِ امن، پایانِ عضویت، غیرفعال‌سازی، F6 ─────────── */
+            '🔴 F5: شماره‌ی بی‌حساب دعوت می‌گیرد، نه حسابی با رمزِ مدیر' => [
+                'InitialAccountTest', 'test_a_brand_new_phone_gets_an_invitation_not_an_account', '۹',
+            ],
+            '🔴 F7: توکنِ ۲۵۶ بیتی و فقط هشش در پایگاه‌داده' => [
+                'SecureInvitationTest', 'test_the_token_is_long_random_and_only_its_hash_is_stored', '۹',
+            ],
+            '🔴 پذیرش کدِ OTP ِ تازه می‌خواهد؛ دستگاهِ مورداعتماد دورش نمی‌زند' => [
+                'SecureInvitationTest', 'test_a_trusted_device_does_not_skip_the_code', '۹',
+            ],
+            'دعوت فقط برای صاحبِ همان شماره' => [
+                'SecureInvitationTest', 'test_only_the_owner_of_the_target_phone_sees_or_answers_it', '۹',
+            ],
+            'دعوتِ منقضی، باطل و مصرف‌شده پذیرفته نمی‌شود' => [
+                'SecureInvitationTest', 'test_a_revoked_invitation_cannot_be_accepted', '۹',
+            ],
+            'پایگاه‌داده دعوتِ زنده‌ی دوم را رد می‌کند' => [
+                'SecureInvitationTest', 'test_the_database_refuses_a_second_live_invitation', '۹',
+            ],
+            '🔴 F6: تأییدِ درخواستِ پیوستن بی واحد رد می‌شود' => [
+                'JoinRequestTest', 'test_approving_without_a_unit_is_refused', '۹',
+            ],
+            '🔴 F4: حذفِ ساکن حساب و سابقه را نگه می‌دارد' => [
+                'MembershipLifecycleTest', 'test_removing_a_resident_keeps_the_account_and_every_record', '۹',
+            ],
+            '🔴 ساکنِ تازه قبض و پرداختِ ساکنِ قبلی را نمی‌بیند' => [
+                'MembershipLifecycleTest', 'test_the_next_tenant_does_not_see_the_previous_tenants_bills', '۹',
+            ],
+            '🔴 ساکنِ تازه رشته‌ی واحدِ ساکنِ قبلی را نمی‌خواند' => [
+                'MembershipLifecycleTest', 'test_the_next_tenant_does_not_read_the_previous_tenants_thread', '۹',
+            ],
+            '🔴 «حذفِ عضو» ِ ادمینِ کل غیرفعال‌سازی است و هیچ داده‌ای نمی‌رود' => [
+                'MembershipLifecycleTest', 'test_the_super_admin_delete_deactivates_and_keeps_everything', '۹',
+            ],
+            'ادمینِ کل مجتمع را با دعوتِ مدیر می‌سازد' => [
+                'SecureInvitationTest', 'test_the_super_admin_creates_a_complex_with_a_manager_invitation', '۹',
+            ],
             '۱۵ مقاله‌ی واقعی و اجرای دوباره‌ی بی‌اثر' => [
                 'BlogImporterTest', 'test_fifteen_real_articles_are_imported_and_a_second_run_changes_nothing', '۷',
             ],
@@ -871,6 +909,8 @@ class PhaseRegressionMapTest extends TestCase
             'personName' => ['۹/۳', 'الگوی هر دو نسخه یکی است'],
             // مرحلهٔ ۹ · فاز ۵: خریدِ حسابِ اولیه فقط آنلاین؛ مبلغ از سرور
             'registrantPurchase' => ['۹/۵', 'فقط slug و نام و نوع را به درگاه می‌فرستد — مبلغ نه'],
+            // مرحلهٔ ۹ · فاز ۶: دعوت نه نام می‌فرستد نه رمز؛ توکن در بدنه، نه در نشانی
+            'secureInvitation' => ['۹/۶', 'فقط شماره، نقش و واحد می‌رود — نه نام، نه رمز'],
         ];
 
         // 🔴 مثلِ ردیف‌های PHP، این فهرست هم فقط بزرگ می‌شود (خرابکاریِ فاز ۸)

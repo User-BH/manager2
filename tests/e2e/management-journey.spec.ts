@@ -29,7 +29,7 @@ import { expect, test, type Locator, type Page } from '@playwright/test'
 const ENGINE: Record<string, string> = { chromium: '1', firefox: '2', webkit: '3' }
 const RUN = String(Date.now()).slice(-6)
 
-function phoneFor(prefix: '0935' | '0936', project: string): string {
+function phoneFor(prefix: '0935', project: string): string {
   return `${prefix}${RUN}${ENGINE[project] ?? '9'}`
 }
 
@@ -134,8 +134,22 @@ test.describe('سفرِ مدیریت', () => {
     await expect(page.getByText('نام و نام خانوادگی‌تان را جدا ثبت کنید.')).toHaveCount(0)
   })
 
-  test('سوپرادمین مجتمعِ تازه با مدیرش می‌سازد', async ({ page }, testInfo) => {
+  /*
+   * مرحلهٔ ۹ · فاز ۶ (تصمیمِ کارفرما): ادمینِ کل دیگر حسابِ مدیر نمی‌سازد و
+   * رمزش را نمی‌داند. مجتمع + دعوتِ امن؛ صاحبِ شماره با حسابِ خودش (همان که
+   * گامِ اول با کدِ تأیید ساخت) دعوت را می‌پذیرد. پیوند پس از `#` است و فقط همین
+   * یک بار دیده می‌شود.
+   *
+   * ⚠️ چرا مدیر همان ثبت‌نام‌کننده‌ی گامِ اول است، نه ثبت‌نامِ دوم: سقفِ نرخِ
+   * `register` پنج در ساعت برای هر IP است و CI سه موتور را از یک IP می‌راند؛
+   * ثبت‌نامِ دوم در هر موتور یعنی ۶ و شکستِ موتورِ سوم. مسیرِ مهمانِ پیوند
+   * (پیش‌نمایش ← فرمِ ثبت‌نام) همین‌جا سنجیده می‌شود؛ خودِ ثبت‌نام در گامِ اول.
+   */
+  test('سوپرادمین مجتمعِ تازه می‌سازد و مدیرش با پیوندِ دعوت می‌پیوندد', async ({
+    page,
+  }, testInfo) => {
     expect(await signIn(page, '09120000001', 'password')).toBe(200)
+    const managerPhone = phoneFor('0935', testInfo.project.name)
 
     await page.goto('/system/complexes')
     await page.getByRole('button', { name: 'مجتمع جدید' }).click()
@@ -143,16 +157,42 @@ test.describe('سفرِ مدیریت', () => {
     const name = `مجتمعِ سرتاسری ${RUN}-${ENGINE[testInfo.project.name] ?? '9'}`
     await page.getByLabel('نام مجتمع').fill(name)
     await page.getByLabel('نوع مجتمع').selectOption('residential')
-    await page.getByLabel('نام مدیر').fill('مدیرِ سرتاسری')
-    await page.getByLabel('شماره موبایل مدیر').fill(phoneFor('0936', testInfo.project.name))
-    await page.getByLabel('رمز عبور مدیر').fill(PASSWORD)
+    // نه نام و نه رمزِ مدیر
+    await expect(page.getByLabel('رمز عبور مدیر')).toHaveCount(0)
+    await page.getByLabel('شماره موبایل مدیر').fill(managerPhone)
     await page.getByRole('button', { name: 'ساخت مجتمع' }).click()
 
+    const link = await page.getByRole('textbox', { name: 'پیوندِ دعوت', exact: true }).inputValue()
+    expect(link).toMatch(/\/invite#[A-Za-z0-9_-]{43}$/)
+    await page.getByRole('button', { name: 'تمام شد' }).click()
     await expect(page.getByText(name).first()).toBeVisible()
+
+    // ── دارنده‌ی پیوند، بی‌نشست: پیوند فقط پیش‌نمایش است ──
+    await page.context().clearCookies()
+    await page.goto(link)
+    await expect(page.getByRole('heading', { name: 'شما به یک مجتمع دعوت شده‌اید' })).toBeVisible()
+    await expect(page.getByText(name)).toBeVisible()
+    // توکن از نوارِ نشانی پاک شده است
+    expect(new URL(page.url()).hash).toBe('')
+
+    // دعوت‌شده‌ی بی‌حساب از همین‌جا به فرمِ ثبت‌نام می‌رسد
+    await page.getByRole('link', { name: 'ثبت‌نام با همین شماره' }).click()
+    await expect(page).toHaveURL(/\/auth\?tab=register$/)
+    await expect(visible(page.getByPlaceholder('مثلاً علی'))).toBeVisible()
+
+    // ── ورود با حسابی که صاحبِ شماره خودش ساخت؛ دعوت منتظر است (OTP در این محیط خاموش است) ──
+    expect(await signIn(page, managerPhone, PASSWORD)).toBe(200)
+    await page.goto('/dashboard')
+    await expect(page.getByText(name)).toBeVisible()
+    await page.getByRole('button', { name: 'پیوستن' }).click()
+
+    // حالا مدیرِ همان مجتمع است: پوسته‌ی داشبورد با سایدبار
+    await expect(page.locator('aside').first()).toBeAttached({ timeout: 15_000 })
+    await expect(page.locator('[data-experience="registrant"]')).toHaveCount(0)
   })
 
   test('مدیرِ تازه واحد می‌سازد و شارژِ دوره را صادر می‌کند', async ({ page }, testInfo) => {
-    expect(await signIn(page, phoneFor('0936', testInfo.project.name), PASSWORD)).toBe(200)
+    expect(await signIn(page, phoneFor('0935', testInfo.project.name), PASSWORD)).toBe(200)
 
     // ── ساختِ واحد در رابط ──
     await page.goto('/units')
@@ -188,7 +228,7 @@ test.describe('سفرِ مدیریت', () => {
   })
 
   test('مدیر اشتراک را با درگاهِ آزمایشی می‌خرد', async ({ page }, testInfo) => {
-    expect(await signIn(page, phoneFor('0936', testInfo.project.name), PASSWORD)).toBe(200)
+    expect(await signIn(page, phoneFor('0935', testInfo.project.name), PASSWORD)).toBe(200)
 
     await page.goto('/account')
 
@@ -207,7 +247,7 @@ test.describe('سفرِ مدیریت', () => {
   })
 
   test('خروج از منوی کاربر، و بسته‌شدنِ نشستِ سرور', async ({ page }, testInfo) => {
-    expect(await signIn(page, phoneFor('0936', testInfo.project.name), PASSWORD)).toBe(200)
+    expect(await signIn(page, phoneFor('0935', testInfo.project.name), PASSWORD)).toBe(200)
 
     /*
      * 🔴 بارشدن‌های سند شمرده می‌شوند. اجرای اولِ این تست در CI روی Firefox
@@ -224,7 +264,8 @@ test.describe('سفرِ مدیریت', () => {
     await page.goto('/dashboard')
     // فرصتِ نصبِ service worker؛ نسخه‌ی خراب همین‌جا دوباره بار می‌کرد
     await page.waitForTimeout(2_000)
-    await page.getByRole('button', { name: /مدیرِ سرتاسری/ }).click()
+    // همان حسابِ گامِ اول، حالا مدیرِ مجتمع (مرحلهٔ ۹ · فاز ۶)
+    await page.getByRole('button', { name: /ساکن سرتاسری/ }).click()
     await page.getByText('خروج از حساب').click()
 
     await expect(page).toHaveURL(/\/auth/, { timeout: 15_000 })

@@ -1,8 +1,10 @@
+import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { Check, UserPlus, X } from 'lucide-react'
 import { api } from '@/shared/lib/api'
 import { queryKeys } from '@/shared/lib/queryKeys'
 import { useAction } from '@/shared/hooks/useAction'
+import { toastError } from '@/shared/lib/alert'
 
 interface JoinRequest {
   id: number
@@ -19,21 +21,32 @@ interface JoinRequest {
  * انتخاب می‌کند.
  *
  * وقتی درخواستی نباشد چیزی رندر نمی‌شود، تا صفحه‌ی ساکنین شلوغ نشود.
+ *
+ * F6 (مرحلهٔ ۹ · فاز ۶): تأیید **واحد** هم می‌خواهد. پیش از این عضوِ بی‌واحد
+ * ساخته می‌شد؛ حالا سرور بی واحد رد می‌کند و اینجا پیش از ارسال گفته می‌شود.
  */
-export function JoinRequestInbox() {
+export function JoinRequestInbox({ units }: { units: { id: number; unit_number: string }[] }) {
   const { run, pendingKey } = useAction()
+  // واحدِ انتخاب‌شده برای هر درخواست
+  const [unitFor, setUnitFor] = useState<Record<number, string>>({})
 
   const { data } = useQuery({
     queryKey: queryKeys.joinRequests.all(),
     queryFn: ({ signal }) => api<{ data: JoinRequest[] }>('/join-requests', { signal }),
   })
 
-  const respond = (id: number, action: 'approve' | 'reject', role?: 'owner' | 'tenant') =>
-    run(
+  const respond = (id: number, action: 'approve' | 'reject', role?: 'owner' | 'tenant') => {
+    const unitId = unitFor[id]
+    if (action === 'approve' && !unitId) {
+      toastError('برای تأیید، واحدِ این عضو را انتخاب کنید.')
+      return
+    }
+
+    return run(
       () =>
         api(`/join-requests/${id}/${action}`, {
           method: 'POST',
-          body: role ? { role } : undefined,
+          body: action === 'approve' ? { role, unit_id: Number(unitId) } : undefined,
         }),
       {
         key: id,
@@ -41,6 +54,7 @@ export function JoinRequestInbox() {
         invalidate: [queryKeys.joinRequests.all(), queryKeys.residents.all()],
       },
     )
+  }
 
   if (!data?.data.length) return null
 
@@ -72,7 +86,22 @@ export function JoinRequestInbox() {
             </p>
           </div>
 
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-wrap items-center gap-2">
+            <select
+              aria-label={`واحدِ ${request.name ?? 'متقاضی'}`}
+              value={unitFor[request.id] ?? ''}
+              onChange={(event) =>
+                setUnitFor((current) => ({ ...current, [request.id]: event.target.value }))
+              }
+              className="field rounded-lg px-2 py-1.5 text-xs"
+            >
+              <option value="">انتخاب واحد</option>
+              {units.map((unit) => (
+                <option key={unit.id} value={unit.id}>
+                  واحد {unit.unit_number}
+                </option>
+              ))}
+            </select>
             <button
               onClick={() => void respond(request.id, 'approve', 'owner')}
               disabled={pendingKey !== null}

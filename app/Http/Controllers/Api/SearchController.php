@@ -199,8 +199,9 @@ class SearchController extends Controller
             return $this->group('my-bills', 'صورت‌حساب‌های من', 'Receipt', '/my-bills', []);
         }
 
+        // فقط دوره‌های سکونتِ خودش (مرحلهٔ ۹ · فاز ۶، F4)
         $bills = Bill::with('unit')
-            ->whereIn('unit_id', $unitIds)
+            ->visibleToResident($user)
             ->where('period', 'like', "%{$term}%")
             ->orderByDesc('period')
             ->limit($this->limit() + 1)

@@ -16,8 +16,10 @@ import { SearchInput } from '@/shared/ui/SearchInput'
 import { EmptyState, ErrorState } from '@/shared/ui/PageState'
 import { Pager } from '@/shared/ui/Pager'
 import { TableSkeleton } from '@/shared/ui/Skeleton'
-import { ResidentForm } from './ResidentForm'
-import { keepPreviousData, useQuery } from '@tanstack/react-query'
+import { ResidentForm, type InviteResult } from './ResidentForm'
+import { InviteLinkPanel } from '@/shared/ui/InviteLinkPanel'
+import { PendingInvitations } from '@/shared/ui/PendingInvitations'
+import { keepPreviousData, useQuery, useQueryClient } from '@tanstack/react-query'
 import { queryKeys } from '@/shared/lib/queryKeys'
 import { useDocumentTitle } from '@/shared/hooks'
 import { api } from '@/shared/lib/api'
@@ -30,8 +32,11 @@ export function ResidentsPage() {
   const [search, setSearch] = useState('')
   const [editing, setEditing] = useState<Resident | null>(null)
   const [creating, setCreating] = useState(false)
+  // پیوندِ دعوتِ تازه — فقط همین یک بار نشان داده می‌شود (مرحلهٔ ۹ · فاز ۶)
+  const [invited, setInvited] = useState<InviteResult | null>(null)
 
   useDocumentTitle('ساکنین')
+  const queryClient = useQueryClient()
 
   // 🔴 صفحه‌بندی (مرحلهٔ ۵ · فاز ۶) — همان نقصِ `UnitsPage`: ساکنِ بیست‌ویکم دیده نمی‌شد
   const [page, setPage] = useState(1)
@@ -49,18 +54,24 @@ export function ResidentsPage() {
     setPage(1)
   }, [])
 
+  /*
+   * «حذف» = پایانِ عضویت در این مجتمع (مرحلهٔ ۹ · فاز ۶، F4): حسابِ ساکنا،
+   * سابقه‌ی واحد و پرداخت‌هایش می‌مانند.
+   */
   async function handleDelete(resident: Resident) {
     const ok = await confirmAction({
-      title: `${resident.name} حذف شود؟`,
-      text: 'دسترسی این ساکن به سامانه بسته می‌شود.',
-      confirmLabel: 'حذف کن',
+      title: `عضویتِ ${resident.name} پایان یابد؟`,
+      text: 'دسترسیِ او به این مجتمع بسته می‌شود. حسابش در ساکنا، سابقه‌ی واحد و پرداخت‌هایش حفظ می‌شود.',
+      confirmLabel: 'پایانِ عضویت',
       danger: true,
     })
     if (!ok) return
 
     try {
-      await api(`/residents/${resident.id}`, { method: 'DELETE' })
-      toastSuccess('ساکن حذف شد.')
+      const { message } = await api<{ message: string }>(`/residents/${resident.id}`, {
+        method: 'DELETE',
+      })
+      toastSuccess(message)
       void refetch()
     } catch (error) {
       alertError(error, 'حذف ساکن ممکن نشد.')
@@ -96,6 +107,12 @@ export function ResidentsPage() {
     void refetch()
   }
 
+  function closeModal() {
+    setCreating(false)
+    setEditing(null)
+    setInvited(null)
+  }
+
   return (
     <div className="flex flex-col gap-5">
       <header className="flex flex-wrap items-center justify-between gap-3">
@@ -122,7 +139,8 @@ export function ResidentsPage() {
       </header>
 
       {/* درخواست‌های پیوستن بالای فهرست می‌آیند چون منتظرِ اقدام‌اند (R21b) */}
-      <JoinRequestInbox />
+      <JoinRequestInbox units={data?.filters.units ?? []} />
+      <PendingInvitations kind="residents" />
 
       {isLoading && <TableSkeleton rows={6} columns={5} />}
       {error && <ErrorState error={error} onRetry={() => void refetch()} />}
@@ -277,23 +295,26 @@ export function ResidentsPage() {
       )}
 
       <Modal
-        open={creating || editing !== null}
-        title={editing ? `ویرایش ${editing.name}` : 'ساکن جدید'}
-        onClose={() => {
-          setCreating(false)
-          setEditing(null)
-        }}
+        open={creating || editing !== null || invited !== null}
+        title={invited ? 'پیوندِ دعوت' : editing ? `ویرایش ${editing.name}` : 'ساکن جدید'}
+        onClose={closeModal}
       >
-        {data && (
-          <ResidentForm
-            resident={editing}
-            filters={data.filters}
-            onSaved={handleSaved}
-            onCancel={() => {
-              setCreating(false)
-              setEditing(null)
-            }}
-          />
+        {invited ? (
+          <InviteLinkPanel {...invited} onDone={closeModal} />
+        ) : (
+          data && (
+            <ResidentForm
+              resident={editing}
+              filters={data.filters}
+              onSaved={handleSaved}
+              onInvited={(result) => {
+                setCreating(false)
+                setInvited(result)
+                void queryClient.invalidateQueries({ queryKey: queryKeys.sentInvitations.all() })
+              }}
+              onCancel={closeModal}
+            />
+          )
         )}
       </Modal>
     </div>

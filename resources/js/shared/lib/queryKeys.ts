@@ -149,6 +149,12 @@ export const queryKeys = {
     all: () => ['invitations'] as const,
   },
 
+  // دعوت‌های فرستاده‌ی مجتمعِ فعال، برای دیدن و ابطال (مرحلهٔ ۹ · فاز ۶)
+  sentInvitations: {
+    all: () => ['sent-invitations'] as const,
+    list: (kind: 'residents' | 'managers') => ['sent-invitations', kind] as const,
+  },
+
   // درخواست‌های پیوستن که مدیر باید پاسخ بدهد (R21b)
   joinRequests: {
     all: () => ['join-requests'] as const,

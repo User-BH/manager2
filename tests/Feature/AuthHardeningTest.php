@@ -219,36 +219,30 @@ class AuthHardeningTest extends TestCase
     /* ── سیاستِ رمز ─────────────────────────────────────────────────────── */
 
     /**
-     * حسابِ مدیرِ مجتمع باید همان سیاستِ رمزِ بقیه را داشته باشد.
+     * 🔴 مرحلهٔ ۹ · فاز ۶: ادمینِ کل دیگر **رمزِ مدیر را تعیین نمی‌کند**.
      *
-     * پیش از R18 اینجا `min:6` بدونِ هیچ قیدی بود — سست‌ترین قاعده‌ی پروژه
-     * دقیقاً روی پرقدرت‌ترین حسابِ داخلِ یک مجتمع.
+     * تا R18 اینجا سیاستِ رمز سنجیده می‌شد (پیش از آن `min:6`). حالا اصلاً
+     * رمزی پذیرفته نمی‌شود — نه ضعیف و نه قوی: مدیر با دعوتِ امن می‌آید و رمزش
+     * را خودش هنگامِ ثبت‌نام با OTP می‌گذارد. قوی‌ترین رمزی که کسِ دیگری
+     * انتخاب کرده باشد، رمزِ کسِ دیگری است.
      */
-    public function test_a_complex_cannot_be_created_with_a_weak_admin_password(): void
+    public function test_a_complex_admin_password_is_never_accepted(): void
     {
-        $this->actingAs($this->superAdmin())
-            ->postJson('/api/v1/system/complexes', [
-                'name' => 'مجتمع نو',
-                'admin_name' => 'مدیر',
-                'admin_phone' => '09121112233',
-                'admin_password' => '123456',
-            ])
-            ->assertStatus(422)
-            ->assertJsonValidationErrors('admin_password');
-    }
+        foreach (['123456', 'goodpass99'] as $password) {
+            $this->actingAs($this->superAdmin())
+                ->postJson('/api/v1/system/complexes', [
+                    'name' => 'مجتمع نو',
+                    'type' => 'residential',
+                    'admin_name' => 'مدیر',
+                    'admin_phone' => '09121112233',
+                    'admin_password' => $password,
+                ])
+                ->assertStatus(422)
+                ->assertJsonValidationErrors(['admin_password', 'admin_name']);
+        }
 
-    public function test_a_strong_admin_password_is_still_accepted(): void
-    {
-        $this->actingAs($this->superAdmin())
-            ->postJson('/api/v1/system/complexes', [
-                'name' => 'مجتمع نو',
-                // نوع از فاز ۱ اجباری است؛ این تست دربارهٔ رمز است نه نوع
-                'type' => 'residential',
-                'admin_name' => 'مدیر',
-                'admin_phone' => '09121112233',
-                'admin_password' => 'goodpass99',
-            ])
-            ->assertSuccessful();
+        $this->assertDatabaseMissing('users', ['phone' => '09121112233']);
+        $this->assertDatabaseMissing('complexes', ['name' => 'مجتمع نو']);
     }
 
     /* ── ایمیل: چرا «تایید ایمیل» ساخته نشد ─────────────────────────────── */

@@ -25,6 +25,7 @@ import { useDocumentTitle } from '@/shared/hooks'
 import { useAuth } from '@/shared/stores/authStore'
 import { api, ApiError } from '@/shared/lib/api'
 import { alertError, toastSuccess } from '@/shared/lib/alert'
+import { InviteLinkPanel } from '@/shared/ui/InviteLinkPanel'
 import { formatNumber } from '@/shared/lib/format'
 
 const complexSchema = z.object({
@@ -39,13 +40,10 @@ const complexSchema = z.object({
    */
   type: z.enum(['residential', 'commercial']),
   address: z.string().max(255, 'آدرس طولانی است').optional(),
-  admin_name: z.string().min(1, 'نام مدیر را وارد کنید').max(120),
   admin_phone: z
     .string()
     .min(1, 'شماره مدیر را وارد کنید')
     .regex(/^09\d{9}$/, 'شماره موبایل باید به‌فرمت ۰۹xxxxxxxxx باشد'),
-  admin_email: z.union([z.literal(''), z.string().email('ایمیل معتبر نیست')]).optional(),
-  admin_password: z.string().min(6, 'رمز عبور باید حداقل ۶ کاراکتر باشد'),
 })
 
 type ComplexFormValues = z.infer<typeof complexSchema>
@@ -68,6 +66,8 @@ interface ComplexRow {
 
 export function ComplexesPage() {
   const [creating, setCreating] = useState(false)
+  // پیوندِ دعوتِ مدیرِ مجتمعِ تازه — فقط همین یک بار (مرحلهٔ ۹ · فاز ۶)
+  const [invited, setInvited] = useState<InviteResult | null>(null)
   const [switching, setSwitching] = useState<number | null>(null)
   /** مجتمعی که در حال تعلیق‌کردنش هستیم؛ مودالِ دلیل روی آن باز می‌شود. */
   const [suspending, setSuspending] = useState<ComplexRow | null>(null)
@@ -363,14 +363,26 @@ export function ComplexesPage() {
         </Card>
       )}
 
-      <Modal open={creating} title="مجتمع جدید" onClose={() => setCreating(false)}>
-        <ComplexForm
-          onSaved={() => {
-            setCreating(false)
-            void refetch()
-          }}
-          onCancel={() => setCreating(false)}
-        />
+      <Modal
+        open={creating || invited !== null}
+        title={invited ? 'پیوندِ دعوتِ مدیر' : 'مجتمع جدید'}
+        onClose={() => {
+          setCreating(false)
+          setInvited(null)
+        }}
+      >
+        {invited ? (
+          <InviteLinkPanel {...invited} onDone={() => setInvited(null)} />
+        ) : (
+          <ComplexForm
+            onSaved={(result) => {
+              setCreating(false)
+              setInvited(result)
+              void refetch()
+            }}
+            onCancel={() => setCreating(false)}
+          />
+        )}
       </Modal>
       {/*
         مودالِ دلیلِ تعلیق (R29).
@@ -429,7 +441,19 @@ export function ComplexesPage() {
   )
 }
 
-function ComplexForm({ onSaved, onCancel }: { onSaved: () => void; onCancel: () => void }) {
+interface InviteResult {
+  link: string
+  phone: string | null
+  expiresAt: string | null
+}
+
+function ComplexForm({
+  onSaved,
+  onCancel,
+}: {
+  onSaved: (result: InviteResult) => void
+  onCancel: () => void
+}) {
   const [formError, setFormError] = useState<string | null>(null)
 
   const {
@@ -443,10 +467,7 @@ function ComplexForm({ onSaved, onCancel }: { onSaved: () => void; onCancel: () 
       name: '',
       type: 'residential',
       address: '',
-      admin_name: '',
       admin_phone: '',
-      admin_email: '',
-      admin_password: '',
     },
   })
 
@@ -454,11 +475,15 @@ function ComplexForm({ onSaved, onCancel }: { onSaved: () => void; onCancel: () 
     setFormError(null)
 
     try {
-      await api('/system/complexes', {
-        method: 'POST',
-        body: { ...values, admin_email: values.admin_email || null },
+      const result = await api<{
+        link: string
+        invitation: { phone: string | null; expiresAt: string | null }
+      }>('/system/complexes', { method: 'POST', body: values })
+      onSaved({
+        link: result.link,
+        phone: result.invitation.phone,
+        expiresAt: result.invitation.expiresAt,
       })
-      onSaved()
     } catch (err) {
       if (err instanceof ApiError) {
         let handled = false
@@ -504,38 +529,17 @@ function ComplexForm({ onSaved, onCancel }: { onSaved: () => void; onCancel: () 
         className="mt-1 rounded-xl px-3.5 py-2.5 text-[11px] leading-6"
         style={{ backgroundColor: 'var(--surface-sunken)', color: 'var(--text-tertiary)' }}
       >
-        همراه مجتمع، یک حساب «مدیر مجتمع» ساخته می‌شود. ورود به سامانه با شماره موبایل انجام می‌شود،
-        پس شماره الزامی است.
+        برای شماره‌ی مدیر دعوت ساخته می‌شود؛ حسابی ساخته نمی‌شود. مدیر خودش با همین شماره ثبت‌نام
+        می‌کند، نام و رمزش را خودش می‌گذارد و دعوت را با کدِ پیامکی می‌پذیرد.
       </div>
 
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-        <TextField
-          label="نام مدیر"
-          error={errors.admin_name?.message}
-          {...register('admin_name')}
-        />
-        <TextField
-          label="شماره موبایل مدیر"
-          dir="ltr"
-          inputMode="numeric"
-          error={errors.admin_phone?.message}
-          {...register('admin_phone')}
-        />
-        <TextField
-          label="ایمیل مدیر (اختیاری)"
-          type="email"
-          dir="ltr"
-          error={errors.admin_email?.message}
-          {...register('admin_email')}
-        />
-        <TextField
-          label="رمز عبور مدیر"
-          type="password"
-          dir="ltr"
-          error={errors.admin_password?.message}
-          {...register('admin_password')}
-        />
-      </div>
+      <TextField
+        label="شماره موبایل مدیر"
+        dir="ltr"
+        inputMode="numeric"
+        error={errors.admin_phone?.message}
+        {...register('admin_phone')}
+      />
 
       <div className="mt-2 flex items-center gap-2">
         <button

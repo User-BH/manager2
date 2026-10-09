@@ -4,6 +4,7 @@ namespace App\Console\Commands;
 
 use App\Enums\UserRole;
 use App\Models\User;
+use App\Support\PersianName;
 use App\Support\Phone;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Hash;
@@ -21,7 +22,8 @@ class CreateAdmin extends Command
 {
     protected $signature = 'admin:create
         {--phone= : شماره موبایل (۰۹xxxxxxxxx)}
-        {--name= : نام و نام خانوادگی}
+        {--first-name= : نام (فارسی)}
+        {--last-name= : نام خانوادگی (فارسی)}
         {--password= : رمز عبور؛ اگر ندهید پرسیده می‌شود}
         {--email= : ایمیل (اختیاری)}';
 
@@ -44,7 +46,26 @@ class CreateAdmin extends Command
             return self::FAILURE;
         }
 
-        $name = $this->option('name') ?: $this->ask('نام و نام خانوادگی', 'مدیر سیستم');
+        /*
+         * نام و نام خانوادگیِ جدا (مرحلهٔ ۹ · فاز ۶) — همان قاعده‌ی ثبت‌نام
+         * (`PersianName`). پیش از این یک `name` ِ تک با پیش‌فرضِ «مدیر سیستم»
+         * بود و حسابِ ادمینِ کل تنها حسابی می‌ماند که نامش دو بخش نداشت.
+         */
+        $first = PersianName::normalize($this->option('first-name') ?: $this->ask('نام'));
+        $last = PersianName::normalize($this->option('last-name') ?: $this->ask('نام خانوادگی'));
+
+        $names = Validator::make(
+            ['first_name' => $first, 'last_name' => $last],
+            ['first_name' => PersianName::rules(), 'last_name' => PersianName::rules()],
+            [],
+            ['first_name' => 'نام', 'last_name' => 'نام خانوادگی'],
+        );
+
+        if ($names->fails()) {
+            $this->error($names->errors()->first());
+
+            return self::FAILURE;
+        }
 
         // رمز از ورودی مخفی خوانده می‌شود تا در تاریخچهٔ شل باقی نماند.
         $password = $this->option('password') ?: $this->secret('رمز عبور');
@@ -60,7 +81,10 @@ class CreateAdmin extends Command
         }
 
         $user = User::create([
-            'name' => $name,
+            // `name` را مدل از این دو می‌سازد
+            'first_name' => $first,
+            'last_name' => $last,
+            'name' => PersianName::full($first, $last),
             'email' => $this->option('email'),
             'phone' => $phone,
             'password' => Hash::make($password),

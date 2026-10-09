@@ -426,9 +426,8 @@ class ComplexTypeTest extends TestCase
             ->postJson('/api/v1/system/complexes', [
                 'name' => 'پاساژِ مرکزی',
                 'type' => ComplexType::Commercial->value,
-                'admin_name' => 'مدیر',
+                // مرحلهٔ ۹ · فاز ۶: مدیر با دعوت، نه با نام و رمزی که ادمین می‌نویسد
                 'admin_phone' => '09121112233',
-                'admin_password' => 'abcd1234',
             ])
             ->assertCreated();
 
