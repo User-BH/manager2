@@ -365,7 +365,8 @@ jobs:
         # فقط اینجا قفلِ ردیفِ واقعی است؛ روی SQLite قفلِ کلِ پایگاه‌داده جایش را می‌گیرد
         # WalletConcurrencyTest (مرحلهٔ ۹ · اصلاحاتِ پس از فاز ۶): برداشتِ هم‌زمان از کیفِ شخصی — «دقیقاً دو» فقط با قفلِ ردیفِ واقعی
         # InvitationConcurrencyTest (همان مرحله): پذیرشِ هم‌زمانِ دعوت — «دقیقاً یک عضویت» فقط با قفلِ ردیفِ واقعی
-        run: php artisan test --filter="SchemaConstraintTest|SecretHandlingTest|ChaosTest|CheckoutConcurrencyTest|WalletConcurrencyTest|InvitationConcurrencyTest"
+        # PhoneChangeConcurrencyTest (مرحلهٔ ۹): دو تأییدِ هم‌زمانِ یک شماره — «دقیقاً یک صاحب» فقط روی MySQL
+        run: php artisan test --filter="SchemaConstraintTest|SecretHandlingTest|ChaosTest|CheckoutConcurrencyTest|WalletConcurrencyTest|InvitationConcurrencyTest|PhoneChangeConcurrencyTest"
 
   # ────────────────────────────────────────────────────────────────────────
   #  امنیت

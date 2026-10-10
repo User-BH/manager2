@@ -27,7 +27,7 @@ class E2eSeederTest extends TestCase
     {
         $owner = User::withoutGlobalScopes()->where('phone', $phone)->firstOrFail();
 
-        return app(WalletService::class)->balance($owner, $owner->units()->withoutGlobalScopes()->firstOrFail()->complex_id);
+        return app(WalletService::class)->balance($owner);
     }
 
     public function test_every_engine_owner_gets_a_wallet_that_covers_a_bill(): void

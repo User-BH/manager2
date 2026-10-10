@@ -57,7 +57,7 @@ class WalletLedgerTest extends TestCase
 
     public function test_a_new_wallet_is_empty(): void
     {
-        $this->assertSame(0.0, $this->wallet->balance($this->resident, $this->complex->id));
+        $this->assertSame(0.0, $this->wallet->balance($this->resident));
     }
 
     public function test_the_balance_is_the_sum_of_the_ledger(): void
@@ -66,7 +66,7 @@ class WalletLedgerTest extends TestCase
         $this->wallet->credit($this->resident, $this->unit, 200000, WalletTransaction::SOURCE_TOPUP_GATEWAY);
         $this->wallet->debit($this->resident, $this->unit, 300000, WalletTransaction::SOURCE_ADJUSTMENT);
 
-        $this->assertSame(400000.0, $this->wallet->balance($this->resident, $this->complex->id));
+        $this->assertSame(400000.0, $this->wallet->balance($this->resident));
     }
 
     /**
@@ -96,7 +96,7 @@ class WalletLedgerTest extends TestCase
 
         $last = WalletTransaction::orderByDesc('id')->first();
 
-        $this->assertEquals($this->wallet->balance($this->resident, $this->complex->id), (float) $last->balance_after);
+        $this->assertEquals($this->wallet->balance($this->resident), (float) $last->balance_after);
     }
 
     /* ── اضافه‌برداشت ────────────────────────────────────────────────────── */
@@ -121,7 +121,7 @@ class WalletLedgerTest extends TestCase
 
         // یک ردیف (همان شارژ) — نه ردیفِ ناقصِ برداشت
         $this->assertSame(1, WalletTransaction::count());
-        $this->assertSame(100000.0, $this->wallet->balance($this->resident, $this->complex->id));
+        $this->assertSame(100000.0, $this->wallet->balance($this->resident));
     }
 
     public function test_a_zero_or_negative_amount_is_refused(): void
@@ -153,7 +153,7 @@ class WalletLedgerTest extends TestCase
         $paid = $this->wallet->payBill($this->resident, $bill);
 
         $this->assertSame(300000.0, $paid);
-        $this->assertSame(200000.0, $this->wallet->balance($this->resident, $this->complex->id));
+        $this->assertSame(200000.0, $this->wallet->balance($this->resident));
         $this->assertSame('300000.00', $bill->fresh()->paid_amount);
         $this->assertSame('paid', $bill->fresh()->status->value);
     }
@@ -167,7 +167,7 @@ class WalletLedgerTest extends TestCase
         $paid = $this->wallet->payBill($this->resident, $bill, 400000);
 
         $this->assertSame(100000.0, $paid);
-        $this->assertSame(400000.0, $this->wallet->balance($this->resident, $this->complex->id));
+        $this->assertSame(400000.0, $this->wallet->balance($this->resident));
     }
 
     public function test_a_partial_balance_pays_what_it_can(): void
@@ -178,7 +178,7 @@ class WalletLedgerTest extends TestCase
         $paid = $this->wallet->payBill($this->resident, $bill);
 
         $this->assertSame(120000.0, $paid);
-        $this->assertSame(0.0, $this->wallet->balance($this->resident, $this->complex->id));
+        $this->assertSame(0.0, $this->wallet->balance($this->resident));
         $this->assertSame('partial', $bill->fresh()->status->value);
     }
 
@@ -244,14 +244,14 @@ class WalletLedgerTest extends TestCase
         ]);
 
         /*
-         * مرحلهٔ ۹ · اصلاحاتِ پس از فاز ۶: کیف مالِ حساب است؛ `/wallet/{مجتمع}`
-         * همیشه کیفِ **خودِ** درخواست‌کننده را می‌دهد. همسایه همان شناسه‌ها را
-         * بزند، فقط جیبِ خالیِ خودش را می‌بیند — و صورت‌حسابِ اعضا مالِ مدیر است.
+         * مرحلهٔ ۹: یک کیف برای هر حساب؛ `/wallet/statement` همیشه کیفِ **خودِ**
+         * درخواست‌کننده را می‌دهد. همسایه فقط کیفِ خالیِ خودش را می‌بیند — و
+         * گردشِ اعضا (بی مانده) مالِ مدیر است.
          */
         $this->wallet->credit($this->resident, $this->unit, 90000, WalletTransaction::SOURCE_TOPUP_RECEIPT);
 
         $this->actingAs($stranger)
-            ->getJson("/api/v1/wallet/{$this->complex->id}")
+            ->getJson('/api/v1/wallet/statement')
             ->assertOk()
             ->assertJsonPath('balance', 0)
             ->assertJsonCount(0, 'transactions');

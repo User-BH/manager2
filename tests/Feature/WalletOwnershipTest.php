@@ -20,14 +20,17 @@ use App\Services\Wallet\WalletService;
 use App\Support\Jalali;
 use App\Support\TenantContext;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 use Tests\TestCase;
 
 /**
- * کیفِ پول مالِ **حسابِ شخص** است (مرحلهٔ ۹ · اصلاحاتِ پس از فاز ۶؛ تصمیمِ کارفرما).
+ * یک کیفِ پولِ **شخصی** برای هر حساب (مرحلهٔ ۹ · تصمیمِ نهاییِ کارفرما).
  *
- * شش آزمونِ خواسته‌شده: پایانِ عضویت مانده را عوض نمی‌کند؛ دسترسی می‌ماند؛
- * ساکنِ تازه نه می‌بیند نه خرج می‌کند؛ پس از مجتمعِ دیگر همان کیف؛ تغییرِ
- * `complex_id`/`unit_id` دسترسی نمی‌سازد؛ همزمانی (`WalletConcurrencyTest`، پردازه‌ی واقعی).
+ * یک مانده در هر داشبورد؛ خرج در یک مجتمع همه‌جا کم می‌کند؛ پایانِ عضویت و
+ * پیوستن به مجتمعِ دیگر کیف را نه عوض می‌کند نه تکثیر؛ ساکنِ تازه نه می‌بیند نه
+ * خرج می‌کند؛ هیچ شناسه‌ای از کلاینت کیفِ دیگری را باز نمی‌کند؛ مدیر کیفِ شخصیِ
+ * عضو را نمی‌بیند؛ تکرارِ درخواست یک برداشت است. هم‌زمانی: `WalletConcurrencyTest`.
  */
 class WalletOwnershipTest extends TestCase
 {
@@ -58,7 +61,7 @@ class WalletOwnershipTest extends TestCase
         app(WalletService::class)->credit($this->hosseini, $this->unit, 300000, WalletTransaction::SOURCE_ADJUSTMENT, null, 'شارژِ آقای حسینی');
     }
 
-    /** ۱ و ۲ — مانده دست نمی‌خورد و صاحب همچنان به کیفش می‌رسد، حتی بی هیچ عضویتی. */
+    /** پایانِ عضویت مانده را عوض نمی‌کند و صاحب همچنان به کیفش می‌رسد، حتی بی هیچ عضویتی. */
     public function test_ending_membership_keeps_the_balance_and_the_access(): void
     {
         $rowsBefore = WalletTransaction::withoutGlobalScopes()->count();
@@ -67,86 +70,181 @@ class WalletOwnershipTest extends TestCase
 
         $hosseini = User::withoutGlobalScopes()->find($this->hosseini->id);
         $this->assertNull($hosseini->complex_id);
-        $this->assertSame(300000.0, app(WalletService::class)->balance($hosseini, $this->complex->id));
+        $this->assertSame(300000.0, app(WalletService::class)->balance($hosseini));
         // هیچ ردیفی ساخته، حذف یا جابه‌جا نشد
         $this->assertSame($rowsBefore, WalletTransaction::withoutGlobalScopes()->count());
 
         $this->as($hosseini)->getJson('/api/v1/wallet')->assertOk()
-            ->assertJsonPath('wallets.0.balance', 300000)
-            ->assertJsonPath('wallets.0.label', 'مجتمع الف');
-        $this->as($hosseini)->getJson("/api/v1/wallet/{$this->complex->id}")->assertOk()
+            ->assertJsonCount(1, 'wallets')
+            ->assertJsonPath('wallets.0.balance', 300000);
+        $this->as($hosseini)->getJson('/api/v1/wallet/statement')->assertOk()
             ->assertJsonPath('balance', 300000)
-            ->assertJsonCount(1, 'transactions');
+            ->assertJsonCount(1, 'transactions')
+            ->assertJsonPath('transactions.0.complexName', 'مجتمع الف');
     }
 
-    /** ۳ — ساکنِ تازه‌ی همان واحد: نه مانده، نه گردش، نه پرداخت با پولِ ساکنِ قبلی. */
+    /** ساکنِ تازه‌ی همان واحد: نه مانده، نه گردش، نه پرداخت با پولِ ساکنِ قبلی. */
     public function test_the_next_tenant_can_neither_see_nor_spend_the_previous_tenants_wallet(): void
     {
         $this->as($this->manager)->deleteJson("/api/v1/residents/{$this->hosseini->id}")->assertOk();
         $bob = $this->joinUnit('09128880002');
         $bill = $this->bill(100000);
 
-        $this->as($bob)->getJson('/api/v1/wallet')->assertOk()->assertJsonCount(0, 'wallets');
-        $this->as($bob)->getJson("/api/v1/wallet/{$this->complex->id}")->assertOk()
+        $this->as($bob)->getJson('/api/v1/wallet')->assertOk()->assertJsonPath('wallets.0.balance', 0);
+        $this->as($bob)->getJson('/api/v1/wallet/statement')->assertOk()
             ->assertJsonPath('balance', 0)->assertJsonCount(0, 'transactions');
         $this->as($bob)->getJson("/api/v1/pay/{$bill->id}")->assertOk()->assertJsonPath('walletBalance', 0);
         $this->as($bob)->postJson("/api/v1/wallet/pay/{$bill->id}")->assertStatus(422);
 
         $this->assertSame(0.0, (float) $bill->fresh()->paid_amount);
-        $this->assertSame(300000.0, app(WalletService::class)->balance($this->hosseini, $this->complex->id));
+        $this->assertSame(300000.0, app(WalletService::class)->balance($this->hosseini));
     }
 
-    /** ۴ — پس از پیوستن به مجتمعِ دیگر، همان کیف؛ و جیبِ مجتمعِ الف قبضِ مجتمعِ ب را نمی‌پردازد (ادغام نه). */
-    public function test_after_joining_another_complex_the_same_wallet_remains_and_pockets_do_not_merge(): void
+    /**
+     * یک حساب، یک مانده در هر داشبورد (تصمیمِ کارفرما: «سه نمایش به یک کیفِ
+     * canonical»). اعتبارِ ثبت‌شده در دو مجتمع جمعِ همان یک کیف است و در هر
+     * زمینه‌ی فعال — مجتمعِ الف، مجتمعِ ب، حسابِ اولیه — همان عدد برمی‌گردد.
+     *
+     * ⚠️ عضویتِ هم‌زمان در چند مجتمع هنوز در مخزن نیست (۱۰/۲)؛ زمینه‌ها با
+     * جابه‌جاییِ مجتمعِ فعالِ حساب ساخته می‌شوند.
+     */
+    public function test_one_account_sees_one_balance_in_every_complex_context(): void
+    {
+        [$other, $otherUnit] = $this->otherComplex();
+        app(WalletService::class)->credit($this->hosseini, $otherUnit, 200000, WalletTransaction::SOURCE_ADJUSTMENT);
+
+        foreach ([$this->complex->id, $other->id, null] as $context) {
+            $this->hosseini->forceFill(['complex_id' => $context])->save();
+            $response = $this->as($this->hosseini->fresh())->getJson('/api/v1/wallet')->assertOk();
+            $this->assertSame([500000], array_column($response->json('wallets'), 'balance'), "زمینه‌ی {$context}");
+            $this->as($this->hosseini->fresh())->getJson('/api/v1/wallet/statement')->assertOk()
+                ->assertJsonPath('balance', 500000)->assertJsonCount(2, 'transactions');
+        }
+    }
+
+    /**
+     * پس از رفتن از الف و پیوستن به ب: همان کیف (هیچ کیف یا ردیفِ تازه‌ای ساخته
+     * نمی‌شود) و اعتبارِ الف قبضِ مجازِ ب را می‌پردازد؛ مانده همه‌جا کم می‌شود و
+     * ردیفِ برداشت مجتمع و قبضِ ب را نشان می‌دهد.
+     */
+    public function test_after_joining_another_complex_the_same_wallet_pays_its_bills(): void
     {
         $this->as($this->manager)->deleteJson("/api/v1/residents/{$this->hosseini->id}")->assertOk();
+        [$other, $otherUnit] = $this->otherComplex();
+        $rowsBefore = WalletTransaction::withoutGlobalScopes()->count();
 
-        $other = Complex::factory()->create(['name' => 'مجتمع ب']);
-        $otherUnit = Unit::factory()->create(['complex_id' => $other->id]);
         [$invitation] = app(Membership::class)->invite($other, $this->hosseini->phone, UserRole::Tenant, $otherUnit, null);
         app(Membership::class)->accept($invitation, User::withoutGlobalScopes()->find($this->hosseini->id));
         $hosseini = User::withoutGlobalScopes()->find($this->hosseini->id);
 
-        $wallets = $this->as($hosseini)->getJson('/api/v1/wallet')->assertOk()->json('wallets');
-        $this->assertSame([['مجتمع الف', 300000]], array_map(fn ($w) => [$w['label'], $w['balance']], $wallets));
+        $this->assertSame($rowsBefore, WalletTransaction::withoutGlobalScopes()->count(), 'پیوستن کیف یا ردیفِ تازه ساخت.');
+        $this->as($hosseini)->getJson('/api/v1/wallet')->assertOk()->assertJsonPath('wallets.0.balance', 300000);
 
         $billB = Bill::withoutGlobalScopes()->create([
             'complex_id' => $other->id, 'unit_id' => $otherUnit->id, 'period' => Jalali::currentPeriod(),
             'base_amount' => 50000, 'total_amount' => 50000, 'paid_amount' => 0, 'due_date' => now()->addDays(10),
         ]);
-        $this->as($hosseini)->postJson("/api/v1/wallet/pay/{$billB->id}")->assertStatus(422);
-        $this->assertSame(0.0, (float) $billB->fresh()->paid_amount);
-        $this->assertSame(300000.0, app(WalletService::class)->balance($hosseini, $this->complex->id));
+        $this->as($hosseini)->postJson("/api/v1/wallet/pay/{$billB->id}")->assertOk()
+            ->assertJsonPath('paid', 50000)->assertJsonPath('balance', 250000);
+
+        $this->assertSame(50000.0, (float) $billB->fresh()->paid_amount);
+        $this->assertSame(250000.0, app(WalletService::class)->balance($hosseini));
+        $debit = WalletTransaction::withoutGlobalScopes()->where('direction', WalletTransaction::DEBIT)->sole();
+        $this->assertSame([$other->id, $otherUnit->id, $billB->id, $hosseini->id], [$debit->complex_id, $debit->unit_id, $debit->bill_id, $debit->user_id]);
+        $this->assertSame(250000.0, (float) $debit->balance_after);
+
+        // و در زمینه‌ی حسابِ اولیه هم همان مانده‌ی کم‌شده
+        $hosseini->forceFill(['complex_id' => null])->save();
+        $this->as($hosseini->fresh())->getJson('/api/v1/wallet')->assertOk()->assertJsonPath('wallets.0.balance', 250000);
     }
 
-    /** ۵ — دست‌کاریِ `complex_id` یا `unit_id` (پارامتر یا حساب) کیفِ کسِ دیگری را باز نمی‌کند. */
-    public function test_changing_complex_or_unit_never_opens_someone_elses_wallet(): void
+    /**
+     * هیچ شناسه‌ای از کلاینت کیفِ کسِ دیگری را انتخاب نمی‌کند: پارامترِ نشانی، بدنه،
+     * قبضِ دیگری، یا جابه‌جاییِ مجتمعِ حساب. مدیر هم کیفِ شخصیِ عضو را نمی‌بیند.
+     */
+    public function test_no_identifier_from_the_client_opens_someone_elses_wallet(): void
     {
         $intruder = User::factory()->create([
             'complex_id' => $this->complex->id, 'role' => UserRole::Owner, 'is_active' => true,
         ]);
         app(TenureService::class)->open($this->unit, $intruder, ResidentRelation::Owner);
+        [$other] = $this->otherComplex();
 
-        // هم‌واحد و هم‌مجتمع، با هر شناسه‌ای: فقط کیفِ خودش
-        foreach (["/api/v1/wallet/{$this->complex->id}", '/api/v1/wallet/'.($this->complex->id + 1)] as $path) {
-            $this->as($intruder)->getJson($path)->assertOk()->assertJsonCount(0, 'transactions');
+        foreach ([
+            '/api/v1/wallet/statement?user_id='.$this->hosseini->id,
+            '/api/v1/wallet/statement?complex_id='.$this->complex->id.'&account_id='.$this->hosseini->id,
+            '/api/v1/wallet/'.$this->complex->id,
+        ] as $path) {
+            $response = $this->as($intruder)->getJson($path);
+            $this->assertContains($response->status(), [200, 404], $path);
+            $this->assertStringNotContainsString('300000', (string) $response->getContent(), $path);
         }
+        $this->as($intruder)->getJson('/api/v1/wallet/statement')->assertOk()->assertJsonCount(0, 'transactions');
         $this->as($intruder)->getJson("/api/v1/wallet/members/{$this->hosseini->id}")->assertForbidden();
 
-        // حتی با جابه‌جاییِ مستقیمِ مجتمع روی حساب
-        $intruder->forceFill(['complex_id' => Complex::factory()->create()->id])->save();
-        $this->as($intruder->fresh())->getJson("/api/v1/wallet/{$this->complex->id}")->assertOk()
-            ->assertJsonCount(0, 'transactions');
+        // پرداختِ قبضِ هم‌واحد با کیفِ خودش: کیفِ حسینی دست نمی‌خورد، با هر بدنه‌ای
+        $bill = $this->bill(100000);
+        $this->as($intruder)->postJson("/api/v1/wallet/pay/{$bill->id}", [
+            'user_id' => $this->hosseini->id, 'owner_id' => $this->hosseini->id, 'wallet_id' => $this->hosseini->id,
+        ])->assertStatus(422);
+        $this->assertSame(300000.0, app(WalletService::class)->balance($this->hosseini));
 
-        // مدیرِ همین مجتمع فقط بخشِ همین مجتمع را می‌بیند
-        $this->as($this->manager)->getJson("/api/v1/wallet/members/{$this->hosseini->id}")->assertOk()
-            ->assertJsonPath('balance', 300000);
+        // جابه‌جاییِ مستقیمِ مجتمعِ حساب هم چیزی باز نمی‌کند
+        $intruder->forceFill(['complex_id' => $other->id])->save();
+        $this->as($intruder->fresh())->getJson('/api/v1/wallet/statement')->assertOk()->assertJsonCount(0, 'transactions');
 
-        // و مدیرِ مجتمعِ دیگر صورت‌حسابِ اعضای این مجتمع را نمی‌گیرد
+        // مدیرِ همین مجتمع: فقط ردیف‌های همین مجتمع، بی مانده‌ی شخصی
+        $member = $this->as($this->manager)->getJson("/api/v1/wallet/members/{$this->hosseini->id}")->assertOk();
+        $member->assertJsonPath('balance', null)->assertJsonPath('transactions.0.balanceAfter', null);
+        $this->as($this->manager)->getJson('/api/v1/wallet')->assertOk()->assertJsonPath('members.0.balance', null);
+
+        // مدیرِ مجتمعِ دیگر: ۴۰۴
         $foreignManager = User::factory()->create([
-            'complex_id' => Complex::factory()->create()->id, 'role' => UserRole::ComplexAdmin, 'is_active' => true,
+            'complex_id' => $other->id, 'role' => UserRole::ComplexAdmin, 'is_active' => true,
         ]);
         $this->as($foreignManager)->getJson("/api/v1/wallet/members/{$this->hosseini->id}")->assertNotFound();
+    }
+
+    /** مدیر گردشِ عضو در مجتمعِ دیگر را نمی‌بیند — حتی اگر عضوِ همین مجتمع باشد. */
+    public function test_a_manager_sees_only_this_complexes_rows_of_a_member(): void
+    {
+        [, $otherUnit] = $this->otherComplex();
+        app(WalletService::class)->credit($this->hosseini, $otherUnit, 200000, WalletTransaction::SOURCE_ADJUSTMENT, null, 'اعتبارِ مجتمعِ ب');
+
+        $rows = $this->as($this->manager)->getJson("/api/v1/wallet/members/{$this->hosseini->id}")->assertOk()->json('transactions');
+        $this->assertCount(1, $rows);
+        $this->assertStringNotContainsString('اعتبارِ مجتمعِ ب', (string) json_encode($rows, JSON_UNESCAPED_UNICODE));
+    }
+
+    /**
+     * کلیکِ دوباره یا retry با همان `Idempotency-Key`: یک برداشت، نه دو. کلیدِ
+     * یکسان برای قبضِ دیگر رد می‌شود؛ بی کلید، پرداختِ دوم فقط بدهیِ باقی را می‌پردازد.
+     */
+    public function test_a_repeated_payment_with_the_same_key_is_recorded_once(): void
+    {
+        $bill = $this->bill(100000);
+        $headers = ['Idempotency-Key' => 'pay-key-00000001'];
+
+        $this->as($this->hosseini)->postJson("/api/v1/wallet/pay/{$bill->id}", ['amount' => 30000], $headers)
+            ->assertOk()->assertJsonPath('paid', 30000);
+        $this->as($this->hosseini)->postJson("/api/v1/wallet/pay/{$bill->id}", ['amount' => 30000], $headers)
+            ->assertOk()->assertJsonPath('paid', 30000)->assertJsonPath('balance', 270000);
+
+        $this->assertSame(1, WalletTransaction::withoutGlobalScopes()->where('direction', WalletTransaction::DEBIT)->count());
+        $this->assertSame(30000.0, (float) $bill->fresh()->paid_amount);
+
+        $another = Bill::withoutGlobalScopes()->create([
+            'complex_id' => $this->complex->id, 'unit_id' => $this->unit->id, 'period' => Jalali::shiftPeriod(Jalali::currentPeriod(), -1),
+            'base_amount' => 10000, 'total_amount' => 10000, 'paid_amount' => 0, 'due_date' => now()->addDays(10),
+        ]);
+        $this->as($this->hosseini)->postJson("/api/v1/wallet/pay/{$another->id}", [], $headers)->assertStatus(422);
+        $this->as($this->hosseini)->postJson("/api/v1/wallet/pay/{$bill->id}", [], ['Idempotency-Key' => 'bad key!'])->assertStatus(422);
+        // همان کلید از بدنه (کلاینتِ خودِ برنامه) هم تکرار را بی‌اثر می‌کند
+        $this->as($this->hosseini)->postJson("/api/v1/wallet/pay/{$bill->id}", ['amount' => 30000, 'idempotency_key' => 'pay-key-00000001'])
+            ->assertOk()->assertJsonPath('paid', 30000);
+        $this->assertSame(1, WalletTransaction::withoutGlobalScopes()->where('direction', WalletTransaction::DEBIT)->count());
+        $this->assertSame(0.0, (float) $another->fresh()->paid_amount);
+        $this->assertSame(270000.0, app(WalletService::class)->balance($this->hosseini));
     }
 
     /** بازگشتِ کاهشِ قبض به **پرداخت‌کنندگان**، از تازه‌ترین، و هرگز بیش از سهمِ هر کس. */
@@ -167,8 +265,8 @@ class WalletOwnershipTest extends TestCase
         app(BillGenerator::class)->generate($this->complex, Jalali::currentPeriod());
 
         $wallet = app(WalletService::class);
-        $this->assertSame(50000.0, $wallet->balance($partner, $this->complex->id));
-        $this->assertSame(300000.0 + 100000.0, $wallet->balance($this->hosseini, $this->complex->id));
+        $this->assertSame(50000.0, $wallet->balance($partner));
+        $this->assertSame(300000.0 + 100000.0, $wallet->balance($this->hosseini));
         // هیچ ریالی به واحد یا ساکنِ دیگری نرفت
         $this->assertSame(0.0, (float) $bill->fresh()->paid_amount);
     }
@@ -191,12 +289,35 @@ class WalletOwnershipTest extends TestCase
         $this->allocate($bill, $partner, 50000);
 
         $wallet = app(WalletService::class);
-        $before = $wallet->balance($this->hosseini, $this->complex->id);
+        $before = $wallet->balance($this->hosseini);
 
         $this->assertSame(0.0, $wallet->refundBillOverpayment($bill, 70000, 'آزمونِ بازگشتِ بخشی'));
 
-        $this->assertSame(50000.0, $wallet->balance($partner, $this->complex->id), 'تازه‌ترین پرداخت‌کننده اول و تا سقفِ سهمش.');
-        $this->assertSame($before + 20000.0, $wallet->balance($this->hosseini, $this->complex->id), 'باقی‌مانده به پرداخت‌کننده‌ی قبلی.');
+        $this->assertSame(50000.0, $wallet->balance($partner), 'تازه‌ترین پرداخت‌کننده اول و تا سقفِ سهمش.');
+        $this->assertSame($before + 20000.0, $wallet->balance($this->hosseini), 'باقی‌مانده به پرداخت‌کننده‌ی قبلی.');
+    }
+
+    /**
+     * مهاجرتِ یک‌کیفی (`2026_10_10_000002`) هیچ ردیفی را عوض نمی‌کند: پس از
+     * برگشت و اجرای دوباره، همه‌ی ردیف‌ها بایت‌به‌بایت سرِ جایشان‌اند و مانده‌ی
+     * حسابی که در دو مجتمع اعتبار دارد همان جمعِ دو جیبِ پیشین است.
+     */
+    public function test_the_single_wallet_migration_keeps_every_row_and_the_total(): void
+    {
+        [, $otherUnit] = $this->otherComplex();
+        app(WalletService::class)->credit($this->hosseini, $otherUnit, 200000, WalletTransaction::SOURCE_ADJUSTMENT);
+        $snapshot = fn () => DB::table('wallet_transactions')->orderBy('id')
+            ->get(['id', 'complex_id', 'unit_id', 'user_id', 'direction', 'amount', 'balance_after', 'source', 'bill_id', 'payment_id'])
+            ->map(fn ($row) => (array) $row)->all();
+        $before = $snapshot();
+
+        $migration = require database_path('migrations/2026_10_10_000002_wallet_single_canonical_balance.php');
+        $migration->down();
+        $this->assertFalse(Schema::hasColumn('wallet_transactions', 'idempotency_key'));
+        $migration->up();
+
+        $this->assertSame($before, $snapshot());
+        $this->assertSame(500000.0, app(WalletService::class)->balance($this->hosseini));
     }
 
     /* ── کمکی ──────────────────────────────────────────────────────────── */
@@ -208,6 +329,14 @@ class WalletOwnershipTest extends TestCase
         app(Membership::class)->accept($invitation, $user);
 
         return $user->fresh();
+    }
+
+    /** @return array{0: Complex, 1: Unit} */
+    private function otherComplex(): array
+    {
+        $other = Complex::factory()->create(['name' => 'مجتمع ب']);
+
+        return [$other, Unit::factory()->create(['complex_id' => $other->id, 'unit_number' => '1'])];
     }
 
     private function bill(float $total): Bill

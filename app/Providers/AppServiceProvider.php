@@ -372,6 +372,20 @@ class AppServiceProvider extends ServiceProvider
          * تغییرِ رمز رمزِ فعلی را می‌خواهد. بدونِ سقف، کسی که نشستِ باز را
          * دزدیده می‌توانست رمزِ فعلی را حدس بزند و حساب را برای همیشه بگیرد.
          */
+        /*
+         * تغییرِ شماره (مرحلهٔ ۹): هر شروع یک پیامک به شماره‌ای است که کاربر می‌دهد.
+         * سقفِ `otp-request` به ازای **شماره‌ی مقصد** است؛ این سقف به ازای **حساب**،
+         * تا یک حساب نتواند پشتِ‌سرِهم به شماره‌های مختلف پیامک بفرستد.
+         */
+        // بازیابیِ حساب (مرحلهٔ ۹): هر درخواست کارِ دستیِ ادمینِ کل است؛ سقفِ روزانه برای هر IP
+        RateLimiter::for('account-recovery', fn (Request $request) => [
+            Limit::perDay(5)->by('account-recovery:'.$request->ip()),
+        ]);
+
+        RateLimiter::for('phone-change', fn (Request $request) => [
+            Limit::perDay(5)->by('phone-change:'.($request->user()?->id ?: $request->ip())),
+        ]);
+
         RateLimiter::for('password-change', fn (Request $request) => [
             Limit::perMinutes(15, 5)->by($request->user()?->id ?: $request->ip()),
         ]);

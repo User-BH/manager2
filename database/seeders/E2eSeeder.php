@@ -66,7 +66,7 @@ class E2eSeeder extends Seeder
             $unit = $owner->units()->withoutGlobalScopes()->first();
 
             // دوباره‌اجرا اعتبار را دوبرابر نمی‌کند — کیف مالِ خودِ مالک است، نه واحد
-            if ($unit === null || $wallet->balance($owner, $unit->complex_id) >= self::CREDIT) {
+            if ($unit === null || $wallet->balance($owner) >= self::CREDIT) {
                 continue;
             }
 

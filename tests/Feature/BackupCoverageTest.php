@@ -131,7 +131,7 @@ class BackupCoverageTest extends TestCase
 
         app(WalletService::class)->credit($owner, $unit, 250000, WalletTransaction::SOURCE_ADJUSTMENT);
 
-        $balanceBefore = app(WalletService::class)->balance($owner, $complex->id);
+        $balanceBefore = app(WalletService::class)->balance($owner);
         $this->assertSame(250000.0, $balanceBefore, 'مقدمه‌ی تست درست ساخته نشد.');
 
         $snapshot = $this->buildSnapshot();

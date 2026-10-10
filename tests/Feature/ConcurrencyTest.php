@@ -146,7 +146,7 @@ class ConcurrencyTest extends TestCase
 
         $wallet->debit($this->resident, $this->unit, 100000, 'manual', null, 'برداشتِ کامل');
 
-        $this->assertSame(0.0, $wallet->balance($this->resident, $this->unit->complex_id));
+        $this->assertSame(0.0, $wallet->balance($this->resident));
 
         // برداشتِ دوم باید رد شود، نه اینکه موجودی را منفی کند
         $this->expectException(DomainException::class);
@@ -172,7 +172,7 @@ class ConcurrencyTest extends TestCase
         $wallet->credit($this->resident, $this->unit, 30000, 'manual', null, 'شارژ دوم');
         $wallet->debit($this->resident, $this->unit, 10000, 'manual', null, 'برداشت دوم');
 
-        $balance = $wallet->balance($this->resident, $this->unit->complex_id);
+        $balance = $wallet->balance($this->resident);
 
         $last = WalletTransaction::withoutGlobalScopes()
             ->where('unit_id', $this->unit->id)
@@ -326,7 +326,7 @@ class ConcurrencyTest extends TestCase
         // با نمونه‌ی کهنه برداشت می‌کنیم؛ باید مانده‌ی واقعی (۷۰٬۰۰۰) را ببیند
         $wallet->debit($stale, $this->unit, 70000, 'manual', null, 'برداشتِ کامل');
 
-        $this->assertEqualsWithDelta(0.0, $wallet->balance($this->resident, $this->unit->complex_id), 0.01);
+        $this->assertEqualsWithDelta(0.0, $wallet->balance($this->resident), 0.01);
     }
 
     // ─────────────────────────────────────────────────────────────────────

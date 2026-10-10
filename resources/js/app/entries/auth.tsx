@@ -1,4 +1,4 @@
-import { StrictMode } from 'react'
+import { StrictMode, Suspense, lazy } from 'react'
 import { MotionConfig } from 'framer-motion'
 import { createRoot } from 'react-dom/client'
 import { initObservability, trackPageView } from '@/shared/lib/observability'
@@ -8,6 +8,14 @@ import { VerifyOtpPage } from '@/features/auth/VerifyOtpPage'
 import { ForgotPasswordPage } from '@/features/auth/ForgotPasswordPage'
 import { InvitePage } from '@/features/auth/InvitePage'
 import { takeInviteTokenFromUrl } from '@/features/auth/inviteToken'
+
+/*
+ * بازیابیِ حساب بی شماره‌ی قبلی (مرحلهٔ ۹) نادر است: تنبل، تا وزن و چانک‌هایش به
+ * هر ورودِ معمولی تحمیل نشود (بودجه‌ی باندلِ نشست).
+ */
+const RecoverAccountPage = lazy(() =>
+  import('@/features/auth/RecoverAccountPage').then((m) => ({ default: m.RecoverAccountPage })),
+)
 
 /**
  * Entryِ بخشِ ورود/ثبت‌نام (island).
@@ -53,6 +61,15 @@ createRoot(document.getElementById('root')!).render(
           <Route path="/auth" element={<AuthPage />} />
           <Route path="/auth/verify" element={<VerifyOtpPage />} />
           <Route path="/auth/forgot" element={<ForgotPasswordPage />} />
+          {/* بازیابیِ حساب بی شماره‌ی قبلی (مرحلهٔ ۹): فقط ثبتِ درخواست برای ادمینِ کل */}
+          <Route
+            path="/auth/recover"
+            element={
+              <Suspense fallback={null}>
+                <RecoverAccountPage />
+              </Suspense>
+            }
+          />
           {/* پیوندِ دعوت (مرحلهٔ ۹ · فاز ۶): فقط پیش‌نمایش؛ توکن پس از # */}
           <Route path="/invite" element={<InvitePage />} />
         </Routes>

@@ -92,7 +92,9 @@ test.describe('ثبت‌نام‌کننده‌ی اولیه', () => {
     await menu.getByRole('link', { name: 'کیف پول' }).click()
     await expect(page).toHaveURL(/\/wallet$/)
     await expect(page.getByRole('heading', { name: 'کیف پول', level: 1 })).toBeVisible()
-    await expect(page.getByText('کیفِ پولِ شما هنوز گردشی ندارد.')).toBeVisible()
+    // یک کیفِ شخصی با مانده‌ی صفر و دفترِ خالی — نه «کیفِ نداشته»
+    await expect(page.getByRole('button', { name: /کیفِ پولِ شخصی/ })).toBeVisible()
+    await expect(page.getByText('هنوز تراکنشی ثبت نشده است.')).toBeVisible()
     await page.goto('/dashboard')
 
     // هر پنج زبانه در گوشیِ باریک هم بی‌اسکرولِ پنهان جا می‌شوند

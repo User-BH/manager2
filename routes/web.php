@@ -99,6 +99,7 @@ Route::middleware(['guest', 'cache.headers:no_store;private'])->group(function (
     Route::view('/auth', 'public.auth', $authView)->name('login');
     Route::view('/auth/verify', 'public.auth', $authView);
     Route::view('/auth/forgot', 'public.auth', $authView);
+    Route::view('/auth/recover', 'public.auth', $authView);
     // پیوندِ دعوت (مرحلهٔ ۹ · فاز ۶): همان island؛ توکن پس از `#` و هرگز به سرور نمی‌رسد.
     // کاربرِ واردشده با `guest` به داشبورد می‌رود — دعوت همان‌جا منتظر است.
     Route::view('/invite', 'public.auth', $authView);

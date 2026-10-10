@@ -358,7 +358,7 @@ class SchemaConstraintTest extends TestCase
         app(BillGenerator::class)->generate($this->complex, Jalali::currentPeriod());
 
         $fresh = $bill->fresh();
-        $wallet = app(WalletService::class)->balance($payer, $this->complex->id);
+        $wallet = app(WalletService::class)->balance($payer);
 
         // ⚠️ ناوردایی: هر ریالی که پرداخت شده یا روی قبض است یا در کیف
         $this->assertEqualsWithDelta(

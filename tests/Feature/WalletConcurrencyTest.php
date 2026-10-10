@@ -27,12 +27,14 @@ class WalletConcurrencyTest extends TestCase
 
     private const DEBIT = 10000;
 
+    private const PAY = 5000;
+
     private ?string $file = null;
 
     /** @var array<string, string> */
     private array $env = [];
 
-    /** @var array{user: int, unit: int, complex: int}|null */
+    /** @var array{user: int, unit: int, complex: int, bill: int}|null */
     private ?array $data = null;
 
     protected function setUp(): void
@@ -86,7 +88,7 @@ class WalletConcurrencyTest extends TestCase
             ->all();
 
         $verify = $this->artisanProcess([
-            'race:check', 'wallet-verify', '--user='.$this->data['user'], '--complex='.$this->data['complex'],
+            'race:check', 'wallet-verify', '--user='.$this->data['user'],
         ]);
         $this->assertTrue($verify->successful(), $verify->errorOutput());
         $state = json_decode(trim($verify->output()), true);
@@ -108,6 +110,53 @@ class WalletConcurrencyTest extends TestCase
         // هر «OK» یک ردیفِ برداشت است — نه بیشتر (دوباره‌شماری) نه کمتر (گم‌شدن)
         $ok = count(array_filter($outputs, fn (string $o) => str_contains($o, 'OK')));
         $this->assertSame($state['debits'], $ok, 'پردازه‌های موفق با ردیف‌های دفتر نمی‌خوانند.'.$context);
+    }
+
+    /**
+     * چهار تکرارِ **هم‌زمانِ یک پرداخت** (همان `Idempotency-Key`، مثلِ دوبار-کلیک یا
+     * retry ِ شبکه): یک برداشت و یک بار نشستن روی قبض — نه بیشتر.
+     */
+    public function test_concurrent_repeats_of_one_payment_debit_once(): void
+    {
+        $setup = $this->artisanProcess(['race:check', 'wallet-setup', '--amount='.self::CREDIT]);
+        $this->assertTrue($setup->successful(), $setup->errorOutput());
+        $this->data = json_decode(trim($setup->output()), true);
+
+        $at = (int) floor(microtime(true) * 1000) + 4000;
+        $pool = Process::pool(function ($pool) use ($at) {
+            for ($i = 0; $i < self::WORKERS; $i++) {
+                $pool->path(base_path())->env($this->env)->timeout(180)->command([
+                    PHP_BINARY, 'artisan', 'race:check', 'wallet-pay',
+                    '--user='.$this->data['user'], '--bill='.$this->data['bill'],
+                    '--amount='.self::PAY, '--key=race-same-payment-key', '--at='.$at,
+                ]);
+            }
+        })->start();
+
+        $outputs = collect($pool->wait()->collect())
+            ->map(fn ($result) => trim($result->output().' '.$result->errorOutput()))
+            ->values()
+            ->all();
+
+        $verify = $this->artisanProcess([
+            'race:check', 'wallet-verify', '--user='.$this->data['user'], '--bill='.$this->data['bill'],
+        ]);
+        $this->assertTrue($verify->successful(), $verify->errorOutput());
+        $state = json_decode(trim($verify->output()), true);
+        $context = "\nخروجیِ پردازه‌ها:\n  ".implode("\n  ", $outputs)."\nوضعیت: ".json_encode($state);
+
+        // ⚠️ SQLite ممکن است همه را با «database is locked» رد کند؛ «دقیقاً یک» فقط روی MySQL
+        $expected = config('database.default') === 'sqlite' ? [0, 1] : [1];
+        $this->assertContains($state['debits'], $expected, 'تکرارِ یک پرداخت بیش از یک برداشت ساخت.'.$context);
+        $this->assertEqualsWithDelta($state['debits'] * self::PAY, $state['billPaid'], 0.01, 'قبض با دفتر نمی‌خواند.'.$context);
+        $this->assertEqualsWithDelta(self::CREDIT - $state['debits'] * self::PAY, $state['balance'], 0.01, $context);
+        $this->assertEqualsWithDelta($state['ledgerSum'], $state['lastSnapshot'], 0.01, $context);
+        $this->assertSame(0, $state['chainBroken'], $context);
+
+        // هر پردازه‌ی موفق همان یک پرداخت را گزارش می‌کند، نه پرداختِ تازه
+        foreach (array_filter($outputs, fn (string $o) => str_starts_with($o, 'PAID')) as $output) {
+            $this->assertStringContainsString('PAID '.self::PAY, $output, $context);
+        }
     }
 
     /** @param  list<string>  $arguments */

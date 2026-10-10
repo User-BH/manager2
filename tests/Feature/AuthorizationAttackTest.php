@@ -396,7 +396,7 @@ class AuthorizationAttackTest extends TestCase
         $this->attack($this->victim, 'GET', '/api/service-requests/'.$this->owned['request']->id)
             ->assertOk();
 
-        $this->attack($this->victim, 'GET', '/api/wallet/'.$this->complex->id)
+        $this->attack($this->victim, 'GET', '/api/wallet/statement')
             ->assertOk();
     }
 
@@ -613,7 +613,7 @@ class AuthorizationAttackTest extends TestCase
      */
     private const SCOPE_BYPASS = [
         // ── دستور و صف: نه کاربرِ HTTPی هست، نه زمینه‌ی مستأجری ──
-        'app/Console/Commands/CheckRaceConditions.php' => [19, 'ابزارِ سنجشِ همزمانی؛ عمداً کلِ داده را می‌بیند (+ صاحبِ کیف، + پذیرشِ هم‌زمانِ دعوت)'],
+        'app/Console/Commands/CheckRaceConditions.php' => [25, 'ابزارِ سنجشِ همزمانی؛ عمداً کلِ داده را می‌بیند (+ صاحبِ کیف، + پذیرشِ هم‌زمانِ دعوت، + پرداختِ تکراری از کیف، + تغییرِ هم‌زمانِ شماره)'],
         'app/Console/Commands/RaceCheckout.php' => [7, 'آزمونِ همزمانیِ واقعیِ خرید (مرحلهٔ ۹ · فاز ۵)؛ فقط داده‌ی ساخته‌ی خودش را می‌خواند و پاک می‌کند'],
         'app/Console/Commands/PruneGeneratedDocuments.php' => [1, 'پاک‌سازیِ زمان‌بندی‌شده روی همه‌ی مجتمع‌ها'],
         'app/Console/Commands/PruneOrphanUploads.php' => [5, 'فایل‌های یتیم در همه‌ی مجتمع‌ها — پنج نوع پیوست از R58'],
@@ -633,6 +633,9 @@ class AuthorizationAttackTest extends TestCase
         'app/Http/Controllers/Api/InvitationController.php' => [3, 'گیرنده‌ی دعوت هنوز عضو نیست؛ واحد و دعوت‌کننده‌ی همان دعوتِ خودش (مرحلهٔ ۹ · فاز ۶)'],
         'app/Services/Account/Membership.php' => [5, 'پیوستن و پایانِ عضویت: حسابِ بی‌مجتمع، و واحدِ دعوت زیرِ قفل (مرحلهٔ ۹ · فاز ۶)'],
         'app/Services/Account/ComplexUpgrader.php' => [1, 'کاربر در همین لحظه صاحبِ مجتمع می‌شود'],
+        // مرحلهٔ ۹: شماره مالِ حساب است و یکتاییِ آن در کلِ سکو سنجیده می‌شود
+        'app/Services/Account/PhoneChange.php' => [3, 'قفلِ حسابِ خود و یکتاییِ شماره در همه‌ی مجتمع‌ها؛ حسابِ اولیه هم مجتمع ندارد'],
+        'app/Services/Account/AccountRecovery.php' => [3, 'حسابِ منطبق با شماره‌ی قبلی در هر مجتمعی، قفلِ آن و یکتاییِ شماره‌ی تازه در کلِ سکو'],
         // مرحلهٔ ۹ · فاز ۴: قفلِ خریدار — حسابِ اولیه هنوز مجتمعی ندارد
         'app/Services/Subscription/ComplexPurchase.php' => [2, 'خریدار هنوز عضوِ هیچ مجتمعی نیست؛ قفل و بازخوانیِ همان کاربرِ خودش'],
         'app/Http/Middleware/EnsureComplexActive.php' => [1, 'خودِ مجتمع را می‌خواند تا زمینه ساخته شود'],
@@ -642,8 +645,8 @@ class AuthorizationAttackTest extends TestCase
         'app/Http/Controllers/GatewayController.php' => [4, 'بازگشتِ بانک نشست ندارد؛ اصالت با شناسه‌ی مرجع'],
         'app/Services/Payment/PaymentService.php' => [6, 'بازخوانی داخلِ قفل، روی رکوردِ ازپیش‌مجازشده؛ و پرداخت‌کننده‌ی مازاد (صاحبِ کیف)'],
         'app/Services/Payment/TrackingCodes.php' => [2, 'کدِ رهگیریِ بانک در همه‌ی مجتمع‌ها یکتاست؛ فقط exists، هیچ داده‌ای برنمی‌گرداند (فاز ۹)'],
-        'app/Services/Wallet/WalletService.php' => [10, 'کیف مالِ حساب است و صاحبش شاید دیگر عضوِ مجتمع نباشد: قفلِ صاحب، جیب‌ها، نامِ مجتمع‌ها و پرداخت‌کنندگانِ قبض (مرحلهٔ ۹ · اصلاحاتِ پس از فاز ۶)'],
-        'app/Http/Controllers/Api/WalletController.php' => [2, 'صورت‌حسابِ کیفِ خودِ صاحب حتی پس از پایانِ عضویت؛ مرزِ دسترسی `user_id` است'],
+        'app/Services/Wallet/WalletService.php' => [9, 'یک کیف برای هر حساب و صاحبش شاید دیگر عضوِ مجتمعی نباشد: قفلِ صاحب، مانده‌ی کلِ دفترِ او، کلیدِ تکرار و پرداخت‌کنندگانِ قبض (مرحلهٔ ۹)'],
+        'app/Http/Controllers/Api/WalletController.php' => [4, 'صورت‌حسابِ کیفِ خودِ صاحب در همه‌ی مجتمع‌ها حتی پس از پایانِ عضویت (مرزِ دسترسی `user_id`)؛ گردشِ عضو فقط در همین مجتمع؛ نامِ مجتمعِ هر ردیف'],
         // پیام‌رسانِ گفت‌وگومحور (مرحلهٔ ۶ · فاز ۱۲)
         'app/Services/Messenger/ConversationDirectory.php' => [1, 'یافتنِ گفت‌وگو با مجتمعِ صریح و کلیدِ یکتا، پس از خطای یکتاییِ ساختِ هم‌زمان'],
         'app/Services/Messenger/MessageActions.php' => [1, 'برداشتنِ سنجاقِ همان گفت‌وگویی که پیش‌تر دیده‌شدنش سنجیده شده، با شناسه‌ی صریح'],

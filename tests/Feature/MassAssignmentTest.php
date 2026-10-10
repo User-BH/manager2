@@ -154,13 +154,20 @@ class MassAssignmentTest extends TestCase
      */
     public function test_a_resident_cannot_promote_themselves_through_the_profile_form(): void
     {
+        /*
+         * رمز از مرحلهٔ ۹ در این فرم `prohibited` است (۴۲۲، نه نادیده‌گرفتن)؛ پس
+         * جدا سنجیده می‌شود و درخواستِ اصلی فیلدهای سطحِ دسترسی را بی رمز می‌فرستد.
+         */
+        $this->as($this->resident, 'PUT', '/api/profile', [
+            'first_name' => 'نام', 'last_name' => 'تازه', 'password' => 'hacked-password',
+        ])->assertStatus(422)->assertJsonValidationErrors('password');
+
         $this->as($this->resident, 'PUT', '/api/profile', [
             'first_name' => 'نام',
             'last_name' => 'تازه',
             'role' => UserRole::SuperAdmin->value,
             'is_active' => true,
             'complex_id' => $this->other->id,
-            'password' => 'hacked-password',
         ])->assertOk();
 
         $fresh = $this->resident->fresh();
@@ -374,7 +381,7 @@ class MassAssignmentTest extends TestCase
 
         $this->assertSame(
             0.0,
-            (float) app(WalletService::class)->balance($this->resident, $this->unit->complex_id),
+            (float) app(WalletService::class)->balance($this->resident),
             'موجودیِ کیف پس از پرداخت درست نیست.',
         );
     }
@@ -390,7 +397,7 @@ class MassAssignmentTest extends TestCase
 
         $this->assertSame(
             50000.0,
-            (float) app(WalletService::class)->balance($this->resident, $this->unit->complex_id),
+            (float) app(WalletService::class)->balance($this->resident),
             'مبلغِ منفی موجودیِ کیف را عوض کرد.',
         );
 
@@ -453,6 +460,12 @@ class MassAssignmentTest extends TestCase
         'UpdatePasswordRequest.php' => ['password'],
         // تأییدِ دوباره پیش از عملیاتِ حساس؛ فقط سنجیده می‌شود، ذخیره نه (فاز ۱۰)
         'ConfirmPasswordRequest.php' => ['password'],
+
+        // ── مرحلهٔ ۹: تغییرِ شماره فقط برای حسابِ خودِ درخواست‌کننده — شناسه‌ها `prohibited` ──
+        'StartPhoneChangeRequest.php' => ['user_id'],
+        'ConfirmPhoneChangeRequest.php' => ['user_id'],
+        // پروفایل: شماره و رمز `prohibited`؛ مسیرهای امنِ خودشان را دارند
+        'UpdateProfileRequest.php' => ['password'],
 
         // ── مرحلهٔ ۹ · فاز ۶: `prohibited` — نامِ ستون در قواعد هست تا **رد** شود ──
         // مدیر دیگر برای کسی رمز نمی‌گذارد؛ دعوت می‌فرستد (F5)

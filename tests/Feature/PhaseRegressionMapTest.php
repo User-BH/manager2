@@ -817,6 +817,63 @@ class PhaseRegressionMapTest extends TestCase
             '🔴 مدیر مسیرهای ادمینِ کل را نمی‌زند' => [
                 'MembershipLifecycleTest', 'test_a_manager_cannot_use_super_admin_routes', '۹',
             ],
+            '🔴 یک کیف برای هر حساب: یک مانده در هر زمینه‌ی مجتمع' => [
+                'WalletOwnershipTest', 'test_one_account_sees_one_balance_in_every_complex_context', '۹',
+            ],
+            '🔴 پس از پیوستن به مجتمعِ دیگر همان کیف قبضِ مجاز را می‌پردازد' => [
+                'WalletOwnershipTest', 'test_after_joining_another_complex_the_same_wallet_pays_its_bills', '۹',
+            ],
+            '🔴 هیچ شناسه‌ای از کلاینت کیفِ کسِ دیگری را باز نمی‌کند؛ مدیر مانده‌ی شخصی نمی‌بیند' => [
+                'WalletOwnershipTest', 'test_no_identifier_from_the_client_opens_someone_elses_wallet', '۹',
+            ],
+            'مدیر فقط گردشِ عضو در همین مجتمع را می‌بیند' => [
+                'WalletOwnershipTest', 'test_a_manager_sees_only_this_complexes_rows_of_a_member', '۹',
+            ],
+            '🔴 پرداختِ تکراری با یک کلید یک برداشت است' => [
+                'WalletOwnershipTest', 'test_a_repeated_payment_with_the_same_key_is_recorded_once', '۹',
+            ],
+            '🔴 تکرارِ هم‌زمانِ یک پرداخت در چند پردازه یک برداشت است' => [
+                'WalletConcurrencyTest', 'test_concurrent_repeats_of_one_payment_debit_once', '۹',
+            ],
+            'مهاجرتِ یک‌کیفی هیچ ردیفی را عوض نمی‌کند' => [
+                'WalletOwnershipTest', 'test_the_single_wallet_migration_keeps_every_row_and_the_total', '۹',
+            ],
+            '🔴 تغییرِ شماره با کدِ تازه؛ دستگاه‌ها باطل' => [
+                'PhoneChangeTest', 'test_the_owner_changes_their_phone_with_a_fresh_code', '۹',
+            ],
+            '🔴 شماره‌ی حسابِ دیگر نه گرفته می‌شود نه ادغام' => [
+                'PhoneChangeTest', 'test_another_accounts_phone_is_never_taken_or_merged', '۹',
+            ],
+            '🔴 سقفِ تلاشِ کد در تأییدِ ناموفق گم نمی‌شود' => [
+                'PhoneChangeTest', 'test_the_attempt_cap_survives_failed_confirmations', '۹',
+            ],
+            '🔴 دو تأییدِ هم‌زمانِ یک شماره: یک صاحب' => [
+                'PhoneChangeConcurrencyTest', 'test_two_accounts_confirming_one_number_at_once_never_share_it', '۹',
+            ],
+            'ورود و کدِ ورود پس از تغییر با شماره‌ی تازه' => [
+                'PhoneChangeTest', 'test_login_and_recovery_follow_the_new_phone', '۹',
+            ],
+            '🔴 مدیر شماره و رمزِ ساکن را عوض نمی‌کند (هیچ مسیری)' => [
+                'PhoneChangeTest', 'test_a_manager_cannot_change_a_residents_phone_or_password', '۹',
+            ],
+            '🔴 بازیابیِ حساب بی تأییدِ ادمینِ کل هیچ‌چیز را عوض نمی‌کند' => [
+                'AccountRecoveryTest', 'test_a_verified_request_changes_nothing_until_approved', '۹',
+            ],
+            '🔴 تأییدِ بازیابی همه‌ی نشست‌ها و دستگاه‌ها را می‌بندد' => [
+                'AccountRecoveryTest', 'test_approval_moves_the_phone_and_ends_every_session', '۹',
+            ],
+            '🔴 ادمینِ کل بازیابیِ حسابِ خودش را تأیید نمی‌کند' => [
+                'AccountRecoveryTest', 'test_a_super_admin_cannot_approve_their_own_recovery', '۹',
+            ],
+            'گروهِ عمومی و گروهِ واحدهای مدیر دو نوعِ جدا' => [
+                'MessengerHistoryPolicyTest', 'test_the_public_group_and_a_managers_unit_group_are_different_kinds', '۹',
+            ],
+            '🔴 نخوانده‌ی ساکنِ تازه پیامِ خصوصیِ پیش از او را نمی‌شمارد' => [
+                'MessengerHistoryPolicyTest', 'test_unread_counts_follow_the_same_boundary', '۹',
+            ],
+            'ساکنِ رفته گروهِ عمومی را دیگر نمی‌خواند' => [
+                'MessengerHistoryPolicyTest', 'test_a_former_member_no_longer_reads_the_public_group', '۹',
+            ],
             'مدیر از درخواستِ عضویت با اعلانِ داشبورد باخبر می‌شود' => [
                 'JoinRequestTest', 'test_the_complexes_managers_get_a_dashboard_notification_once', '۹',
             ],
@@ -973,6 +1030,9 @@ class PhaseRegressionMapTest extends TestCase
             'secureInvitation' => ['۹/۶', 'فقط شماره، نقش و واحد می‌رود — نه نام، نه رمز'],
             // اصلاحاتِ پس از ۹/۶: تلاشِ دومِ E2E شکستِ اول را پنهان نمی‌کند
             'e2eEvidence' => ['۹/۶', 'تستی که فقط در تلاشِ دوم سبز شد کارِ CI را قرمز می‌کند'],
+            // مرحلهٔ ۹: یک قصد = یک کلیدِ تکرار؛ تغییرِ شماره فقط شماره و کد می‌فرستد
+            'walletPayment' => ['۹', 'پس از قطعیِ شبکه، تلاشِ دوباره همان کلید را می‌فرستد'],
+            'phoneChange' => ['۹', 'شماره‌ی تازه و سپس کد می‌رود'],
         ];
 
         // 🔴 مثلِ ردیف‌های PHP، این فهرست هم فقط بزرگ می‌شود (خرابکاریِ فاز ۸)

@@ -10,11 +10,14 @@ import { queryKeys } from '@/shared/lib/queryKeys'
 import { useDocumentTitle } from '@/shared/hooks'
 import { formatMoney } from '@/shared/lib/format'
 
-/** یک «جیب» ِ کیف: (صاحب، مجتمع). `statement` نشانیِ صورت‌حسابش در API است. */
+/**
+ * کیفِ خودِ کاربر (یکی برای هر حساب) یا گردشِ یک عضو برای مدیر. مانده‌ی عضو
+ * `null` است: مدیر کیفِ شخصیِ دیگران را نمی‌بیند، فقط ردیف‌های همین مجتمع را.
+ */
 interface WalletSummary {
   key: string
   label: string
-  balance: number
+  balance: number | null
   statement: string
 }
 
@@ -22,18 +25,19 @@ interface WalletTransaction {
   id: number
   direction: 'credit' | 'debit'
   amount: number
-  balanceAfter: number
+  balanceAfter: number | null
+  complexName: string | null
   sourceLabel: string
   note: string | null
   date: string
 }
 
 /**
- * کیفِ پولِ **شخصی** (R22؛ مالکیت از مرحلهٔ ۹ · اصلاحاتِ پس از فاز ۶).
+ * کیفِ پولِ **شخصی** (R22؛ یک کیف برای هر حساب — مرحلهٔ ۹، تصمیمِ کارفرما).
  *
- * کیف مالِ حسابِ خودِ کاربر است، به تفکیکِ مجتمع؛ پس از پایانِ عضویت هم همین
- * صفحه (در داشبوردِ اولیه) آن را نشان می‌دهد. مدیر جیب‌های اعضای همین مجتمع را
- * هم می‌بیند. مانده از سرور و از جمعِ دفتر می‌آید؛ این صفحه چیزی حساب نمی‌کند.
+ * یک مانده در هر داشبورد؛ پس از پایانِ عضویت هم همین صفحه (در داشبوردِ اولیه)
+ * آن را نشان می‌دهد. مدیر گردشِ اعضا را **فقط در همین مجتمع و بی مانده** می‌بیند.
+ * مانده از سرور و از جمعِ دفتر می‌آید؛ این صفحه چیزی حساب نمی‌کند.
  */
 export function WalletPage() {
   const [selected, setSelected] = useState<string | null>(null)
@@ -62,7 +66,7 @@ export function WalletPage() {
           کیف پول
         </h1>
         <p className="mt-1 text-[13px]" style={{ color: 'var(--text-tertiary)' }}>
-          کیفِ شخصیِ شما و گردشِ آن
+          یک کیفِ شخصی، با همین مانده در همه‌ی مجتمع‌هایتان
         </p>
       </header>
 
@@ -87,7 +91,7 @@ export function WalletPage() {
           {members.length > 0 && (
             <section className="flex flex-col gap-3">
               <h2 className="text-sm font-bold" style={{ color: 'var(--text-primary)' }}>
-                کیفِ اعضای این مجتمع
+                گردشِ کیفِ اعضا در این مجتمع
               </h2>
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
                 {members.map((wallet, index) => (
@@ -146,7 +150,7 @@ function BalanceCard({
         className="text-lg font-extrabold tabular-nums"
         style={{ color: 'var(--text-primary)' }}
       >
-        {formatMoney(wallet.balance)}
+        {wallet.balance === null ? 'گردش در همین مجتمع' : formatMoney(wallet.balance)}
       </span>
     </motion.button>
   )
@@ -177,6 +181,7 @@ function Statement({ wallet }: { wallet: WalletSummary }) {
               <tr style={{ color: 'var(--text-tertiary)' }}>
                 <th className="pb-3 font-medium">تاریخ</th>
                 <th className="pb-3 font-medium">شرح</th>
+                <th className="pb-3 font-medium">مجتمع</th>
                 <th className="pb-3 font-medium">مبلغ</th>
                 <th className="pb-3 font-medium">مانده</th>
               </tr>
@@ -199,6 +204,9 @@ function Statement({ wallet }: { wallet: WalletSummary }) {
                       </span>
                     )}
                   </td>
+                  <td className="py-3" style={{ color: 'var(--text-secondary)' }}>
+                    {row.complexName ?? '—'}
+                  </td>
                   <td className="py-3">
                     {/* جهت با رنگ و آیکون هم نشان داده می‌شود، نه فقط با علامت */}
                     <span
@@ -219,7 +227,7 @@ function Statement({ wallet }: { wallet: WalletSummary }) {
                     </span>
                   </td>
                   <td className="py-3 tabular-nums" style={{ color: 'var(--text-secondary)' }}>
-                    {formatMoney(row.balanceAfter)}
+                    {row.balanceAfter === null ? '—' : formatMoney(row.balanceAfter)}
                   </td>
                 </tr>
               ))}

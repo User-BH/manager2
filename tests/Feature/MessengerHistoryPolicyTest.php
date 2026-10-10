@@ -140,6 +140,44 @@ class MessengerHistoryPolicyTest extends TestCase
         $this->assertSame($this->alice->id, Message::withoutGlobalScopes()->find($this->oldPrivate->id)->user_id);
     }
 
+    /**
+     * تصمیمِ کارفرما (۴.۳): «گروه‌های چندواحده‌ی مدیر» همان گروهِ عمومی نیستند.
+     * گروهِ عمومی یک `CHANNEL` برای هر مجتمع است (کلید `channel`، همه‌ی اهالی)؛
+     * گروهِ مدیر `GROUP` است با فهرستِ صریحِ واحدهای انتخابی — یعنی گفت‌وگوی
+     * محدود، با همان مرزِ دوره‌ی سکونت.
+     */
+    public function test_the_public_group_and_a_managers_unit_group_are_different_kinds(): void
+    {
+        $this->assertSame([Conversation::CHANNEL, 'channel', null], [$this->channel->type, $this->channel->key, $this->channel->unit_id]);
+        $this->assertSame(0, $this->channel->units()->count(), 'گروهِ عمومی به واحدِ خاصی بسته شد.');
+        $this->assertSame(Conversation::GROUP, $this->group->type);
+        $this->assertSame(2, $this->group->units()->count(), 'گروهِ مدیر فهرستِ صریحِ واحد ندارد.');
+        $this->assertSame(1, Conversation::withoutGlobalScopes()->where('complex_id', $this->complex->id)->where('type', Conversation::CHANNEL)->count());
+    }
+
+    /** شمارِ نخوانده‌ی ساکنِ تازه پیامِ خصوصیِ پیش از او را نمی‌شمارد؛ گروهِ عمومی همه را. */
+    public function test_unread_counts_follow_the_same_boundary(): void
+    {
+        $bob = $this->nextTenant();
+
+        $list = collect($this->as($bob)->getJson('/api/v1/messenger/conversations')->assertOk()->json('data'))->keyBy('id');
+        $this->assertSame(0, $list[$this->unitThread->id]['unreadCount'] ?? 0, 'نخوانده‌ی رشته‌ی واحد پیامِ ساکنِ قبلی را شمرد.');
+        $this->assertSame(0, $list[$this->group->id]['unreadCount'] ?? 0, 'نخوانده‌ی گروهِ واحدها پیامِ پیش از دوره را شمرد.');
+        $this->assertSame(1, $list[$this->channel->id]['unreadCount'] ?? 0, 'گروهِ عمومی تاریخچه‌اش را برای ساکنِ تازه نشمرد.');
+        $this->assertFalse($list->has($this->aliceThread->id), 'رشته‌ی شخصیِ ساکنِ قبلی در فهرستِ ساکنِ تازه آمد.');
+    }
+
+    /** دسترسی به گروهِ عمومی با عضویتِ **فعلی** است: ساکنِ رفته دیگر آن را نمی‌خواند. */
+    public function test_a_former_member_no_longer_reads_the_public_group(): void
+    {
+        $this->nextTenant();
+        $alice = User::withoutGlobalScopes()->find($this->alice->id);
+        $this->assertNull($alice->complex_id);
+
+        $status = $this->as($alice)->getJson("/api/v1/messenger/conversations/{$this->channel->id}/messages")->status();
+        $this->assertContains($status, [403, 404], 'ساکنِ رفته هنوز گروهِ عمومیِ مجتمع را می‌خواند.');
+    }
+
     /* ── کمکی ──────────────────────────────────────────────────────────── */
 
     private function say(Conversation $conversation, User $author, string $body, ?string $attachment = null): Message

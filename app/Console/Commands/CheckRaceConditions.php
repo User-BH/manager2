@@ -5,20 +5,27 @@ namespace App\Console\Commands;
 use App\Enums\ComplexType;
 use App\Enums\OccupancyStatus;
 use App\Enums\PaymentStatus;
+use App\Enums\ResidentRelation;
 use App\Enums\UserRole;
 use App\Models\Bill;
 use App\Models\Complex;
 use App\Models\ComplexInvitation;
+use App\Models\OtpCode;
 use App\Models\Payment;
+use App\Models\PhoneChangeRequest;
 use App\Models\Unit;
 use App\Models\UnitTenure;
 use App\Models\User;
 use App\Models\WalletTransaction;
 use App\Services\Account\Membership;
+use App\Services\Account\PhoneChange;
 use App\Services\Payment\PaymentService;
+use App\Services\Units\TenureService;
 use App\Services\Wallet\WalletService;
+use App\Support\Jalali;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
 use Throwable;
 
@@ -59,13 +66,16 @@ use Throwable;
 class CheckRaceConditions extends Command
 {
     protected $signature = 'race:check
-                            {operation : debit | settle | verify | wallet-setup | wallet-verify | wallet-cleanup | invite-setup | accept | invite-verify | invite-cleanup}
+                            {operation : debit | settle | verify | wallet-setup | wallet-pay | wallet-verify | wallet-cleanup | invite-setup | accept | invite-verify | invite-cleanup | phone-setup | phone-confirm | phone-verify | phone-cleanup}
                             {--unit= : شناسه‌ی واحد (فقط «کجا»)}
                             {--user= : صاحبِ کیف}
                             {--payment= : شناسه‌ی پرداخت}
                             {--amount=10000 : مبلغ}
                             {--complex= : شناسه‌ی مجتمع (wallet-verify، wallet-cleanup)}
                             {--invitation= : شناسه‌ی دعوت (accept)}
+                            {--bill= : شناسه‌ی قبض (wallet-pay، wallet-verify)}
+                            {--key= : Idempotency-Key ِ پرداخت از کیف (wallet-pay)}
+                            {--phone= : شماره‌ی هدفِ تغییرِ شماره (phone-verify، phone-cleanup)}
                             {--at=0 : لحظه‌ی شروعِ مشترک به میلی‌ثانیه (برای هم‌زمانیِ واقعی)}';
 
     protected $description = 'اجرای یک عملیاتِ مالیِ تکی برای آزمونِ همزمانی (چند پردازه‌ای)';
@@ -77,13 +87,18 @@ class CheckRaceConditions extends Command
             'settle' => $this->settle($payments),
             'verify' => $this->verify($wallet),
             'wallet-setup' => $this->walletSetup($wallet),
+            'wallet-pay' => $this->walletPay($wallet),
             'wallet-verify' => $this->walletVerify($wallet),
             'wallet-cleanup' => $this->walletCleanup(),
             'invite-setup' => $this->inviteSetup(),
             'accept' => $this->accept(),
             'invite-verify' => $this->inviteVerify(),
             'invite-cleanup' => $this->inviteCleanup(),
-            default => $this->fail('عملیاتِ ناشناخته. یکی از: debit، settle، verify، wallet-setup، wallet-verify، wallet-cleanup، invite-setup، accept، invite-verify، invite-cleanup'),
+            'phone-setup' => $this->phoneSetup(),
+            'phone-confirm' => $this->phoneConfirm(),
+            'phone-verify' => $this->phoneVerify(),
+            'phone-cleanup' => $this->phoneCleanup(),
+            default => $this->fail('عملیاتِ ناشناخته. یکی از: debit، settle، verify، wallet-setup، wallet-pay، wallet-verify، wallet-cleanup، invite-setup، accept، invite-verify، invite-cleanup، phone-setup، phone-confirm، phone-verify، phone-cleanup'),
         };
     }
 
@@ -143,19 +158,60 @@ class CheckRaceConditions extends Command
 
         $wallet->credit($owner, $unit, (float) $this->option('amount'), WalletTransaction::SOURCE_ADJUSTMENT, null, 'شارژِ آزمونِ همزمانی');
 
-        $this->line((string) json_encode(['user' => $owner->id, 'unit' => $unit->id, 'complex' => $complex->id]));
+        // قبضِ مجازِ همین صاحب برای `wallet-pay` (پرداختِ تکراری با یک کلید)
+        app(TenureService::class)->open($unit, $owner, ResidentRelation::Owner, 100, now()->subMonth());
+        $bill = Bill::withoutGlobalScopes()->create([
+            'complex_id' => $complex->id, 'unit_id' => $unit->id, 'period' => Jalali::currentPeriod(),
+            'base_amount' => (float) $this->option('amount'), 'total_amount' => (float) $this->option('amount'),
+            'paid_amount' => 0, 'due_date' => now()->addDays(10),
+        ]);
+
+        $this->line((string) json_encode(['user' => $owner->id, 'unit' => $unit->id, 'complex' => $complex->id, 'bill' => $bill->id]));
 
         return self::SUCCESS;
     }
 
-    /** ناوردایی‌های همان یک جیب پس از هجوم — خروجی JSON. */
+    /**
+     * پرداختِ قبض از کیف با `Idempotency-Key` — چند اجرای هم‌زمان با یک کلید
+     * باید فقط یک برداشت بسازند (تصمیمِ کارفرما: «duplicate request و retry
+     * تراکنشِ دوباره نسازند»).
+     */
+    private function walletPay(WalletService $wallet): int
+    {
+        $owner = User::withoutGlobalScopes()->find((int) $this->option('user'));
+        $bill = Bill::withoutGlobalScopes()->find((int) $this->option('bill'));
+
+        if (! $owner || ! $bill) {
+            $this->error('صاحب یا قبض پیدا نشد. با --user و --bill شناسه بدهید.');
+
+            return self::FAILURE;
+        }
+
+        $at = (int) $this->option('at');
+        while ($at > 0 && (int) floor(microtime(true) * 1000) < $at) {
+            usleep(500);
+        }
+
+        try {
+            $paid = $wallet->payBill($owner, $bill, (float) $this->option('amount'), $this->option('key') ?: null);
+            $this->line('PAID '.$paid);
+
+            return self::SUCCESS;
+        } catch (Throwable $e) {
+            $this->line('BLOCKED: '.str_replace("\n", ' ', $e->getMessage()));
+
+            return self::FAILURE;
+        }
+    }
+
+    /** ناوردایی‌های کیفِ یک حساب پس از هجوم — خروجی JSON. */
     private function walletVerify(WalletService $wallet): int
     {
         $owner = User::withoutGlobalScopes()->findOrFail((int) $this->option('user'));
-        $complexId = (int) $this->option('complex');
 
+        // یک کیف برای هر حساب: همه‌ی ردیف‌های صاحب، در هر مجتمعی
         $rows = WalletTransaction::withoutGlobalScopes()
-            ->where('user_id', $owner->id)->where('complex_id', $complexId)->orderBy('id')->get();
+            ->where('user_id', $owner->id)->orderBy('id')->get();
 
         // هر ردیف باید مانده‌ی پیشین ± مبلغِ خودش باشد؛ دوباره‌شماری همین‌جا می‌شکند
         $running = 0.0;
@@ -168,11 +224,12 @@ class CheckRaceConditions extends Command
         }
 
         $this->line((string) json_encode([
-            'balance' => $wallet->balance($owner, $complexId),
+            'balance' => $wallet->balance($owner),
             'ledgerSum' => round($running, 2),
             'lastSnapshot' => $rows->isEmpty() ? null : (float) $rows->last()->balance_after,
             'debits' => $rows->where('direction', WalletTransaction::DEBIT)->count(),
             'chainBroken' => $chainBroken,
+            'billPaid' => $this->option('bill') ? (float) Bill::withoutGlobalScopes()->find((int) $this->option('bill'))?->paid_amount : null,
         ]));
 
         return self::SUCCESS;
@@ -189,6 +246,8 @@ class CheckRaceConditions extends Command
 
         DB::transaction(function () use ($complexId, $userId): void {
             DB::table('wallet_transactions')->where('complex_id', $complexId)->where('user_id', $userId)->delete();
+            DB::table((new UnitTenure)->getTable())->where('user_id', $userId)->delete();
+            DB::table('bills')->where('complex_id', $complexId)->delete();
             DB::table('units')->where('complex_id', $complexId)->delete();
             DB::table('users')->where('id', $userId)->delete();
             DB::table('audit_logs')->where('complex_id', $complexId)->delete();
@@ -308,6 +367,89 @@ class CheckRaceConditions extends Command
         return self::SUCCESS;
     }
 
+    /**
+     * دادهٔ `PhoneChangeConcurrencyTest` (مرحلهٔ ۹): دو حساب که هر دو درخواستِ تغییر
+     * به **یک** شماره دارند، و برای آن شماره دو کدِ معتبر با مقدارِ `123456` — یعنی
+     * بدترین حالت: هر دو از سدِ کد می‌گذرند و فقط قفل و ایندکسِ یکتا می‌مانند.
+     */
+    private function phoneSetup(): int
+    {
+        $target = '0915'.random_int(1000000, 9999999);
+        $users = [];
+
+        foreach (['الف', 'ب'] as $side) {
+            $user = User::create([
+                'first_name' => 'آزمون', 'last_name' => "شماره {$side}", 'name' => "آزمون شماره {$side}",
+                'phone' => '0914'.random_int(1000000, 9999999), 'password' => Str::random(32),
+                'role' => UserRole::Owner, 'complex_id' => null, 'is_active' => true,
+            ]);
+            PhoneChangeRequest::create(['user_id' => $user->id, 'new_phone' => $target, 'expires_at' => now()->addMinutes(10)]);
+            OtpCode::create(['phone' => $target, 'code_hash' => Hash::make('123456'), 'attempts' => 0, 'expires_at' => now()->addMinutes(5)]);
+            $users[] = $user->id;
+        }
+
+        $this->line((string) json_encode(['users' => $users, 'phone' => $target]));
+
+        return self::SUCCESS;
+    }
+
+    /** تأییدِ تغییرِ شماره برای یک حساب — دو تأییدِ هم‌زمانِ یک شماره، یک برنده. */
+    private function phoneConfirm(): int
+    {
+        $user = User::withoutGlobalScopes()->find((int) $this->option('user'));
+
+        if (! $user) {
+            $this->error('حساب پیدا نشد. با --user شناسه بدهید.');
+
+            return self::FAILURE;
+        }
+
+        $at = (int) $this->option('at');
+        while ($at > 0 && (int) floor(microtime(true) * 1000) < $at) {
+            usleep(500);
+        }
+
+        try {
+            app(PhoneChange::class)->confirm($user, '123456');
+            $this->line('OK');
+
+            return self::SUCCESS;
+        } catch (Throwable $e) {
+            $this->line('BLOCKED: '.str_replace("\n", ' ', $e->getMessage()));
+
+            return self::FAILURE;
+        }
+    }
+
+    /** چند حساب این شماره را دارند — خروجی JSON. */
+    private function phoneVerify(): int
+    {
+        $phone = (string) $this->option('phone');
+
+        $this->line((string) json_encode([
+            'owners' => User::withoutGlobalScopes()->where('phone', $phone)->pluck('id')->all(),
+            'changedAudits' => DB::table('audit_logs')->where('action', 'account.phone_changed')->count(),
+        ]));
+
+        return self::SUCCESS;
+    }
+
+    private function phoneCleanup(): int
+    {
+        $users = array_map('intval', explode(',', (string) $this->option('user')));
+
+        DB::transaction(function () use ($users): void {
+            DB::table('phone_change_requests')->whereIn('user_id', $users)->delete();
+            DB::table('otp_codes')->where('phone', (string) $this->option('phone'))->delete();
+            DB::table('notifications')->where('notifiable_type', User::class)->whereIn('notifiable_id', $users)->delete();
+            DB::table('audit_logs')->whereIn('user_id', $users)->orWhere(fn ($q) => $q->where('subject_type', User::class)->whereIn('subject_id', $users))->delete();
+            DB::table('trusted_devices')->whereIn('user_id', $users)->delete();
+            DB::table('users')->whereIn('id', $users)->delete();
+        }, attempts: 3);
+
+        return self::SUCCESS;
+    }
+
     /** تسویه‌ی پرداخت — چند بازگشتِ هم‌زمانِ درگاه نباید دوبار بنشیند. */
     private function settle(PaymentService $payments): int
     {
@@ -358,14 +500,13 @@ class CheckRaceConditions extends Command
     {
         $problems = [];
 
-        // ① هیچ جیبی (صاحب، مجتمع) نباید موجودیِ منفی داشته باشد
-        $pockets = WalletTransaction::withoutGlobalScopes()
-            ->select('user_id', 'complex_id')->distinct()->get();
+        // ① هیچ کیفی (یک کیف برای هر حساب) نباید موجودیِ منفی داشته باشد
+        $owners = WalletTransaction::withoutGlobalScopes()->distinct()->pluck('user_id');
 
-        foreach ($pockets as $pocket) {
-            $owner = User::withoutGlobalScopes()->findOrFail($pocket->user_id);
-            $balance = $wallet->balance($owner, (int) $pocket->complex_id);
-            $label = "کیفِ کاربر #{$pocket->user_id} در مجتمع #{$pocket->complex_id}";
+        foreach ($owners as $ownerId) {
+            $owner = User::withoutGlobalScopes()->findOrFail($ownerId);
+            $balance = $wallet->balance($owner);
+            $label = "کیفِ کاربر #{$ownerId}";
 
             if ($balance < 0) {
                 $problems[] = "{$label} موجودیِ منفی دارد: {$balance}";
@@ -380,8 +521,7 @@ class CheckRaceConditions extends Command
              * بی‌آنکه خطایی رخ دهد.
              */
             $last = WalletTransaction::withoutGlobalScopes()
-                ->where('user_id', $pocket->user_id)
-                ->where('complex_id', $pocket->complex_id)
+                ->where('user_id', $ownerId)
                 ->latest('id')
                 ->first();
 

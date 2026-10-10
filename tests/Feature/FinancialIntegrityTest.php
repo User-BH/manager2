@@ -153,7 +153,7 @@ class FinancialIntegrityTest extends TestCase
 
         $paidOnBill = (float) $bill->fresh()->paid_amount;
         // مازاد به کیفِ **پرداخت‌کننده** می‌رود (کیف مالِ حساب است؛ این‌جا پرداخت‌ها را مدیر زده)
-        $inWallet = $wallet->balance($this->manager, $this->unit->complex_id);
+        $inWallet = $wallet->balance($this->manager);
 
         $chargedAtBank = (float) Payment::withoutGlobalScopes()
             ->where('bill_id', $bill->id)
@@ -301,7 +301,7 @@ class FinancialIntegrityTest extends TestCase
         $wallet->credit($this->resident, $this->unit, 50000, 'manual', null, 'شارژِ اشتباه');
         $wallet->debit($this->resident, $this->unit, 50000, 'manual', null, 'برگشتِ شارژِ اشتباه');
 
-        $this->assertEqualsWithDelta(0.0, $wallet->balance($this->resident, $this->unit->complex_id), 0.01);
+        $this->assertEqualsWithDelta(0.0, $wallet->balance($this->resident), 0.01);
 
         // و هر دو ردیف سرِ جایشان هستند — تاریخچه دست‌نخورده
         $this->assertSame(2, WalletTransaction::withoutGlobalScopes()->count());

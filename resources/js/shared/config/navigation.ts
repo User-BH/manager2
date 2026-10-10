@@ -106,6 +106,8 @@ export const navSections: NavSection[] = [
         icon: MessageSquareHeart,
         roles: SUPER,
       },
+      // بازیابیِ حساب بی شماره‌ی قبلی (مرحلهٔ ۹)
+      { label: 'بازیابی حساب‌ها', path: '/system/account-recovery', icon: UserCog, roles: SUPER },
       { label: 'پنل پیامک', path: '/system/sms', icon: Smartphone, roles: SUPER },
       { label: 'پایش و تحلیل', path: '/system/observability', icon: Activity, roles: SUPER },
       { label: 'لاگ فعالیت', path: '/system/audit', icon: AuditIcon, roles: SUPER },

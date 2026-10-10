@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useForm, useWatch } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
+import { Link } from 'react-router-dom'
 import { KeyRound, Loader2, Lock, Phone } from 'lucide-react'
 import { AuthScreen } from './components/AuthScreen'
 import { OtpBoxes } from './components/OtpBoxes'
@@ -208,6 +209,14 @@ export function ForgotPasswordPage() {
             {busy ? <Loader2 size={17} className="animate-spin" /> : <KeyRound size={17} />}
             ارسال کد بازیابی
           </button>
+          {/* شماره‌ی قبلی از دست رفته مسیرِ جدای خودش را دارد (مرحلهٔ ۹) */}
+          <Link
+            to="/auth/recover"
+            className="text-center text-xs font-semibold"
+            style={{ color: 'var(--color-brand-600)' }}
+          >
+            به شماره‌ی قبلی دسترسی ندارید؟ بازیابیِ حساب
+          </Link>
         </form>
       )}
 

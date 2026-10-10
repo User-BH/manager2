@@ -48,6 +48,131 @@
         }
     },
     "paths": {
+        "/api/v1/account-recovery": {
+            "post": {
+                "summary": "api.account-recovery.store",
+                "tags": [
+                    "account-recovery"
+                ],
+                "parameters": [],
+                "responses": {
+                    "200": {
+                        "description": "موفق"
+                    },
+                    "422": {
+                        "description": "خطای اعتبارسنجی",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    },
+                    "429": {
+                        "description": "عبور از محدودیتِ نرخ",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    }
+                },
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "old_phone": {
+                                        "type": "string",
+                                        "description": "شماره‌ی قبلی"
+                                    },
+                                    "new_phone": {
+                                        "type": "string",
+                                        "description": "شماره‌ی تازه"
+                                    },
+                                    "code": {
+                                        "type": "string",
+                                        "description": "کد تأیید"
+                                    },
+                                    "national_id": {
+                                        "type": "string",
+                                        "description": "کد ملی"
+                                    },
+                                    "explanation": {
+                                        "type": "string",
+                                        "description": "شرح"
+                                    }
+                                },
+                                "required": [
+                                    "old_phone",
+                                    "new_phone",
+                                    "code",
+                                    "explanation"
+                                ]
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/account-recovery/code": {
+            "post": {
+                "summary": "api.account-recovery.code",
+                "tags": [
+                    "account-recovery"
+                ],
+                "parameters": [],
+                "responses": {
+                    "200": {
+                        "description": "موفق"
+                    },
+                    "422": {
+                        "description": "خطای اعتبارسنجی",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    },
+                    "429": {
+                        "description": "عبور از محدودیتِ نرخ",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    }
+                },
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "new_phone": {
+                                        "type": "string",
+                                        "description": "شماره‌ی تازه"
+                                    }
+                                },
+                                "required": [
+                                    "new_phone"
+                                ]
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/api/v1/ads": {
             "get": {
                 "summary": "api.ads.index",
@@ -5755,6 +5880,12 @@
                                     "bio": {
                                         "type": "string",
                                         "description": "درباره من"
+                                    },
+                                    "phone": {
+                                        "type": "string"
+                                    },
+                                    "password": {
+                                        "type": "string"
                                     }
                                 },
                                 "required": [
@@ -6061,6 +6192,164 @@
                                 "required": [
                                     "current_password",
                                     "password"
+                                ]
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/profile/phone": {
+            "post": {
+                "summary": "api.profile.phone.start",
+                "tags": [
+                    "profile"
+                ],
+                "parameters": [],
+                "responses": {
+                    "200": {
+                        "description": "موفق"
+                    },
+                    "422": {
+                        "description": "خطای اعتبارسنجی",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    },
+                    "429": {
+                        "description": "عبور از محدودیتِ نرخ",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "وارد نشده‌اید",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "دسترسی ندارید",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    }
+                },
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "phone": {
+                                        "type": "string",
+                                        "description": "شماره‌ی تازه"
+                                    },
+                                    "user_id": {
+                                        "type": "string"
+                                    },
+                                    "account_id": {
+                                        "type": "string"
+                                    }
+                                },
+                                "required": [
+                                    "phone"
+                                ]
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/profile/phone/verify": {
+            "post": {
+                "summary": "api.profile.phone.verify",
+                "tags": [
+                    "profile"
+                ],
+                "parameters": [],
+                "responses": {
+                    "200": {
+                        "description": "موفق"
+                    },
+                    "422": {
+                        "description": "خطای اعتبارسنجی",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    },
+                    "429": {
+                        "description": "عبور از محدودیتِ نرخ",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "وارد نشده‌اید",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "دسترسی ندارید",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    }
+                },
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "code": {
+                                        "type": "string",
+                                        "description": "کد تأیید"
+                                    },
+                                    "phone": {
+                                        "type": "string"
+                                    },
+                                    "user_id": {
+                                        "type": "string"
+                                    }
+                                },
+                                "required": [
+                                    "code"
                                 ]
                             }
                         }
@@ -8226,6 +8515,189 @@
                         }
                     }
                 }
+            }
+        },
+        "/api/v1/system/account-recovery": {
+            "get": {
+                "summary": "api.system.account-recovery.index",
+                "tags": [
+                    "system"
+                ],
+                "parameters": [],
+                "responses": {
+                    "200": {
+                        "description": "موفق"
+                    },
+                    "422": {
+                        "description": "خطای اعتبارسنجی",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    },
+                    "429": {
+                        "description": "عبور از محدودیتِ نرخ",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "وارد نشده‌اید",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "دسترسی ندارید",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    }
+                },
+                "description": "فقط برای نقشِ: super_admin"
+            }
+        },
+        "/api/v1/system/account-recovery/{recovery}/approve": {
+            "post": {
+                "summary": "api.system.account-recovery.approve",
+                "tags": [
+                    "system"
+                ],
+                "parameters": [
+                    {
+                        "name": "recovery",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "موفق"
+                    },
+                    "422": {
+                        "description": "خطای اعتبارسنجی",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    },
+                    "429": {
+                        "description": "عبور از محدودیتِ نرخ",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "وارد نشده‌اید",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "دسترسی ندارید",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    }
+                },
+                "description": "فقط برای نقشِ: super_admin"
+            }
+        },
+        "/api/v1/system/account-recovery/{recovery}/reject": {
+            "post": {
+                "summary": "api.system.account-recovery.reject",
+                "tags": [
+                    "system"
+                ],
+                "parameters": [
+                    {
+                        "name": "recovery",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "موفق"
+                    },
+                    "422": {
+                        "description": "خطای اعتبارسنجی",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    },
+                    "429": {
+                        "description": "عبور از محدودیتِ نرخ",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "وارد نشده‌اید",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "دسترسی ندارید",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    }
+                },
+                "description": "فقط برای نقشِ: super_admin"
             }
         },
         "/api/v1/system/ads": {
@@ -13021,22 +13493,13 @@
                 }
             }
         },
-        "/api/v1/wallet/{complexId}": {
+        "/api/v1/wallet/statement": {
             "get": {
                 "summary": "api.wallet.statement",
                 "tags": [
                     "wallet"
                 ],
-                "parameters": [
-                    {
-                        "name": "complexId",
-                        "in": "path",
-                        "required": true,
-                        "schema": {
-                            "type": "string"
-                        }
-                    }
-                ],
+                "parameters": [],
                 "responses": {
                     "200": {
                         "description": "موفق"

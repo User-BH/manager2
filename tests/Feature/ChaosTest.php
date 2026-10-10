@@ -221,7 +221,7 @@ class ChaosTest extends TestCase
 
         $this->assertSame(
             0.0,
-            app(WalletService::class)->balance($this->resident, $this->unit->complex_id),
+            app(WalletService::class)->balance($this->resident),
             'کیفِ پول بابتِ پولی که capture نشده شارژ شد.',
         );
     }
@@ -261,7 +261,7 @@ class ChaosTest extends TestCase
         );
 
         $this->assertSame(0.0, (float) $bill->fresh()->paid_amount);
-        $this->assertSame(0.0, app(WalletService::class)->balance($this->resident, $this->unit->complex_id));
+        $this->assertSame(0.0, app(WalletService::class)->balance($this->resident));
     }
 
     /**

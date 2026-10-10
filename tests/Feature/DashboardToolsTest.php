@@ -290,13 +290,16 @@ class DashboardToolsTest extends TestCase
 
     public function test_profile_update_saves_fields_but_never_the_phone(): void
     {
+        // مرحلهٔ ۹: شماره در این فرم `prohibited` است — رد با پیامِ روشن، نه نادیده‌گرفتنِ بی‌صدا
+        $this->actingAs($this->resident)->putJson('/api/profile', [
+            'first_name' => 'ساکن', 'last_name' => 'ویرایش‌شده', 'phone' => '09999999999',
+        ])->assertStatus(422)->assertJsonValidationErrors('phone');
+
         $this->actingAs($this->resident)->putJson('/api/profile', [
             'first_name' => 'ساکن',
             'last_name' => 'ویرایش‌شده',
             'email' => 'resident@example.com',
             'address' => 'خیابان اول',
-            // تلاش برای عوض کردن شماره باید بی‌اثر بماند
-            'phone' => '09999999999',
         ])->assertOk()->assertJsonPath('profile.name', 'ساکن ویرایش‌شده');
 
         $this->resident->refresh();

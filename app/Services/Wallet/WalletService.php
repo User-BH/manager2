@@ -4,7 +4,6 @@ namespace App\Services\Wallet;
 
 use App\Exceptions\DomainException;
 use App\Models\Bill;
-use App\Models\Complex;
 use App\Models\Payment;
 use App\Models\Unit;
 use App\Models\User;
@@ -14,19 +13,22 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 
 /**
- * کیفِ پولِ **شخصی** (R22؛ مالکیت از مرحلهٔ ۹ · اصلاحاتِ پس از فاز ۶).
+ * کیفِ پولِ **شخصی** (R22؛ مالکیت از مرحلهٔ ۹ · اصلاحاتِ پس از فاز ۶؛ مدلِ نهایی
+ * با تصمیمِ کارفرما در ۱۸ مهر).
  *
- * ─── مالکیت: حساب، نه واحد ─────────────────────────────────────────────────
- * تصمیمِ کارفرما: کیف مالِ حسابِ شخص است. پایانِ عضویت آن را نه حذف می‌کند،
- * نه صفر، نه به کسی منتقل؛ ساکنِ تازه‌ی همان واحد هیچ راهی به آن ندارد؛ و پس
- * از پیوستن به مجتمعِ دیگر هم همان کیفِ خودش است.
+ * ─── یک کیف برای هر حساب ──────────────────────────────────────────────────
+ * کیفِ canonical خودِ **حساب** است: دفتر با `user_id` ِ اجباری، و مانده جمعِ
+ * **همه‌ی** ردیف‌های همان حساب — در هر مجتمعی که ثبت شده باشند. هر داشبوردی که
+ * کاربر در آن است همین یک عدد را نشان می‌دهد و خرج در یکی، در همه کم می‌شود.
+ * جدولِ «کیف» ِ جدایی نیست، پس دو کیف برای یک حساب اصلاً قابلِ ساختن نیست.
  *
- * ─── جیب‌ها: (صاحب، مجتمع) ────────────────────────────────────────────────
- * هر ریالِ کیف از یک مجتمع آمده (مازادِ پرداخت به حسابِ همان مجتمع، کاهشِ قبضِ
- * همان مجتمع). پس مانده به تفکیکِ مجتمع حساب می‌شود و قبضِ هر مجتمع فقط از جیبِ
- * همان مجتمع پرداخت می‌شود: خرج‌کردنِ اعتبارِ مجتمعِ الف برای قبضِ مجتمعِ ب
- * یعنی «ادغامِ» پولی که مجتمعِ ب هرگز نگرفته — همان چیزی که تصمیمِ کارفرما منع
- * کرده. صاحب همه‌ی جیب‌هایش را می‌بیند، حتی پس از رفتن.
+ * `complex_id` و `unit_id` ِ هر ردیف فقط «کجا» را ثبت می‌کنند (مازادِ کدام
+ * پرداخت، پرداختِ کدام قبض)؛ در مانده نقشی ندارند. پایانِ عضویت، پیوستن به
+ * مجتمعِ دیگر و تغییرِ شماره صاحب را عوض نمی‌کنند.
+ *
+ * ⚠️ مدلِ پیشین (`00ac40a`): «جیبِ هر مجتمع» — قبضِ مجتمعِ ب از اعتبارِ مجتمعِ
+ * الف پرداخت نمی‌شد. کارفرما آن را رد کرد. داده عوض نشد: مالکیت از پیش با
+ * `user_id` بود و جمعِ جیب‌ها دقیقاً همین مانده‌ی تازه است.
  *
  * ─── قاعده‌ی اول: مانده ذخیره نمی‌شود ──────────────────────────────────────
  * مانده همیشه از جمعِ دفتر حساب می‌شود (Balance ↔ Ledger).
@@ -38,43 +40,17 @@ use Illuminate\Support\Facades\Gate;
  */
 class WalletService
 {
-    /** مانده‌ی جیبِ (صاحب، مجتمع) — همیشه از دفتر. */
-    public function balance(User $owner, int $complexId): float
+    /** مانده‌ی کیفِ حساب — همیشه از دفتر، در همه‌ی مجتمع‌ها. */
+    public function balance(User $owner): float
     {
         $rows = WalletTransaction::withoutGlobalScopes()
             ->where('user_id', $owner->id)
-            ->where('complex_id', $complexId)
             ->selectRaw('direction, COALESCE(SUM(amount), 0) as total')
             ->groupBy('direction')
             ->pluck('total', 'direction');
 
         return (float) ($rows[WalletTransaction::CREDIT] ?? 0)
             - (float) ($rows[WalletTransaction::DEBIT] ?? 0);
-    }
-
-    /**
-     * همه‌ی جیب‌های یک شخص — برای صفحه‌ی کیفِ خودش، حتی بی عضویت.
-     *
-     * @return list<array{complexId: int, complexName: string|null, balance: float}>
-     */
-    public function pockets(User $owner): array
-    {
-        $complexIds = WalletTransaction::withoutGlobalScopes()
-            ->where('user_id', $owner->id)
-            ->distinct()
-            ->pluck('complex_id');
-
-        $names = Complex::withoutGlobalScopes()->whereIn('id', $complexIds)->pluck('name', 'id');
-
-        return $complexIds
-            ->map(fn ($id) => [
-                'complexId' => (int) $id,
-                'complexName' => $names[$id] ?? null,
-                'balance' => $this->balance($owner, (int) $id),
-            ])
-            ->sortBy('complexId')
-            ->values()
-            ->all();
     }
 
     /** افزودن به کیفِ صاحب؛ `$unit` فقط «کجا» را ثبت می‌کند. */
@@ -92,7 +68,7 @@ class WalletService
     /**
      * برداشت از کیفِ صاحب.
      *
-     * اگر موجودیِ همان جیب کافی نباشد استثنا می‌دهد و **هیچ ردیفی ثبت نمی‌شود**.
+     * اگر موجودیِ کیف کافی نباشد استثنا می‌دهد و **هیچ ردیفی ثبت نمی‌شود**.
      */
     public function debit(
         User $owner,
@@ -106,18 +82,40 @@ class WalletService
     }
 
     /**
-     * پرداختِ یک قبض از کیفِ **خودِ پرداخت‌کننده** (جیبِ همان مجتمع).
+     * پرداختِ یک قبض از کیفِ **خودِ پرداخت‌کننده** — در هر مجتمعی که قبضِ مجازش باشد.
      *
-     * اجازه‌ی پرداختِ این قبض را کنترلر با `BillPolicy::pay` سنجیده است.
-     * سه نوشتن با هم: برداشت، `paid_amount` ِ قبض، و ردیفِ دفتر.
+     * اجازه‌ی پرداختِ این قبض را کنترلر با `BillPolicy::pay` سنجیده است و همین‌جا
+     * زیرِ قفل دوباره سنجیده می‌شود. سه نوشتن با هم: برداشت، `paid_amount` ِ قبض،
+     * و ردیفِ دفتر (با `complex_id` و `bill_id` ِ همان قبض).
+     *
+     * ─── تکرارِ درخواست (idempotency) ───────────────────────────────────────
+     * با `$idempotencyKey` ِ یکسان (کلیکِ دوباره، retry ِ شبکه) ردیفِ دوم ساخته
+     * نمی‌شود و همان پرداختِ قبلی برگردانده می‌شود. کلید زیرِ همان قفلِ حساب
+     * خوانده می‌شود؛ ایندکسِ یکتای `(user_id, idempotency_key)` پشتوانه‌ی دیتابیسی است.
      *
      * @return float مبلغی که واقعاً پرداخت شد
      */
-    public function payBill(User $payer, Bill $bill, ?float $amount = null): float
+    public function payBill(User $payer, Bill $bill, ?float $amount = null, ?string $idempotencyKey = null): float
     {
-        return DB::transaction(function () use ($payer, $bill, $amount): float {
+        return DB::transaction(function () use ($payer, $bill, $amount, $idempotencyKey): float {
             // ترتیبِ قفل: کاربر ← قبض
             User::withoutGlobalScopes()->lockForUpdate()->findOrFail($payer->id);
+
+            if ($idempotencyKey !== null) {
+                $previous = WalletTransaction::withoutGlobalScopes()
+                    ->where('user_id', $payer->id)
+                    ->where('idempotency_key', $idempotencyKey)
+                    ->first();
+
+                if ($previous !== null) {
+                    // همان کلید برای قبضِ دیگر یعنی استفاده‌ی نادرست، نه تکرار
+                    if ($previous->bill_id !== $bill->id) {
+                        throw DomainException::invalid('این شناسه‌ی درخواست برای پرداختِ دیگری به کار رفته است.', 'wallet.idempotency_conflict');
+                    }
+
+                    return (float) $previous->amount;
+                }
+            }
 
             $fresh = Bill::withoutGlobalScopes()->lockForUpdate()->findOrFail($bill->id);
             $unit = Unit::withoutGlobalScopes()->findOrFail($fresh->unit_id);
@@ -133,7 +131,7 @@ class WalletService
                 throw DomainException::invalid('این قبض بدهی باز ندارد.', 'wallet.bill_settled');
             }
 
-            $balance = $this->balance($payer, $fresh->complex_id);
+            $balance = $this->balance($payer);
 
             if ($balance <= 0) {
                 throw DomainException::invalid('موجودی کیف پول شما صفر است.', 'wallet.insufficient_funds');
@@ -158,6 +156,7 @@ class WalletService
                 null,
                 $fresh,
                 'پرداخت قبض '.$fresh->period,
+                $idempotencyKey,
             );
 
             $fresh->paid_amount = (float) $fresh->paid_amount + $pay;
@@ -263,7 +262,7 @@ class WalletService
         return DB::transaction(function () use ($owner, $unit, $direction, $amount, $source, $payment, $bill, $note) {
             User::withoutGlobalScopes()->lockForUpdate()->findOrFail($owner->id);
 
-            if ($direction === WalletTransaction::DEBIT && $this->balance($owner, $unit->complex_id) < $amount) {
+            if ($direction === WalletTransaction::DEBIT && $this->balance($owner) < $amount) {
                 throw DomainException::invalid('موجودی کیف پول کافی نیست.', 'wallet.insufficient_funds');
             }
 
@@ -274,7 +273,9 @@ class WalletService
     /**
      * نوشتنِ ردیفِ دفتر. **فقط از داخلِ تراکنشِ قفل‌دار صدا زده می‌شود.**
      *
-     * `balance_after` مانده‌ی همان جیب است، با همان مانده‌ای که زیرِ قفل خوانده شده.
+     * `balance_after` مانده‌ی **کلِ کیفِ حساب** است، با همان مانده‌ای که زیرِ قفل
+     * خوانده شده. (ردیف‌های پیش از مدلِ یک‌کیفی عکسِ جیبِ خودشان‌اند و دست
+     * نمی‌خورند؛ صورت‌حساب مانده‌ی هر ردیف را از خودِ دفتر می‌سازد.)
      */
     private function writeRow(
         User $owner,
@@ -285,8 +286,9 @@ class WalletService
         ?Payment $payment,
         ?Bill $bill,
         ?string $note,
+        ?string $idempotencyKey = null,
     ): WalletTransaction {
-        $balance = $this->balance($owner, $unit->complex_id);
+        $balance = $this->balance($owner);
 
         $after = $direction === WalletTransaction::CREDIT
             ? $balance + $amount
@@ -304,6 +306,7 @@ class WalletService
             'bill_id' => $bill?->id,
             'created_by' => Auth::id(),
             'note' => $note,
+            'idempotency_key' => $idempotencyKey,
         ]);
     }
 }

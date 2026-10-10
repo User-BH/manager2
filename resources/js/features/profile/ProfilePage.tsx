@@ -24,6 +24,7 @@ import { ErrorState } from '@/shared/ui/PageState'
 import { FormSkeleton } from '@/shared/ui/Skeleton'
 import { ProfileEditForm } from './ProfileEditForm'
 import { PasswordCard } from './PasswordCard'
+import { PhoneCard } from './PhoneCard'
 import { SecurityCard } from './SecurityCard'
 import { useQuery } from '@tanstack/react-query'
 import { api } from '@/shared/lib/api'
@@ -118,6 +119,7 @@ export function ProfilePage() {
               )}
             </Card>
 
+            <PhoneCard currentPhone={profile.phone} onChanged={() => void refetch()} />
             <PasswordCard />
             <SecurityCard />
           </div>

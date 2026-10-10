@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Api\AccountRecoveryController;
 use App\Http\Controllers\Api\AdvertisementController;
 use App\Http\Controllers\Api\AnnouncementController;
 use App\Http\Controllers\Api\AuthController;
@@ -26,6 +27,7 @@ use App\Http\Controllers\Api\MyBillController;
 use App\Http\Controllers\Api\NotificationController;
 use App\Http\Controllers\Api\PaymentController;
 use App\Http\Controllers\Api\PaymentReviewController;
+use App\Http\Controllers\Api\PhoneChangeController;
 use App\Http\Controllers\Api\ProfileController;
 use App\Http\Controllers\Api\ResidentController;
 use App\Http\Controllers\Api\SearchController;
@@ -37,6 +39,7 @@ use App\Http\Controllers\Api\SiteContentController;
 use App\Http\Controllers\Api\SmsCampaignController;
 use App\Http\Controllers\Api\SubscriptionController;
 use App\Http\Controllers\Api\SupportChatController;
+use App\Http\Controllers\Api\System\AccountRecoveryController as SystemAccountRecoveryController;
 use App\Http\Controllers\Api\System\AdvertisementController as SystemAdvertisementController;
 use App\Http\Controllers\Api\System\AuditLogController;
 use App\Http\Controllers\Api\System\BackupController as SystemBackupController;
@@ -87,6 +90,12 @@ Route::post('password/forgot/verify', [AuthController::class, 'forgotVerify'])
     ->middleware('throttle:otp-verify')->name('password.forgot.verify');
 Route::post('password/reset', [AuthController::class, 'resetPassword'])
     ->middleware('throttle:otp-verify')->name('password.reset');
+
+// بازیابیِ حساب بی شماره‌ی قبلی (مرحلهٔ ۹): کدِ شماره‌ی تازه ← ثبتِ درخواست؛ تصمیم با ادمینِ کل
+Route::post('account-recovery/code', [AccountRecoveryController::class, 'code'])
+    ->middleware('throttle:otp-request')->name('account-recovery.code');
+Route::post('account-recovery', [AccountRecoveryController::class, 'store'])
+    ->middleware(['throttle:otp-verify', 'throttle:account-recovery'])->name('account-recovery.store');
 
 /*
 | ⚠️ پرچمِ `public_registration` سمتِ سرور اعمال می‌شود، نه فقط با پنهان‌کردنِ
@@ -283,15 +292,14 @@ Route::middleware('auth')->group(function () {
     Route::get('good-payers', [GoodPayerController::class, 'index'])->name('good-payers.index');
 
     /*
-     * کیفِ پولِ واحد (R22).
+     * کیفِ پولِ شخصی (R22؛ یک کیف برای هر حساب — مرحلهٔ ۹).
      *
      * موجودی همیشه از دفتر حساب می‌شود، پس این مسیرها هیچ ستونِ مانده‌ای را
-     * دست‌کاری نمی‌کنند.
+     * دست‌کاری نمی‌کنند. صاحب همیشه کاربرِ واردشده است؛ هیچ شناسه‌ای در نشانی
+     * کیفِ دیگری را انتخاب نمی‌کند.
      */
     Route::get('wallet', [WalletController::class, 'index'])->name('wallet.index');
-    // کیفِ شخصی: صاحب همیشه کاربرِ واردشده است؛ شناسه فقط «کدام مجتمع» (مرحلهٔ ۹ · اصلاحاتِ پس از فاز ۶)
-    Route::get('wallet/{complexId}', [WalletController::class, 'statement'])
-        ->whereNumber('complexId')->name('wallet.statement');
+    Route::get('wallet/statement', [WalletController::class, 'statement'])->name('wallet.statement');
     Route::post('wallet/pay/{bill}', [WalletController::class, 'payBill'])->name('wallet.pay');
 
     // زنگوله‌ی هدر. منبعش همان اطلاعیه‌هاست، فقط با وضعیت خوانده/نخوانده.
@@ -375,6 +383,11 @@ Route::middleware('auth')->group(function () {
     Route::put('profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::put('profile/password', [ProfileController::class, 'updatePassword'])
         ->middleware('throttle:password-change')->name('profile.password');
+    // تغییرِ شماره توسطِ خودِ کاربر: رمز دوباره + کدِ پیامکیِ شماره‌ی تازه (مرحلهٔ ۹)
+    Route::post('profile/phone', [PhoneChangeController::class, 'start'])
+        ->middleware(['reauth', 'throttle:phone-change', 'throttle:otp-request'])->name('profile.phone.start');
+    Route::post('profile/phone/verify', [PhoneChangeController::class, 'confirm'])
+        ->middleware('throttle:otp-verify')->name('profile.phone.verify');
 
     /*
      * امنیتِ حساب: نشست‌ها، دستگاه‌ها، تاریخچه‌ی ورود، تأییدِ دوباره
@@ -452,7 +465,7 @@ Route::middleware('auth')->group(function () {
         Route::patch('residents/{resident}/toggle-messaging', [ResidentController::class, 'toggleMessaging'])
             ->name('residents.toggle-messaging');
 
-        // صورت‌حسابِ کیفِ یک عضو، فقط بخشِ همین مجتمع (مرحلهٔ ۹ · اصلاحاتِ پس از فاز ۶)
+        // گردشِ کیفِ یک عضو **در همین مجتمع** — بی مانده‌ی شخصی (مرحلهٔ ۹)
         Route::get('wallet/members/{member}', [WalletController::class, 'memberStatement'])
             ->name('wallet.members.statement');
 
@@ -562,6 +575,13 @@ Route::middleware('auth')->group(function () {
         Route::post('feedback/{feedback}/replies', [SystemFeedbackController::class, 'reply'])
             ->middleware('throttle:feedback-reply')->name('feedback.reply');
         Route::put('site-settings', [SiteSettingsController::class, 'update'])->name('site-settings.update');
+
+        // صفِ بازیابیِ حساب (مرحلهٔ ۹): تأیید و رد با تأییدِ دوباره‌ی رمز
+        Route::get('account-recovery', [SystemAccountRecoveryController::class, 'index'])->name('account-recovery.index');
+        Route::post('account-recovery/{recovery}/approve', [SystemAccountRecoveryController::class, 'approve'])
+            ->middleware('reauth')->name('account-recovery.approve');
+        Route::post('account-recovery/{recovery}/reject', [SystemAccountRecoveryController::class, 'reject'])
+            ->middleware('reauth')->name('account-recovery.reject');
 
         // همه‌ی اعضای ثبت‌نام‌شده: جست‌وجو، مشاهده و تغییر نقش
         Route::get('members', [MemberController::class, 'index'])->name('members.index');

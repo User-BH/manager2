@@ -31,6 +31,9 @@ class UpdateProfileRequest extends BaseFormRequest
             'emergency_phone' => ['nullable', 'regex:/^0\d{10}$/'],
             'address' => ['nullable', 'string', 'max:255'],
             'bio' => ['nullable', 'string', 'max:500'],
+            // شماره و رمز مسیرهای امنِ خودشان را دارند (کدِ پیامکی / رمزِ فعلی) — مرحلهٔ ۹
+            'phone' => ['prohibited'],
+            'password' => ['prohibited'],
         ];
     }
 
@@ -45,6 +48,8 @@ class UpdateProfileRequest extends BaseFormRequest
             'national_id.regex' => 'کد ملی باید ۱۰ رقم باشد.',
             'emergency_phone.regex' => 'شماره تماس معتبر نیست.',
             'birth_date.before_or_equal' => 'تاریخ تولد نمی‌تواند در آینده باشد.',
+            'phone.prohibited' => 'شماره را از «تغییرِ شماره» و با کدِ پیامکی عوض کنید.',
+            'password.prohibited' => 'رمز را از «تغییر رمز عبور» و با رمزِ فعلی عوض کنید.',
         ];
     }
 

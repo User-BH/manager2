@@ -27,6 +27,7 @@ use Illuminate\Support\Carbon;
  * @property int|null $bill_id
  * @property int|null $created_by
  * @property string|null $note
+ * @property string|null $idempotency_key کلیدِ تکرارِ پرداخت از کیف (یکتا برای هر صاحب)
  * @property Carbon|null $created_at
  */
 class WalletTransaction extends Model
@@ -88,7 +89,7 @@ class WalletTransaction extends Model
 
     protected $fillable = [
         'complex_id', 'unit_id', 'user_id', 'direction', 'amount', 'balance_after',
-        'source', 'payment_id', 'bill_id', 'created_by', 'note',
+        'source', 'payment_id', 'bill_id', 'created_by', 'note', 'idempotency_key',
     ];
 
     protected function casts(): array

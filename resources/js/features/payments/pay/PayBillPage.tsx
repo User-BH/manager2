@@ -23,6 +23,7 @@ import { useQuery } from '@tanstack/react-query'
 import { queryKeys } from '@/shared/lib/queryKeys'
 import { useDocumentTitle } from '@/shared/hooks'
 import { api, ApiError } from '@/shared/lib/api'
+import { newIdempotencyKey } from '@/shared/lib/idempotency'
 import { formatMoney } from '@/shared/lib/format'
 import { toastSuccess } from '@/shared/lib/alert'
 
@@ -64,6 +65,7 @@ export function PayBillPage() {
   const upload = useUpload()
 
   const [payingFromWallet, setPayingFromWallet] = useState(false)
+  const walletPaymentKey = useRef<string | null>(null)
 
   /**
    * 🔴 قفلِ دکمهٔ درگاه (مرحلهٔ ۵، فاز ۴ — بند ۲۴).
@@ -194,11 +196,19 @@ export function PayBillPage() {
   async function payFromWallet() {
     setPayingFromWallet(true)
     setFormError(null)
+    // یک کلید برای این کار، تا اگر پاسخ گم شد و دوباره زده شد سرور دو بار برندارد
+    walletPaymentKey.current ??= newIdempotencyKey()
     try {
-      const result = await api<{ message: string }>(`/wallet/pay/${billId}`, { method: 'POST' })
+      const result = await api<{ message: string }>(`/wallet/pay/${billId}`, {
+        method: 'POST',
+        body: { idempotency_key: walletPaymentKey.current },
+      })
+      walletPaymentKey.current = null
       toastSuccess(result.message)
       void refetch()
     } catch (error) {
+      // پاسخِ قطعیِ سرور یعنی کار تمام شد؛ فقط قطعیِ شبکه همان کلید را نگه می‌دارد
+      if (error instanceof ApiError && error.status > 0) walletPaymentKey.current = null
       setFormError(error instanceof ApiError ? error.message : 'پرداخت از کیف پول ممکن نشد.')
     } finally {
       setPayingFromWallet(false)

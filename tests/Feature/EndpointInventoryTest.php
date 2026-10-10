@@ -48,6 +48,8 @@ class EndpointInventoryTest extends TestCase
             'login', 'login/resend', 'login/verify',
             'me',                       // برای مهمان تهی برمی‌گرداند
             'password/forgot', 'password/forgot/verify', 'password/reset',
+            // بازیابیِ حساب بی شماره‌ی قبلی (مرحلهٔ ۹): فقط ثبتِ درخواست، سقفِ نرخ، پاسخِ یکسان؛ دسترسی نمی‌دهد
+            'account-recovery/code', 'account-recovery',
             'register', 'register/verify',
             'site-settings',
             'support/chat', 'support/starters',

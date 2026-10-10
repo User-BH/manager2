@@ -180,6 +180,8 @@ export const queryKeys = {
     feedback: (params: { status?: string; page?: number } = {}) =>
       ['system', 'feedback', params] as const,
     sms: () => ['system', 'sms'] as const,
+    // صفِ بازیابیِ حساب (مرحلهٔ ۹)
+    accountRecovery: () => ['system', 'account-recovery'] as const,
     subscriptions: () => ['system', 'subscriptions'] as const,
     observability: () => ['system', 'observability'] as const,
     observabilityErrors: (params: { includeResolved?: boolean } = {}) =>
