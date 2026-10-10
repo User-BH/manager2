@@ -874,6 +874,18 @@ class PhaseRegressionMapTest extends TestCase
             'ساکنِ رفته گروهِ عمومی را دیگر نمی‌خواند' => [
                 'MessengerHistoryPolicyTest', 'test_a_former_member_no_longer_reads_the_public_group', '۹',
             ],
+            '🔴 ۹/۷: جاروی کاملِ BOLA/IDOR روی همه‌ی مسیرها با چهار مهاجم' => [
+                'BolaSweepTest', 'test_no_attacker_reaches_another_tenants_or_accounts_resources', '۹',
+            ],
+            '🔴 ۹/۷: زمینه‌ی نامعتبر به مجتمعِ دیگر برنمی‌گردد' => [
+                'BolaSweepTest', 'test_an_invalid_context_never_falls_back_to_another_complex', '۹',
+            ],
+            '۹/۷: سیاهه‌ی مجوزِ مسیرها با روتر می‌خواند' => [
+                'BolaSweepTest', 'test_the_inventory_document_lists_every_route', '۹',
+            ],
+            '۹/۷: مسیرهای قدیمیِ /api همان محافظ‌های v1' => [
+                'BolaSweepTest', 'test_legacy_aliases_carry_the_same_guards', '۹',
+            ],
             'مدیر از درخواستِ عضویت با اعلانِ داشبورد باخبر می‌شود' => [
                 'JoinRequestTest', 'test_the_complexes_managers_get_a_dashboard_notification_once', '۹',
             ],
