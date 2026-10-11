@@ -952,6 +952,15 @@ class PhaseRegressionMapTest extends TestCase
             '۹/۹: هر آزمونِ نام‌برده در گزارشِ مرحله وجود دارد' => [
                 'Stage9VerificationTest', 'test_every_test_named_in_the_document_exists', '۹',
             ],
+            '۱۰/۱: هر ۱۴۴ بندِ فایلِ معماری یک بار در نقشه' => [
+                'ArchitectureEvidenceMapTest', 'test_every_one_of_the_144_items_is_mapped_exactly_once', '۱۰',
+            ],
+            '۱۰/۱: هیچ VERIFIED ِ بی‌آزمون در نقشه‌ی معماری' => [
+                'ArchitectureEvidenceMapTest', 'test_nothing_is_verified_without_a_test', '۱۰',
+            ],
+            '۱۰/۱: هر بندِ باز فازِ بستنش را دارد' => [
+                'ArchitectureEvidenceMapTest', 'test_every_open_item_names_the_phase_that_closes_it', '۱۰',
+            ],
             'مدیر از درخواستِ عضویت با اعلانِ داشبورد باخبر می‌شود' => [
                 'JoinRequestTest', 'test_the_complexes_managers_get_a_dashboard_notification_once', '۹',
             ],
@@ -1019,11 +1028,13 @@ class PhaseRegressionMapTest extends TestCase
      */
     public function test_no_phase_is_missing_from_the_map(): void
     {
-        $phases = array_unique(array_column(self::fixes(), 2));
-        sort($phases);
+        $phases = array_values(array_unique(array_column(self::fixes(), 2)));
+        // عددی، نه رشته‌ای — «۱۰» میانِ «۱» و «۲» نیفتد
+        $latin = fn (string $p) => (int) strtr($p, ['۰' => '0', '۱' => '1', '۲' => '2', '۳' => '3', '۴' => '4', '۵' => '5', '۶' => '6', '۷' => '7', '۸' => '8', '۹' => '9']);
+        usort($phases, fn (string $a, string $b) => $latin($a) <=> $latin($b));
 
         $this->assertSame(
-            ['۰', '۱', '۲', '۳', '۴', '۵', '۶', '۷', '۸', '۹'],
+            ['۰', '۱', '۲', '۳', '۴', '۵', '۶', '۷', '۸', '۹', '۱۰'],
             $phases,
             '⚠️ فازی از نقشهٔ رگرسیون افتاده است.',
         );
