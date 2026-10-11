@@ -170,6 +170,15 @@ test.describe('ثبت‌نام‌کننده‌ی اولیه', () => {
     await expect(page.getByText(NOT_A_MEMBER)).toBeVisible()
     await expect(page.getByText('مجتمع مسکونی آفتاب')).toBeVisible()
 
+    // بندِ ۳۴ ِ فایل ۲: پس از گذار همان حساب با همان پروفایل — نه حسابِ تازه
+    const identity = async () => {
+      const { json } = await call(page, 'GET', '/api/me')
+      const u = json.user as Record<string, unknown>
+      return [u.id, u.name, u.firstName, u.lastName, u.phone]
+    }
+    const before = await identity()
+    expect(before[4]).toBe(phone)
+
     await page.getByRole('button', { name: 'پیوستن' }).click()
 
     // حالا عضو است: پوسته‌ی واحد با سایدبار، و صفحه‌های ساکن باز
@@ -179,5 +188,7 @@ test.describe('ثبت‌نام‌کننده‌ی اولیه', () => {
 
     await page.goto('/my-bills')
     await expect(page).toHaveURL(/\/my-bills$/)
+
+    expect(await identity(), 'گذار به واحد حساب یا پروفایل را عوض کرد').toEqual(before)
   })
 })

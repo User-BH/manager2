@@ -931,6 +931,27 @@ class PhaseRegressionMapTest extends TestCase
             '۹/۸: reset-preview فقط روی Preview' => [
                 'DeployScriptSafetyTest', 'test_the_preview_reset_is_refused_anywhere_but_preview', '۹',
             ],
+            '🔴 ۹/۹: گذارِ دعوت همه‌ی سابقه‌ی حساب را نگه می‌دارد' => [
+                'TransitionDataIntegrityTest', 'test_the_invitation_path_keeps_every_record_of_an_account_with_history', '۹',
+            ],
+            '🔴 ۹/۹: گذارِ درخواستِ پیوستن همه‌ی سابقه‌ی حساب را نگه می‌دارد' => [
+                'TransitionDataIntegrityTest', 'test_the_join_request_path_keeps_every_record_of_an_account_with_history', '۹',
+            ],
+            '🔴 ۹/۹: گذارِ پرداخت ← مدیر همه‌ی سابقه‌ی حساب را نگه می‌دارد' => [
+                'TransitionDataIntegrityTest', 'test_the_payment_path_keeps_every_record_of_an_account_with_history', '۹',
+            ],
+            '🔴 ۹/۹: شکست در میانه‌ی گذار به مدیر وضعیتِ نیمه نمی‌سازد' => [
+                'TransitionDataIntegrityTest', 'test_a_failure_halfway_to_manager_leaves_no_half_state_and_the_retry_completes_once', '۹',
+            ],
+            '🔴 ۹/۹: شکست در میانه‌ی گذار به واحد وضعیتِ نیمه نمی‌سازد' => [
+                'TransitionDataIntegrityTest', 'test_a_failure_halfway_to_a_unit_leaves_no_half_state_and_the_invitation_stays_usable', '۹',
+            ],
+            '۹/۹: هیچ VERIFIED ِ بی‌مدرک در گزارشِ مرحله' => [
+                'Stage9VerificationTest', 'test_nothing_is_verified_without_evidence', '۹',
+            ],
+            '۹/۹: هر آزمونِ نام‌برده در گزارشِ مرحله وجود دارد' => [
+                'Stage9VerificationTest', 'test_every_test_named_in_the_document_exists', '۹',
+            ],
             'مدیر از درخواستِ عضویت با اعلانِ داشبورد باخبر می‌شود' => [
                 'JoinRequestTest', 'test_the_complexes_managers_get_a_dashboard_notification_once', '۹',
             ],

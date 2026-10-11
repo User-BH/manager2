@@ -50,7 +50,16 @@ async function me(page: Page) {
     })
     return (
       (await res.json()) as {
-        user: { accountState: string; role: string; complex: { name: string } | null }
+        user: {
+          id: number
+          name: string
+          firstName: string | null
+          lastName: string | null
+          phone: string
+          accountState: string
+          role: string
+          complex: { name: string } | null
+        }
       }
     ).user
   })
@@ -141,10 +150,23 @@ test.describe('خریدِ آنلاینِ اشتراک', () => {
       if (request.url().includes('/checkout/callback/')) callbackUrl = request.url()
     })
 
+    // بندِ ۳۴ ِ فایل ۲: پس از گذار همان حساب با همان پروفایل — نه حسابِ تازه
+    const identity = (u: Awaited<ReturnType<typeof me>>) => [
+      u.id,
+      u.name,
+      u.firstName,
+      u.lastName,
+      u.phone,
+    ]
+    const before = await me(page)
+    expect(before.accountState).toBe('initial')
+    expect([before.firstName, before.lastName, before.phone]).toEqual(['خریدار', 'سرتاسری', phone])
+
     await submitCheckout(page, complexName)
     await page.waitForURL(/\/dashboard\?checkout=success/)
 
     const user = await me(page)
+    expect(identity(user), 'گذار به مدیر حساب یا پروفایل را عوض کرد').toEqual(identity(before))
     expect(user.accountState).toBe('member')
     expect(user.role).toBe('complex_admin')
     expect(user.complex?.name).toBe(complexName)
