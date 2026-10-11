@@ -6,8 +6,10 @@ use App\Enums\AccountState;
 use App\Enums\UserRole;
 use App\Models\Complex;
 use App\Models\ComplexInvitation;
+use App\Models\ComplexMembership;
 use App\Models\Unit;
 use App\Models\User;
+use App\Services\Account\MembershipLedger;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -318,7 +320,7 @@ class JoinRequestTest extends TestCase
     {
         $request = $this->makeRequest();
 
-        $this->applicant->forceFill(['complex_id' => Complex::factory()->create()->id])->save();
+        app(MembershipLedger::class)->start($this->applicant, Complex::factory()->create(), UserRole::Owner, ComplexMembership::SOURCE_DIRECT);
         $elsewhere = $this->applicant->fresh()->complex_id;
 
         $this->actingAs($this->manager)

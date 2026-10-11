@@ -8,6 +8,7 @@ use App\Enums\UserRole;
 use App\Exceptions\DomainException;
 use App\Models\Complex;
 use App\Models\ComplexInvitation;
+use App\Models\ComplexMembership;
 use App\Models\User;
 use App\Support\Audit;
 use Illuminate\Support\Facades\DB;
@@ -24,6 +25,8 @@ use Illuminate\Support\Str;
  */
 class ComplexUpgrader
 {
+    public function __construct(private readonly MembershipLedger $ledger) {}
+
     /**
      * ساختِ مجتمع و ارتقای کاربر به مدیرِ آن.
      *
@@ -75,10 +78,8 @@ class ComplexUpgrader
                 'payment_gateway' => 'none',
             ]);
 
-            $fresh->forceFill([
-                'complex_id' => $complex->id,
-                'role' => UserRole::ComplexAdmin,
-            ])->save();
+            // عضویتِ مدیر و زمینه‌ی فعالِ حساب با هم (مرحلهٔ ۱۰ · فاز ۲)
+            $this->ledger->start($fresh, $complex, UserRole::ComplexAdmin, ComplexMembership::SOURCE_PURCHASE);
 
             /*
              * دعوت‌های در انتظار باطل می‌شوند: کاربر حالا مدیرِ مجتمعِ خودش

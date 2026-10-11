@@ -247,6 +247,7 @@ class CheckRaceConditions extends Command
         DB::transaction(function () use ($complexId, $userId): void {
             DB::table('wallet_transactions')->where('complex_id', $complexId)->where('user_id', $userId)->delete();
             DB::table((new UnitTenure)->getTable())->where('user_id', $userId)->delete();
+            DB::table('complex_memberships')->where('complex_id', $complexId)->delete();
             DB::table('bills')->where('complex_id', $complexId)->delete();
             DB::table('units')->where('complex_id', $complexId)->delete();
             DB::table('users')->where('id', $userId)->delete();
@@ -344,6 +345,8 @@ class CheckRaceConditions extends Command
                 ->distinct()->pluck('complex_id')->all(),
             'accepted' => ComplexInvitation::where('phone', $user->phone)->where('status', ComplexInvitation::ACCEPTED)->pluck('complex_id')->all(),
             'live' => ComplexInvitation::where('phone', $user->phone)->whereNotNull('live_key')->count(),
+            // مرحلهٔ ۱۰ · فاز ۲: یک پذیرش، یک عضویتِ فعال
+            'activeMemberships' => DB::table('complex_memberships')->where('user_id', $user->id)->where('status', 'active')->pluck('complex_id')->all(),
         ]));
 
         return self::SUCCESS;
@@ -358,6 +361,7 @@ class CheckRaceConditions extends Command
         DB::transaction(function () use ($userId, $complexIds): void {
             DB::table((new UnitTenure)->getTable())->where('user_id', $userId)->delete();
             DB::table('complex_invitations')->whereIn('complex_id', $complexIds)->delete();
+            DB::table('complex_memberships')->where('user_id', $userId)->orWhereIn('complex_id', $complexIds)->delete();
             DB::table('users')->where('id', $userId)->orWhereIn('complex_id', $complexIds)->delete();
             DB::table('units')->whereIn('complex_id', $complexIds)->delete();
             DB::table('audit_logs')->whereIn('complex_id', $complexIds)->delete();

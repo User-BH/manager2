@@ -100,7 +100,7 @@ class ManagerController extends Controller
         ]);
 
         // F4: پایانِ عضویت، نه حذفِ حساب — سابقه‌ی کارهای مدیر (تأییدها، پیام‌ها) می‌ماند
-        $this->membership->end($manager);
+        $this->membership->end($manager, Auth::user());
 
         return response()->json(['message' => 'دسترسیِ مدیریتیِ این کاربر پایان یافت. حسابش حفظ شد.']);
     }

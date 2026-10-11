@@ -199,6 +199,19 @@ class SchemaConstraintTest extends TestCase
             'مانده‌ی منفیِ دفتر' => ['wallet_transactions',
                 ['direction' => 'debit', 'amount' => 10, 'balance_after' => -10, 'source' => 'manual'],
                 'مانده‌ی منفی در دفتر'],
+            // مرحلهٔ ۱۰ · فاز ۲: چرخه‌ی عمرِ عضویت در خودِ پایگاه‌داده
+            'وضعیتِ ناشناخته‌ی عضویت' => ['complex_memberships',
+                ['role' => 'owner', 'status' => 'paused', 'source' => 'direct', 'started_at' => '2026-10-01 00:00:00',
+                    'ended_at' => '2026-10-02 00:00:00'], 'عضویت با وضعیتِ بیرون از active/ended'],
+            'عضویتِ فعال با زمانِ پایان' => ['complex_memberships',
+                ['role' => 'owner', 'status' => 'active', 'source' => 'direct', 'started_at' => '2026-10-01 00:00:00',
+                    'ended_at' => '2026-10-02 00:00:00', 'active_key' => '999999:999999'], 'عضویتِ فعال که پایان هم دارد'],
+            'عضویتِ پایان‌یافته با کلیدِ فعال' => ['complex_memberships',
+                ['role' => 'owner', 'status' => 'ended', 'source' => 'direct', 'started_at' => '2026-10-01 00:00:00',
+                    'ended_at' => '2026-10-02 00:00:00', 'active_key' => '999998:999998'], 'عضویتِ پایان‌یافته که هنوز کلیدِ یکتای فعال را گرفته'],
+            'نقشِ سکو در عضویت' => ['complex_memberships',
+                ['role' => 'super_admin', 'status' => 'ended', 'source' => 'direct', 'started_at' => '2026-10-01 00:00:00',
+                    'ended_at' => '2026-10-02 00:00:00'], 'عضویتِ مجتمع با نقشِ ادمینِ کل'],
         ];
     }
 

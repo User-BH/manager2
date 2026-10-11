@@ -7,9 +7,11 @@ use App\Enums\UserRole;
 use App\Models\AuditLog;
 use App\Models\CheckoutIntent;
 use App\Models\Complex;
+use App\Models\ComplexMembership;
 use App\Models\Plan;
 use App\Models\Subscription;
 use App\Models\User;
+use App\Services\Account\MembershipLedger;
 use App\Services\Subscription\ComplexPurchase;
 use Illuminate\Database\QueryException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -304,7 +306,7 @@ class CheckoutIntentTest extends TestCase
         $user = $this->initial();
         $this->start($user);
         $joined = Complex::factory()->create();
-        $user->forceFill(['complex_id' => $joined->id, 'role' => UserRole::Tenant])->save();
+        app(MembershipLedger::class)->start($user, $joined, UserRole::Tenant, ComplexMembership::SOURCE_DIRECT);
 
         $this->returnFromGateway(CheckoutIntent::sole())->assertRedirect('/account?checkout=review');
 
@@ -492,11 +494,26 @@ class CheckoutIntentTest extends TestCase
             // restrictOnDelete
         }
 
-        $user->forceFill(['complex_id' => null])->save();
-        $user->delete();
+        /*
+         * مرحلهٔ ۱۰ · فاز ۲: خریدار حالا عضویتِ مدیر دارد و تاریخچه‌ی عضویت به حساب
+         * `restrictOnDelete` است — حسابِ دارای سابقه دیگر اصلاً حذف نمی‌شود.
+         */
+        app(MembershipLedger::class)->end($user, ComplexMembership::END_REMOVED);
+        try {
+            $user->delete();
+            $this->fail('حسابِ دارای سابقه‌ی عضویت حذف شد.');
+        } catch (QueryException) {
+            // restrictOnDelete ِ complex_memberships
+        }
+        $this->assertSame($user->id, $intent->fresh()->user_id);
 
-        $this->assertNull($intent->fresh()->user_id);
-        $this->assertNull(Subscription::sole()->user_id);
-        $this->assertSame(1, CheckoutIntent::count());
+        // خریدارِ بی‌عضویت (خریدِ ناموفق) حذف‌شدنی است و سفارش و پرداخت می‌مانند
+        $other = $this->initial('09125550199');
+        $failed = app(ComplexPurchase::class)->begin($other, $this->plan, 'مجتمع دوم', ComplexType::Residential, null);
+        $other->delete();
+
+        $this->assertNull($failed->fresh()->user_id);
+        $this->assertSame(1, Subscription::count());
+        $this->assertSame(2, CheckoutIntent::count());
     }
 }

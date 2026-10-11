@@ -6,12 +6,14 @@ use App\Enums\UserRole;
 use App\Exceptions\DomainException;
 use App\Models\Complex;
 use App\Models\ComplexInvitation;
+use App\Models\ComplexMembership;
 use App\Models\ErrorEvent;
 use App\Models\TrustedDevice;
 use App\Models\Unit;
 use App\Models\UnitTenure;
 use App\Models\User;
 use App\Services\Account\Membership;
+use App\Services\Account\MembershipLedger;
 use App\Services\Auth\OtpService;
 use App\Services\ErrorRecorder;
 use App\Support\SystemSettings;
@@ -402,7 +404,7 @@ class SecureInvitationTest extends TestCase
         $elsewhere = Complex::factory()->create();
         $code = $this->as($recipient)->postJson("/api/v1/invitations/{$id}/code")->json('devCode');
 
-        $recipient->forceFill(['complex_id' => $elsewhere->id])->save();
+        app(MembershipLedger::class)->start($recipient, $elsewhere, UserRole::Owner, ComplexMembership::SOURCE_DIRECT);
 
         $this->as($recipient->fresh())->postJson("/api/v1/invitations/{$id}/accept", ['code' => $code])->assertStatus(422);
         $this->assertSame($elsewhere->id, $recipient->fresh()->complex_id);
@@ -434,7 +436,7 @@ class SecureInvitationTest extends TestCase
     {
         [$invitation] = app(Membership::class)->invite($this->complex, self::TARGET, UserRole::Owner, $this->unit, $this->manager);
         $recipient = $this->registrant();
-        $recipient->forceFill(['complex_id' => $this->complex->id, 'role' => UserRole::Tenant])->save();
+        app(MembershipLedger::class)->start($recipient, $this->complex, UserRole::Tenant, ComplexMembership::SOURCE_DIRECT);
 
         try {
             app(Membership::class)->accept($invitation, $recipient);

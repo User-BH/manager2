@@ -4,8 +4,10 @@ namespace Database\Seeders;
 
 use App\Enums\UserRole;
 use App\Models\ComplexInvitation;
+use App\Models\ComplexMembership;
 use App\Models\User;
 use App\Models\WalletTransaction;
+use App\Services\Account\MembershipLedger;
 use App\Services\Blog\BlogImporter;
 use App\Services\Wallet\WalletService;
 use Illuminate\Database\Seeder;
@@ -98,6 +100,11 @@ class E2eSeeder extends Seeder
     private function freshRegistrant(string $phone): void
     {
         $user = User::withoutGlobalScopes()->firstOrNew(['phone' => $phone]);
+
+        // سفرِ پیشین عضوش کرده بود: عضویت از دفترِ عضویت پایان می‌یابد و تاریخچه می‌ماند (۱۰/۲)
+        if ($user->exists && $user->complex_id !== null) {
+            app(MembershipLedger::class)->end($user, ComplexMembership::END_REMOVED);
+        }
         $user->fill([
             'complex_id' => null,
             'name' => 'ثبت‌نام‌کننده‌ی سرتاسری',

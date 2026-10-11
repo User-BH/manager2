@@ -961,6 +961,27 @@ class PhaseRegressionMapTest extends TestCase
             '۱۰/۱: هر بندِ باز فازِ بستنش را دارد' => [
                 'ArchitectureEvidenceMapTest', 'test_every_open_item_names_the_phase_that_closes_it', '۱۰',
             ],
+            '🔴 ۱۰/۲: مجتمع و نقشِ حساب فقط از دفترِ عضویت عوض می‌شوند' => [
+                'MembershipLedgerTest', 'test_the_account_context_cannot_be_changed_outside_the_ledger', '۱۰',
+            ],
+            '🔴 ۱۰/۲: پایانِ عضویت ردیف را با زمان، پایان‌دهنده و دلیل نگه می‌دارد' => [
+                'MembershipLedgerTest', 'test_ending_closes_the_row_with_who_when_and_why_and_keeps_it', '۱۰',
+            ],
+            '۱۰/۲: یک حساب، کلِ تاریخچه‌ی عضویتش' => [
+                'MembershipLedgerTest', 'test_one_account_holds_its_whole_membership_history', '۱۰',
+            ],
+            '🔴 ۱۰/۲: تاریخچه‌ی عضویت با حذفِ حساب یا مجتمع پاک نمی‌شود' => [
+                'MembershipLedgerTest', 'test_deleting_the_account_or_the_complex_cannot_erase_membership_history', '۱۰',
+            ],
+            '۱۰/۲: مهاجرت هر عضوِ موجود را و فقط او را عضو می‌کند' => [
+                'MembershipLedgerTest', 'test_the_migration_backfills_every_existing_member_and_nobody_else', '۱۰',
+            ],
+            '۱۰/۲: ارتقا به ادمینِ کل عضویت را می‌بندد' => [
+                'MembershipLedgerTest', 'test_promotion_to_super_admin_ends_the_membership', '۱۰',
+            ],
+            '۱۰/۲: ناهم‌خوانیِ حساب و عضویت گزارش می‌شود' => [
+                'MembershipLedgerTest', 'test_the_check_command_reports_any_drift_between_account_and_membership', '۱۰',
+            ],
             'مدیر از درخواستِ عضویت با اعلانِ داشبورد باخبر می‌شود' => [
                 'JoinRequestTest', 'test_the_complexes_managers_get_a_dashboard_notification_once', '۹',
             ],

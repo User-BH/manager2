@@ -160,7 +160,8 @@ class DisasterRecoveryTest extends TestCase
         $seed = $this->seedRealData();
         $file = $this->buildRealBackupFile();
 
-        // فاجعه: همه‌چیز از بین می‌رود
+        // فاجعه: همه‌چیز از بین می‌رود — عضویت‌ها هم (کلیدِ restrict به مجتمع و حساب)
+        DB::table('complex_memberships')->delete();
         DB::table('bills')->delete();
         DB::table('units')->delete();
         DB::table('complexes')->delete();
@@ -240,6 +241,7 @@ class DisasterRecoveryTest extends TestCase
 
         $file = $this->buildRealBackupFile();
 
+        DB::table('complex_memberships')->where('user_id', $resident->id)->delete();
         DB::table('users')->where('id', $resident->id)->delete();
 
         $this->restore($file)->assertOk();
@@ -337,6 +339,7 @@ class DisasterRecoveryTest extends TestCase
         $contents = PrivateFiles::disk()->get($safety->path);
 
         // فاجعه، این بار پس از بازیابی
+        DB::table('complex_memberships')->delete();
         DB::table('bills')->delete();
         DB::table('complexes')->delete();
 

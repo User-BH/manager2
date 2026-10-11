@@ -3,9 +3,12 @@
 namespace Tests\Feature;
 
 use App\Enums\AccountState;
+use App\Enums\UserRole;
 use App\Models\Complex;
 use App\Models\ComplexInvitation;
+use App\Models\ComplexMembership;
 use App\Models\User;
+use App\Services\Account\MembershipLedger;
 use App\Services\Wallet\WalletService;
 use Database\Seeders\DemoSeeder;
 use Database\Seeders\E2eSeeder;
@@ -107,7 +110,7 @@ class E2eSeederTest extends TestCase
             'complex_id' => $complex->id, 'user_id' => $user->id, 'unit_id' => $unit->id,
             'role' => 'tenant', 'status' => ComplexInvitation::ACCEPTED,
         ]);
-        $user->update(['complex_id' => $complex->id]);
+        app(MembershipLedger::class)->start($user, $complex, UserRole::Tenant, ComplexMembership::SOURCE_INVITATION);
         $user->units()->withoutGlobalScopes()->attach($unit->id, ['relation' => 'tenant', 'complex_id' => $complex->id]);
 
         $this->seed(E2eSeeder::class);

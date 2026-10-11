@@ -103,6 +103,7 @@ class InvitationConcurrencyTest extends TestCase
             $this->assertNull($state['complex'], 'بی پذیرشِ موفق، حساب عضو شد.'.$context);
             $this->assertSame(0, $state['tenures'], $context);
             $this->assertSame([], $state['accepted'], $context);
+            $this->assertSame([], $state['activeMemberships'], 'بی پذیرشِ موفق، عضویت ساخته شد.'.$context);
 
             return;
         }
@@ -113,6 +114,7 @@ class InvitationConcurrencyTest extends TestCase
         $this->assertSame([$state['complex']], $state['tenureComplexes'], 'دوره‌ی سکونت در مجتمعِ دیگری است.'.$context);
         $this->assertSame([$state['complex']], $state['accepted'], 'بیش از یک دعوتِ پذیرفته، یا دعوتِ مجتمعِ دیگر.'.$context);
         $this->assertSame(0, $state['live'], 'دعوتِ زنده‌ای مانده که حساب را جابه‌جا می‌کند.'.$context);
+        $this->assertSame([$state['complex']], $state['activeMemberships'], 'عضویتِ فعالِ تکراری یا در مجتمعِ دیگر.'.$context);
     }
 
     /**

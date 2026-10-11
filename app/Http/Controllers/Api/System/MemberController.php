@@ -7,6 +7,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\UpdateMemberRequest;
 use App\Http\Resources\MemberResource;
 use App\Models\User;
+use App\Services\Account\MembershipLedger;
 use App\Support\Audit;
 use App\Support\Phone;
 use Illuminate\Http\JsonResponse;
@@ -23,6 +24,8 @@ use Illuminate\Validation\ValidationException;
  */
 class MemberController extends Controller
 {
+    public function __construct(private readonly MembershipLedger $ledger) {}
+
     public function index(Request $request): JsonResponse
     {
         $search = trim((string) $request->query('q', ''));
@@ -70,15 +73,21 @@ class MemberController extends Controller
 
         $before = ['role' => $target->role->value, 'is_active' => (bool) $target->is_active];
 
-        $target->role = $role;
+        /*
+         * نقش و مجتمع فقط از دفترِ عضویت (مرحلهٔ ۱۰ · فاز ۲): درونِ مجتمع همان عضویت نقشِ
+         * تازه می‌گیرد؛ ارتقا به ادمینِ کل عضویت را با دلیلِ «promoted» می‌بندد — ادمینِ کل
+         * به مجتمعِ خاصی وصل نیست.
+         */
+        if ($target->role !== $role) {
+            $this->ledger->changeRole($target, $role, $request->user());
+        }
 
         if (array_key_exists('is_active', $data)) {
             $target->is_active = $data['is_active'];
         }
 
-        // ادمینِ کل به مجتمعِ خاصی وصل نیست و همیشه فعال است.
+        // ادمینِ کل همیشه فعال است.
         if ($role === UserRole::SuperAdmin) {
-            $target->complex_id = null;
             $target->is_active = true;
         }
 

@@ -635,6 +635,7 @@ class AuthorizationAttackTest extends TestCase
         'app/Http/Controllers/Api/InvitationController.php' => [3, 'گیرنده‌ی دعوت هنوز عضو نیست؛ واحد و دعوت‌کننده‌ی همان دعوتِ خودش (مرحلهٔ ۹ · فاز ۶)'],
         'app/Services/Account/Membership.php' => [5, 'پیوستن و پایانِ عضویت: حسابِ بی‌مجتمع، و واحدِ دعوت زیرِ قفل (مرحلهٔ ۹ · فاز ۶)'],
         'app/Services/Account/ComplexUpgrader.php' => [1, 'کاربر در همین لحظه صاحبِ مجتمع می‌شود'],
+        'app/Services/Account/MembershipLedger.php' => [6, 'دفترِ عضویت: حساب و عضویت‌هایش در همه‌ی مجتمع‌ها زیرِ قفل، و سنجشِ هم‌خوانی (مرحلهٔ ۱۰ · فاز ۲)'],
         // مرحلهٔ ۹: شماره مالِ حساب است و یکتاییِ آن در کلِ سکو سنجیده می‌شود
         'app/Services/Account/PhoneChange.php' => [3, 'قفلِ حسابِ خود و یکتاییِ شماره در همه‌ی مجتمع‌ها؛ حسابِ اولیه هم مجتمع ندارد'],
         'app/Services/Account/AccountRecovery.php' => [3, 'حسابِ منطبق با شماره‌ی قبلی در هر مجتمعی، قفلِ آن و یکتاییِ شماره‌ی تازه در کلِ سکو'],

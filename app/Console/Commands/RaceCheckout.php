@@ -118,6 +118,8 @@ class RaceCheckout extends Command
                 ? Subscription::withoutGlobalScopes()->where('complex_id', $intent->complex_id)->count()
                 : 0,
             'managers' => User::withoutGlobalScopes()->whereKey($intent->user_id)->where('role', UserRole::ComplexAdmin->value)->count(),
+            // مرحلهٔ ۱۰ · فاز ۲: یک خرید، یک عضویتِ فعالِ مدیر
+            'activeMemberships' => DB::table('complex_memberships')->where('user_id', $intent->user_id)->where('status', 'active')->count(),
             'userComplex' => $user?->complex_id,
             'intentComplex' => $intent->complex_id,
             'linked' => $intent->subscription_id !== null,
@@ -143,6 +145,8 @@ class RaceCheckout extends Command
             $intent->delete();
             if ($complexId) {
                 Subscription::withoutGlobalScopes()->where('complex_id', $complexId)->delete();
+                // دادهٔ خودِ همین آزمون؛ عضویت پیش از حساب و مجتمع (کلیدِ restrict)
+                DB::table('complex_memberships')->where('user_id', $userId)->delete();
                 User::withoutGlobalScopes()->whereKey($userId)->update(['complex_id' => null]);
                 DB::table('audit_logs')->where('complex_id', $complexId)->delete();
                 Complex::whereKey($complexId)->delete();

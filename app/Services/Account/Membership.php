@@ -8,6 +8,7 @@ use App\Enums\UserRole;
 use App\Exceptions\DomainException;
 use App\Models\Complex;
 use App\Models\ComplexInvitation;
+use App\Models\ComplexMembership;
 use App\Models\Unit;
 use App\Models\User;
 use App\Services\Units\TenureService;
@@ -19,8 +20,7 @@ use Illuminate\Support\Facades\DB;
  * مسیرِ عضویت در مجتمعِ موجود — مرحلهٔ ۹ · فاز ۶.
  *
  * تنها جایی که حساب به مجتمع وصل یا از آن جدا می‌شود (جز `ComplexPurchase` که
- * مدیرِ مجتمعِ تازه را می‌سازد). فایلِ معماری (۱۰/۲) جدولِ عضویت را فقط همین‌جا
- * عوض می‌کند.
+ * مدیرِ مجتمعِ تازه را می‌سازد). از ۱۰/۲ نوشتنِ خودِ عضویت با `MembershipLedger` است.
  *
  * ─── سه قاعده ──────────────────────────────────────────────────────────────
  * • **حساب ساخته نمی‌شود (F5).** مدیر به شماره دعوت می‌فرستد؛ صاحبِ شماره
@@ -35,7 +35,10 @@ class Membership
     /** نقش‌هایی که فقط با واحد معنا دارند */
     private const UNIT_ROLES = [UserRole::Owner, UserRole::Tenant];
 
-    public function __construct(private readonly TenureService $tenures) {}
+    public function __construct(
+        private readonly TenureService $tenures,
+        private readonly MembershipLedger $ledger,
+    ) {}
 
     /**
      * دعوتِ امن به یک شماره. توکنِ خام فقط در خروجیِ همین متد است.
@@ -137,7 +140,7 @@ class Membership
             $unit = $fresh->unit_id ? Unit::withoutGlobalScopes()->find($fresh->unit_id) : null;
             $complex = Complex::findOrFail($fresh->complex_id);
 
-            $this->join($account, $complex, $fresh->role, $unit);
+            $this->join($account, $complex, $fresh->role, $unit, ComplexMembership::SOURCE_INVITATION, $fresh);
 
             $fresh->close(ComplexInvitation::ACCEPTED, $account->id);
             $this->closeOthers($account, $fresh->id);
@@ -180,7 +183,7 @@ class Membership
             }
 
             $complex = Complex::findOrFail($fresh->complex_id);
-            $this->join($applicant, $complex, $role, $unit);
+            $this->join($applicant, $complex, $role, $unit, ComplexMembership::SOURCE_JOIN_REQUEST, $fresh);
 
             $fresh->forceFill(['role' => $role, 'unit_id' => $unit->id])->save();
             $fresh->close(ComplexInvitation::ACCEPTED);
@@ -195,9 +198,9 @@ class Membership
      * برمی‌گردد و چیزی حذف نمی‌شود. ساکنِ رفته دیگر داده‌ی مجتمع را نمی‌بیند
      * (دامنه‌ی مستأجر از `complex_id` است) و ساکنِ بعدی دوره‌ی خودش را دارد.
      */
-    public function end(User $member): void
+    public function end(User $member, ?User $by = null): void
     {
-        DB::transaction(function () use ($member): void {
+        DB::transaction(function () use ($member, $by): void {
             $account = User::withoutGlobalScopes()->lockForUpdate()->find($member->id);
 
             if (! $account || $account->complex_id === null) {
@@ -206,11 +209,8 @@ class Membership
 
             $this->tenures->endAllFor($account);
 
-            $account->forceFill([
-                'complex_id' => null,
-                // نقشِ حسابِ اولیه همان است که ثبت‌نام می‌دهد (`AuthController::registerVerify`)
-                'role' => UserRole::Owner,
-            ])->save();
+            // عضویت با زمانِ پایان، پایان‌دهنده و دلیل بسته می‌شود؛ حساب به حالتِ اولیه
+            $this->ledger->end($account, ComplexMembership::END_REMOVED, $by);
         }, attempts: 3);
     }
 
@@ -239,11 +239,12 @@ class Membership
         return DomainException::invalid($message, $code, ['phone' => [$message]]);
     }
 
-    private function join(User $user, Complex $complex, UserRole $role, ?Unit $unit): void
+    private function join(User $user, Complex $complex, UserRole $role, ?Unit $unit, string $source, ComplexInvitation $via): void
     {
         $this->guardPlacement($complex, $role, $unit);
 
-        $user->forceFill(['complex_id' => $complex->id, 'role' => $role])->save();
+        // عضویت و زمینه‌ی فعالِ حساب با هم، از دفترِ عضویت (مرحلهٔ ۱۰ · فاز ۲)
+        $this->ledger->start($user, $complex, $role, $source, $via);
 
         if ($unit !== null) {
             $this->tenures->open(

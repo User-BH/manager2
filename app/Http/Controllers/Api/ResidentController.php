@@ -12,10 +12,12 @@ use App\Http\Resources\ResidentResource;
 use App\Models\Unit;
 use App\Models\User;
 use App\Services\Account\Membership;
+use App\Services\Account\MembershipLedger;
 use App\Services\Units\TenureService;
 use App\Support\Audit;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Validation\ValidationException;
 
 class ResidentController extends Controller
@@ -23,6 +25,7 @@ class ResidentController extends Controller
     public function __construct(
         private readonly TenureService $tenures,
         private readonly Membership $membership,
+        private readonly MembershipLedger $ledger,
     ) {}
 
     public function index(Request $request): JsonResponse
@@ -121,8 +124,13 @@ class ResidentController extends Controller
             'name' => $data['name'] ?? null,
             'email' => $data['email'] ?? null,
             'national_id' => $data['national_id'] ?? null,
-            'role' => $data['role'],
         ], fn ($value) => $value !== null));
+
+        // نقش مالِ عضویت است و فقط از دفترِ عضویت عوض می‌شود (مرحلهٔ ۱۰ · فاز ۲)
+        $role = UserRole::from($data['role']);
+        if ($resident->role !== $role) {
+            $this->ledger->changeRole($resident, $role, $request->user());
+        }
 
         $this->syncUnit($resident, $data);
 
@@ -146,7 +154,7 @@ class ResidentController extends Controller
             'complex_id' => $resident->complex_id,
         ]);
 
-        $this->membership->end($resident);
+        $this->membership->end($resident, Auth::user());
 
         return response()->json([
             'message' => 'عضویتِ ساکن در مجتمع پایان یافت. حساب و سابقه‌اش حفظ شد.',

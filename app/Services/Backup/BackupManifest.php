@@ -48,6 +48,8 @@ final class BackupManifest
         'units',
         'unit_user',
         'complex_invitations',
+        // عضویت‌ها و تاریخچه‌شان (مرحلهٔ ۱۰ · فاز ۲) — پس از حساب، مجتمع و دعوت
+        'complex_memberships',
         // درخواست‌های بازیابیِ حساب و تصمیمِ ادمینِ کل — سابقه‌ی امنیتی (مرحلهٔ ۹)
         'account_recovery_requests',
         'charge_rules',

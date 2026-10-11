@@ -8,12 +8,14 @@ use App\Enums\ResidentRelation;
 use App\Enums\UserRole;
 use App\Models\Bill;
 use App\Models\Complex;
+use App\Models\ComplexMembership;
 use App\Models\Payment;
 use App\Models\PaymentAllocation;
 use App\Models\Unit;
 use App\Models\User;
 use App\Models\WalletTransaction;
 use App\Services\Account\Membership;
+use App\Services\Account\MembershipLedger;
 use App\Services\Charge\BillGenerator;
 use App\Services\Units\TenureService;
 use App\Services\Wallet\WalletService;
@@ -105,16 +107,23 @@ class WalletOwnershipTest extends TestCase
      * canonical»). اعتبارِ ثبت‌شده در دو مجتمع جمعِ همان یک کیف است و در هر
      * زمینه‌ی فعال — مجتمعِ الف، مجتمعِ ب، حسابِ اولیه — همان عدد برمی‌گردد.
      *
-     * ⚠️ عضویتِ هم‌زمان در چند مجتمع هنوز در مخزن نیست (۱۰/۲)؛ زمینه‌ها با
-     * جابه‌جاییِ مجتمعِ فعالِ حساب ساخته می‌شوند.
+     * ⚠️ عضویتِ هم‌زمان در چند مجتمع هنوز مجاز نیست (۱۰/۳)؛ زمینه‌ها با پایانِ عضویت و
+     * پیوستن به مجتمعِ بعدی از دفترِ عضویت ساخته می‌شوند (۱۰/۲).
      */
     public function test_one_account_sees_one_balance_in_every_complex_context(): void
     {
         [$other, $otherUnit] = $this->otherComplex();
         app(WalletService::class)->credit($this->hosseini, $otherUnit, 200000, WalletTransaction::SOURCE_ADJUSTMENT);
 
-        foreach ([$this->complex->id, $other->id, null] as $context) {
-            $this->hosseini->forceFill(['complex_id' => $context])->save();
+        $ledger = app(MembershipLedger::class);
+        foreach ([$this->complex, $other, null] as $complex) {
+            $context = $complex?->id;
+            if ($this->hosseini->fresh()->complex_id !== $context) {
+                $ledger->end($this->hosseini, ComplexMembership::END_REMOVED);
+                if ($complex !== null) {
+                    $ledger->start($this->hosseini, $complex, UserRole::Tenant, ComplexMembership::SOURCE_DIRECT);
+                }
+            }
             $response = $this->as($this->hosseini->fresh())->getJson('/api/v1/wallet')->assertOk();
             $this->assertSame([500000], array_column($response->json('wallets'), 'balance'), "زمینه‌ی {$context}");
             $this->as($this->hosseini->fresh())->getJson('/api/v1/wallet/statement')->assertOk()
@@ -154,7 +163,7 @@ class WalletOwnershipTest extends TestCase
         $this->assertSame(250000.0, (float) $debit->balance_after);
 
         // و در زمینه‌ی حسابِ اولیه هم همان مانده‌ی کم‌شده
-        $hosseini->forceFill(['complex_id' => null])->save();
+        app(MembershipLedger::class)->end($hosseini, ComplexMembership::END_REMOVED);
         $this->as($hosseini->fresh())->getJson('/api/v1/wallet')->assertOk()->assertJsonPath('wallets.0.balance', 250000);
     }
 
@@ -189,8 +198,9 @@ class WalletOwnershipTest extends TestCase
         ])->assertStatus(422);
         $this->assertSame(300000.0, app(WalletService::class)->balance($this->hosseini));
 
-        // جابه‌جاییِ مستقیمِ مجتمعِ حساب هم چیزی باز نمی‌کند
-        $intruder->forceFill(['complex_id' => $other->id])->save();
+        // پیوستن به مجتمعِ دیگر هم چیزی باز نمی‌کند (جابه‌جاییِ مستقیم از ۱۰/۲ ناممکن است)
+        app(MembershipLedger::class)->end($intruder, ComplexMembership::END_REMOVED);
+        app(MembershipLedger::class)->start($intruder, $other, UserRole::Owner, ComplexMembership::SOURCE_DIRECT);
         $this->as($intruder->fresh())->getJson('/api/v1/wallet/statement')->assertOk()->assertJsonCount(0, 'transactions');
 
         // مدیرِ همین مجتمع: فقط ردیف‌های همین مجتمع، بی مانده‌ی شخصی

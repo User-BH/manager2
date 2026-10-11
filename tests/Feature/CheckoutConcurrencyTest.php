@@ -124,6 +124,7 @@ class CheckoutConcurrencyTest extends TestCase
         $this->assertSame(1, $state['subscriptions'], 'بیش از یک اشتراک با این رهگیری.'.$context);
         $this->assertSame(1, $state['subscriptionsOfComplex'], 'مجتمع بیش از یک اشتراک گرفت.'.$context);
         $this->assertSame(1, $state['managers'], 'خریدار مدیر نشد.'.$context);
+        $this->assertSame(1, $state['activeMemberships'], 'بیش از یک عضویتِ فعال (یا هیچ) برای خریدار.'.$context);
         $this->assertSame($state['intentComplex'], $state['userComplex'], 'خریدار مدیرِ مجتمعِ دیگری شد.'.$context);
         $this->assertTrue($state['linked'], 'قصد به اشتراک وصل نشد.'.$context);
         $this->assertSame(1, $state['completedIntentsWithTracking'], 'یک رهگیری بیش از یک پرداختِ موفق شد.'.$context);

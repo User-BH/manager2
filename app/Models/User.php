@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Enums\UserRole;
+use App\Services\Account\MembershipLedger;
 use App\Support\PersianName;
 use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -11,6 +12,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use LogicException;
 
 /**
  * @property int $id
@@ -111,6 +113,22 @@ class User extends Authenticatable
             if (filled($user->first_name) && filled($user->last_name)) {
                 $user->name = PersianName::full($user->first_name, $user->last_name);
             }
+        });
+
+        /*
+         * 🔴 عضویت و زمینه‌ی فعالِ حساب از هم جدا نمی‌شوند (مرحلهٔ ۱۰ · فاز ۲).
+         * `complex_id` و `role` ِ حسابِ موجود فقط از `MembershipLedger` عوض می‌شوند؛
+         * هر مسیرِ دیگری (کنترلر، فرمان، آزمون) خطا می‌گیرد، نه ناهم‌خوانیِ بی‌صدا.
+         */
+        static::updating(function (User $user): void {
+            if (($user->isDirty('complex_id') || $user->isDirty('role')) && ! MembershipLedger::isWriting()) {
+                throw new LogicException('مجتمع و نقشِ حساب فقط از MembershipLedger عوض می‌شوند (عضویت، پایان، تغییرِ نقش).');
+            }
+        });
+
+        // حسابی که از ابتدا درونِ مجتمع ساخته شد، عضوِ همان مجتمع است
+        static::created(function (User $user): void {
+            app(MembershipLedger::class)->recordCreated($user);
         });
     }
 

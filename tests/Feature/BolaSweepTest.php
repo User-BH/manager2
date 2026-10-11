@@ -17,6 +17,7 @@ use App\Models\Bill;
 use App\Models\ChargeRule;
 use App\Models\Complex;
 use App\Models\ComplexInvitation;
+use App\Models\ComplexMembership;
 use App\Models\Discount;
 use App\Models\Expense;
 use App\Models\Income;
@@ -32,6 +33,7 @@ use App\Models\Unit;
 use App\Models\UnitTenure;
 use App\Models\User;
 use App\Models\WalletTransaction;
+use App\Services\Account\MembershipLedger;
 use App\Services\Messenger\ConversationDirectory;
 use App\Services\Units\TenureService;
 use App\Services\Wallet\WalletService;
@@ -132,7 +134,7 @@ class BolaSweepTest extends TestCase
         $formerB = $this->user(UserRole::Owner, '09310000007', $this->b->id, 'ساکنِ رفته‌ی ب');
         $old = app(TenureService::class)->open($unitB, $formerB, ResidentRelation::Tenant, 100, now()->subYears(3));
         app(TenureService::class)->close($old, now()->subYears(2));
-        $formerB->forceFill(['complex_id' => null])->save();
+        app(MembershipLedger::class)->end($formerB, ComplexMembership::END_REMOVED);
         $this->actors['formerB'] = $formerB;
 
         $b = $this->recordsOf($this->b, $unitB, $residentB, $managerB, 'ZQB');
