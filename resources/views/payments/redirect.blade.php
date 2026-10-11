@@ -20,5 +20,6 @@
         </form>
     </div>
     <script @csp>document.getElementById('gw').submit();</script>
+    @include('partials.preview-banner')
 </body>
 </html>

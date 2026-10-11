@@ -4,6 +4,7 @@ namespace App\Http\Middleware;
 
 use App\Http\Controllers\SeoController;
 use App\Support\Observability;
+use App\Support\Preview;
 use Closure;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
@@ -222,7 +223,8 @@ class SecurityHeaders
          * کسی یادش بماند محافظت می‌شود. هدر و نه فقط `<meta>`، چون PDFِ قبض،
          * JSONِ API و صفحه‌ی خطا `<head>` ندارند.
          */
-        if (! SeoController::isIndexable($request->getPathInfo())) {
+        // Preview (مرحلهٔ ۹ · فاز ۸) هیچ صفحه‌ای را برای ایندکس نمی‌دهد
+        if (Preview::active() || ! SeoController::isIndexable($request->getPathInfo())) {
             $headers['X-Robots-Tag'] = 'noindex, nofollow';
         }
 

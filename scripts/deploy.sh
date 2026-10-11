@@ -5,6 +5,12 @@
 #   ./scripts/deploy.sh              اگر پوشه مخزن git باشد pull می‌کند، وگرنه رد می‌شود
 #   ./scripts/deploy.sh --no-pull    حتی اگر git باشد pull نکن (فایل‌ها را خودتان آپلود کرده‌اید)
 #   ./scripts/deploy.sh --no-down    بدون حالت تعمیرات (سایت لحظه‌ای هم قطع نشود)
+#   ./scripts/deploy.sh --reset-preview
+#                                    فقط روی Preview (APP_ENV=preview): پایگاه‌داده‌ی Preview را
+#                                    پاک و با دادهٔ نمونه از نو می‌سازد (php artisan preview:reset)
+#
+# پیش از هر migrationِ تازه روی محصول بکاپِ کامل گرفته و سنجیده می‌شود؛ بی بکاپِ
+# معتبر migration اجرا نمی‌شود (بندِ ۲۴ ِ فایلِ ۲، مرحلهٔ ۹ · فاز ۸).
 #
 # مثل setup.sh، این اسکریپت هم به nginx، MySQL یا نسخه‌های دیگر PHP دست نمی‌زند.
 
@@ -12,16 +18,23 @@ source "$(dirname "${BASH_SOURCE[0]}")/lib.sh"
 
 DO_PULL=auto
 MAINTENANCE=1
+RESET_PREVIEW=0
 for arg in "$@"; do
     case "$arg" in
         --no-pull) DO_PULL=0 ;;
         --no-down) MAINTENANCE=0 ;;
-        -h|--help) sed -n '2,10p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
+        --reset-preview) RESET_PREVIEW=1 ;;
+        -h|--help) sed -n '2,16p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
         *) die "گزینهٔ ناشناخته: $arg" ;;
     esac
 done
 
 [ -f .env ] || die ".env پیدا نشد. اول ./scripts/setup.sh را اجرا کنید."
+
+# دادهٔ نمونه فقط روی Preview؛ روی محصول یعنی پاک‌شدنِ همه‌چیز
+if [ "$RESET_PREVIEW" = "1" ] && ! is_preview; then
+    die "--reset-preview فقط روی Preview (APP_ENV=preview) مجاز است. این نصب: $(env_value APP_ENV)"
+fi
 
 step "بررسی PHP و Composer"
 PHP="$(find_php)"
@@ -88,7 +101,7 @@ fi
 
 # ---------------------------------------------------------------- ۳) وابستگی‌ها
 step "به‌روزرسانی وابستگی‌های PHP"
-if is_production; then
+if is_deployed; then
     composer_run install --no-dev --optimize-autoloader --no-interaction --prefer-dist
 else
     composer_run install --no-interaction --prefer-dist
@@ -100,7 +113,20 @@ build_assets
 # ---------------------------------------------------------------- ۴) دیتابیس
 step "اجرای migrationهای جدید"
 pending="$("$PHP" artisan migrate:status 2>/dev/null | grep -ci 'pending' || true)"
-if [ "${pending:-0}" -gt 0 ]; then
+if [ "$RESET_PREVIEW" = "1" ]; then
+    # Preview از صفر: پاک‌سازی و ساختِ دوباره + دادهٔ نمونه + برچسبِ پایگاه‌داده (خودِ دستور قفل‌هایش را دارد)
+    "$PHP" artisan preview:reset --force --no-interaction
+    ok "پایگاه‌داده‌ی Preview از نو ساخته شد"
+elif [ "${pending:-0}" -gt 0 ]; then
+    if is_production; then
+        # 🔴 بندِ ۲۴: پیش از تغییرِ ساختار، بکاپِ معتبر و قابلِ بازیابی — وگرنه توقف
+        step "بکاپ پیش از migration ($pending مورد)"
+        "$PHP" artisan backups:run --note="پیش از migration در استقرار" --no-interaction \
+            || die "بکاپ ساخته نشد؛ migration اجرا نمی‌شود. مشکل را رفع کنید و دوباره استقرار دهید."
+        "$PHP" artisan backups:verify --no-interaction \
+            || die "بکاپِ تازه سنجش را رد کرد (قابلِ بازیابی نیست)؛ migration اجرا نمی‌شود."
+        ok "بکاپ ساخته و سنجیده شد"
+    fi
     "$PHP" artisan migrate --force --no-interaction
     ok "$pending migration اجرا شد"
 else

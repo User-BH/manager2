@@ -4,6 +4,7 @@ namespace App\Services\Payment;
 
 use App\Models\Complex;
 use App\Services\Subscription\PlanGate;
+use App\Support\Preview;
 use RuntimeException;
 
 /**
@@ -17,6 +18,11 @@ class GatewayManager
 
     public function for(Complex $complex): PaymentGateway
     {
+        // Preview: هرگز درگاهِ بانکیِ واقعی، هرچه مجتمع تنظیم کرده باشد (مرحلهٔ ۹ · فاز ۸)
+        if (Preview::active()) {
+            return Sandbox::gateway();
+        }
+
         // درگاه بانکی واقعی از امکانات پروست. بررسی اینجاست و نه فقط هنگام
         // ذخیره‌ی تنظیمات، وگرنه مجتمعی که یک‌بار ملت را تنظیم کرده بود پس از
         // انقضای اشتراکش تا ابد از درگاه واقعی استفاده می‌کرد.
@@ -45,6 +51,10 @@ class GatewayManager
      */
     public function isOnlineEnabled(Complex $complex): bool
     {
+        if (Preview::active()) {
+            return Sandbox::isAllowed();
+        }
+
         if ($complex->payment_gateway === 'fake') {
             return Sandbox::isAllowed();
         }

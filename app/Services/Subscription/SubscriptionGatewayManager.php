@@ -7,6 +7,7 @@ use App\Services\Payment\PaymentGateway;
 use App\Services\Payment\SamanGateway;
 use App\Services\Payment\Sandbox;
 use App\Services\Payment\ZarinpalGateway;
+use App\Support\Preview;
 use RuntimeException;
 
 /**
@@ -28,6 +29,11 @@ class SubscriptionGatewayManager
     {
         $config = (array) config('subscription.config', []);
 
+        // Preview: همیشه سندباکس — نه ترمینالِ واقعی، نه پولِ واقعی (مرحلهٔ ۹ · فاز ۸)
+        if (Preview::active()) {
+            return Sandbox::gateway();
+        }
+
         // مبلغ پلن‌ها به تومان تعریف شده؛ درایور خودش به ریال تبدیل می‌کند.
         return match (config('subscription.gateway')) {
             'sandbox' => Sandbox::gateway(),
@@ -44,6 +50,10 @@ class SubscriptionGatewayManager
 
     public function isEnabled(): bool
     {
+        if (Preview::active()) {
+            return Sandbox::isAllowed();
+        }
+
         if (! in_array(config('subscription.gateway'), self::SUPPORTED, true)) {
             return false;
         }

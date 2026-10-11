@@ -44,5 +44,6 @@
 
     {{-- حالتِ بارگذاری تا اولین رندرِ React جایش را بگیرد (مرحلهٔ ۷ · فاز ۳) --}}
     <div id="root">@include('partials.boot-shell')</div>
+    @include('partials.preview-banner')
 </body>
 </html>

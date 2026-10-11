@@ -10,6 +10,7 @@ use App\Http\Middleware\EnsureActive;
 use App\Http\Middleware\EnsureComplexActive;
 use App\Http\Middleware\EnsureFeatureEnabled;
 use App\Http\Middleware\EnsureNotInMaintenance;
+use App\Http\Middleware\EnsurePreviewSafety;
 use App\Http\Middleware\EnsureRole;
 use App\Http\Middleware\LockInitialAccount;
 use App\Http\Middleware\RecordSlowRequests;
@@ -160,6 +161,11 @@ return Application::configure(basePath: dirname(__DIR__))
              * خطوطی که روزِ حادثه بیشتر لازم می‌شوند بی‌شناسه بمانند.
              */
             AssignRequestId::class,
+            /*
+             * 🔴 مرزِ Preview و محصول (مرحلهٔ ۹ · فاز ۸): پیش از هر کارِ دیگری —
+             * نمونه‌ی وصل به پایگاه‌داده‌ی نادرست هیچ درخواستی را سرویس نمی‌دهد.
+             */
+            EnsurePreviewSafety::class,
             // شمارشِ درخواستِ کند (مرحلهٔ ۵ · فاز ۹)؛ زود، تا تقریباً کلِ درخواست را بسنجد
             RecordSlowRequests::class,
             /*

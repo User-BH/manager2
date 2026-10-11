@@ -24,6 +24,9 @@ class LogSms implements SmsGateway
          */
         if (app()->environment('local', 'testing')) {
             Log::info("[SMS:log] to={$phone} message={$message}");
+        } elseif (app()->environment('preview')) {
+            // Preview: پیامکِ واقعی نیست و متنش (کد) هم در لاگ نمی‌نشیند؛ کد در پاسخِ API است
+            Log::info('[SMS:preview] پیامک فرستاده نشد (محیطِ Preview).', ['to_tail' => substr($phone, -4)]);
         } else {
             Log::warning(
                 '[SMS:log] پیامک ارسال نشد — درایورِ آزمایشی در محیطِ غیرتوسعه فعال است. '

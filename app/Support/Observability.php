@@ -88,6 +88,26 @@ class Observability
      */
     public static function config(): array
     {
+        /*
+         * Preview (مرحلهٔ ۹ · فاز ۸): دادهٔ آزمایشی آمارِ محصول را آلوده نکند — GA4، GTM و
+         * Clarity خاموش؛ گزارشِ خطا می‌ماند ولی با محیطِ `preview`.
+         */
+        if (Preview::active()) {
+            $config = self::liveConfig();
+            $config['sentry']['environment'] = Preview::ENVIRONMENT;
+            $config['ga4'] = ['measurement_id' => null, 'api_secret' => null];
+            $config['gtm'] = ['container_id' => null];
+            $config['clarity'] = ['project_id' => null];
+
+            return $config;
+        }
+
+        return self::liveConfig();
+    }
+
+    /** @return array<string, array<string, mixed>> */
+    private static function liveConfig(): array
+    {
         return [
             'sentry' => [
                 'dsn' => self::value('sentry_dsn', config('observability.sentry.dsn')),

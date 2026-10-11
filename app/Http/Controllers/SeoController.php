@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Services\Blog\PublicBlog;
 use App\Services\Features\FeatureFlags;
+use App\Support\Preview;
 use Illuminate\Http\Response;
 
 /**
@@ -49,6 +50,11 @@ class SeoController extends Controller
 
     public function robots(): Response
     {
+        // Preview (مرحلهٔ ۹ · فاز ۸): هیچ خزنده‌ای، هیچ نقشه‌ی سایتی
+        if (Preview::active()) {
+            return response("User-agent: *\nDisallow: /\n", 200, ['Content-Type' => 'text/plain; charset=utf-8']);
+        }
+
         $sitemap = rtrim(config('app.url'), '/').'/sitemap.xml';
 
         /*

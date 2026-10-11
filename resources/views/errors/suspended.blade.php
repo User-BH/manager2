@@ -21,5 +21,6 @@
         <p>{{ $message }}</p>
         <a href="{{ route('support') }}">تماس با پشتیبانی</a>
     </div>
+    @include('partials.preview-banner')
 </body>
 </html>

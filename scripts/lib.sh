@@ -273,6 +273,13 @@ env_value() {
 
 is_production() { [ "$(env_value APP_ENV)" = "production" ]; }
 
+# Preview (مرحلهٔ ۹ · فاز ۸): همان برنامه با پایگاه‌داده‌ی جدا و دادهٔ نمونه.
+is_preview() { [ "$(env_value APP_ENV)" = "preview" ]; }
+
+# «نصبِ مستقر»: محصول یا Preview — هر دو بی بسته‌های توسعه و با کشِ پیکربندی،
+# چون Preview باید همان رفتارِ محصول را داشته باشد (نه حالتِ توسعه).
+is_deployed() { is_production || is_preview; }
+
 # ------------------------------------------------------------------ ساخت assetها
 # public/build در .gitignore است، پس روی سروری که با git کد را می‌گیرد باید
 # ساخته شود؛ وگرنه سایت بدون CSS بالا می‌آید. اگر Node نبود و پوشه هم نبود،
@@ -589,7 +596,7 @@ rebuild_caches() {
     "$PHP" artisan view:clear   >/dev/null
     "$PHP" artisan route:clear  >/dev/null
 
-    if is_production; then
+    if is_deployed; then
         "$PHP" artisan config:cache >/dev/null
         "$PHP" artisan route:cache  >/dev/null
         "$PHP" artisan view:cache   >/dev/null

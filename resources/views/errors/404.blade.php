@@ -106,5 +106,6 @@
             @endif
         </nav>
     </main>
+    @include('partials.preview-banner')
 </body>
 </html>

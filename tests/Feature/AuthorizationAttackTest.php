@@ -615,6 +615,8 @@ class AuthorizationAttackTest extends TestCase
         // ── دستور و صف: نه کاربرِ HTTPی هست، نه زمینه‌ی مستأجری ──
         'app/Console/Commands/CheckRaceConditions.php' => [25, 'ابزارِ سنجشِ همزمانی؛ عمداً کلِ داده را می‌بیند (+ صاحبِ کیف، + پذیرشِ هم‌زمانِ دعوت، + پرداختِ تکراری از کیف، + تغییرِ هم‌زمانِ شماره)'],
         'app/Console/Commands/RaceCheckout.php' => [7, 'آزمونِ همزمانیِ واقعیِ خرید (مرحلهٔ ۹ · فاز ۵)؛ فقط داده‌ی ساخته‌ی خودش را می‌خواند و پاک می‌کند'],
+        // مرحلهٔ ۹ · فاز ۸: «پایگاه‌داده کاربر دارد؟» پیش از پاک‌سازی — بی مجتمع، در کلِ پایگاه‌داده
+        'app/Console/Commands/PreviewReset.php' => [1, 'پیش از پاک‌سازی می‌سنجد پایگاه‌داده‌ی بی‌برچسب هیچ کاربری ندارد'],
         'app/Console/Commands/PruneGeneratedDocuments.php' => [1, 'پاک‌سازیِ زمان‌بندی‌شده روی همه‌ی مجتمع‌ها'],
         'app/Console/Commands/PruneOrphanUploads.php' => [5, 'فایل‌های یتیم در همه‌ی مجتمع‌ها — پنج نوع پیوست از R58'],
         'app/Console/Commands/ResetUserPassword.php' => [2, 'بازیابیِ رمز از کنسول، پیش از هر نشستی'],

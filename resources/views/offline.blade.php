@@ -159,5 +159,6 @@
             show()
         })()
     </script>
+    @include('partials.preview-banner')
 </body>
 </html>

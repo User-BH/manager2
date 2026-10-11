@@ -243,5 +243,6 @@
 
     {{-- جای اتصال برای چیزهایی که باید در HTMLِ سرور باشند (مثلِ نشانِ اینماد) --}}
     @stack('body_end')
+    @include('partials.preview-banner')
 </body>
 </html>

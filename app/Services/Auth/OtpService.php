@@ -91,7 +91,12 @@ class OtpService
              * حالا شرطِ محیط قطعی است: حتی اگر کسی در محصول درایور را روی
              * `log` بگذارد، کد از API بیرون نمی‌رود.
              */
-            'dev_code' => $this->sms->isLogDriver() && app()->environment('local', 'testing')
+            /*
+             * و روی Preview (مرحلهٔ ۹ · فاز ۸): پیامکِ واقعی آن‌جا ممنوع است، پس کدِ همان
+             * سازوکارِ واقعی (هش، انقضا، یک‌بارمصرف، سقفِ تلاش) به آزمونگر نشان داده می‌شود.
+             * Preview فقط دادهٔ نمونه دارد و پشتِ کلیدِ دسترسی است.
+             */
+            'dev_code' => $this->sms->isLogDriver() && app()->environment('local', 'testing', 'preview')
                 ? $code
                 : null,
             'error' => $sent ? null : 'ارسال پیامک ناموفق بود. بعدا تلاش کنید.',
@@ -165,7 +170,7 @@ class OtpService
         return [
             'ok' => true,
             // همان قیدِ R20 در `request()`: فقط محیطِ توسعه و فقط وقتی واقعاً فرستاده می‌شود
-            'dev_code' => $deliver && $this->sms->isLogDriver() && app()->environment('local', 'testing') ? $code : null,
+            'dev_code' => $deliver && $this->sms->isLogDriver() && app()->environment('local', 'testing', 'preview') ? $code : null,
             'error' => null,
         ];
     }

@@ -886,6 +886,51 @@ class PhaseRegressionMapTest extends TestCase
             '۹/۷: مسیرهای قدیمیِ /api همان محافظ‌های v1' => [
                 'BolaSweepTest', 'test_legacy_aliases_carry_the_same_guards', '۹',
             ],
+            '🔴 ۹/۸: Preview روی پایگاه‌داده‌ی بی‌برچسب سرویس نمی‌دهد' => [
+                'PreviewEnvironmentTest', 'test_a_preview_on_an_unmarked_database_serves_nothing', '۹',
+            ],
+            '🔴 ۹/۸: محصول روی پایگاه‌داده‌ی Preview سرویس نمی‌دهد' => [
+                'PreviewEnvironmentTest', 'test_production_on_a_preview_database_serves_nothing', '۹',
+            ],
+            '🔴 ۹/۸: Preview به پایگاه‌داده‌ی محصول وصل نمی‌شود' => [
+                'PreviewEnvironmentTest', 'test_preview_refuses_to_run_on_the_production_database_name', '۹',
+            ],
+            '۹/۸: نگهبانِ Preview در محصول یک کوئری، در آزمون هیچ' => [
+                'PreviewEnvironmentTest', 'test_the_boundary_check_costs_one_query_in_production_and_none_elsewhere', '۹',
+            ],
+            '۹/۸: Preview بی کلیدِ دسترسی، کش و کوکیِ جدا سرویس نمی‌دهد' => [
+                'PreviewEnvironmentTest', 'test_preview_needs_an_access_key_and_its_own_cache_and_cookie', '۹',
+            ],
+            '۹/۸: کلیدِ دسترسی جلوی همه‌ی درخواست‌های Preview' => [
+                'PreviewEnvironmentTest', 'test_the_access_key_gates_every_request', '۹',
+            ],
+            '🔴 ۹/۸: Preview پیامکِ واقعی نمی‌فرستد' => [
+                'PreviewEnvironmentTest', 'test_preview_never_sends_real_sms_and_shows_the_code_instead', '۹',
+            ],
+            '🔴 ۹/۸: Preview درگاهِ واقعی به کار نمی‌برد' => [
+                'PreviewEnvironmentTest', 'test_preview_never_uses_a_real_payment_gateway', '۹',
+            ],
+            '۹/۸: Preview بی ابزارِ تحلیل و بی ایندکس' => [
+                'PreviewEnvironmentTest', 'test_preview_has_no_analytics_and_no_indexing', '۹',
+            ],
+            '۹/۸: نوارِ Preview فقط روی Preview' => [
+                'PreviewEnvironmentTest', 'test_the_banner_shows_on_preview_and_never_in_production', '۹',
+            ],
+            '🔴 ۹/۸: preview:reset پایگاه‌داده‌ی بی‌برچسبِ دارای کاربر را پاک نمی‌کند' => [
+                'PreviewResetTest', 'test_reset_never_wipes_an_unmarked_database_with_users', '۹',
+            ],
+            '🔴 ۹/۸: preview:reset روی محصول اجرا نمی‌شود' => [
+                'PreviewResetTest', 'test_reset_refuses_on_production', '۹',
+            ],
+            '۹/۸: preview:reset چهار حسابِ آزمایشی را می‌سازد' => [
+                'PreviewResetTest', 'test_reset_builds_a_marked_database_with_the_four_test_accounts', '۹',
+            ],
+            '🔴 ۹/۸: استقرارِ محصول پیش از مهاجرت بکاپ می‌گیرد و می‌سنجد' => [
+                'DeployScriptSafetyTest', 'test_production_deploys_back_up_and_verify_before_any_migration', '۹',
+            ],
+            '۹/۸: reset-preview فقط روی Preview' => [
+                'DeployScriptSafetyTest', 'test_the_preview_reset_is_refused_anywhere_but_preview', '۹',
+            ],
             'مدیر از درخواستِ عضویت با اعلانِ داشبورد باخبر می‌شود' => [
                 'JoinRequestTest', 'test_the_complexes_managers_get_a_dashboard_notification_once', '۹',
             ],

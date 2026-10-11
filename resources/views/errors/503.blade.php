@@ -103,5 +103,6 @@
             اگر بیش از نیم ساعت طول کشید، با مدیرِ مجتمعِ خود تماس بگیرید.
         </p>
     </main>
+    @include('partials.preview-banner')
 </body>
 </html>

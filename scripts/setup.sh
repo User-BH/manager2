@@ -6,6 +6,9 @@
 #   ./scripts/setup.sh --demo          به‌همراه دادهٔ نمونه (DemoSeeder)
 #   ./scripts/setup.sh --sqlite        دیتابیس SQLite برای تست سریع، بدون MySQL
 #
+# Preview (APP_ENV=preview در .env؛ نمونه: .env.preview.example): پایگاه‌داده‌ی جدا با
+# `php artisan preview:reset` ساخته و برچسب می‌خورد و همیشه دادهٔ نمونه دارد.
+#
 # این اسکریپت به nginx، MySQL، phpMyAdmin یا نسخه‌های دیگر PHP دست نمی‌زند.
 # در پایان، یک نمونه کانفیگ nginx برای شما تولید می‌کند تا خودتان — در صورت
 # تمایل — کنار کانفیگ فعلی سرور اضافه کنید.
@@ -18,7 +21,7 @@ for arg in "$@"; do
     case "$arg" in
         --demo)   WITH_DEMO=1 ;;
         --sqlite) USE_SQLITE=1 ;;
-        -h|--help) sed -n '2,12p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
+        -h|--help) sed -n '2,16p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
         *) die "گزینهٔ ناشناخته: $arg" ;;
     esac
 done
@@ -77,7 +80,7 @@ fi
 
 # ---------------------------------------------------------------- ۳) وابستگی‌ها
 step "نصب وابستگی‌های PHP"
-if is_production; then
+if is_deployed; then
     composer_run install --no-dev --optimize-autoloader --no-interaction --prefer-dist
     ok "وابستگی‌ها نصب شدند (بدون بسته‌های توسعه)"
 else
@@ -103,7 +106,11 @@ build_assets
 check_database "$PHP"
 
 step "ساخت جدول‌ها"
-if [ "$WITH_DEMO" = "1" ]; then
+if is_preview; then
+    # Preview همیشه از صفر و با دادهٔ نمونه؛ دستور روی پایگاه‌داده‌ی بی‌برچسبِ دارای کاربر نمی‌نویسد
+    "$PHP" artisan preview:reset --force --no-interaction
+    ok "پایگاه‌داده‌ی Preview ساخته و برچسب خورد"
+elif [ "$WITH_DEMO" = "1" ]; then
     "$PHP" artisan migrate --seed --force --no-interaction
     ok "جدول‌ها ساخته و دادهٔ نمونه وارد شد"
     note "ورود با شماره 09120000001 (ادمین کل) و رمز: password"

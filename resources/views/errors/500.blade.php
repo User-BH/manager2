@@ -137,5 +137,6 @@
             کدِ پیگیری: <code dir="ltr">{{ \App\Support\RequestId::current() }}</code>
         </p>
     </main>
+    @include('partials.preview-banner')
 </body>
 </html>

@@ -2,6 +2,7 @@
 
 namespace App\Services\Sms;
 
+use App\Support\Preview;
 use App\Support\SmsOutcome;
 use App\Support\SystemSettings;
 
@@ -28,7 +29,8 @@ class SmsManager
             return $this->driver;
         }
 
-        $name = SystemSettings::get('sms_driver', 'log');
+        // Preview هرگز پیامکِ واقعی نمی‌فرستد، هرچه در تنظیماتش باشد (مرحلهٔ ۹ · فاز ۸)
+        $name = Preview::active() ? 'log' : SystemSettings::get('sms_driver', 'log');
         $config = SystemSettings::getJson('sms_config', []);
 
         return $this->driver = match ($name) {
@@ -60,7 +62,7 @@ class SmsManager
 
     public function isLogDriver(): bool
     {
-        return SystemSettings::get('sms_driver', 'log') === 'log';
+        return Preview::active() || SystemSettings::get('sms_driver', 'log') === 'log';
     }
 
     /**
