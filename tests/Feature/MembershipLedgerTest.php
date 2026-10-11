@@ -226,14 +226,19 @@ class MembershipLedgerTest extends TestCase
 
     /* ── قاعده‌ها در سرویس و در پایگاه‌داده ──────────────────────────────── */
 
-    /** قاعده‌ی امروز: یک عضویتِ فعال برای هر حساب؛ برداشتنش با زنجیره‌ی مجوزِ ۱۰/۳. */
-    public function test_a_second_active_membership_is_refused_until_the_authorization_chain_exists(): void
+    /**
+     * از ۱۰/۳ (زنجیره‌ی مجوز) یک حساب در چند مجتمع عضوِ فعال است — یکی برای هر مجتمع.
+     * عضویتِ دوم در **همان** مجتمع همچنان رد می‌شود. (۱۰/۲ عضویتِ دوم را در هر مجتمعی رد
+     * می‌کرد، چون مجوز هنوز از عضویت خوانده نمی‌شد.) چند عضویت در عمل: `AuthorizationChainTest`.
+     */
+    public function test_a_second_active_membership_in_the_same_complex_is_refused(): void
     {
         $user = $this->registrant();
         $this->ledger()->start($user, $this->complex, UserRole::Owner, ComplexMembership::SOURCE_DIRECT);
+        $this->ledger()->start($user, Complex::factory()->create(), UserRole::Owner, ComplexMembership::SOURCE_DIRECT);
 
         $this->expectException(DomainException::class);
-        $this->ledger()->start($user, Complex::factory()->create(), UserRole::Owner, ComplexMembership::SOURCE_DIRECT);
+        $this->ledger()->start($user, $this->complex, UserRole::Tenant, ComplexMembership::SOURCE_DIRECT);
     }
 
     /** دو عضویتِ فعال برای همان (حساب، مجتمع) را خودِ پایگاه‌داده هم رد می‌کند. */

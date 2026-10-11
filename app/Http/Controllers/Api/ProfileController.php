@@ -12,6 +12,7 @@ use App\Models\Complex;
 use App\Models\Payment;
 use App\Models\Unit;
 use App\Models\User;
+use App\Services\Account\ComplexMembers;
 use App\Services\Auth\SessionRegistry;
 use App\Services\Auth\TrustedDeviceService;
 use App\Support\Jalali;
@@ -159,16 +160,15 @@ class ProfileController extends Controller
                 return [];
             }
 
-            return User::where('complex_id', $complex->id)
-                ->where('id', '!=', $user->id)
-                ->whereIn('role', [UserRole::SuperAdmin->value, UserRole::ComplexAdmin->value])
-                ->orderBy('name')
+            return ComplexMembers::query($complex->id, [UserRole::ComplexAdmin])
+                ->where('users.id', '!=', $user->id)
+                ->orderBy('users.name')
                 ->get()
                 ->map(fn (User $u) => [
                     'id' => $u->id,
                     'name' => $u->name,
                     'phone' => $u->phone,
-                    'roleLabel' => $u->role->label(),
+                    'roleLabel' => ComplexMembers::displayedRole($u)->label(),
                     'relationLabel' => 'هم‌تیمی مدیریت',
                     'isActive' => (bool) $u->is_active,
                 ])->all();

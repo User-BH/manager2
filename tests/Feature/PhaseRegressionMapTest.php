@@ -982,6 +982,30 @@ class PhaseRegressionMapTest extends TestCase
             '۱۰/۲: ناهم‌خوانیِ حساب و عضویت گزارش می‌شود' => [
                 'MembershipLedgerTest', 'test_the_check_command_reports_any_drift_between_account_and_membership', '۱۰',
             ],
+            '🔴 ۱۰/۳: عضویتِ پایان‌یافته پشتِ سرِ حساب هیچ درخواستی را راه نمی‌دهد' => [
+                'AuthorizationChainTest', 'test_a_membership_ended_behind_the_accounts_back_denies_every_request', '۱۰',
+            ],
+            '🔴 ۱۰/۳: نقشِ دست‌کاری‌شده روی حساب مجوز نیست' => [
+                'AuthorizationChainTest', 'test_a_forged_role_on_the_account_is_not_authority', '۱۰',
+            ],
+            '🔴 ۱۰/۳: دادهٔ مجتمعِ دیگر در زمینه‌ی فعال دیده نمی‌شود' => [
+                'AuthorizationChainTest', 'test_the_active_context_decides_whose_data_is_visible', '۱۰',
+            ],
+            '🔴 ۱۰/۳: تعویضِ زمینه نقش را هم جابه‌جا می‌کند' => [
+                'AuthorizationChainTest', 'test_switching_context_switches_the_role_with_it', '۱۰',
+            ],
+            '۱۰/۳: تعویض فقط به مجتمعِ دارای عضویتِ فعال' => [
+                'AuthorizationChainTest', 'test_switching_to_a_complex_without_an_active_membership_is_refused', '۱۰',
+            ],
+            '۱۰/۳: پایانِ یک عضویت بقیه را دست نمی‌زند' => [
+                'AuthorizationChainTest', 'test_ending_one_membership_leaves_the_others_untouched', '۱۰',
+            ],
+            '۱۰/۳: عضوِ جای دیگر در مجتمعِ خودش دیده می‌شود' => [
+                'AuthorizationChainTest', 'test_a_member_working_elsewhere_still_appears_in_the_other_complex', '۱۰',
+            ],
+            '۱۰/۳: سنجشِ عضویت کوئریِ تازه نمی‌سازد' => [
+                'AuthorizationChainTest', 'test_the_chain_reads_the_complex_once_per_request', '۱۰',
+            ],
             'مدیر از درخواستِ عضویت با اعلانِ داشبورد باخبر می‌شود' => [
                 'JoinRequestTest', 'test_the_complexes_managers_get_a_dashboard_notification_once', '۹',
             ],

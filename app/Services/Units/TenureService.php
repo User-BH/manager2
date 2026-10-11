@@ -40,7 +40,11 @@ class TenureService
         $start = $startDate ?? now();
 
         return DB::transaction(function () use ($unit, $user, $relation, $sharePercent, $start) {
-            $this->closeAllFor($user, $start);
+            /*
+             * «جابه‌جایی» درونِ همان مجتمع دوره‌ی قبلی را می‌بندد؛ واحدِ مجتمعِ دیگر نه
+             * (مرحلهٔ ۱۰ · فاز ۳) — مالکِ الف که در ب مستأجر می‌شود هنوز مالکِ الف است.
+             */
+            $this->closeAllFor($user, $start, $unit->complex_id);
 
             if ($relation === ResidentRelation::Owner) {
                 $this->ensureOwnerShare($unit, $sharePercent);
@@ -147,16 +151,20 @@ class TenureService
      * پایانِ همه‌ی دوره‌های جاریِ یک کاربر — پایانِ عضویت (مرحلهٔ ۹ · فاز ۶، F4).
      *
      * ردیف‌ها می‌مانند و فقط بسته می‌شوند؛ سابقه‌ی واحد همان است که بود.
+     *
+     * با `$complexId` فقط دوره‌های **همان** مجتمع (مرحلهٔ ۱۰ · فاز ۳): پایانِ عضویت در ب
+     * دوره‌ی همان حساب در واحدِ الف را نمی‌بندد.
      */
-    public function endAllFor(User $user, ?Carbon $at = null): void
+    public function endAllFor(User $user, ?Carbon $at = null, ?int $complexId = null): void
     {
-        $this->closeAllFor($user, $at ?? now());
+        $this->closeAllFor($user, $at ?? now(), $complexId);
     }
 
-    /** بستنِ همه‌ی دوره‌های جاریِ یک کاربر (روی هر واحدی). */
-    private function closeAllFor(User $user, Carbon $at): void
+    /** بستنِ دوره‌های جاریِ یک کاربر — روی هر واحدی، یا فقط واحدهای یک مجتمع. */
+    private function closeAllFor(User $user, Carbon $at, ?int $complexId = null): void
     {
         UnitTenure::where('user_id', $user->id)
+            ->when($complexId !== null, fn ($q) => $q->where('complex_id', $complexId))
             ->current()
             ->get()
             ->each(function (UnitTenure $tenure) use ($at) {

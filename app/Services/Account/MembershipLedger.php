@@ -12,19 +12,24 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\DB;
 
 /**
- * دفترِ عضویت — **تنها** جایی که عضویت برقرار، پایان یا نقشش عوض می‌شود
- * (مرحلهٔ ۱۰ · فاز ۲؛ بندهای ۲، ۱۱ و ۷۴ ِ فایلِ معماری).
+ * دفترِ عضویت — **تنها** جایی که عضویت برقرار، پایان یا نقشش عوض می‌شود، و زمینه‌ی
+ * فعالِ حساب جابه‌جا (مرحلهٔ ۱۰ · فاز ۲ و ۳؛ بندهای ۲، ۱۱، ۱۳، ۱۴، ۷۴ و ۹۲ ِ فایلِ معماری).
  *
- * ─── دو منبع، یک نویسنده ────────────────────────────────────────────────────
- * `complex_memberships` عضویت‌ها و تاریخچه‌شان است. `users.complex_id` و `users.role`
- * تا ۱۰/۳ «زمینه‌ی فعال» ِ حساب‌اند و مجوز هنوز از آن‌ها خوانده می‌شود. دو جا یعنی
- * خطرِ ناهم‌خوانی (بندِ ۲)؛ پس هر دو فقط از همین کلاس و در یک تراکنش عوض می‌شوند،
- * و `User` تغییرِ این دو ستون را بیرون از این‌جا رد می‌کند. `violations()` هر
- * ناهم‌خوانیِ باقی‌مانده را گزارش می‌کند (`memberships:check`).
+ * ─── عضویت‌ها و زمینه‌ی فعال ─────────────────────────────────────────────────
+ * یک حساب می‌تواند در چند مجتمع عضوِ فعال باشد (یکی برای هر مجتمع). `users.complex_id`
+ * و `users.role` **زمینه‌ی فعال** است: مجتمعی که حساب الان در آن کار می‌کند و نقشش
+ * در همان. مجوز از این زمینه خوانده می‌شود و `SetCurrentComplex` روی هر درخواست
+ * می‌سنجد که پشتش عضویتِ فعالِ هم‌خوان باشد — وگرنه رد، نه بازگشت به جای دیگر.
  *
- * ─── قاعده‌ی امروز ──────────────────────────────────────────────────────────
- * یک عضویتِ فعال برای هر حساب. schema چند عضویتِ فعال در مجتمع‌های مختلف را
- * می‌پذیرد؛ برداشتنِ این قاعده با زنجیره‌ی مجوزِ ۱۰/۳ است، نه پیش از آن.
+ * ─── یک نویسنده ─────────────────────────────────────────────────────────────
+ * عضویت و زمینه فقط از همین کلاس و در یک تراکنش عوض می‌شوند؛ `User` تغییرِ
+ * `complex_id`/`role` را بیرون از این‌جا رد می‌کند. `violations()` هر ناهم‌خوانیِ
+ * باقی‌مانده را گزارش می‌کند (`memberships:check`).
+ *
+ * ─── نگهبانِ ورود ───────────────────────────────────────────────────────────
+ * دفتر چند عضویت را می‌پذیرد؛ مسیرهای پیوستن (دعوت، درخواست، خرید) هنوز فقط حسابِ
+ * اولیه را راه می‌دهند — تا رابطِ تعویضِ مجتمع (۱۰/۴) نباشد، عضوی که به مجتمعِ دوم
+ * بپیوندد راهی در رابط برای برگشتن ندارد.
  */
 class MembershipLedger
 {
@@ -37,8 +42,8 @@ class MembershipLedger
     }
 
     /**
-     * برقراریِ عضویت. فراخوان پیش از این حساب را در حالتِ اولیه دیده است؛ این‌جا
-     * زیرِ قفلِ حساب دوباره سنجیده می‌شود.
+     * برقراریِ عضویت و رفتن به زمینه‌ی آن — پیوستن یعنی «حالا این‌جا کار می‌کنم».
+     * عضویتِ فعالِ دوم در **همان** مجتمع پذیرفته نیست (و `active_key` هم رد می‌کند).
      */
     public function start(User $user, Complex $complex, UserRole $role, string $source, ?ComplexInvitation $via = null): ComplexMembership
     {
@@ -47,10 +52,14 @@ class MembershipLedger
         }
 
         return DB::transaction(function () use ($user, $complex, $role, $source, $via): ComplexMembership {
-            $account = User::withoutGlobalScopes()->lockForUpdate()->findOrFail($user->id);
+            $account = $this->lock($user);
 
-            if ($account->complex_id !== null || $this->activeOf($account)->exists()) {
-                throw DomainException::invalid('شما از قبل عضو یک مجتمع هستید.', 'account.already_member');
+            if ($account->isSuperAdmin()) {
+                throw DomainException::invalid('ادمینِ کل عضوِ مجتمع نمی‌شود.', 'membership.platform_account');
+            }
+
+            if ($this->activeOf($account)->where('complex_id', $complex->id)->exists()) {
+                throw DomainException::invalid('شما از قبل عضوِ همین مجتمع هستید.', 'account.already_member');
             }
 
             $membership = (new ComplexMembership)->forceFill([
@@ -66,50 +75,89 @@ class MembershipLedger
             $membership->save();
 
             $this->writeAccount($account, ['complex_id' => $complex->id, 'role' => $role]);
-            $user->setRawAttributes($account->getAttributes(), true);
+            $this->sync($user, $account);
 
             return $membership;
         }, attempts: 3);
     }
 
     /**
-     * پایانِ عضویت — نه حذفِ حساب (بندِ ۷۴). ردیف می‌ماند با زمانِ پایان، پایان‌دهنده
-     * و دلیل؛ حساب به حالتِ اولیه برمی‌گردد.
+     * پایانِ عضویت در یک مجتمع — نه حذفِ حساب (بندِ ۷۴). ردیف با زمان، پایان‌دهنده و
+     * دلیل می‌ماند. اگر همان مجتمع زمینه‌ی فعال بود، حساب به عضویتِ فعالِ دیگرش می‌رود
+     * (تازه‌ترین)، وگرنه به حالتِ اولیه. عضویت‌های دیگر دست نمی‌خورند (بندِ ۱۲).
      */
-    public function end(User $user, string $reason, ?User $by = null): void
+    public function end(User $user, string $reason, ?User $by = null, ?int $complexId = null): void
     {
-        DB::transaction(function () use ($user, $reason, $by): void {
-            $account = User::withoutGlobalScopes()->lockForUpdate()->findOrFail($user->id);
+        DB::transaction(function () use ($user, $reason, $by, $complexId): void {
+            $account = $this->lock($user);
+            $target = $complexId ?? $account->complex_id;
 
-            $this->close($account, $reason, $by);
+            if ($target === null) {
+                throw DomainException::invalid('این کاربر عضوِ مجتمعی نیست.', 'membership.not_member');
+            }
 
-            // نقشِ حسابِ اولیه همان است که ثبت‌نام می‌دهد (`AuthController::registerVerify`)
-            $this->writeAccount($account, ['complex_id' => null, 'role' => UserRole::Owner]);
-            $user->setRawAttributes($account->getAttributes(), true);
+            $this->close($account, $reason, $by, $target);
+
+            if ($account->complex_id === $target) {
+                $this->fallBack($account);
+            }
+
+            $this->sync($user, $account);
         }, attempts: 3);
     }
 
     /**
-     * تغییرِ نقش. درونِ یک مجتمع همان عضویت نقشِ تازه می‌گیرد؛ ارتقا به ادمینِ کل
-     * عضویت را با دلیلِ «promoted» می‌بندد (نقشِ سکو در هیچ مجتمعی عضو نیست).
+     * تغییرِ نقش در یک مجتمع (پیش‌فرض: زمینه‌ی فعال). ارتقا به ادمینِ کل **همه‌ی**
+     * عضویت‌ها را با دلیلِ «promoted» می‌بندد — نقشِ سکو در هیچ مجتمعی عضو نیست.
      */
-    public function changeRole(User $user, UserRole $role, ?User $by = null): void
+    public function changeRole(User $user, UserRole $role, ?User $by = null, ?int $complexId = null): void
     {
-        DB::transaction(function () use ($user, $role, $by): void {
-            $account = User::withoutGlobalScopes()->lockForUpdate()->findOrFail($user->id);
+        DB::transaction(function () use ($user, $role, $by, $complexId): void {
+            $account = $this->lock($user);
+            $target = $complexId ?? $account->complex_id;
 
             if ($role === UserRole::SuperAdmin) {
                 $this->close($account, ComplexMembership::END_PROMOTED, $by);
                 $this->writeAccount($account, ['complex_id' => null, 'role' => $role]);
-            } elseif ($account->complex_id !== null) {
-                $this->activeOf($account)->where('complex_id', $account->complex_id)->update(['role' => $role->value, 'updated_at' => now()]);
-                $this->writeAccount($account, ['role' => $role]);
+            } elseif ($target !== null) {
+                $updated = $this->activeOf($account)->where('complex_id', $target)
+                    ->update(['role' => $role->value, 'updated_at' => now()]);
+
+                if ($updated === 0) {
+                    throw DomainException::invalid('این کاربر عضوِ فعالِ این مجتمع نیست.', 'membership.not_member');
+                }
+                if ($account->complex_id === $target) {
+                    $this->writeAccount($account, ['role' => $role]);
+                }
             } else {
-                // حسابِ بی‌مجتمع (اولیه یا ادمینِ کلِ پیشین): عضویتی نیست که عوض شود
+                // حسابِ بی‌عضویت (اولیه یا ادمینِ کلِ پیشین): عضویتی نیست که عوض شود
                 $this->writeAccount($account, ['role' => $role]);
             }
 
-            $user->setRawAttributes($account->getAttributes(), true);
+            $this->sync($user, $account);
+        }, attempts: 3);
+    }
+
+    /**
+     * رفتن به زمینه‌ی مجتمعِ دیگر (بندهای ۱۴ و ۹۲) — فقط به مجتمعی که عضویتِ فعال دارد،
+     * و نقش همان نقشِ عضویتِ آن‌جاست: مدیرِ الف که به ب (مالک) می‌رود دیگر مدیر نیست.
+     */
+    public function switchTo(User $user, int $complexId): ComplexMembership
+    {
+        return DB::transaction(function () use ($user, $complexId): ComplexMembership {
+            $account = $this->lock($user);
+
+            $membership = $this->activeOf($account)->where('complex_id', $complexId)->first();
+
+            if ($membership === null) {
+                // همان پاسخ برای «مجتمعِ ناموجود» و «مجتمعِ دیگران»: وجودِ مجتمع لو نمی‌رود
+                throw DomainException::invalid('عضویتِ فعالی در این مجتمع ندارید.', 'membership.not_member');
+            }
+
+            $this->writeAccount($account, ['complex_id' => $membership->complex_id, 'role' => $membership->role]);
+            $this->sync($user, $account);
+
+            return $membership;
         }, attempts: 3);
     }
 
@@ -119,6 +167,11 @@ class MembershipLedger
      */
     public function recordCreated(User $user): void
     {
+        // نقشِ نیامده یعنی پیش‌فرضِ ستون (`tenant`)؛ همان که در پایگاه‌داده نشست خوانده شود
+        if ($user->complex_id !== null && $user->getAttribute('role') === null) {
+            $user->refresh();
+        }
+
         if ($user->complex_id === null || ! in_array($user->role, ComplexMembership::ROLES, true)) {
             return;
         }
@@ -135,7 +188,7 @@ class MembershipLedger
     }
 
     /**
-     * هر ناهم‌خوانیِ میانِ حساب و عضویت؛ خالی یعنی سالم.
+     * هر ناهم‌خوانیِ میانِ زمینه‌ی فعال و عضویت؛ خالی یعنی سالم.
      *
      * @return list<string>
      */
@@ -143,33 +196,47 @@ class MembershipLedger
     {
         $problems = [];
 
-        $members = User::withoutGlobalScopes()
+        $accounts = User::withoutGlobalScopes()
             ->whereNotNull('complex_id')
-            ->whereIn('role', array_map(fn (UserRole $r) => $r->value, ComplexMembership::ROLES))
+            ->orWhereIn('id', ComplexMembership::withoutGlobalScopes()->active()->select('user_id'))
             ->get(['id', 'complex_id', 'role']);
 
         $active = ComplexMembership::withoutGlobalScopes()->active()->get(['id', 'user_id', 'complex_id', 'role'])->groupBy('user_id');
 
-        foreach ($members as $member) {
-            $mine = $active->get($member->id, collect());
-            $match = $mine->first(fn (ComplexMembership $m) => $m->complex_id === $member->complex_id && $m->role === $member->role);
+        foreach ($accounts as $account) {
+            $mine = $active->get($account->id, collect());
 
+            if ($account->isSuperAdmin()) {
+                if ($mine->isNotEmpty()) {
+                    $problems[] = "ادمینِ کل {$account->id} عضویتِ فعال دارد.";
+                }
+                if ($account->complex_id !== null) {
+                    $problems[] = "ادمینِ کل {$account->id} زمینه‌ی مجتمعی روی حساب دارد.";
+                }
+
+                continue;
+            }
+
+            if ($account->complex_id === null) {
+                if ($mine->isNotEmpty()) {
+                    $problems[] = "حسابِ {$account->id} عضویتِ فعال دارد ولی زمینه‌ی فعالش خالی است.";
+                }
+
+                continue;
+            }
+
+            $match = $mine->first(fn (ComplexMembership $m) => $m->complex_id === $account->complex_id && $m->role === $account->role);
             if ($match === null) {
-                $problems[] = "حسابِ {$member->id} در مجتمعِ {$member->complex_id} با نقشِ {$member->role->value} است ولی عضویتِ فعالِ هم‌خوان ندارد.";
-            }
-        }
-
-        $memberIds = $members->pluck('complex_id', 'id');
-        foreach ($active as $userId => $rows) {
-            if ($rows->count() > 1) {
-                $problems[] = "حسابِ {$userId} بیش از یک عضویتِ فعال دارد (تا ۱۰/۳ مجاز نیست).";
-            }
-            if (! $memberIds->has($userId)) {
-                $problems[] = "حسابِ {$userId} عضویتِ فعال دارد ولی زمینه‌ی فعالِ حساب خالی یا نقشِ سکوست.";
+                $problems[] = "حسابِ {$account->id} در زمینه‌ی مجتمعِ {$account->complex_id} با نقشِ {$account->role->value} است ولی عضویتِ فعالِ هم‌خوان ندارد.";
             }
         }
 
         return $problems;
+    }
+
+    private function lock(User $user): User
+    {
+        return User::withoutGlobalScopes()->lockForUpdate()->findOrFail($user->id);
     }
 
     /** @return Builder<ComplexMembership> */
@@ -178,16 +245,34 @@ class MembershipLedger
         return ComplexMembership::withoutGlobalScopes()->active()->where('user_id', $account->id);
     }
 
-    private function close(User $account, string $reason, ?User $by): void
+    /** زمینه پس از پایانِ عضویتِ زمینه: تازه‌ترین عضویتِ فعالِ دیگر، وگرنه حالتِ اولیه. */
+    private function fallBack(User $account): void
     {
-        $this->activeOf($account)->update([
-            'status' => ComplexMembership::ENDED,
-            'ended_at' => now(),
-            'ended_by' => $by?->id,
-            'end_reason' => $reason,
-            'active_key' => null,
-            'updated_at' => now(),
-        ]);
+        $next = $this->activeOf($account)->orderByDesc('started_at')->orderByDesc('id')->first();
+
+        $this->writeAccount($account, $next === null
+            // نقشِ حسابِ اولیه همان است که ثبت‌نام می‌دهد (`AuthController::registerVerify`)
+            ? ['complex_id' => null, 'role' => UserRole::Owner]
+            : ['complex_id' => $next->complex_id, 'role' => $next->role]);
+    }
+
+    private function close(User $account, string $reason, ?User $by, ?int $complexId = null): void
+    {
+        $this->activeOf($account)
+            ->when($complexId !== null, fn ($q) => $q->where('complex_id', $complexId))
+            ->update([
+                'status' => ComplexMembership::ENDED,
+                'ended_at' => now(),
+                'ended_by' => $by?->id,
+                'end_reason' => $reason,
+                'active_key' => null,
+                'updated_at' => now(),
+            ]);
+    }
+
+    private function sync(User $caller, User $account): void
+    {
+        $caller->setRawAttributes($account->getAttributes(), true);
     }
 
     /** @param  array<string, mixed>  $changes */

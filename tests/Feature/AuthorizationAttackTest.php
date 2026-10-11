@@ -631,17 +631,19 @@ class AuthorizationAttackTest extends TestCase
         // ── پیش از آنکه کاربر عضوِ مجتمعی باشد ──
         // یکی کمتر از پیش: بررسیِ «قبلاً ثبت شده» در گامِ اولِ ثبت‌نام برداشته شد (شمارشِ حساب)
         'app/Http/Controllers/Api/AuthController.php' => [1, 'یکتاییِ شماره در کلِ پلتفرم سنجیده می‌شود — فقط پس از تأییدِ کد'],
-        'app/Http/Controllers/Api/JoinRequestController.php' => [2, 'یافتنِ مدیر با شماره؛ متقاضی هنوز عضوِ هیچ مجتمعی نیست (+ اعلان به مدیرانِ همان مجتمع)'],
+        'app/Http/Controllers/Api/JoinRequestController.php' => [1, 'یافتنِ مدیر با شماره؛ متقاضی هنوز عضوِ هیچ مجتمعی نیست (اعلانِ مدیران از ۱۰/۳ از `ComplexMembers`)'],
         'app/Http/Controllers/Api/InvitationController.php' => [3, 'گیرنده‌ی دعوت هنوز عضو نیست؛ واحد و دعوت‌کننده‌ی همان دعوتِ خودش (مرحلهٔ ۹ · فاز ۶)'],
         'app/Services/Account/Membership.php' => [5, 'پیوستن و پایانِ عضویت: حسابِ بی‌مجتمع، و واحدِ دعوت زیرِ قفل (مرحلهٔ ۹ · فاز ۶)'],
         'app/Services/Account/ComplexUpgrader.php' => [1, 'کاربر در همین لحظه صاحبِ مجتمع می‌شود'],
-        'app/Services/Account/MembershipLedger.php' => [6, 'دفترِ عضویت: حساب و عضویت‌هایش در همه‌ی مجتمع‌ها زیرِ قفل، و سنجشِ هم‌خوانی (مرحلهٔ ۱۰ · فاز ۲)'],
+        'app/Services/Account/MembershipLedger.php' => [5, 'دفترِ عضویت: حساب و عضویت‌هایش در همه‌ی مجتمع‌ها زیرِ قفل، و سنجشِ هم‌خوانی (مرحلهٔ ۱۰ · فاز ۲ و ۳)'],
+        'app/Http/Controllers/Api/AccountContextController.php' => [1, 'عضویت‌های خودِ حساب در همه‌ی مجتمع‌ها؛ مرز `user_id = خودش` (مرحلهٔ ۱۰ · فاز ۳)'],
         // مرحلهٔ ۹: شماره مالِ حساب است و یکتاییِ آن در کلِ سکو سنجیده می‌شود
         'app/Services/Account/PhoneChange.php' => [3, 'قفلِ حسابِ خود و یکتاییِ شماره در همه‌ی مجتمع‌ها؛ حسابِ اولیه هم مجتمع ندارد'],
         'app/Services/Account/AccountRecovery.php' => [3, 'حسابِ منطبق با شماره‌ی قبلی در هر مجتمعی، قفلِ آن و یکتاییِ شماره‌ی تازه در کلِ سکو'],
         // مرحلهٔ ۹ · فاز ۴: قفلِ خریدار — حسابِ اولیه هنوز مجتمعی ندارد
         'app/Services/Subscription/ComplexPurchase.php' => [2, 'خریدار هنوز عضوِ هیچ مجتمعی نیست؛ قفل و بازخوانیِ همان کاربرِ خودش'],
         'app/Http/Middleware/EnsureComplexActive.php' => [1, 'خودِ مجتمع را می‌خواند تا زمینه ساخته شود'],
+        'app/Http/Middleware/SetCurrentComplex.php' => [1, 'مجتمعِ جاری به‌همراهِ سنجشِ عضویتِ فعال — پیش از ساختنِ زمینه (مرحلهٔ ۱۰ · فاز ۳)'],
 
         // ── قفل و بازخوانی، **پس از** اینکه مجوز سنجیده شده ──
         'app/Http/Controllers/Api/PaymentController.php' => [1, 'بازخوانیِ قبض داخلِ قفل؛ مجوزش بالاتر سنجیده شده'],

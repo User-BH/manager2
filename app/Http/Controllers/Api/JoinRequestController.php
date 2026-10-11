@@ -11,6 +11,7 @@ use App\Models\ComplexInvitation;
 use App\Models\Unit;
 use App\Models\User;
 use App\Notifications\JoinRequestNotification;
+use App\Services\Account\ComplexMembers;
 use App\Services\Account\Membership;
 use App\Support\Audit;
 use App\Support\ComplexResolver;
@@ -106,10 +107,8 @@ class JoinRequestController extends Controller
          * اعلان‌ها را پر نمی‌کند.
          */
         if ($invitation->wasRecentlyCreated) {
-            User::withoutGlobalScopes()
-                ->where('complex_id', $manager->complex_id)
-                ->where('role', UserRole::ComplexAdmin->value)
-                ->where('is_active', true)
+            ComplexMembers::query($manager->complex_id, [UserRole::ComplexAdmin])
+                ->where('users.is_active', true)
                 ->get()
                 ->each(fn (User $admin) => $admin->notify(new JoinRequestNotification($invitation, $user->name)));
         }

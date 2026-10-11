@@ -60,7 +60,7 @@ class Membership
             throw $this->phoneError('این شماره متعلق به ادمینِ سامانه است.', 'invitation.platform_account');
         }
 
-        if ($account && $account->complex_id === $complex->id) {
+        if ($account && ComplexMembers::has($account, $complex->id, ComplexMembership::ROLES)) {
             throw $this->phoneError('این شماره از قبل عضوِ همین مجتمع است.', 'invitation.already_member');
         }
 
@@ -197,20 +197,24 @@ class Membership
      * دوره‌های جاری بسته می‌شوند (`end_date` امروز)، حساب به حالتِ اولیه
      * برمی‌گردد و چیزی حذف نمی‌شود. ساکنِ رفته دیگر داده‌ی مجتمع را نمی‌بیند
      * (دامنه‌ی مستأجر از `complex_id` است) و ساکنِ بعدی دوره‌ی خودش را دارد.
+     *
+     * از ۱۰/۳: پایان در **یک** مجتمع — همان که مدیرش عضو را برمی‌دارد. عضویت و دوره‌های
+     * واحدِ همان حساب در مجتمع‌های دیگر دست نمی‌خورند.
      */
-    public function end(User $member, ?User $by = null): void
+    public function end(User $member, ?User $by = null, ?int $complexId = null): void
     {
-        DB::transaction(function () use ($member, $by): void {
+        DB::transaction(function () use ($member, $by, $complexId): void {
             $account = User::withoutGlobalScopes()->lockForUpdate()->find($member->id);
+            $target = $complexId ?? $account?->complex_id;
 
-            if (! $account || $account->complex_id === null) {
-                throw DomainException::invalid('این کاربر عضوِ مجتمعی نیست.', 'membership.not_member');
+            if (! $account || $target === null || ! ComplexMembers::has($account, $target, ComplexMembership::ROLES)) {
+                throw DomainException::invalid('این کاربر عضوِ این مجتمع نیست.', 'membership.not_member');
             }
 
-            $this->tenures->endAllFor($account);
+            $this->tenures->endAllFor($account, null, $target);
 
-            // عضویت با زمانِ پایان، پایان‌دهنده و دلیل بسته می‌شود؛ حساب به حالتِ اولیه
-            $this->ledger->end($account, ComplexMembership::END_REMOVED, $by);
+            // عضویت با زمانِ پایان، پایان‌دهنده و دلیل بسته می‌شود؛ زمینه‌ی حساب جابه‌جا یا اولیه
+            $this->ledger->end($account, ComplexMembership::END_REMOVED, $by, $target);
         }, attempts: 3);
     }
 

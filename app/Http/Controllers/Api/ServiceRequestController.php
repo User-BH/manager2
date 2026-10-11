@@ -8,8 +8,10 @@ use App\Enums\ServiceRequestStatus;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreServiceRequestRequest;
 use App\Http\Resources\ServiceRequestResource;
+use App\Models\ComplexMembership;
 use App\Models\ServiceRequest;
 use App\Models\User;
+use App\Services\Account\ComplexMembers;
 use App\Services\ServiceRequests\ServiceRequestService;
 use App\Support\Uploads;
 use Illuminate\Http\JsonResponse;
@@ -251,14 +253,14 @@ class ServiceRequestController extends Controller
      */
     private function assignables(): array
     {
-        return User::where('complex_id', $this->requireComplex()->id)
-            ->where('is_active', true)
-            ->orderBy('name')
-            ->get(['id', 'name', 'role'])
+        return ComplexMembers::query($this->requireComplex()->id, ComplexMembership::ROLES)
+            ->where('users.is_active', true)
+            ->orderBy('users.name')
+            ->get()
             ->map(fn (User $u) => [
                 'id' => $u->id,
                 'name' => $u->name,
-                'role' => $u->role->label(),
+                'role' => ComplexMembers::displayedRole($u)->label(),
             ])
             ->all();
     }

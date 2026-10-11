@@ -7,6 +7,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreManagerRequest;
 use App\Http\Resources\InvitationPresenter;
 use App\Models\User;
+use App\Services\Account\ComplexMembers;
 use App\Services\Account\Membership;
 use App\Support\Audit;
 use App\Support\Jalali;
@@ -19,9 +20,8 @@ class ManagerController extends Controller
     {
         $complex = $this->requireComplex();
 
-        $managers = User::where('complex_id', $complex->id)
-            ->where('role', UserRole::ComplexAdmin->value)
-            ->orderBy('name')
+        $managers = ComplexMembers::query($complex->id, [UserRole::ComplexAdmin])
+            ->orderBy('users.name')
             ->get();
 
         return response()->json([
@@ -76,10 +76,10 @@ class ManagerController extends Controller
     {
         $this->guard($manager);
 
+        $complexId = $this->requireComplex()->id;
+
         // مجتمع نباید بدون مدیر بماند، وگرنه دیگر کسی به تنظیماتش دسترسی ندارد.
-        $count = User::where('complex_id', $manager->complex_id)
-            ->where('role', UserRole::ComplexAdmin->value)
-            ->count();
+        $count = ComplexMembers::query($complexId, [UserRole::ComplexAdmin])->count();
 
         if ($count <= 1) {
             return response()->json([
@@ -96,11 +96,11 @@ class ManagerController extends Controller
         Audit::log('manager.removed', 'پایانِ مدیریتِ مجتمع', $manager, [
             'name' => $manager->name,
             'phone' => $manager->phone,
-            'complex_id' => $manager->complex_id,
+            'complex_id' => $complexId,
         ]);
 
         // F4: پایانِ عضویت، نه حذفِ حساب — سابقه‌ی کارهای مدیر (تأییدها، پیام‌ها) می‌ماند
-        $this->membership->end($manager, Auth::user());
+        $this->membership->end($manager, Auth::user(), $complexId);
 
         return response()->json(['message' => 'دسترسیِ مدیریتیِ این کاربر پایان یافت. حسابش حفظ شد.']);
     }

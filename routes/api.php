@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Api\AccountContextController;
 use App\Http\Controllers\Api\AccountRecoveryController;
 use App\Http\Controllers\Api\AdvertisementController;
 use App\Http\Controllers\Api\AnnouncementController;
@@ -388,6 +389,9 @@ Route::middleware('auth')->group(function () {
         ->middleware(['reauth', 'throttle:phone-change', 'throttle:otp-request'])->name('profile.phone.start');
     Route::post('profile/phone/verify', [PhoneChangeController::class, 'confirm'])
         ->middleware('throttle:otp-verify')->name('profile.phone.verify');
+    // عضویت‌های خودِ حساب و تعویضِ مجتمعِ فعال (مرحلهٔ ۱۰ · فاز ۳)
+    Route::get('account/memberships', [AccountContextController::class, 'index'])->name('account.memberships');
+    Route::post('account/context', [AccountContextController::class, 'switch'])->name('account.context');
 
     /*
      * امنیتِ حساب: نشست‌ها، دستگاه‌ها، تاریخچه‌ی ورود، تأییدِ دوباره

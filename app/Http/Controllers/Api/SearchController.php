@@ -10,6 +10,7 @@ use App\Models\Expense;
 use App\Models\Message;
 use App\Models\Unit;
 use App\Models\User;
+use App\Services\Account\ComplexMembers;
 use App\Services\Features\FeatureFlags;
 use App\Support\Jalali;
 use Illuminate\Http\JsonResponse;
@@ -135,14 +136,13 @@ class SearchController extends Controller
             return $this->group('residents', 'ساکنین', 'Users', '/residents', []);
         }
 
-        $residents = User::where('complex_id', $complex->id)
-            ->whereIn('role', [UserRole::Owner->value, UserRole::Tenant->value])
+        $residents = ComplexMembers::query($complex->id, [UserRole::Owner, UserRole::Tenant])
             ->where(fn ($q) => $q
-                ->where('name', 'like', "%{$term}%")
-                ->orWhere('phone', 'like', "%{$term}%")
-                ->orWhere('national_id', 'like', "%{$term}%"))
+                ->where('users.name', 'like', "%{$term}%")
+                ->orWhere('users.phone', 'like', "%{$term}%")
+                ->orWhere('users.national_id', 'like', "%{$term}%"))
             ->with('currentUnits')
-            ->orderBy('name')
+            ->orderBy('users.name')
             ->limit($this->limit() + 1)
             ->get();
 

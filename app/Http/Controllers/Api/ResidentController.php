@@ -11,6 +11,7 @@ use App\Http\Resources\InvitationPresenter;
 use App\Http\Resources\ResidentResource;
 use App\Models\Unit;
 use App\Models\User;
+use App\Services\Account\ComplexMembers;
 use App\Services\Account\Membership;
 use App\Services\Account\MembershipLedger;
 use App\Services\Units\TenureService;
@@ -32,14 +33,14 @@ class ResidentController extends Controller
     {
         $complexId = $this->requireComplex()->id;
 
-        $residents = User::where('complex_id', $complexId)
-            ->whereIn('role', [UserRole::Owner->value, UserRole::Tenant->value])
+        // اعضای همین مجتمع از عضویت، با نقشِ عضویتِ همین‌جا (مرحلهٔ ۱۰ · فاز ۳)
+        $residents = ComplexMembers::query($complexId, [UserRole::Owner, UserRole::Tenant])
             ->when($request->string('search')->trim()->value(), function ($query, string $search) {
                 $query->where(fn ($q) => $q
-                    ->where('name', 'like', "%{$search}%")
-                    ->orWhere('phone', 'like', "%{$search}%"));
+                    ->where('users.name', 'like', "%{$search}%")
+                    ->orWhere('users.phone', 'like', "%{$search}%"));
             })
-            ->when($request->string('role')->value(), fn ($q, $role) => $q->where('role', $role))
+            ->when($request->string('role')->value(), fn ($q, $role) => $q->where('cm.role', $role))
             ->with('currentUnits')
             ->orderBy('name')
             ->paginate(20)
@@ -128,13 +129,18 @@ class ResidentController extends Controller
 
         // نقش مالِ عضویت است و فقط از دفترِ عضویت عوض می‌شود (مرحلهٔ ۱۰ · فاز ۲)
         $role = UserRole::from($data['role']);
-        if ($resident->role !== $role) {
-            $this->ledger->changeRole($resident, $role, $request->user());
+        $complexId = $this->requireComplex()->id;
+        if (ComplexMembers::roleOf($resident, $complexId) !== $role) {
+            $this->ledger->changeRole($resident, $role, $request->user(), $complexId);
         }
 
         $this->syncUnit($resident, $data);
 
-        return response()->json(['resident' => $this->present($resident->fresh('currentUnits'))]);
+        // نقشی که برمی‌گردد نقشِ عضویتِ همین مجتمع است، نه زمینه‌ی فعالِ ساکن
+        $fresh = $resident->fresh('currentUnits');
+        $fresh->setAttribute('membership_role', ComplexMembers::roleOf($fresh, $complexId)?->value);
+
+        return response()->json(['resident' => $this->present($fresh)]);
     }
 
     /**
@@ -154,7 +160,7 @@ class ResidentController extends Controller
             'complex_id' => $resident->complex_id,
         ]);
 
-        $this->membership->end($resident, Auth::user());
+        $this->membership->end($resident, Auth::user(), $this->requireComplex()->id);
 
         return response()->json([
             'message' => 'عضویتِ ساکن در مجتمع پایان یافت. حساب و سابقه‌اش حفظ شد.',

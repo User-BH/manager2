@@ -485,6 +485,9 @@ class MassAssignmentTest extends TestCase
         'GrantPlanRequest.php' => ['complex_id'],
         'RevokePlanRequest.php' => ['complex_id'],
 
+        // ── رفتن به مجتمعِ دیگر (۱۰/۳): شناسه فقط «کدام» است؛ اجازه از عضویتِ فعالِ خودِ حساب ──
+        'SwitchContextRequest.php' => ['complex_id'],
+
         // ── فقط ادمینِ کل: نقش و فعال‌بودنِ کاربر ──
         'UpdateMemberRequest.php' => ['role', 'is_active'],
 

@@ -4,6 +4,7 @@ namespace App\Http\Resources;
 
 use App\Models\Unit;
 use App\Models\User;
+use App\Services\Account\ComplexMembers;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
@@ -34,8 +35,9 @@ class ResidentResource extends JsonResource
             'phone' => $user->phone,
             'email' => $user->email,
             'nationalId' => $user->national_id,
-            'role' => $user->role->value,
-            'roleLabel' => $user->role->label(),
+            // نقشِ عضویتِ همین مجتمع (۱۰/۳)، نه نقشِ زمینه‌ی فعالِ ساکن
+            'role' => ComplexMembers::displayedRole($user)->value,
+            'roleLabel' => ComplexMembers::displayedRole($user)->label(),
             'isActive' => (bool) $user->is_active,
             'canMessage' => (bool) $user->can_message,
             'units' => $user->currentUnits->map(fn (Unit $u) => [

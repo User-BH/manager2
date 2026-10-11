@@ -93,7 +93,8 @@ class BackupBuilder
             'buildings' => $complex->buildings()->get()->toArray(),
             'units' => $complex->units()->with('residents')->get()->toArray(),
             // رمزها هرگز داخل فایلِ بکاپ نمی‌روند
-            'users' => $complex->users()->get()->makeHidden('password')->toArray(),
+            // اعضای فعال از عضویت (۱۰/۳)؛ ستونِ واسط جزوِ ردیفِ کاربر نیست
+            'users' => $complex->users()->get()->makeHidden(['password', 'pivot'])->toArray(),
             'charge_rules' => $complex->chargeRules()->get()->toArray(),
             'expenses' => $complex->expenses()->get()->toArray(),
             'incomes' => $complex->incomes()->get()->toArray(),

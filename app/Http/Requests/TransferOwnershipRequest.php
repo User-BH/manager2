@@ -28,7 +28,10 @@ class TransferOwnershipRequest extends BaseFormRequest
              */
             'owners.*.user_id' => [
                 'required',
-                Rule::exists('users', 'id')->where('complex_id', $this->currentComplexId()),
+                // عضوِ فعالِ همین مجتمع، از عضویت (مرحلهٔ ۱۰ · فاز ۳)
+                Rule::exists('complex_memberships', 'user_id')
+                    ->where('complex_id', $this->currentComplexId())
+                    ->where('status', 'active'),
             ],
             'owners.*.share_percent' => ['required', 'numeric', 'min:0.01', 'max:100'],
         ];

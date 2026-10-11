@@ -50,7 +50,8 @@ class EnsureComplexActive
          * ندارد ولی خواندنش اینجا پیش از هر تصمیمِ دیگری انجام می‌شود و
          * نباید به وضعیتِ `TenantContext` وابسته باشد.
          */
-        $complex = Complex::withoutGlobalScopes()->find($complexId);
+        // `SetCurrentComplex` همین را با سنجشِ عضویت خوانده است (مرحلهٔ ۱۰ · فاز ۳)
+        $complex = $request->attributes->get(SetCurrentComplex::COMPLEX) ?? Complex::withoutGlobalScopes()->find($complexId);
 
         if (! $complex || $complex->is_active) {
             return $next($request);

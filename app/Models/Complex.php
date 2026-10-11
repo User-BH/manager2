@@ -6,6 +6,7 @@ use App\Casts\EncryptedJson;
 use App\Enums\ComplexType;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 /**
@@ -66,10 +67,17 @@ class Complex extends Model
         return $this->hasMany(Unit::class);
     }
 
-    /** @return HasMany<User, $this> */
-    public function users(): HasMany
+    /**
+     * اعضای **فعالِ** مجتمع، از عضویت (مرحلهٔ ۱۰ · فاز ۳) — نه از زمینه‌ی فعالِ حساب‌ها:
+     * عضوی که الان در مجتمعِ دیگری کار می‌کند همچنان عضوِ این‌جاست (شمارش، بکاپِ مجتمع).
+     *
+     * @return BelongsToMany<User, $this>
+     */
+    public function users(): BelongsToMany
     {
-        return $this->hasMany(User::class);
+        return $this->belongsToMany(User::class, 'complex_memberships')
+            ->wherePivot('status', ComplexMembership::ACTIVE)
+            ->withPivot('role');
     }
 
     /** @return HasMany<ChargeRule, $this> */

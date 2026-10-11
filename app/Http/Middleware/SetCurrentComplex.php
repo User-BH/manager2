@@ -2,11 +2,14 @@
 
 namespace App\Http\Middleware;
 
+use App\Models\Complex;
+use App\Models\ComplexMembership;
 use App\Models\User;
 use App\Support\ComplexResolver;
 use App\Support\TenantContext;
 use Closure;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 
 /**
  * شناسه‌ی مجتمع فعال را برای این درخواست ثبت می‌کند تا اسکوپ سراسری
@@ -18,11 +21,56 @@ use Illuminate\Http\Request;
  */
 class SetCurrentComplex
 {
+    /** مجتمعِ جاری که همین‌جا خوانده شد؛ `EnsureComplexActive` دوباره نمی‌خواند. */
+    public const COMPLEX = 'sakena.current_complex';
+
     public function handle(Request $request, Closure $next)
     {
         $user = $request->user();
 
         if ($complexId = ComplexResolver::idFor($user)) {
+            /*
+             * 🔴 زنجیره‌ی مجوز (مرحلهٔ ۱۰ · فاز ۳؛ بندهای ۱۲، ۱۵ و ۷۵ ِ فایلِ معماری):
+             * حساب ← فعال ← **عضویتِ فعال در همین مجتمع با همین نقش** ← نقش ← policy.
+             * زمینه‌ی روی حساب (`complex_id`، `role`) خودش اعتبار نمی‌دهد؛ اگر پشتش
+             * عضویتِ فعالِ هم‌خوان نباشد (پایان‌یافته، دست‌کاریِ مستقیمِ پایگاه‌داده)،
+             * درخواست رد می‌شود — نه بازگشت به مجتمعِ دیگر. خروج از حساب آزاد است.
+             *
+             * همان یک کوئریِ مجتمعِ جاری که `EnsureComplexActive` همیشه می‌زد، حالا
+             * عضویت را هم می‌سنجد؛ هزینه‌ی هر درخواست یک کوئری بیشتر نشد.
+             */
+            if ($user instanceof User && ! $user->isSuperAdmin()) {
+                $complex = Complex::withoutGlobalScopes()
+                    ->whereKey($complexId)
+                    ->whereExists(fn ($q) => $q->selectRaw('1')
+                        ->from('complex_memberships')
+                        ->whereColumn('complex_memberships.complex_id', 'complexes.id')
+                        ->where('complex_memberships.user_id', $user->id)
+                        ->where('complex_memberships.role', $user->role->value)
+                        ->where('complex_memberships.status', ComplexMembership::ACTIVE))
+                    ->first();
+
+                if ($complex === null) {
+                    app(TenantContext::class)->denyAll();
+
+                    if (! $request->routeIs('logout', '*.logout')) {
+                        Log::channel('alerts')->warning('[membership] درخواست بی عضویتِ فعالِ هم‌خوان رد شد', [
+                            'user_id' => $user->id, 'complex_id' => $complexId, 'role' => $user->role->value,
+                        ]);
+
+                        return response()->json([
+                            'success' => false,
+                            'message' => 'عضویتِ فعالی در این مجتمع ندارید.',
+                            'code' => 'membership.inactive',
+                        ], 403);
+                    }
+
+                    return $next($request);
+                }
+
+                $request->attributes->set(self::COMPLEX, $complex);
+            }
+
             app(TenantContext::class)->set($complexId);
 
             return $next($request);

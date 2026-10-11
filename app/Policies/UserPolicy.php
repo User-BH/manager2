@@ -4,6 +4,7 @@ namespace App\Policies;
 
 use App\Enums\UserRole;
 use App\Models\User;
+use App\Services\Account\ComplexMembers;
 use App\Support\ComplexResolver;
 
 /**
@@ -13,30 +14,31 @@ use App\Support\ComplexResolver;
  * هرکدام نسخه‌ی کمی متفاوتِ خودشان را از یک قاعده داشتند. همان واگرایی که
  * Policy برای جلوگیری‌اش هست: دو پیاده‌سازی از یک قاعده، دیر یا زود یکی‌شان
  * به‌روز نمی‌شود.
+ *
+ * ─── از عضویت، نه از زمینه‌ی فعالِ هدف (مرحلهٔ ۱۰ · فاز ۳) ─────────────────────
+ * یک حساب می‌تواند در چند مجتمع عضو باشد و `complex_id` و `role` ِ او فقط مجتمعی است
+ * که **خودش** الان در آن کار می‌کند. پس قاعده عضویتِ هدف را در مجتمعِ جاریِ **کنشگر**
+ * می‌سنجد: مدیرِ ب که الان در الف است همچنان مدیرِ ب است و مدیرانِ ب او را می‌بینند؛
+ * کسی که در الف مالک و در ب مدیر است، در الف «مدیر» نیست.
  */
 class UserPolicy
 {
     /**
-     * مدیریتِ یک مدیرِ مجتمع.
-     *
-     * ادمینِ کل به همه دسترسی دارد؛ مدیرِ مجتمع فقط به مدیرانِ مجتمعِ خودش.
+     * مدیریتِ یک مدیرِ مجتمع: هدف باید مدیرِ فعالِ مجتمعِ جاریِ کنشگر باشد. ادمینِ کل
+     * هم از مجتمعی که انتخاب کرده؛ بی مجتمعِ انتخاب‌شده چیزی برای سنجیدن نیست.
      */
     public function manageManager(User $user, User $manager): bool
     {
-        if ($manager->role !== UserRole::ComplexAdmin) {
-            return false;
-        }
+        $complexId = ComplexResolver::idFor($user);
 
-        if ($user->isSuperAdmin()) {
-            return true;
-        }
-
-        return $manager->complex_id === $user->complex_id;
+        return $complexId !== null && ComplexMembers::has($manager, $complexId, [UserRole::ComplexAdmin]);
     }
 
-    /** مدیریتِ یک ساکن: باید در همان مجتمعِ جاری باشد. */
+    /** مدیریتِ یک ساکن: مالک یا مستأجرِ فعالِ مجتمعِ جاری. */
     public function manageResident(User $user, User $resident): bool
     {
-        return $resident->complex_id === ComplexResolver::idFor($user);
+        $complexId = ComplexResolver::idFor($user);
+
+        return $complexId !== null && ComplexMembers::has($resident, $complexId, [UserRole::Owner, UserRole::Tenant]);
     }
 }
