@@ -66,7 +66,8 @@ class SubscriptionController extends Controller
              * حسابِ اولیه هنوز نوعی ندارد: پلن‌های قابلِ خریدِ آنلاین برای **هر** نوع،
              * از همان قاعده‌ای که سرور هنگامِ خرید می‌پذیرد (مرحلهٔ ۹ · فاز ۵).
              */
-            'newComplexPlans' => AccountState::of(Auth::user()) === AccountState::Initial
+            // از ۱۰/۵ برای هر حسابِ غیرِ سکو: عضوِ مجتمع‌های دیگر هم مجتمعِ تازه می‌خرد
+            'newComplexPlans' => AccountState::of(Auth::user()) !== AccountState::Platform
                 ? collect(ComplexType::cases())->mapWithKeys(fn (ComplexType $type) => [
                     $type->value => $this->purchase->plans($type)->map(fn (Plan $p) => [
                         'value' => $p->slug,

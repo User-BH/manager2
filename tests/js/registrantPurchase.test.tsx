@@ -155,6 +155,8 @@ describe('خریدِ حسابِ اولیه: نام، نوع، پلن، پردا�
       complex_name: 'مجتمع آفتاب',
       complex_type: 'residential',
       complex_address: 'خیابانِ اول',
+      // «مجتمعِ تازه»، نه تمدید (مرحلهٔ ۱۰ · فاز ۵)؛ همچنان هیچ مبلغی
+      purpose: 'new_complex',
     })
     expect(Object.keys(fields).sort()).toEqual([
       '_token',
@@ -162,6 +164,7 @@ describe('خریدِ حسابِ اولیه: نام، نوع، پلن، پردا�
       'complex_name',
       'complex_type',
       'plan',
+      'purpose',
     ])
     expect(screen.getByRole('button', { name: /در حالِ انتقال به درگاه/ })).toBeDisabled()
   })

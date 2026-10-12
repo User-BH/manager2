@@ -13,6 +13,7 @@ use App\Models\User;
 use App\Models\WalletTransaction;
 use App\Services\Account\MembershipLedger;
 use App\Services\Blog\BlogImporter;
+use App\Services\Units\TenureService;
 use App\Services\Wallet\WalletService;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
@@ -62,6 +63,16 @@ class E2eSeeder extends Seeder
     /** مجتمعِ دومِ آزمون — فقط برای حساب‌های چندمجتمعی */
     public const SECOND_COMPLEX = 'مجتمع دوم سرتاسری';
 
+    /**
+     * QR ِ ورودِ عمومی (مرحلهٔ ۱۰ · فاز ۵) — برای هر موتور یک مجتمعِ جدا با مدیرِ خودش، و یک حسابِ اولیه که
+     * با QR درخواست می‌دهد. مجتمعِ جدا چون «QR ِ تازه» ِ یک موتور QR ِ موتورِ دیگر را باطل می‌کرد.
+     */
+    public const QR_MANAGERS = ['09120000081', '09120000082', '09120000083'];
+
+    public const QR_JOINERS = ['09120000071', '09120000072', '09120000073'];
+
+    public const QR_COMPLEX = 'مجتمع QR سرتاسری';
+
     /** بیش از هر قبضِ نمایشی، تا کیف قبض را کامل بپردازد نه بخشی از آن. */
     public const CREDIT = 5_000_000;
 
@@ -107,6 +118,7 @@ class E2eSeeder extends Seeder
          * نداشتند.
          */
         $this->multiMembers();
+        $this->qrComplexes();
 
         $importer->import();
     }
@@ -150,6 +162,51 @@ class E2eSeeder extends Seeder
 
             $ledger->start($user, $second, UserRole::ComplexAdmin, ComplexMembership::SOURCE_DIRECT);
             $ledger->start($user, $aftab, UserRole::Tenant, ComplexMembership::SOURCE_DIRECT);
+        }
+    }
+
+    /**
+     * مجتمعِ QR ِ هر موتور از نو: کدِ QR خاموش (سفر خودش «ساختِ QR» را می‌زند)، یک واحدِ خالی، مدیری که فقط
+     * همین مجتمع را دارد، و درخواست‌کننده‌ای که دوباره حسابِ اولیه است.
+     */
+    private function qrComplexes(): void
+    {
+        $ledger = app(MembershipLedger::class);
+
+        foreach (self::QR_MANAGERS as $i => $phone) {
+            $complex = Complex::firstOrCreate(['slug' => 'e2e-qr-'.($i + 1)], [
+                'name' => self::QR_COMPLEX.' '.($i + 1),
+                'type' => ComplexType::Residential,
+                'address' => 'نشانیِ آزمونِ سرتاسری',
+                'payment_gateway' => 'none',
+            ]);
+            $complex->forceFill(['join_code' => null, 'join_code_created_at' => null])->save();
+            Unit::withoutGlobalScopes()->firstOrCreate(
+                ['complex_id' => $complex->id, 'unit_number' => 'QR-1'],
+                ['floor' => 1, 'area' => 80, 'residents_count' => 1, 'coefficient' => 1, 'occupancy_status' => OccupancyStatus::Vacant],
+            );
+
+            $manager = User::withoutGlobalScopes()->firstOrNew(['phone' => $phone]);
+            while ($manager->exists && $manager->complex_id !== null) {
+                $ledger->end($manager, ComplexMembership::END_REMOVED);
+            }
+            $manager->fill([
+                'complex_id' => null,
+                'first_name' => 'مدیرِ QR',
+                'last_name' => 'سرتاسری '.($i + 1),
+                'password' => Hash::make('password'),
+                'role' => UserRole::Owner,
+                'is_active' => true,
+                'terms_accepted_at' => now(),
+            ])->save();
+            $ledger->start($manager, $complex, UserRole::ComplexAdmin, ComplexMembership::SOURCE_DIRECT);
+
+            // سفرِ قبلی درخواست‌کننده را مستأجرِ واحدِ QR کرده بود: دوره‌اش بسته و دوباره حسابِ اولیه
+            $joiner = User::withoutGlobalScopes()->where('phone', self::QR_JOINERS[$i])->first();
+            if ($joiner !== null) {
+                app(TenureService::class)->endAllFor($joiner, null, $complex->id);
+            }
+            $this->freshRegistrant(self::QR_JOINERS[$i]);
         }
     }
 

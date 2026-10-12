@@ -68,7 +68,11 @@ export function JoinRequestInbox({ units }: { units: { id: number; unit_number: 
         style={{ color: 'var(--text-primary)' }}
       >
         <UserPlus size={16} style={{ color: 'var(--color-brand-500)' }} />
-        درخواست‌های پیوستن ({data.data.length})
+        درخواست‌های عضویت ({data.data.length})
+      </p>
+      {/* تفاوتِ دو مسیرِ ورود در رابطِ مدیر (مرحلهٔ ۱۰ · فاز ۵؛ بندِ ۲۵) */}
+      <p className="-mt-1 text-xs" style={{ color: 'var(--text-tertiary)' }}>
+        از QR ِ عمومی یا شماره‌ی مدیر؛ تا تأییدِ شما عضو نیستند.
       </p>
 
       {data.data.map((request) => (

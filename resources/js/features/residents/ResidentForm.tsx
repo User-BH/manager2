@@ -88,8 +88,8 @@ function InviteResidentForm({
       <FormError message={formError} />
 
       <p className="text-xs leading-6" style={{ color: 'var(--text-tertiary)' }}>
-        برای این شماره دعوت ساخته می‌شود. نام و رمز را صاحبِ شماره خودش هنگامِ ثبت‌نام وارد می‌کند و
-        با کدِ پیامکی می‌پذیرد.
+        برای این شماره دعوت ساخته می‌شود. نام و رمز را صاحبِ شماره خودش هنگامِ ثبت‌نام با پیوندِ
+        دعوت وارد می‌کند و با کدِ پیامکیِ ثبت‌نام مستقیم عضو می‌شود.
       </p>
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">

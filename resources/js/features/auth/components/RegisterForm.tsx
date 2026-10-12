@@ -21,6 +21,7 @@ import { filterPersianName, PERSIAN_NAME_HINT } from '@/shared/lib/personName'
 import { toastTopSuccess } from '@/shared/lib/alert'
 import { api, ApiError } from '@/shared/lib/api'
 import { useAutoFocus } from '@/shared/hooks'
+import { inviteToken } from '../inviteToken'
 
 export function RegisterForm({
   onRegistered,
@@ -139,8 +140,21 @@ export function RegisterForm({
     setOtpError(null)
 
     try {
-      await api('/register/verify', { method: 'POST', body: { code: value } })
-      toastTopSuccess('ثبت‌نام شما کامل شد. برای استفاده از خدمات، وارد حساب خود شوید.')
+      /*
+       * ثبت‌نام از پیوندِ دعوتِ مستقیم (مرحلهٔ ۱۰ · فاز ۵؛ بندِ ۹۰): توکن همراهِ کد می‌رود و سرور — اگر دعوت
+       * زنده و برای همین شماره باشد — عضویت را همین‌جا برقرار می‌کند؛ ورودِ بعدی مستقیم داشبوردِ واحد است.
+       * بی توکن یا با توکنِ نامعتبر همان ثبت‌نامِ عادی است.
+       */
+      const token = inviteToken()
+      const { joined } = await api<{ joined?: string | null }>('/register/verify', {
+        method: 'POST',
+        body: token ? { code: value, invitation_token: token } : { code: value },
+      })
+      toastTopSuccess(
+        joined
+          ? `ثبت‌نام کامل شد و عضوِ «${joined}» شدید. وارد حساب خود شوید.`
+          : 'ثبت‌نام شما کامل شد. برای استفاده از خدمات، وارد حساب خود شوید.',
+      )
       onRegistered?.()
     } catch (err) {
       setOtpError(

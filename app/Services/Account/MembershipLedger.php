@@ -42,16 +42,23 @@ class MembershipLedger
     }
 
     /**
-     * برقراریِ عضویت و رفتن به زمینه‌ی آن — پیوستن یعنی «حالا این‌جا کار می‌کنم».
+     * برقراریِ عضویت — و رفتن به زمینه‌ی آن وقتی `$activate`.
+     *
      * عضویتِ فعالِ دوم در **همان** مجتمع پذیرفته نیست (و `active_key` هم رد می‌کند).
+     *
+     * ⚠️ `$activate = false` (مرحلهٔ ۱۰ · فاز ۵): وقتی عضویت را **کسِ دیگری** می‌سازد — مدیری که
+     * درخواست را تأیید می‌کند، یا بازگشتِ درگاه پس از خرید — زمینه‌ی فعالِ حسابی که همین حالا در
+     * مجتمعِ دیگری کار می‌کند جابه‌جا نمی‌شود: تب‌های بازش داده‌ی مجتمعِ تازه را زیرِ کلیدِ مجتمعِ
+     * قبلی می‌گرفتند. تعویض با خودِ کاربر است (`POST account/context`). حسابِ بی‌زمینه (اولیه) همیشه
+     * به زمینه‌ی تازه می‌رود — جایی برای ماندن ندارد.
      */
-    public function start(User $user, Complex $complex, UserRole $role, string $source, ?ComplexInvitation $via = null): ComplexMembership
+    public function start(User $user, Complex $complex, UserRole $role, string $source, ?ComplexInvitation $via = null, bool $activate = true): ComplexMembership
     {
         if (! in_array($role, ComplexMembership::ROLES, true)) {
             throw DomainException::invalid('این نقش عضویتِ مجتمع نیست.', 'membership.invalid_role');
         }
 
-        return DB::transaction(function () use ($user, $complex, $role, $source, $via): ComplexMembership {
+        return DB::transaction(function () use ($user, $complex, $role, $source, $via, $activate): ComplexMembership {
             $account = $this->lock($user);
 
             if ($account->isSuperAdmin()) {
@@ -74,7 +81,9 @@ class MembershipLedger
             ]);
             $membership->save();
 
-            $this->writeAccount($account, ['complex_id' => $complex->id, 'role' => $role]);
+            if ($activate || $account->complex_id === null) {
+                $this->writeAccount($account, ['complex_id' => $complex->id, 'role' => $role]);
+            }
             $this->sync($user, $account);
 
             return $membership;

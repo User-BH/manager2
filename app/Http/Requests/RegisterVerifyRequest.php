@@ -15,7 +15,14 @@ class RegisterVerifyRequest extends BaseFormRequest
      */
     public function rules(): array
     {
-        return ['code' => ['required', 'string']];
+        return [
+            'code' => ['required', 'string'],
+            /*
+             * توکنِ پیوندِ دعوت، وقتی ثبت‌نام از همان پیوند آمده (مرحلهٔ ۱۰ · فاز ۵؛ بندِ ۹۰). اختیاری و
+             * بی‌اثر بر خودِ ثبت‌نام: سرور خودش می‌سنجد که دعوت زنده و برای همین شماره است.
+             */
+            'invitation_token' => ['nullable', 'string', 'max:128'],
+        ];
     }
 
     /**

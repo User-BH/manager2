@@ -159,6 +159,10 @@ export const queryKeys = {
   joinRequests: {
     all: () => ['join-requests'] as const,
   },
+  // QR ِ ورودِ عمومیِ همین مجتمع (مرحلهٔ ۱۰ · فاز ۵)
+  joinLink: {
+    current: () => ['join-link'] as const,
+  },
 
   // کیفِ پولِ واحد (R22)
   wallet: {

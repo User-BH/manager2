@@ -14,7 +14,13 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
 /**
- * ارتقای حسابِ «حالتِ اولیه» به مدیرِ مجتمع (R21).
+ * ساختِ مجتمعِ تازه و مدیر شدنِ خریدار (R21؛ از مرحلهٔ ۱۰ · فاز ۵ برای هر حسابِ غیرِ سکو).
+ *
+ * ─── تصمیمِ کارفرما (۱۰/۵) ───────────────────────────────────────────────────
+ * پیش از این فقط حسابِ «حالتِ اولیه» مجتمع می‌خرید (سه نگهبانِ `account.already_member` در همین
+ * سرویس و `ComplexPurchase`). حالا عضوِ مجتمع‌های دیگر هم با همان حساب می‌خرد: مالکِ A و مستأجرِ
+ * B، پس از خریدِ معتبر مدیرِ C. عضویت‌ها، نقش‌ها، داده، کیف و تاریخچه‌ی A و B دست نمی‌خورند و
+ * زمینه‌ی فعالِ حسابِ عضو هم جابه‌جا نمی‌شود (کاربر خودش به C می‌رود).
  *
  * ─── چرا یک سرویسِ جدا ─────────────────────────────────────────────────────
  * این کار دو نوشتنِ وابسته دارد که **هرگز نباید نیمه‌کاره بمانند**: ساختِ
@@ -39,26 +45,15 @@ class ComplexUpgrader
         ?string $address,
         ComplexType $type,
     ): Complex {
-        if (AccountState::of($user) !== AccountState::Initial) {
-            throw DomainException::invalid(
-                'این حساب از قبل به یک مجتمع وصل است.',
-                'account.already_member',
-            );
-        }
-
         return DB::transaction(function () use ($user, $complexName, $address, $type): Complex {
             /*
-             * وضعیت **داخلِ تراکنش** دوباره خوانده می‌شود: دو ارسالِ هم‌زمانِ
-             * فرم نباید دو مجتمع بسازد و کاربر را به دومی وصل کند، در حالی
-             * که اولی بی‌صاحب می‌ماند.
+             * حساب **زیرِ قفل** خوانده می‌شود. یکتاییِ خرید را قصدِ خرید تضمین می‌کند (یک
+             * `complete` برای هر قصد، زیرِ قفلِ همان ردیف) — نه «حسابِ بی‌مجتمع»، که از ۱۰/۵ قاعده نیست.
              */
             $fresh = User::withoutGlobalScopes()->lockForUpdate()->findOrFail($user->id);
 
-            if ($fresh->complex_id !== null) {
-                throw DomainException::invalid(
-                    'این حساب از قبل به یک مجتمع وصل است.',
-                    'account.already_member',
-                );
+            if (AccountState::of($fresh) === AccountState::Platform || ! $fresh->is_active) {
+                throw DomainException::invalid('این حساب نمی‌تواند مجتمع بخرد.', 'checkout.buyer_not_allowed');
             }
 
             $complex = Complex::create([
@@ -77,8 +72,12 @@ class ComplexUpgrader
                 'payment_gateway' => 'none',
             ]);
 
-            // عضویتِ مدیر و زمینه‌ی فعالِ حساب با هم (مرحلهٔ ۱۰ · فاز ۲)
-            $this->ledger->start($fresh, $complex, UserRole::ComplexAdmin, ComplexMembership::SOURCE_PURCHASE);
+            /*
+             * عضویتِ مدیر (مرحلهٔ ۱۰ · فاز ۲). حسابِ اولیه همین‌جا به زمینه‌ی تازه می‌رود؛ عضوِ مجتمعِ
+             * دیگر نه — بازگشتِ درگاه بی نشست هم می‌رسد و تب‌های بازش را خبر نمی‌کند؛ تعویض با خودِ
+             * کاربر است، پس از بازگشت (۱۰/۵).
+             */
+            $this->ledger->start($fresh, $complex, UserRole::ComplexAdmin, ComplexMembership::SOURCE_PURCHASE, activate: false);
 
             /*
              * دعوت‌های در انتظار دیگر باطل نمی‌شوند (مرحلهٔ ۱۰ · فاز ۴): پیش از این پذیرفتنِ

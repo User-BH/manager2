@@ -227,10 +227,15 @@ describe('تاریخچه پس از ورود', () => {
       'VerifyOtpPage.tsx',
       'ForgotPasswordPage.tsx',
     ]) {
+      // مقصد از ۱۰/۵ `afterSignIn()` است (برگشت به صفحه‌ی پیوستنِ QR)؛ قاعده همان `replace` می‌ماند
       expect(codeOf(`resources/js/features/auth/${file}`), file).toContain(
-        "window.location.replace('/dashboard')",
+        'window.location.replace(afterSignIn())',
       )
     }
+    // و پیش‌فرضِ همان تصمیم هنوز داشبورد است
+    expect(codeOf('resources/js/features/auth/joinCode.ts')).toContain(
+      "return joinCode() ? '/join' : '/dashboard'",
+    )
   })
 
   it('داشبورد با روترِ خودش به `/auth` نمی‌رود — آن سندِ جداست', () => {

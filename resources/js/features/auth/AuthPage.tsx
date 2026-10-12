@@ -13,6 +13,7 @@ import { safeInternalPath } from '@/shared/lib/safeRedirect'
 import { useDocumentTitle } from '@/shared/hooks'
 import { BRAND_NAME } from '@/shared/config/brand'
 import { authLeaveMessage } from '@/shared/lib/leaveToAuth'
+import { afterSignIn } from './joinCode'
 
 type AuthTab = 'login' | 'register'
 
@@ -103,7 +104,7 @@ export function AuthPage() {
     // داشبورد یک سندِ SPAِ جداست؛ پس رفتن به آن ناوبریِ واقعیِ مرورگر است نه
     // مسیریابیِ داخلِ همین island.
     const from = (location.state as { from?: { pathname: string; search?: string } } | null)?.from
-    window.location.replace(safeInternalPath(from) ?? '/dashboard')
+    window.location.replace(safeInternalPath(from) ?? afterSignIn())
     return null
   }
 

@@ -19,11 +19,13 @@ use App\Models\ComplexInvitation;
 use App\Models\ComplexMembership;
 use App\Models\LoginEvent;
 use App\Models\User;
+use App\Services\Account\Membership;
 use App\Services\Auth\LoginRecorder;
 use App\Services\Auth\OtpService;
 use App\Services\Auth\PasswordConfirmation;
 use App\Services\Auth\SessionRegistry;
 use App\Services\Auth\TrustedDeviceService;
+use App\Support\Audit;
 use App\Support\PersianName;
 use App\Support\Phone;
 use App\Support\SystemSettings;
@@ -414,7 +416,7 @@ class AuthController extends Controller
      * نمی‌شود. حساب غیرفعال ساخته می‌شود تا مدیرِ کل/مدیرِ مجتمع نقش و دسترسی‌اش
      * را تعیین کند.
      */
-    public function registerVerify(RegisterVerifyRequest $request, OtpService $otp): JsonResponse
+    public function registerVerify(RegisterVerifyRequest $request, OtpService $otp, Membership $membership): JsonResponse
     {
         $request->validated();
 
@@ -448,7 +450,7 @@ class AuthController extends Controller
          * ورودش خطری ندارد چون داشبوردش فقط‌خواندنی است و دامنه‌ی مستأجر برای
          * کاربرِ بدونِ مجتمع «هیچ‌چیز» است، نه «همه‌چیز».
          */
-        User::create([
+        $user = User::create([
             'complex_id' => null,
             // `name` را مدل از این دو می‌سازد
             'first_name' => $pending['first_name'],
@@ -464,9 +466,50 @@ class AuthController extends Controller
         $request->session()->forget('register.pending');
         $otp->clear($pending['phone']);
 
+        $joined = $this->joinByInvitation($membership, $user, (string) $request->input('invitation_token', ''));
+
         return response()->json([
-            'message' => 'ثبت‌نام کامل شد. اکنون می‌توانید وارد شوید.',
+            'message' => $joined === null
+                ? 'ثبت‌نام کامل شد. اکنون می‌توانید وارد شوید.'
+                : 'ثبت‌نام کامل شد و عضوِ «'.$joined->name.'» شدید. اکنون وارد شوید.',
+            'joined' => $joined?->name,
         ], 201);
+    }
+
+    /**
+     * ثبت‌نام از پیوندِ دعوتِ مستقیم ← عضویت، بی بازگشت به داشبوردِ اولیه (مرحلهٔ ۱۰ · فاز ۵؛ بندِ ۹۰).
+     *
+     *   ثبت‌نام ← برقراریِ عضویت ← داشبوردِ واحد
+     *
+     * ⚠️ مسیریابی با پرچمِ کلاینت امن نمی‌شود؛ همه‌چیز اینجا و در `Membership::accept` (زیرِ قفل) سنجیده
+     * می‌شود: دعوتِ مستقیم، زنده، و بسته به **همین شماره**. کدِ پیامکیِ پذیرش لازم نیست چون همین درخواست
+     * با کدِ پیامکیِ همان شماره تأیید شد — همان اثباتِ مالکیتِ سیم‌کارت، و نه چیزی کمتر: ثبت‌نام برخلافِ
+     * پذیرش با `otp_disabled` هم بی کد نمی‌شود.
+     *
+     * دعوتِ نامعتبر، مصرف‌شده یا برای شماره‌ی دیگر ثبت‌نام را خراب نمی‌کند: حساب ساخته می‌شود و در حالتِ
+     * اولیه می‌ماند (بندِ ۹۱)، و دعوتِ زنده‌ی همین شماره همان‌جا منتظر است.
+     */
+    private function joinByInvitation(Membership $membership, User $user, string $token): ?Complex
+    {
+        $invitation = ComplexInvitation::findLiveByToken($token);
+
+        if ($invitation === null || $invitation->phone !== $user->phone) {
+            return null;
+        }
+
+        try {
+            $membership->accept($invitation, $user);
+        } catch (DomainException) {
+            // مثلاً هم‌زمان باطل شد یا واحد پُر شد: همان حالتِ اولیه، بی شکستنِ ثبت‌نام
+            return null;
+        }
+
+        Audit::log('invitation.accepted', 'پذیرش دعوت به مجتمع هنگامِ ثبت‌نام', $invitation, [
+            'complex_id' => $invitation->complex_id,
+            'via' => 'registration',
+        ]);
+
+        return Complex::find($invitation->complex_id);
     }
 
     public function logout(Request $request): JsonResponse

@@ -18,6 +18,7 @@ import { api, ApiError } from '@/shared/lib/api'
 import { toastSuccess } from '@/shared/lib/alert'
 import { useAutoFocus, useDocumentTitle } from '@/shared/hooks'
 import type { CurrentUser } from '@/shared/types'
+import { afterSignIn } from './joinCode'
 
 type Step = 'phone' | 'code' | 'reset'
 
@@ -151,7 +152,7 @@ export function ForgotPasswordPage() {
       toastSuccess('رمز عبور تغییر کرد. خوش آمدید!')
       // ورود خودکار انجام شده؛ به داشبورد (سندِ جدا) می‌رویم — با `replace`،
       // تا «بازگشت» از داشبورد به فرمِ بازیابی برنگردد (مرحلهٔ ۷ · فاز ۱)
-      window.location.replace('/dashboard')
+      window.location.replace(afterSignIn())
     } catch (err) {
       resetForm.setError('password', {
         message:

@@ -21,6 +21,7 @@ import { api } from '@/shared/lib/api'
 import { queryKeys } from '@/shared/lib/queryKeys'
 import { useDocumentTitle } from '@/shared/hooks'
 import { useAuth } from '@/shared/stores/authStore'
+import { useCheckoutReturn } from '@/shared/hooks/useCheckoutReturn'
 import { formatMoney, formatNumber } from '@/shared/lib/format'
 import type { BillStatus } from '@/shared/types'
 import { OpenPollsCard } from './components/OpenPollsCard'
@@ -70,6 +71,8 @@ type DashboardData = (AdminDashboard | SystemDashboard | ResidentDashboard) & Wi
 
 export function DashboardPage() {
   const { user } = useAuth()
+  // بازگشت از خریدِ مجتمعِ تازه: رفتن به همان مجتمع (مرحلهٔ ۱۰ · فاز ۵)
+  useCheckoutReturn()
 
   const { data, error, isLoading, refetch } = useQuery({
     queryKey: queryKeys.dashboard.all(),

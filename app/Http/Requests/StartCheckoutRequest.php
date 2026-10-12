@@ -24,6 +24,13 @@ class StartCheckoutRequest extends BaseFormRequest
             'plan' => ['required', 'string'],
 
             /*
+             * «مجتمعِ تازه» یا «تمدیدِ همین مجتمع» (مرحلهٔ ۱۰ · فاز ۵). عضوِ یک مجتمع هم حالا مجتمعِ تازه
+             * می‌خرد، پس دیگر نمی‌شود هدف را فقط از «حسابِ اولیه است یا نه» فهمید. حسابِ اولیه همیشه
+             * مجتمعِ تازه است، هر چه فرستاده باشد.
+             */
+            'purpose' => ['nullable', Rule::in(['renewal', 'new_complex'])],
+
+            /*
              * خریدارِ «حالتِ اولیه» با همین خرید مجتمعش را می‌سازد (مرحلهٔ ۹ · فاز ۴)؛
              * برای مدیرِ فعلی (تمدید) بی‌معناست و نادیده گرفته می‌شود — مثلِ
              * `UploadSubscriptionReceiptRequest`. نوع اجباری است، نه پیش‌فرضِ «مسکونی».
@@ -47,11 +54,17 @@ class StartCheckoutRequest extends BaseFormRequest
         ];
     }
 
-    /** آیا این خرید باید مجتمع را هم بسازد؟ از واقعیت مشتق می‌شود، مثلِ `AccountState`. */
+    /** آیا این خرید مجتمعِ تازه می‌سازد؟ حسابِ اولیه همیشه؛ عضو فقط با `purpose=new_complex`. */
+    public function wantsNewComplex(): bool
+    {
+        return $this->needsComplex();
+    }
+
     private function needsComplex(): bool
     {
         $user = $this->user();
 
-        return $user instanceof User && AccountState::of($user) === AccountState::Initial;
+        return $user instanceof User
+            && (AccountState::of($user) === AccountState::Initial || $this->input('purpose') === 'new_complex');
     }
 }

@@ -19,6 +19,7 @@ use App\Http\Controllers\Api\FeedbackController;
 use App\Http\Controllers\Api\FinanceController;
 use App\Http\Controllers\Api\GoodPayerController;
 use App\Http\Controllers\Api\InvitationController;
+use App\Http\Controllers\Api\JoinLinkController;
 use App\Http\Controllers\Api\JoinRequestController;
 use App\Http\Controllers\Api\ManagerController;
 use App\Http\Controllers\Api\MessageActionController;
@@ -119,6 +120,13 @@ Route::post('register/verify', [AuthController::class, 'registerVerify'])
 */
 Route::post('invitations/preview', [InvitationController::class, 'preview'])
     ->middleware('throttle:search')->name('invitations.preview');
+
+/*
+| پیش‌نمایشِ QR ِ ورودِ عمومی (مرحلهٔ ۱۰ · فاز ۵) — برای مهمان هم: فقط نامِ مجتمع. کد در بدنه، نه در مسیر،
+| به همان دلیلِ پیوندِ دعوت. اسکن عضویت نیست؛ درخواست پس از ورود از `join-requests` می‌رود.
+*/
+Route::post('join-link/preview', [JoinLinkController::class, 'preview'])
+    ->middleware('throttle:search')->name('join-link.preview');
 
 // وضعیت کاربر برای مهمان هم قابل فراخوانی است و null برمی‌گرداند؛ کلاینت
 // هنگام بالا آمدن یک‌بار صدایش می‌زند تا بفهمد نشست فعالی هست یا نه.
@@ -477,6 +485,15 @@ Route::middleware('auth')->group(function () {
         Route::get('sent-invitations', [SentInvitationController::class, 'index'])->name('sent-invitations.index');
         Route::delete('sent-invitations/{invitation}', [SentInvitationController::class, 'destroy'])
             ->name('sent-invitations.destroy');
+
+        /*
+         * QR ِ ورودِ عمومی (مرحلهٔ ۱۰ · فاز ۵؛ بندهای ۲۲ و ۲۵): جدا از دعوتِ مستقیم. `POST` کدِ موجود را
+         * نگه می‌دارد (QR ِ چاپ‌شده باطل نمی‌شود)؛ فقط `rotate` کدِ تازه می‌سازد و قبلی را از کار می‌اندازد.
+         */
+        Route::get('join-link', [JoinLinkController::class, 'show'])->name('join-link.show');
+        Route::post('join-link', [JoinLinkController::class, 'store'])->name('join-link.store');
+        Route::post('join-link/rotate', [JoinLinkController::class, 'rotate'])->name('join-link.rotate');
+        Route::delete('join-link', [JoinLinkController::class, 'destroy'])->name('join-link.destroy');
 
         Route::get('bills', [BillController::class, 'index'])->name('bills.index');
         Route::post('bills/generate', [BillController::class, 'generate'])

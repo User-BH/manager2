@@ -6,9 +6,11 @@ use App\Enums\ComplexType;
 use App\Enums\UserRole;
 use App\Models\CheckoutIntent;
 use App\Models\Complex;
+use App\Models\ComplexMembership;
 use App\Models\Plan;
 use App\Models\Subscription;
 use App\Models\User;
+use App\Services\Account\MembershipLedger;
 use App\Services\Payment\TrackingCodes;
 use App\Services\Subscription\ComplexPurchase;
 use Illuminate\Console\Command;
@@ -38,7 +40,8 @@ class RaceCheckout extends Command
                             {operation : setup | complete | verify | cleanup}
                             {--intent= : شناسه‌ی قصدِ خرید}
                             {--tracking=RACE-TRK : کدِ رهگیریِ تأییدشده}
-                            {--at= : لحظه‌ی شروعِ مشترک (میلی‌ثانیه‌ی یونیکس)}';
+                            {--at= : لحظه‌ی شروعِ مشترک (میلی‌ثانیه‌ی یونیکس)}
+                            {--member : خریدار از قبل مستأجرِ مجتمعِ دیگری است (مرحلهٔ ۱۰ · فاز ۵)}';
 
     protected $description = 'تکمیلِ خرید در پردازه‌های هم‌زمان: هرگز دو مجتمع، دو اشتراک یا دو مدیر';
 
@@ -66,10 +69,20 @@ class RaceCheckout extends Command
             'phone' => '0912'.random_int(1000000, 9999999), 'password' => Str::random(32),
             'role' => UserRole::Owner, 'complex_id' => null, 'is_active' => true,
         ]);
+        /*
+         * مرحلهٔ ۱۰ · فاز ۵ (تصمیمِ کارفرما): خریدارِ عضوِ مجتمعِ دیگر — همان هم‌زمانی، و این‌بار عضویتِ
+         * قبلی و زمینه‌ی فعالش هم باید دست‌نخورده بمانند.
+         */
+        $home = null;
+        if ($this->option('member')) {
+            $home = Complex::create(['name' => "خانه‌ی همزمانی {$tag}", 'slug' => "race-home-{$tag}", 'type' => ComplexType::Residential, 'payment_gateway' => 'none']);
+            app(MembershipLedger::class)->start($user, $home, UserRole::Tenant, ComplexMembership::SOURCE_DIRECT);
+        }
+
         $intent = $purchase->begin($user, $plan, "مجتمع همزمانی {$tag}", ComplexType::Residential, null);
         $intent->markGatewayRequested('sandbox', "RACE-{$tag}");
 
-        $this->line((string) json_encode(['intent' => $intent->id, 'user' => $user->id, 'plan' => $plan->id]));
+        $this->line((string) json_encode(['intent' => $intent->id, 'user' => $user->id, 'plan' => $plan->id, 'home' => $home?->id]));
 
         return self::SUCCESS;
     }
@@ -121,6 +134,12 @@ class RaceCheckout extends Command
             // مرحلهٔ ۱۰ · فاز ۲: یک خرید، یک عضویتِ فعالِ مدیر
             'activeMemberships' => DB::table('complex_memberships')->where('user_id', $intent->user_id)->where('status', 'active')->count(),
             'userComplex' => $user?->complex_id,
+            'userRole' => $user?->role->value,
+            // عضویتِ مدیرِ مجتمعِ خریده‌شده، و عضویت‌های فعالِ دیگرِ همان حساب (۱۰/۵)
+            'purchaseMemberships' => DB::table('complex_memberships')->where('user_id', $intent->user_id)->where('status', 'active')
+                ->where('complex_id', $intent->complex_id ?? 0)->where('role', UserRole::ComplexAdmin->value)->count(),
+            'otherMemberships' => DB::table('complex_memberships')->where('user_id', $intent->user_id)->where('status', 'active')
+                ->where('complex_id', '!=', $intent->complex_id ?? 0)->pluck('role', 'complex_id')->all(),
             'intentComplex' => $intent->complex_id,
             'linked' => $intent->subscription_id !== null,
             'completedIntentsWithTracking' => CheckoutIntent::where('tracking_code', $intent->tracking_code ?? '—')->where('status', CheckoutIntent::COMPLETED)->count(),
@@ -143,14 +162,18 @@ class RaceCheckout extends Command
             $planId = $intent->plan_id;
 
             $intent->delete();
+            // مجتمعِ «خانه»‌ی خریدارِ عضو (`--member`) هم دادهٔ همین آزمون است
+            $homes = DB::table('complex_memberships')->where('user_id', $userId)
+                ->where('complex_id', '!=', $complexId ?? 0)->pluck('complex_id')->all();
+            // دادهٔ خودِ همین آزمون؛ عضویت پیش از حساب و مجتمع (کلیدِ restrict)
+            DB::table('complex_memberships')->where('user_id', $userId)->delete();
+            User::withoutGlobalScopes()->whereKey($userId)->update(['complex_id' => null]);
             if ($complexId) {
                 Subscription::withoutGlobalScopes()->where('complex_id', $complexId)->delete();
-                // دادهٔ خودِ همین آزمون؛ عضویت پیش از حساب و مجتمع (کلیدِ restrict)
-                DB::table('complex_memberships')->where('user_id', $userId)->delete();
-                User::withoutGlobalScopes()->whereKey($userId)->update(['complex_id' => null]);
                 DB::table('audit_logs')->where('complex_id', $complexId)->delete();
                 Complex::whereKey($complexId)->delete();
             }
+            Complex::whereKey($homes)->where('slug', 'like', 'race-home-%')->delete();
             DB::table('audit_logs')->where('subject_type', CheckoutIntent::class)->where('subject_id', $intent->id)->delete();
             User::withoutGlobalScopes()->whereKey($userId)->delete();
             Plan::whereKey($planId)->delete();

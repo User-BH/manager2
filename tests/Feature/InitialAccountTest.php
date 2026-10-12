@@ -16,6 +16,7 @@ use App\Models\Unit;
 use App\Models\User;
 use App\Services\Account\ComplexUpgrader;
 use App\Services\Account\Membership;
+use App\Services\Account\MembershipLedger;
 use App\Services\Subscription\ComplexPurchase;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
@@ -398,14 +399,28 @@ class InitialAccountTest extends TestCase
      * دسترسی ندارد و هیچ‌کس مدیرش نیست — مجتمعی یتیم که فقط ادمینِ کل
      * می‌تواند نجاتش بدهد.
      */
-    public function test_a_second_upgrade_is_refused(): void
+    /**
+     * خریدِ دوم مجتمعِ **دوم** می‌سازد و اولی را دست نمی‌زند (مرحلهٔ ۱۰ · فاز ۵؛ تصمیمِ کارفرما).
+     *
+     * ⚠️ تا ۱۰/۵ همین آزمون «ارتقای دوم رد می‌شود» بود: قاعده‌ی «فقط حسابِ اولیه مجتمع می‌خرد». هدفش —
+     * مجتمعِ اول بی‌مدیر یا بی‌صاحب نشود — حالا با ادعای قوی‌تر سنجیده می‌شود: مدیریتِ اولی و زمینه‌ی
+     * فعالِ حساب سرِ جایشان. جلوی دوبار ساختن از **همان** پرداخت را قصدِ خرید می‌گیرد
+     * (`CheckoutIntentTest::test_completing_twice_is_idempotent`).
+     */
+    public function test_a_second_purchase_makes_a_second_complex_and_keeps_the_first(): void
     {
         $upgrader = app(ComplexUpgrader::class);
 
-        $upgrader->upgrade($this->fresh, 'اولی', null, ComplexType::Residential);
+        $first = $upgrader->upgrade($this->fresh, 'اولی', null, ComplexType::Residential);
+        $second = $upgrader->upgrade($this->fresh->fresh(), 'دومی', null, ComplexType::Residential);
 
-        $this->expectExceptionMessage('از قبل به یک مجتمع وصل است');
-        $upgrader->upgrade($this->fresh->fresh(), 'دومی', null, ComplexType::Residential);
+        $this->assertNotSame($first->id, $second->id);
+        $managed = ComplexMembership::withoutGlobalScopes()->active()->where('user_id', $this->fresh->id)
+            ->where('role', UserRole::ComplexAdmin->value)->pluck('complex_id')->sort()->values()->all();
+        $this->assertSame([$first->id, $second->id], $managed);
+        // زمینه همان مجتمعِ اول می‌ماند؛ رفتن به دومی کارِ خودِ کاربر است
+        $this->assertSame([$first->id, UserRole::ComplexAdmin], [$this->fresh->fresh()->complex_id, $this->fresh->fresh()->role]);
+        $this->assertSame([], app(MembershipLedger::class)->violations());
     }
 
     /**

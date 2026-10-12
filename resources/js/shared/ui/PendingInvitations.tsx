@@ -53,7 +53,11 @@ export function PendingInvitations({ kind }: { kind: 'residents' | 'managers' })
         style={{ color: 'var(--text-primary)' }}
       >
         <Hourglass size={16} style={{ color: 'var(--color-brand-500)' }} />
-        دعوت‌های در انتظار ({data.data.length})
+        دعوت‌های مستقیم در انتظار ({data.data.length})
+      </p>
+      {/* تفاوتِ دو مسیرِ ورود در رابطِ مدیر (مرحلهٔ ۱۰ · فاز ۵؛ بندِ ۲۵) */}
+      <p className="-mt-1 text-xs" style={{ color: 'var(--text-tertiary)' }}>
+        پیوندِ شخصی به یک شماره؛ با پذیرش، بی تأییدِ دوباره عضو می‌شوند.
       </p>
 
       {data.data.map((invitation) => (

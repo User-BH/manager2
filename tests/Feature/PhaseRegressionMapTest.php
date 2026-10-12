@@ -699,8 +699,9 @@ class PhaseRegressionMapTest extends TestCase
             'یک کدِ رهگیری، یک پرداخت — قصدِ خرید هم' => [
                 'CheckoutIntentTest', 'test_a_tracking_code_already_used_elsewhere_creates_nothing', '۹',
             ],
-            'پرداخت برای حسابِ غیرِ اولیه نگه داشته و بررسی می‌شود' => [
-                'CheckoutIntentTest', 'test_a_payment_for_a_user_who_is_no_longer_initial_is_kept_for_review', '۹',
+            // ۱۰/۵ (تصمیمِ کارفرما): عضویت دیگر مانعِ خرید نیست؛ همان محافظ برای خریدارِ غیرفعال‌شده
+            'پرداختی که به مجتمع تبدیل نمی‌شود نگه داشته و بررسی می‌شود' => [
+                'CheckoutIntentTest', 'test_a_payment_for_a_buyer_deactivated_meanwhile_is_kept_for_review', '۹',
             ],
             'بازگشت فقط برای خریدار یا بانک' => [
                 'CheckoutIntentTest', 'test_only_the_buyer_or_the_bank_can_return_to_an_intent', '۹',
@@ -1023,6 +1024,48 @@ class PhaseRegressionMapTest extends TestCase
             '۱۰/۴: /me فقط عضویت‌های خودِ حساب را می‌دهد' => [
                 'AuthorizationChainTest', 'test_me_lists_the_accounts_own_memberships_for_the_switcher', '۱۰',
             ],
+            '🔴 ۱۰/۵: اسکن و درخواست تا تأییدِ مدیر عضویت نیست' => [
+                'PublicJoinTest', 'test_scanning_and_requesting_is_not_membership_until_the_manager_approves', '۱۰',
+            ],
+            '🔴 ۱۰/۵: QR ِ تازه QR ِ قبلی را همان لحظه باطل می‌کند' => [
+                'PublicJoinTest', 'test_rotating_retires_the_old_qr_at_once', '۱۰',
+            ],
+            '🔴 ۱۰/۵: کدِ QR فقط برای مدیرِ همان مجتمع' => [
+                'PublicJoinTest', 'test_only_this_complexes_manager_sees_or_changes_the_code', '۱۰',
+            ],
+            '🔴 ۱۰/۵: پیش‌نمایشِ QR برای حسابِ اولیه هم (قفلِ حالتِ اولیه)' => [
+                'PublicJoinTest', 'test_the_preview_tells_a_guest_only_the_complex_name', '۱۰',
+            ],
+            '🔴 ۱۰/۵: ثبت‌نام از پیوندِ دعوت عضو می‌کند، بی داشبوردِ اولیه' => [
+                'DirectInvitationRoutingTest', 'test_registering_from_the_link_makes_a_member_without_the_initial_dashboard', '۱۰',
+            ],
+            '🔴 ۱۰/۵: هیچ چیزِ کلاینت عضویت نمی‌سازد' => [
+                'DirectInvitationRoutingTest', 'test_nothing_the_client_sends_creates_membership', '۱۰',
+            ],
+            '۱۰/۵: توکنِ شماره‌ی دیگر نادیده و دعوت منتظرِ صاحبش' => [
+                'DirectInvitationRoutingTest', 'test_a_token_for_another_phone_is_ignored_and_the_invitation_waits_for_its_owner', '۱۰',
+            ],
+            '۱۰/۵: کلیدِ همگانیِ OTP کدِ ثبت‌نام را برنمی‌دارد' => [
+                'DirectInvitationRoutingTest', 'test_the_platform_otp_switch_does_not_let_registration_skip_its_code', '۱۰',
+            ],
+            '🔴 ۱۰/۵: عضوِ دو مجتمع سومی را می‌خرد و هیچ چیزِ آن دو جابه‌جا نمی‌شود' => [
+                'MemberComplexPurchaseTest', 'test_a_member_of_two_complexes_buys_a_third_and_nothing_else_moves', '۱۰',
+            ],
+            '🔴 ۱۰/۵: مدیر بودن در مجتمعِ خریده‌شده دسترسی‌ای در مجتمع‌های دیگر نمی‌دهد' => [
+                'MemberComplexPurchaseTest', 'test_the_buyer_switches_to_the_new_complex_and_its_manager_role_stays_there', '۱۰',
+            ],
+            '🔴 ۱۰/۵: بی تأییدِ درگاه هیچ مجتمعی ساخته نمی‌شود' => [
+                'MemberComplexPurchaseTest', 'test_nothing_is_built_without_the_gateways_own_confirmation', '۱۰',
+            ],
+            '🔴 ۱۰/۵: بازگشتِ هم‌زمانِ خریدارِ عضو یک مجتمع می‌سازد' => [
+                'CheckoutConcurrencyTest', 'test_a_member_buyers_concurrent_callbacks_build_one_complex_and_leave_the_home_alone', '۱۰',
+            ],
+            '🔴 ۱۰/۵: تأییدِ مدیر زمینه‌ی متقاضیِ عضوِ جای دیگر را جابه‌جا نمی‌کند' => [
+                'MemberComplexPurchaseTest', 'test_a_managers_approval_does_not_move_a_member_working_elsewhere', '۱۰',
+            ],
+            '۱۰/۵: تمدید هنوز فقط کارِ مدیرِ همان مجتمع' => [
+                'MemberComplexPurchaseTest', 'test_renewal_is_still_the_current_complexes_managers_alone', '۱۰',
+            ],
             'مدیر از درخواستِ عضویت با اعلانِ داشبورد باخبر می‌شود' => [
                 'JoinRequestTest', 'test_the_complexes_managers_get_a_dashboard_notification_once', '۹',
             ],
@@ -1187,6 +1230,10 @@ class PhaseRegressionMapTest extends TestCase
             // مرحلهٔ ۱۰ · فاز ۴: تعویضِ مجتمع — سرور اول، بعد کش، تب‌ها و ناوبریِ کامل؛ کشِ وابسته به زمینه
             'accountContext' => ['۱۰/۴', 'همان کلید در دو مجتمع دو ورودیِ جدا است'],
             'memberInvitations' => ['۱۰/۴', 'پذیرفتن به زمینه‌ی تازه می‌برد'],
+            // مرحلهٔ ۱۰ · فاز ۵: QR ِ عمومی و ثبت‌نام از پیوندِ دعوت
+            'qrCode' => ['۱۰/۵', 'ماژول‌به‌ماژول همان OpenCV است'],
+            'publicJoin' => ['۱۰/۵', 'درخواست فقط با کلیکِ خودش می‌رود'],
+            'memberPurchase' => ['۱۰/۵', 'بی عضویتِ فعال هیچ تعویضی نمی‌سازد'],
         ];
 
         // 🔴 مثلِ ردیف‌های PHP، این فهرست هم فقط بزرگ می‌شود (خرابکاریِ فاز ۸)

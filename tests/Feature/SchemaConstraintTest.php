@@ -13,6 +13,7 @@ use App\Models\PaymentAllocation;
 use App\Models\Unit;
 use App\Models\User;
 use App\Models\WalletTransaction;
+use App\Services\Account\PublicJoinLink;
 use App\Services\Charge\BillGenerator;
 use App\Services\Wallet\WalletService;
 use App\Support\Jalali;
@@ -507,5 +508,26 @@ class SchemaConstraintTest extends TestCase
                 "جدولِ «{$table}» هیچ قیدِ CHECK ندارد.",
             );
         }
+    }
+
+    /**
+     * کدِ QR ِ ورودِ عمومی با حروفِ عوض‌شده مجتمعی را باز نمی‌کند (مرحلهٔ ۱۰ · فاز ۵).
+     *
+     * ⚠️ هم‌ترازیِ پیش‌فرضِ MySQL حروفِ بزرگ و کوچک را یکی می‌گیرد و base64url نه؛ پس `where` به‌تنهایی کدِ
+     * دیگری را می‌پذیرفت و `hash_equals` در `PublicJoinLink::resolve` تنها مانع است. SQLite خودش حساس است و
+     * این آزمون آن‌جا چیزی نمی‌سنجد — برای همین در کارِ MySQL ِ CI است (خرابکاریِ ۱۰/۵ روی SQLite زنده ماند).
+     */
+    public function test_a_case_changed_join_code_does_not_resolve_even_under_a_case_insensitive_collation(): void
+    {
+        $code = app(PublicJoinLink::class)->rotate($this->complex);
+        $flipped = strtoupper($code) !== $code ? strtoupper($code) : strtolower($code);
+
+        if (DB::connection()->getDriverName() === 'mysql') {
+            // آزمون فقط وقتی معنا دارد که خودِ پایگاه‌داده حروف را یکی بگیرد
+            $this->assertTrue(Complex::where('join_code', $flipped)->exists(), 'هم‌ترازیِ ستون حساس به حروف است؛ این آزمون چیزی نمی‌سنجد.');
+        }
+
+        $this->assertNull(app(PublicJoinLink::class)->resolve($flipped));
+        $this->assertSame($this->complex->id, app(PublicJoinLink::class)->resolve($code)?->id);
     }
 }

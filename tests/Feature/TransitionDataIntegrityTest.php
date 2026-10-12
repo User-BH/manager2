@@ -150,7 +150,8 @@ class TransitionDataIntegrityTest extends TestCase
         ]);
         $intent = CheckoutIntent::sole();
         $this->get("/checkout/callback/{$intent->public_id}?Authority={$authority}&Status=OK")
-            ->assertRedirect('/dashboard?checkout=success&tracking=123456789');
+            // از ۱۰/۵ مقصد مجتمعِ تازه را هم دارد تا کلاینت به آن برود
+            ->assertRedirect('/dashboard?checkout=success&tracking=123456789&complex='.(int) $intent->fresh()->complex_id);
 
         $owned = Complex::where('name', 'مجتمع خودم')->sole();
         $this->assertTransitioned($before, UserRole::ComplexAdmin, $owned);
@@ -207,7 +208,8 @@ class TransitionDataIntegrityTest extends TestCase
 
         $broken = false;
         $this->get("/checkout/callback/{$intent->public_id}?Authority={$authority}&Status=OK")
-            ->assertRedirect('/dashboard?checkout=success&tracking=123456789');
+            // از ۱۰/۵ مقصد مجتمعِ تازه را هم دارد تا کلاینت به آن برود
+            ->assertRedirect('/dashboard?checkout=success&tracking=123456789&complex='.(int) $intent->fresh()->complex_id);
 
         $owned = Complex::where('name', 'مجتمع خودم')->sole();
         $this->assertTransitioned($before, UserRole::ComplexAdmin, $owned);

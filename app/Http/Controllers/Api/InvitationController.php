@@ -59,7 +59,9 @@ class InvitationController extends Controller
      */
     public function preview(Request $request): JsonResponse
     {
-        $invitation = ComplexInvitation::findLiveByToken((string) $request->input('token', ''));
+        // ⚠️ `token[]=…` پیش از این با «Array to string» ۵۰۰ می‌گرفت (مرحلهٔ ۱۰ · فاز ۵)
+        $token = $request->input('token');
+        $invitation = is_string($token) ? ComplexInvitation::findLiveByToken($token) : null;
 
         abort_if($invitation === null, 404);
 
@@ -101,7 +103,8 @@ class InvitationController extends Controller
         $user = $this->user();
 
         if (! $this->otpDisabled()) {
-            $code = (string) $request->input('code', '');
+            $code = $request->input('code');
+            $code = is_string($code) ? $code : '';
 
             if (! preg_match('/^\d{6}$/', $code) || ! $otp->verify($user->phone, $code)) {
                 throw ValidationException::withMessages(['code' => 'کدِ تأیید نادرست یا منقضی است.']);

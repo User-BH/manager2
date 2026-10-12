@@ -29,7 +29,7 @@ import { expect, test, type Locator, type Page } from '@playwright/test'
 const ENGINE: Record<string, string> = { chromium: '1', firefox: '2', webkit: '3' }
 const RUN = String(Date.now()).slice(-6)
 
-function phoneFor(prefix: '0935', project: string): string {
+function phoneFor(prefix: '0935' | '0936', project: string): string {
   return `${prefix}${RUN}${ENGINE[project] ?? '9'}`
 }
 
@@ -87,6 +87,15 @@ async function postFromPage(page: Page, path: string, body: unknown): Promise<nu
 
 // ⚠️ ترتیب مهم است: مجتمعِ گامِ دوم، مدیرِ گامِ سوم را می‌سازد
 test.describe.configure({ mode: 'serial' })
+
+/**
+ * پیوندِ دعوتِ مستقیمِ گامِ «واحد» برای گامِ «ثبت‌نام از پیوند» (مرحلهٔ ۱۰ · فاز ۵).
+ *
+ * ⚠️ دعوت در همان نشستِ مدیرِ گامِ واحد ساخته می‌شود، نه با ورودِ تازه: سقفِ ورودِ هر شماره پنج در دقیقه است
+ * و شماره‌ی مدیر در این فایل همین حالا پنج بار وارد می‌شود — ورودِ ششم در اجرای محلی ۴۲۹ گرفت و آزمونِ خروج
+ * را انداخت.
+ */
+let directInviteLink = ''
 
 test.describe('سفرِ مدیریت', () => {
   test('ثبت‌نام با کدِ تأیید، و ورود با حسابِ تازه', async ({ page }, testInfo) => {
@@ -225,6 +234,83 @@ test.describe('سفرِ مدیریت', () => {
       page.getByText(/۲۵۰[,٬]۰۰۰/).first(),
       'قبضِ واحدِ تازه با مبلغِ قانون دیده نشد.',
     ).toBeVisible()
+
+    // ── دعوتِ مستقیم برای همین واحد، برای گامِ بعد (فقط Chromium؛ آن‌جا توضیح داده شده) ──
+    if (testInfo.project.name === 'chromium') {
+      await page.goto('/residents')
+      await page.getByRole('button', { name: 'ساکن جدید' }).click()
+      // `exact`: جست‌وجوی سراسریِ سربرگ هم «واحدها» را در برچسبش دارد
+      await page
+        .getByLabel('شماره موبایل', { exact: true })
+        .fill(phoneFor('0936', testInfo.project.name))
+      await page.getByLabel('نقش', { exact: true }).selectOption('tenant')
+      await page.getByLabel('واحد', { exact: true }).selectOption({ label: 'واحد 101' })
+      await page.getByRole('button', { name: 'ساختِ دعوت' }).click()
+      directInviteLink = await page
+        .getByRole('textbox', { name: 'پیوندِ دعوت', exact: true })
+        .inputValue()
+      expect(directInviteLink).toMatch(/\/invite#[A-Za-z0-9_-]{43}$/)
+    }
+  })
+
+  /*
+   * مرحلهٔ ۱۰ · فاز ۵ (بندِ ۹۰): دعوت‌شده‌ای که از پیوندِ دعوت ثبت‌نام می‌کند به داشبوردِ اولیه برنمی‌گردد.
+   * سرور توکن را همراهِ کدِ ثبت‌نام می‌سنجد و عضویت را همان‌جا برقرار می‌کند؛ ورودِ بعدی داشبوردِ واحد است.
+   *
+   * ⚠️ فقط Chromium: سقفِ `register` پنج در ساعت برای هر IP است و CI سه موتور را از یک IP می‌راند — گامِ
+   * اول سه ثبت‌نام می‌خورد، این یکی چهارمی است. قاعده‌ی سرور در `DirectInvitationRoutingTest` و فرستادنِ
+   * توکن در `tests/js/publicJoin.test.tsx` برای همه سنجیده شده است.
+   */
+  test('دعوت‌شده از پیوند ثبت‌نام می‌کند و مستقیم به داشبوردِ واحد می‌رسد', async ({
+    page,
+  }, testInfo) => {
+    test.skip(
+      testInfo.project.name !== 'chromium',
+      'سقفِ ثبت‌نامِ هر IP؛ قاعده در PHPUnit و Vitest',
+    )
+    const invitee = phoneFor('0936', testInfo.project.name)
+
+    // پیوند را مدیر در گامِ واحد ساخت (همان نشست؛ بی ورودِ تازه)
+    const link = directInviteLink
+    expect(link).toMatch(/\/invite#[A-Za-z0-9_-]{43}$/)
+
+    // ── دارنده‌ی پیوند، بی‌حساب: ثبت‌نام از همان پیوند ──
+    await page.context().clearCookies()
+    await page.goto(link)
+    await page.getByRole('link', { name: 'ثبت‌نام با همین شماره' }).click()
+    await visible(page.getByPlaceholder('مثلاً علی')).fill('دعوت')
+    await visible(page.getByPlaceholder('مثلاً محمدی')).fill('شده')
+    await visible(page.getByPlaceholder('۰۹xxxxxxxxx')).fill(invitee)
+    await visible(page.getByPlaceholder('حداقل ۸ نویسه')).fill(PASSWORD)
+    await visible(page.getByPlaceholder('تکرار رمز عبور')).fill(PASSWORD)
+    await visible(page.getByRole('checkbox')).check()
+
+    const sent = page.waitForResponse(
+      (r) => /\/register$/.test(new URL(r.url()).pathname) && r.request().method() === 'POST',
+    )
+    await visible(page.getByRole('button', { name: /دریافت کد تایید/ })).click()
+    const { dev_code: code } = (await (await sent).json()) as { dev_code: string | null }
+    expect(code).toBeTruthy()
+
+    const verified = page.waitForResponse((r) =>
+      /\/register\/verify$/.test(new URL(r.url()).pathname),
+    )
+    await visible(page.getByLabel('رقم 1 کد')).click()
+    await page.keyboard.type(String(code))
+    const response = await verified
+    expect(response.status()).toBe(201)
+    // توکن همراهِ کد رفت و سرور عضویت را همان‌جا برقرار کرد
+    expect(response.request().postDataJSON()).toMatchObject({
+      invitation_token: expect.any(String),
+    })
+    expect(((await response.json()) as { joined: string | null }).joined).toBeTruthy()
+
+    // ── ورود: داشبوردِ واحد، بی داشبوردِ اولیه و بی «پیوستن» ──
+    expect(await signIn(page, invitee, PASSWORD)).toBe(200)
+    await page.goto('/dashboard')
+    await expect(page.locator('aside').first()).toBeAttached({ timeout: 15_000 })
+    await expect(page.locator('[data-experience="registrant"]')).toHaveCount(0)
+    await expect(page.getByRole('button', { name: 'پیوستن' })).toHaveCount(0)
   })
 
   test('مدیر اشتراک را با درگاهِ آزمایشی می‌خرد', async ({ page }, testInfo) => {

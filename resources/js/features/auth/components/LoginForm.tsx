@@ -17,6 +17,7 @@ import {
 import { api, ApiError } from '@/shared/lib/api'
 import type { CurrentUser } from '@/shared/types'
 import { useAutoFocus } from '@/shared/hooks'
+import { afterSignIn } from '../joinCode'
 
 interface LoginResponse {
   otpRequired?: boolean
@@ -84,7 +85,7 @@ export function LoginForm() {
       // سمت سرور آنجا دوباره خوانده می‌شود. `replace` و نه `assign`
       // (مرحلهٔ ۷ · فاز ۱): «بازگشت» از داشبورد نباید به فرمِ ورود برسد.
       if (data.user) {
-        window.location.replace('/dashboard')
+        window.location.replace(afterSignIn())
         return
       }
 

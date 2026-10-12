@@ -33,8 +33,8 @@ export function InviteLinkPanel({
         <span className="font-bold tabular-nums" dir="ltr" style={{ color: 'var(--text-primary)' }}>
           {phone}
         </span>{' '}
-        ساخته شد. این پیوند را خودتان برایش بفرستید؛ با همان شماره وارد یا ثبت‌نام می‌کند و با کدِ
-        پیامکی می‌پذیرد.
+        ساخته شد. این پیوند را خودتان برایش بفرستید. اگر با همین پیوند ثبت‌نام کند، مستقیم عضو
+        می‌شود — بی تأییدِ دوباره؛ اگر از قبل حساب دارد، وارد می‌شود و با کدِ پیامکی می‌پذیرد.
       </p>
 
       <div className="flex items-stretch gap-2">
@@ -67,8 +67,8 @@ export function InviteLinkPanel({
         <KeyRound size={14} className="mt-1 shrink-0" style={{ color: 'var(--color-brand-500)' }} />
         <span>
           پیوند فقط همین حالا نشان داده می‌شود و یک بار کار می‌کند
-          {expiresAt ? `؛ تا ${expiresAt} معتبر است` : ''}. به‌تنهایی دسترسی نمی‌دهد: پذیرش فقط از
-          حسابِ همین شماره و با کدِ پیامکی است.
+          {expiresAt ? `؛ تا ${expiresAt} معتبر است` : ''}. به‌تنهایی دسترسی نمی‌دهد: فقط حسابِ همین
+          شماره، با کدِ پیامکیِ ثبت‌نام یا پذیرش، عضو می‌شود.
         </span>
       </p>
 

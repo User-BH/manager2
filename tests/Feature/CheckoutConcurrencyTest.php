@@ -143,6 +143,31 @@ class CheckoutConcurrencyTest extends TestCase
         $this->assertExactlyOneOfEverything($this->invariants($intent), $outputs);
     }
 
+    /**
+     * خریدارِ عضوِ مجتمعِ دیگر (مرحلهٔ ۱۰ · فاز ۵؛ تصمیمِ کارفرما): همان بازگشتِ هم‌زمان، و عضویت و زمینه‌ی
+     * قبلی‌اش دست‌نخورده — یک مجتمع، یک اشتراک، یک عضویتِ مدیر، و همان مستأجرِ «خانه».
+     */
+    public function test_a_member_buyers_concurrent_callbacks_build_one_complex_and_leave_the_home_alone(): void
+    {
+        $setup = $this->artisanProcess(['race:checkout', 'setup', '--member']);
+        $this->assertTrue($setup->successful(), $setup->errorOutput());
+        ['intent' => $intent, 'home' => $home] = json_decode(trim($setup->output()), true);
+        $this->intent = $intent;
+
+        $outputs = $this->race($intent, array_fill(0, self::WORKERS, 'RACE-MEMBER'));
+        $state = $this->invariants($intent);
+        $context = "\nخروجیِ پردازه‌ها:\n  ".implode("\n  ", $outputs)."\nوضعیت: ".json_encode($state, JSON_UNESCAPED_UNICODE);
+
+        $this->assertSame('completed', $state['status'], 'قصد تکمیل نشد.'.$context);
+        $this->assertSame(1, $state['complexes'], 'بیش از یک مجتمع (یا هیچ) ساخته شد.'.$context);
+        $this->assertSame(1, $state['subscriptions'], 'بیش از یک اشتراک با این رهگیری.'.$context);
+        $this->assertSame(1, $state['subscriptionsOfComplex'], 'مجتمع بیش از یک اشتراک گرفت.'.$context);
+        $this->assertSame(1, $state['purchaseMemberships'], 'عضویتِ مدیرِ مجتمعِ خریده‌شده یکی نیست.'.$context);
+        $this->assertSame([$home => 'tenant'], $state['otherMemberships'], 'عضویتِ «خانه» عوض شد.'.$context);
+        $this->assertSame([$home, 'tenant'], [$state['userComplex'], $state['userRole']], 'زمینه‌ی فعالِ خریدار جابه‌جا شد.'.$context);
+        $this->assertSame(1, $state['completedIntentsWithTracking'], 'یک رهگیری بیش از یک پرداختِ موفق شد.'.$context);
+    }
+
     /** بازپخش با رهگیری‌های متفاوت برای همان قصد: باز هم فقط یک پرداختِ موفق */
     public function test_concurrent_replays_with_different_tracking_codes_still_complete_once(): void
     {

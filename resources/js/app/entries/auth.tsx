@@ -8,6 +8,8 @@ import { VerifyOtpPage } from '@/features/auth/VerifyOtpPage'
 import { ForgotPasswordPage } from '@/features/auth/ForgotPasswordPage'
 import { InvitePage } from '@/features/auth/InvitePage'
 import { takeInviteTokenFromUrl } from '@/features/auth/inviteToken'
+import { JoinPage } from '@/features/auth/JoinPage'
+import { takeJoinCodeFromUrl } from '@/features/auth/joinCode'
 
 /*
  * بازیابیِ حساب بی شماره‌ی قبلی (مرحلهٔ ۹) نادر است: تنبل، تا وزن و چانک‌هایش به
@@ -31,6 +33,8 @@ const RecoverAccountPage = lazy(() =>
  */
 // توکنِ پیوندِ دعوت پیش از هر پایش و تحلیلی از نشانی برداشته می‌شود (مرحلهٔ ۹)
 takeInviteTokenFromUrl()
+// کدِ QR ِ ورودِ عمومی هم (مرحلهٔ ۱۰ · فاز ۵)
+takeJoinCodeFromUrl()
 initObservability()
 trackPageView(window.location.pathname)
 
@@ -72,6 +76,8 @@ createRoot(document.getElementById('root')!).render(
           />
           {/* پیوندِ دعوت (مرحلهٔ ۹ · فاز ۶): فقط پیش‌نمایش؛ توکن پس از # */}
           <Route path="/invite" element={<InvitePage />} />
+          {/* QR ِ ورودِ عمومیِ مجتمع (مرحلهٔ ۱۰ · فاز ۵): نامِ مجتمع و فرستادنِ درخواست؛ کد پس از # */}
+          <Route path="/join" element={<JoinPage />} />
         </Routes>
       </BrowserRouter>
     </MotionConfig>

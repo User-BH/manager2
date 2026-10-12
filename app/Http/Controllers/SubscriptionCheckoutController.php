@@ -2,7 +2,6 @@
 
 namespace App\Http\Controllers;
 
-use App\Enums\AccountState;
 use App\Enums\ComplexType;
 use App\Enums\SubscriptionPlan;
 use App\Exceptions\DomainException;
@@ -37,16 +36,21 @@ class SubscriptionCheckoutController extends Controller
     {
         $user = Auth::user();
 
-        // اشتراک برای مجتمع خریداری می‌شود، پس فقط مدیر می‌تواند بخرد؛
+        /*
+         * مجتمعِ تازه (مرحلهٔ ۹ · فاز ۴؛ از ۱۰/۵ برای عضوِ مجتمع‌های دیگر هم) — با قصدِ خرید، نه
+         * اشتراکِ بی‌مجتمع. مجوزش جداست: هر حسابِ فعالِ غیرِ سکو.
+         */
+        if ($request->wantsNewComplex()) {
+            $this->authorize('purchaseComplex', Subscription::class);
+
+            return $this->startNewComplex($request);
+        }
+
+        // تمدیدِ اشتراکِ مجتمعِ فعال، پس فقط مدیرِ همان مجتمع؛
         // ساکن نباید بتواند پرداختی انجام دهد که هیچ اثری برایش ندارد.
         $this->authorize('purchase', Subscription::class);
 
         $request->validated();
-
-        // حسابِ اولیه: خرید مجتمع را می‌سازد (مرحلهٔ ۹ · فاز ۴) — با قصدِ خرید، نه اشتراکِ بی‌مجتمع
-        if (AccountState::of($user) === AccountState::Initial) {
-            return $this->startNewComplex($request);
-        }
 
         $complex = $this->requireComplex();
 
@@ -340,8 +344,11 @@ class SubscriptionCheckoutController extends Controller
     private function afterCheckout(CheckoutIntent $intent)
     {
         return match ($intent->status) {
-            // اکنون مدیر است؛ `/dashboard` داشبوردِ مدیر را باز می‌کند
-            CheckoutIntent::COMPLETED => redirect('/dashboard?checkout=success&tracking='.urlencode((string) $intent->tracking_code)),
+            /*
+             * مدیرِ مجتمعِ تازه است. حسابِ اولیه همین حالا در زمینه‌ی آن است؛ عضوِ مجتمعِ دیگر نه — `complex`
+             * به کلاینت می‌گوید به کجا برود و خودِ تعویض (`POST account/context`) را سرور با عضویت می‌سنجد.
+             */
+            CheckoutIntent::COMPLETED => redirect('/dashboard?checkout=success&tracking='.urlencode((string) $intent->tracking_code).'&complex='.(int) $intent->complex_id),
             CheckoutIntent::PAID => redirect('/account?checkout=review'),
             CheckoutIntent::PENDING => redirect('/account?checkout=unknown'),
             default => redirect('/account?checkout=failed'),

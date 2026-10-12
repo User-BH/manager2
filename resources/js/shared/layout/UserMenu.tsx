@@ -174,6 +174,17 @@ export function UserMenu() {
                 void navigate('/profile')
               }}
             />
+            {/* خریدِ مجتمعِ تازه با همین حساب (مرحلهٔ ۱۰ · فاز ۵؛ تصمیمِ کارفرما) — حسابِ اولیه در داشبوردِ خودش می‌خرد */}
+            {user?.accountState === 'member' && (
+              <UserMenuItem
+                icon={Building2}
+                label="خریدِ مجتمعِ تازه"
+                onClick={() => {
+                  setOpen(false)
+                  void navigate('/new-complex')
+                }}
+              />
+            )}
             <UserMenuItem
               icon={Settings}
               label="تنظیمات حساب"

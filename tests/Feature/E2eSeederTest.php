@@ -7,8 +7,12 @@ use App\Enums\UserRole;
 use App\Models\Complex;
 use App\Models\ComplexInvitation;
 use App\Models\ComplexMembership;
+use App\Models\Unit;
+use App\Models\UnitTenure;
 use App\Models\User;
+use App\Services\Account\Membership;
 use App\Services\Account\MembershipLedger;
+use App\Services\Account\PublicJoinLink;
 use App\Services\Wallet\WalletService;
 use Database\Seeders\DemoSeeder;
 use Database\Seeders\E2eSeeder;
@@ -153,5 +157,58 @@ class E2eSeederTest extends TestCase
             $this->assertSame(2, ComplexMembership::withoutGlobalScopes()->where('user_id', $user->id)->where('status', 'ended')->count(), 'اجرای دوباره عضویت‌ها را حذف کرد به‌جای پایان.');
         }
         $this->assertSame([], app(MembershipLedger::class)->violations());
+    }
+
+    /**
+     * QR ِ ورودِ عمومی (مرحلهٔ ۱۰ · فاز ۵): هر موتور مجتمعِ خودش با QR ِ خاموش، مدیری که فقط همان را دارد،
+     * و درخواست‌کننده‌ای که حسابِ اولیه است — و اجرای دوباره پس از یک سفرِ کامل همین را از نو می‌سازد.
+     */
+    public function test_qr_complexes_start_with_the_qr_off_and_a_fresh_joiner_again_and_again(): void
+    {
+        $this->seed(DemoSeeder::class);
+        $this->seed(E2eSeeder::class);
+
+        // یک سفرِ کامل: کد روشن، درخواست، تأیید به‌عنوانِ مستأجرِ واحدِ QR
+        $complex = Complex::where('slug', 'e2e-qr-1')->sole();
+        app(PublicJoinLink::class)->ensure($complex);
+        $joiner = User::withoutGlobalScopes()->where('phone', E2eSeeder::QR_JOINERS[0])->sole();
+        $request = ComplexInvitation::create([
+            'complex_id' => $complex->id, 'user_id' => $joiner->id, 'phone' => $joiner->phone,
+            'direction' => ComplexInvitation::REQUEST, 'status' => ComplexInvitation::PENDING, 'role' => UserRole::Owner,
+        ]);
+        $unit = Unit::withoutGlobalScopes()->where('complex_id', $complex->id)->sole();
+        app(Membership::class)->approveRequest($request, UserRole::Tenant, $unit);
+        $this->assertSame($complex->id, $joiner->fresh()->complex_id);
+
+        $this->seed(E2eSeeder::class);
+
+        foreach (E2eSeeder::QR_MANAGERS as $i => $phone) {
+            $complex = Complex::where('slug', 'e2e-qr-'.($i + 1))->sole();
+            $this->assertNull($complex->join_code);
+
+            $manager = User::withoutGlobalScopes()->where('phone', $phone)->sole();
+            $this->assertSame([$complex->id, UserRole::ComplexAdmin], [$manager->complex_id, $manager->role]);
+            $this->assertSame(1, ComplexMembership::withoutGlobalScopes()->active()->where('user_id', $manager->id)->count());
+
+            $joiner = User::withoutGlobalScopes()->where('phone', E2eSeeder::QR_JOINERS[$i])->sole();
+            $this->assertNull($joiner->complex_id);
+            $this->assertSame(0, ComplexMembership::withoutGlobalScopes()->active()->where('user_id', $joiner->id)->count());
+            $this->assertSame(0, ComplexInvitation::where('user_id', $joiner->id)->count());
+            $this->assertSame(0, UnitTenure::withoutGlobalScopes()->where('user_id', $joiner->id)->where('is_current', true)->count());
+        }
+        $this->assertSame([], app(MembershipLedger::class)->violations());
+    }
+
+    /** نگاشتِ موتور ← شماره در سفرِ QR همان `QR_MANAGERS` و `QR_JOINERS` است */
+    public function test_the_qr_accounts_match_the_browser_journey(): void
+    {
+        $spec = (string) file_get_contents(base_path('tests/e2e/public-join.spec.ts'));
+
+        foreach (['MANAGERS' => E2eSeeder::QR_MANAGERS, 'JOINERS' => E2eSeeder::QR_JOINERS] as $name => $phones) {
+            $this->assertSame(1, preg_match('/const '.$name.'[^{]*\{([^}]*)\}/', $spec, $block), $name);
+            preg_match_all("/(chromium|firefox|webkit):\\s*'(\\d+)'/", $block[1], $pairs);
+            $this->assertSame(['chromium', 'firefox', 'webkit'], $pairs[1]);
+            $this->assertSame($phones, $pairs[2]);
+        }
     }
 }

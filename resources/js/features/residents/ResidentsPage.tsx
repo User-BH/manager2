@@ -9,6 +9,7 @@ import {
   ToggleRight,
   MessageSquare,
   MessageSquareOff,
+  Link2 as QrIcon,
 } from 'lucide-react'
 import { Card } from '@/shared/ui/Card'
 import { Modal } from '@/shared/ui/Modal'
@@ -27,6 +28,7 @@ import { alertError, confirmAction, toastSuccess } from '@/shared/lib/alert'
 import { formatNumber } from '@/shared/lib/format'
 import type { Resident, ResidentsResponse } from './types'
 import { JoinRequestInbox } from './JoinRequestInbox'
+import { JoinQrPanel } from './JoinQrPanel'
 
 export function ResidentsPage() {
   const [search, setSearch] = useState('')
@@ -34,6 +36,8 @@ export function ResidentsPage() {
   const [creating, setCreating] = useState(false)
   // پیوندِ دعوتِ تازه — فقط همین یک بار نشان داده می‌شود (مرحلهٔ ۹ · فاز ۶)
   const [invited, setInvited] = useState<InviteResult | null>(null)
+  // QR ِ ورودِ عمومی (مرحلهٔ ۱۰ · فاز ۵) — جدا از «ساکن جدید» که دعوتِ مستقیم است
+  const [showingQr, setShowingQr] = useState(false)
 
   useDocumentTitle('ساکنین')
   const queryClient = useQueryClient()
@@ -127,6 +131,14 @@ export function ResidentsPage() {
 
         <div className="flex flex-1 flex-wrap items-center justify-end gap-2">
           <SearchInput onSearch={handleSearch} placeholder="جستجوی نام یا شماره…" />
+          <button
+            onClick={() => setShowingQr(true)}
+            className="flex items-center gap-1.5 rounded-xl border px-4 py-2.5 text-[13px] font-semibold"
+            style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)' }}
+          >
+            <QrIcon size={16} />
+            QR ِ عضویت
+          </button>
           <button
             onClick={() => setCreating(true)}
             className="flex items-center gap-1.5 rounded-xl px-4 py-2.5 text-[13px] font-bold text-white transition-transform hover:scale-[1.03]"
@@ -293,6 +305,10 @@ export function ResidentsPage() {
           <Pager meta={data.meta} onChange={setPage} noun="ساکن" />
         </Card>
       )}
+
+      <Modal open={showingQr} title="ورودِ عمومی با QR" onClose={() => setShowingQr(false)}>
+        {showingQr && <JoinQrPanel />}
+      </Modal>
 
       <Modal
         open={creating || editing !== null || invited !== null}

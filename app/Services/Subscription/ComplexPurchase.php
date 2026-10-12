@@ -73,8 +73,13 @@ class ComplexPurchase
         return DB::transaction(function () use ($user, $plan, $complexName, $type, $address): CheckoutIntent {
             $fresh = User::withoutGlobalScopes()->lockForUpdate()->findOrFail($user->id);
 
-            if (AccountState::of($fresh) !== AccountState::Initial) {
-                throw DomainException::invalid('این حساب از قبل به یک مجتمع وصل است.', 'account.already_member');
+            /*
+             * از ۱۰/۵ (تصمیمِ کارفرما) عضوِ مجتمع‌های دیگر هم می‌خرد؛ فقط حسابِ سکو و حسابِ غیرفعال نه.
+             * قاعده‌های تجاریِ واقعی سرِ جایشان‌اند: پلنِ قابلِ خرید و هم‌نوع (`plan`)، مبلغ و مدت از
+             * پلن، و یک قصدِ باز برای هر حساب (پایین).
+             */
+            if (AccountState::of($fresh) === AccountState::Platform || ! $fresh->is_active) {
+                throw DomainException::invalid('این حساب نمی‌تواند مجتمع بخرد.', 'checkout.buyer_not_allowed');
             }
 
             CheckoutIntent::where('user_id', $fresh->id)
@@ -142,15 +147,15 @@ class ComplexPurchase
                 : null;
 
             /*
-             * پول گرفته شده ولی ساختن ممکن نیست (حساب در این فاصله عضوِ مجتمعی
-             * شد یا دیگر نیست). نه مدیرِ دوم می‌سازیم، نه پرداخت را گم می‌کنیم:
-             * `paid` + audit تا ادمینِ کل تعیینِ تکلیف کند.
+             * پول گرفته شده ولی ساختن ممکن نیست (حساب در این فاصله حذف یا غیرفعال شد). نه مجتمعِ
+             * بی‌صاحب می‌سازیم، نه پرداخت را گم می‌کنیم: `paid` + audit تا ادمینِ کل تعیینِ تکلیف کند.
+             * از ۱۰/۵ عضویت در مجتمعِ دیگر دلیلِ این شاخه نیست (تصمیمِ کارفرما).
              */
-            if (! $user || AccountState::of($user) !== AccountState::Initial) {
+            if (! $user || ! $user->is_active || AccountState::of($user) === AccountState::Platform) {
                 $fresh->transitionTo(CheckoutIntent::PAID, [
                     'tracking_code' => $tracking,
                     'paid_at' => now(),
-                    'failure_reason' => 'حساب دیگر در حالتِ اولیه نیست؛ مجتمع ساخته نشد',
+                    'failure_reason' => 'حساب دیگر نمی‌تواند مجتمع داشته باشد؛ مجتمع ساخته نشد',
                 ]);
                 Audit::log('checkout.paid_unfulfilled', 'پرداختِ اشتراک تأیید شد ولی مجتمع ساخته نشد', $fresh, [
                     'user_id' => $fresh->user_id,

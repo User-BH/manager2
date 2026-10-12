@@ -13,6 +13,7 @@ use App\Models\User;
 use App\Notifications\JoinRequestNotification;
 use App\Services\Account\ComplexMembers;
 use App\Services\Account\Membership;
+use App\Services\Account\PublicJoinLink;
 use App\Support\Audit;
 use App\Support\ComplexResolver;
 use App\Support\Phone;
@@ -32,7 +33,10 @@ use Illuminate\Support\Facades\Auth;
  */
 class JoinRequestController extends Controller
 {
-    public function __construct(private readonly Membership $membership) {}
+    public function __construct(
+        private readonly Membership $membership,
+        private readonly PublicJoinLink $joinLinks,
+    ) {}
 
     /**
      * آیا این شماره متعلق به مدیرِ یک مجتمع است؟ (اعتبارسنجیِ لحظه‌ای)
@@ -48,7 +52,8 @@ class JoinRequestController extends Controller
      */
     public function lookup(Request $request): JsonResponse
     {
-        $manager = $this->managerByPhone((string) $request->query('phone'));
+        $phone = $request->query('phone');
+        $manager = is_string($phone) ? $this->managerByPhone($phone) : null;
 
         return response()->json([
             'found' => $manager !== null,
@@ -56,22 +61,41 @@ class JoinRequestController extends Controller
         ]);
     }
 
-    /** ارسالِ درخواست به مدیر. */
+    /**
+     * ارسالِ درخواست به مدیر — از دو راهِ عمومی: شماره‌ی مدیر، یا کدِ QR ِ مجتمع (مرحلهٔ ۱۰ · فاز ۵).
+     *
+     * هر دو همان درخواستِ در انتظار را می‌سازند: تا تأییدِ مدیر هیچ عضویتی نیست (بندِ ۲۳).
+     */
     public function store(Request $request): JsonResponse
     {
         $user = Auth::user();
 
-        $manager = $this->managerByPhone((string) $request->input('phone'));
+        if ($request->filled('code')) {
+            $code = $request->input('code');
+            $complex = is_string($code) ? $this->joinLinks->resolve($code) : null;
+            $channel = 'qr';
 
-        if (! $manager || ! $manager->complex) {
-            throw DomainException::invalid(
-                'این شماره متعلق به هیچ مدیر مجتمعی نیست.',
-                'join_request.manager_not_found',
-            );
+            if ($complex === null) {
+                throw DomainException::invalid(
+                    'این QR معتبر نیست؛ شاید مدیر آن را عوض کرده است.',
+                    'join_link.invalid',
+                );
+            }
+        } else {
+            $phone = $request->input('phone');
+            $complex = is_string($phone) ? $this->managerByPhone($phone)?->complex : null;
+            $channel = 'manager_phone';
+
+            if ($complex === null) {
+                throw DomainException::invalid(
+                    'این شماره متعلق به هیچ مدیر مجتمعی نیست.',
+                    'join_request.manager_not_found',
+                );
+            }
         }
 
         // از ۱۰/۴ عضوِ مجتمعِ دیگر هم درخواست می‌دهد؛ عضوِ همین مجتمع نه
-        if (ComplexMembers::has($user, $manager->complex_id, ComplexMembership::ROLES)) {
+        if (ComplexMembers::has($user, $complex->id, ComplexMembership::ROLES)) {
             throw DomainException::invalid(
                 'شما از قبل عضوِ همین مجتمع هستید.',
                 'account.already_member',
@@ -82,10 +106,10 @@ class JoinRequestController extends Controller
          * یک درخواستِ در انتظار برای هر (مجتمع، کاربر) — در خودِ پایگاه‌داده
          * (`live_key` ِ یکتا؛ مرحلهٔ ۹ · فاز ۶). ارسالِ دوباره همان را تازه می‌کند.
          */
-        $key = 'request:'.$manager->complex_id.':'.$user->id;
+        $key = 'request:'.$complex->id.':'.$user->id;
         $invitation = ComplexInvitation::where('live_key', $key)->first()
             ?? new ComplexInvitation([
-                'complex_id' => $manager->complex_id,
+                'complex_id' => $complex->id,
                 'user_id' => $user->id,
                 'phone' => $user->phone,
                 'direction' => ComplexInvitation::REQUEST,
@@ -99,7 +123,8 @@ class JoinRequestController extends Controller
         $invitation->forceFill(['live_key' => $key])->save();
 
         Audit::log('join_request.sent', 'ارسال درخواست پیوستن به مجتمع', $invitation, [
-            'complex_id' => $manager->complex_id,
+            'complex_id' => $complex->id,
+            'channel' => $channel,
         ]);
 
         /*
@@ -108,14 +133,14 @@ class JoinRequestController extends Controller
          * اعلان‌ها را پر نمی‌کند.
          */
         if ($invitation->wasRecentlyCreated) {
-            ComplexMembers::query($manager->complex_id, [UserRole::ComplexAdmin])
+            ComplexMembers::query($complex->id, [UserRole::ComplexAdmin])
                 ->where('users.is_active', true)
                 ->get()
                 ->each(fn (User $admin) => $admin->notify(new JoinRequestNotification($invitation, $user->name)));
         }
 
         return response()->json([
-            'message' => 'درخواست شما برای مدیر «'.$manager->complex->name.'» ارسال شد. '
+            'message' => 'درخواست شما برای مدیر «'.$complex->name.'» ارسال شد. '
                 .'پس از تایید ایشان به مجتمع اضافه می‌شوید.',
         ], 202);
     }

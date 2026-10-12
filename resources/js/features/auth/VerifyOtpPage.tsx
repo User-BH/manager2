@@ -7,6 +7,7 @@ import { api, ApiError } from '@/shared/lib/api'
 import { useAuth } from '@/shared/stores/authStore'
 import { useDocumentTitle } from '@/shared/hooks'
 import type { CurrentUser } from '@/shared/types'
+import { afterSignIn } from './joinCode'
 
 interface VerifyState {
   phone?: string
@@ -47,7 +48,7 @@ export function VerifyOtpPage() {
   }
   if (isAuthenticated) {
     // داشبورد سندِ جداست
-    window.location.replace('/dashboard')
+    window.location.replace(afterSignIn())
     return null
   }
 
@@ -64,7 +65,7 @@ export function VerifyOtpPage() {
 
       // ورود کامل شد؛ به داشبورد (سندِ SPAِ جدا) می‌رویم — با `replace`،
       // تا «بازگشت» از داشبورد به گامِ کد برنگردد (مرحلهٔ ۷ · فاز ۱)
-      window.location.replace('/dashboard')
+      window.location.replace(afterSignIn())
     } catch (err) {
       if (err instanceof ApiError && err.status === 422) {
         setError(err.fieldError('code') ?? err.message)

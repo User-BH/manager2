@@ -182,6 +182,12 @@ const ProfilePage = lazy(() =>
 const AccountPage = lazy(() =>
   import('@/features/account/AccountPage').then((m) => ({ default: m.AccountPage })),
 )
+// خریدِ مجتمعِ تازه توسطِ عضو (مرحلهٔ ۱۰ · فاز ۵) — همان صفحه‌ی خریدِ حسابِ اولیه
+const NewComplexPurchasePage = lazy(() =>
+  import('@/features/registrant/RegistrantPurchasePage').then((m) => ({
+    default: m.RegistrantPurchasePage,
+  })),
+)
 
 const ADMINS: UserRole[] = ['super_admin', 'complex_admin']
 const SUPER: UserRole[] = ['super_admin']
@@ -279,6 +285,7 @@ export function AppRouter() {
             <Route path="/calculator" element={<CalculatorPage />} />
             <Route path="/profile" element={<ProfilePage />} />
             <Route path="/account" element={<AccountPage />} />
+            <Route path="/new-complex" element={<NewComplexPurchasePage />} />
           </Route>
         </Route>
 

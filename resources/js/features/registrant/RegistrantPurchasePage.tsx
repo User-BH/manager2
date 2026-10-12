@@ -10,6 +10,7 @@ import { alertInfo } from '@/shared/lib/alert'
 import { formatNumber } from '@/shared/lib/format'
 import { filterPersianAlphanumeric } from '@/shared/lib/inputFilters'
 import { useDocumentTitle } from '@/shared/hooks'
+import { useAuth } from '@/shared/stores/authStore'
 import { CardListSkeleton } from '@/shared/ui/Skeleton'
 import { ErrorState } from '@/shared/ui/PageState'
 import { purchaseSchema, type PurchaseValues } from './schemas/purchaseSchema'
@@ -58,6 +59,8 @@ export function RegistrantPurchasePage() {
   const nameId = useId()
   const addressId = useId()
   const [gatewayError, setGatewayError] = useState<string | null>(null)
+  // عضوِ مجتمع‌های دیگر هم از همین صفحه می‌خرد (مرحلهٔ ۱۰ · فاز ۵)
+  const isMember = useAuth().user?.accountState === 'member'
   const [submitting, setSubmitting] = useState(false)
 
   const {
@@ -151,8 +154,9 @@ export function RegistrantPurchasePage() {
           ساختِ مجتمع و خریدِ اشتراک
         </h1>
         <p className="mt-1 text-sm leading-6" style={{ color: 'var(--text-secondary)' }}>
-          پس از پرداختِ موفق، مجتمعتان ساخته می‌شود و مدیرِ آن می‌شوید. اگر مالک یا مستأجرِ یک واحد
-          هستید، اشتراک لازم نیست؛ کافی است مدیرِ ساختمان شما را اضافه کند.
+          {isMember
+            ? 'پس از پرداختِ موفق، مجتمعِ تازه ساخته می‌شود و مدیرِ آن می‌شوید. عضویت و نقشتان در مجتمع‌های فعلی دست نمی‌خورد؛ پس از پرداخت به مجتمعِ تازه می‌روید و از «مجتمع‌های من» برمی‌گردید.'
+            : 'پس از پرداختِ موفق، مجتمعتان ساخته می‌شود و مدیرِ آن می‌شوید. اگر مالک یا مستأجرِ یک واحد هستید، اشتراک لازم نیست؛ کافی است مدیرِ ساختمان شما را اضافه کند.'}
         </p>
       </div>
 
@@ -346,6 +350,8 @@ export function RegistrantPurchasePage() {
         <input type="hidden" name="complex_name" defaultValue="" />
         <input type="hidden" name="complex_type" defaultValue="" />
         <input type="hidden" name="complex_address" defaultValue="" />
+        {/* مجتمعِ تازه، نه تمدیدِ مجتمعِ فعال — عضوِ مجتمع‌های دیگر هم از همین صفحه می‌خرد (۱۰/۵) */}
+        <input type="hidden" name="purpose" value="new_complex" />
       </form>
     </div>
   )

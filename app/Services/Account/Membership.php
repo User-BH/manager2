@@ -179,7 +179,8 @@ class Membership
             }
 
             $complex = Complex::findOrFail($fresh->complex_id);
-            $this->join($applicant, $complex, $role, $unit, ComplexMembership::SOURCE_JOIN_REQUEST, $fresh);
+            // تصمیمِ مدیر است، نه کارِ متقاضی: اگر در مجتمعِ دیگری کار می‌کند همان‌جا می‌ماند (۱۰/۵)
+            $this->join($applicant, $complex, $role, $unit, ComplexMembership::SOURCE_JOIN_REQUEST, $fresh, activate: false);
 
             $fresh->forceFill(['role' => $role, 'unit_id' => $unit->id])->save();
             $fresh->close(ComplexInvitation::ACCEPTED);
@@ -239,12 +240,12 @@ class Membership
         return DomainException::invalid($message, $code, ['phone' => [$message]]);
     }
 
-    private function join(User $user, Complex $complex, UserRole $role, ?Unit $unit, string $source, ComplexInvitation $via): void
+    private function join(User $user, Complex $complex, UserRole $role, ?Unit $unit, string $source, ComplexInvitation $via, bool $activate = true): void
     {
         $this->guardPlacement($complex, $role, $unit);
 
         // عضویت و زمینه‌ی فعالِ حساب با هم، از دفترِ عضویت (مرحلهٔ ۱۰ · فاز ۲)
-        $this->ledger->start($user, $complex, $role, $source, $via);
+        $this->ledger->start($user, $complex, $role, $source, $via, $activate);
 
         if ($unit !== null) {
             $this->tenures->open(

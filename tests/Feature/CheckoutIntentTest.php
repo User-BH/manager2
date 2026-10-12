@@ -85,6 +85,12 @@ class CheckoutIntentTest extends TestCase
         ]);
     }
 
+    /** مقصدِ پس از خریدِ موفق — با مجتمعِ تازه، تا کلاینت به آن برود (مرحلهٔ ۱۰ · فاز ۵) */
+    private function successUrl(CheckoutIntent $intent): string
+    {
+        return '/dashboard?checkout=success&tracking=987654321&complex='.(int) $intent->fresh()->complex_id;
+    }
+
     private function returnFromGateway(CheckoutIntent $intent, string $status = 'OK', ?string $authority = null): TestResponse
     {
         return $this->get("/checkout/callback/{$intent->public_id}?Authority=".($authority ?? self::AUTHORITY)."&Status={$status}");
@@ -125,7 +131,7 @@ class CheckoutIntentTest extends TestCase
         $this->start($user);
         $intent = CheckoutIntent::sole();
 
-        $this->returnFromGateway($intent)->assertRedirect('/dashboard?checkout=success&tracking=987654321');
+        $this->returnFromGateway($intent)->assertRedirect($this->successUrl($intent));
 
         $user->refresh();
         $complex = Complex::sole();
@@ -155,9 +161,9 @@ class CheckoutIntentTest extends TestCase
         $this->start($user);
         $intent = CheckoutIntent::sole();
 
-        $this->returnFromGateway($intent)->assertRedirect('/dashboard?checkout=success&tracking=987654321');
-        $this->returnFromGateway($intent)->assertRedirect('/dashboard?checkout=success&tracking=987654321');
-        $this->returnFromGateway($intent, 'NOK')->assertRedirect('/dashboard?checkout=success&tracking=987654321');
+        $this->returnFromGateway($intent)->assertRedirect($this->successUrl($intent));
+        $this->returnFromGateway($intent)->assertRedirect($this->successUrl($intent));
+        $this->returnFromGateway($intent, 'NOK')->assertRedirect($this->successUrl($intent));
 
         $this->assertSame([1, 1, 1], [Complex::count(), Subscription::count(), User::where('role', UserRole::ComplexAdmin)->count()]);
         // تکلیفِ روشن‌شده دوباره از درگاه پرسیده نمی‌شود
@@ -300,20 +306,29 @@ class CheckoutIntentTest extends TestCase
     }
 
     /** پول گرفته شد ولی حساب در این فاصله عضوِ مجتمعی شد: نه مدیرِ دوم، نه پولِ گم‌شده */
-    public function test_a_payment_for_a_user_who_is_no_longer_initial_is_kept_for_review(): void
+    /**
+     * پول گرفته شد ولی خریدار در این فاصله غیرفعال شد: نه مجتمعِ بی‌صاحب، نه پرداختِ گم‌شده.
+     *
+     * ⚠️ تا ۱۰/۵ همین آزمون «عضو شدن در این فاصله» را دلیلِ نگه‌داشتن می‌گرفت؛ تصمیمِ کارفرما (۱۰/۵) عضویت
+     * را مانعِ خرید نمی‌داند (`MemberComplexPurchaseTest`). هدفِ آزمون همان ماند — پرداختی که نمی‌شود به
+     * مجتمع تبدیلش کرد گم نمی‌شود — با تنها دلیلی که هنوز مانع است.
+     */
+    public function test_a_payment_for_a_buyer_deactivated_meanwhile_is_kept_for_review(): void
     {
         $this->fakeZarinpal();
         $user = $this->initial();
         $this->start($user);
-        $joined = Complex::factory()->create();
-        app(MembershipLedger::class)->start($user, $joined, UserRole::Tenant, ComplexMembership::SOURCE_DIRECT);
+        $user->forceFill(['is_active' => false])->save();
 
+        $this->app['auth']->forgetGuards();
+        $this->flushSession();
         $this->returnFromGateway(CheckoutIntent::sole())->assertRedirect('/account?checkout=review');
 
         $intent = CheckoutIntent::sole();
         $this->assertSame([CheckoutIntent::PAID, '987654321'], [$intent->status, $intent->tracking_code]);
-        $this->assertSame([$joined->id, UserRole::Tenant], [$user->fresh()->complex_id, $user->fresh()->role]);
+        $this->assertNull($user->fresh()->complex_id);
         $this->assertSame(0, Subscription::count());
+        $this->assertNull($intent->complex_id);
         $this->assertDatabaseHas('audit_logs', ['action' => 'checkout.paid_unfulfilled']);
     }
 
@@ -331,7 +346,7 @@ class CheckoutIntentTest extends TestCase
         // بی نشست (بازگشت پس از انقضای نشست) هم کار می‌کند — اعتبار با تأییدِ درگاه است
         $this->app['auth']->forgetGuards();
         $this->flushSession();
-        $this->returnFromGateway($intent)->assertRedirect('/dashboard?checkout=success&tracking=987654321');
+        $this->returnFromGateway($intent)->assertRedirect($this->successUrl($intent));
         $this->assertSame(UserRole::ComplexAdmin, $buyer->fresh()->role);
     }
 
@@ -474,9 +489,11 @@ class CheckoutIntentTest extends TestCase
             }
         }
 
-        // مدیرِ مجتمع این فهرست را نمی‌گیرد؛ صفحه‌ی خودش بی‌تغییر است
+        // از ۱۰/۵ عضوِ مجتمع هم مجتمعِ تازه می‌خرد و همان فهرست را می‌گیرد؛ ادمینِ کل نه
         $manager = User::factory()->create(['role' => UserRole::ComplexAdmin, 'complex_id' => Complex::factory()->create()->id, 'is_active' => true]);
-        $this->actingAs($manager)->getJson('/api/v1/subscription')->assertOk()->assertJsonPath('newComplexPlans', null);
+        $this->assertSame($offered, $this->actingAs($manager)->getJson('/api/v1/subscription')->assertOk()->json('newComplexPlans'));
+        $super = User::factory()->create(['role' => UserRole::SuperAdmin, 'complex_id' => null, 'is_active' => true]);
+        $this->actingAs($super)->getJson('/api/v1/subscription')->assertOk()->assertJsonPath('newComplexPlans', null);
     }
 
     /* ───────────────────── سابقه‌ی مالی ───────────────────── */

@@ -8,11 +8,14 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Carbon;
 
 /**
  * @property ComplexType $type
  * @property array<string, mixed>|null $settings
  * @property array<string, mixed>|null $gateway_config
+ * @property string|null $join_code
+ * @property Carbon|null $join_code_created_at
  */
 class Complex extends Model
 {
@@ -27,6 +30,13 @@ class Complex extends Model
         // تعلیق (R29) — بدونِ اینها `update()` بی‌صدا نادیده‌شان می‌گیرد
         'suspended_at', 'suspension_reason',
     ];
+
+    /**
+     * کدِ QR ِ ورودِ عمومی (مرحلهٔ ۱۰ · فاز ۵) فقط از `GET join-link` به مدیرِ همین مجتمع می‌رسد —
+     * نه در تنظیماتِ مجتمع برای هر عضو، نه در فهرستِ ادمینِ کل، نه در پشتیبانِ خروجی. نوشتنش هم فقط
+     * از `PublicJoinLink` (عمداً در `$fillable` نیست).
+     */
+    protected $hidden = ['join_code'];
 
     protected function casts(): array
     {
@@ -52,6 +62,7 @@ class Complex extends Model
             'fund_balance' => 'decimal:2',
             'is_active' => 'boolean',
             'suspended_at' => 'datetime',
+            'join_code_created_at' => 'datetime',
         ];
     }
 
