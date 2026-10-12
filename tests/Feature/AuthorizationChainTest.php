@@ -157,6 +157,32 @@ class AuthorizationChainTest extends TestCase
         $this->assertSame($this->b->id, User::withoutGlobalScopes()->find($this->managerB->id)->complex_id);
     }
 
+    /** `/me` عضویت‌ها را برای تعویض می‌دهد — فقط مالِ خودِ حساب، و `current` همان زمینه‌ی فعال. */
+    public function test_me_lists_the_accounts_own_memberships_for_the_switcher(): void
+    {
+        $user = $this->as($this->ali)->getJson('/api/v1/me')->assertOk()->json('user');
+
+        $this->assertEqualsCanonicalizing(
+            [[$this->a->id, 'owner', false], [$this->b->id, 'tenant', true]],
+            collect($user['memberships'])->map(fn ($m) => [$m['complexId'], $m['role'], $m['current']])->all(),
+        );
+        $this->assertSame(['مجتمع الف', 'مجتمع ب'], collect($user['memberships'])->sortBy('complexId')->pluck('complexName')->values()->all());
+
+        $super = User::factory()->create(['complex_id' => null, 'role' => UserRole::SuperAdmin, 'is_active' => true]);
+        $this->assertSame([], $this->as($super)->getJson('/api/v1/me')->json('user.memberships'));
+    }
+
+    /** عضوی که به مجتمعِ دیگری دعوت شده، شمارِ دعوت را می‌گیرد تا در رابط ببیند (پیش از ۱۰/۴ فقط حسابِ اولیه). */
+    public function test_a_member_sees_invitations_to_other_complexes(): void
+    {
+        $c = Complex::factory()->create();
+        $unitC = Unit::factory()->create(['complex_id' => $c->id]);
+        app(Membership::class)->invite($c, $this->ali->phone, UserRole::Tenant, $unitC, null);
+
+        $this->as($this->ali)->getJson('/api/v1/me')->assertOk()->assertJsonPath('user.pendingInvitations', 1);
+        $this->assertCount(1, $this->as($this->ali)->getJson('/api/v1/invitations')->assertOk()->json('data'));
+    }
+
     public function test_the_super_admin_has_no_membership_context_to_switch(): void
     {
         $super = User::factory()->create(['complex_id' => null, 'role' => UserRole::SuperAdmin, 'is_active' => true]);
@@ -305,14 +331,25 @@ class AuthorizationChainTest extends TestCase
         $this->assertEqualsCanonicalizing([$this->managerA->id, $mina->id], array_column($managersOfA, 'id'));
     }
 
-    /** نگهبانِ ورود: مسیرهای پیوستن هنوز فقط حسابِ اولیه را راه می‌دهند (تا رابطِ تعویض در ۱۰/۴). */
-    public function test_the_joining_flows_still_admit_only_initial_accounts(): void
+    /**
+     * از ۱۰/۴ مسیرهای پیوستن عضوِ مجتمع‌های دیگر را هم راه می‌دهند (۱۰/۳ فقط حسابِ اولیه را،
+     * تا رابطِ تعویض ساخته شود): علی، عضوِ الف و ب، به ج دعوت و پذیرفته می‌شود؛ دعوت به
+     * مجتمعی که از قبل عضوش است همچنان رد.
+     */
+    public function test_the_joining_flows_admit_members_of_other_complexes(): void
     {
-        // عضوِ الف و ب به مجتمعِ سوم دعوت نمی‌شود — مسیرِ پیوستن هنوز فقط برای حسابِ اولیه
         $c = Complex::factory()->create();
         $unitC = Unit::factory()->create(['complex_id' => $c->id]);
 
+        [$invitation] = app(Membership::class)->invite($c, $this->ali->phone, UserRole::Tenant, $unitC, null);
+        app(Membership::class)->accept($invitation, User::withoutGlobalScopes()->find($this->ali->id));
+
+        $this->assertEqualsCanonicalizing([$this->a->id, $this->b->id, $c->id],
+            ComplexMembership::withoutGlobalScopes()->active()->where('user_id', $this->ali->id)->pluck('complex_id')->all());
+        $this->assertSame($c->id, User::withoutGlobalScopes()->find($this->ali->id)->complex_id, 'پذیرش به زمینه‌ی مجتمعِ تازه نرفت.');
+        $this->assertSame([], app(MembershipLedger::class)->violations());
+
         $this->expectException(DomainException::class);
-        app(Membership::class)->invite($c, $this->ali->phone, UserRole::Tenant, $unitC, null);
+        app(Membership::class)->invite($this->a, $this->ali->phone, UserRole::Tenant, $this->unitA, $this->managerA);
     }
 }

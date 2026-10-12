@@ -2,9 +2,13 @@
 
 namespace Database\Seeders;
 
+use App\Enums\ComplexType;
+use App\Enums\OccupancyStatus;
 use App\Enums\UserRole;
+use App\Models\Complex;
 use App\Models\ComplexInvitation;
 use App\Models\ComplexMembership;
+use App\Models\Unit;
 use App\Models\User;
 use App\Models\WalletTransaction;
 use App\Services\Account\MembershipLedger;
@@ -48,6 +52,15 @@ class E2eSeeder extends Seeder
 
     /** حسابِ اولیه برای خریدِ آنلاینِ اشتراک و ساختِ مجتمع (مرحلهٔ ۹ · فاز ۴) — یکی برای هر موتور */
     public const BUYERS = ['09120000041', '09120000042', '09120000043'];
+
+    /**
+     * حسابِ عضوِ دو مجتمع برای تعویضِ مجتمع (مرحلهٔ ۱۰ · فاز ۴) — یکی برای هر موتور:
+     * مستأجرِ «آفتاب» و مدیرِ «مجتمعِ دومِ سرتاسری». زمینه‌ی شروع: آفتاب.
+     */
+    public const MULTI = ['09120000061', '09120000062', '09120000063'];
+
+    /** مجتمعِ دومِ آزمون — فقط برای حساب‌های چندمجتمعی */
+    public const SECOND_COMPLEX = 'مجتمع دوم سرتاسری';
 
     /** بیش از هر قبضِ نمایشی، تا کیف قبض را کامل بپردازد نه بخشی از آن. */
     public const CREDIT = 5_000_000;
@@ -93,7 +106,51 @@ class E2eSeeder extends Seeder
          * سفرهای صفحه‌بندی، جست‌وجو و بازکردنِ مقاله بی‌آن‌ها چیزی برای سنجیدن
          * نداشتند.
          */
+        $this->multiMembers();
+
         $importer->import();
+    }
+
+    /**
+     * حساب‌های چندمجتمعی از نو: هر عضویتِ قبلی پایان می‌یابد (تاریخچه می‌ماند)، سپس مدیرِ
+     * مجتمعِ دوم و مستأجرِ آفتاب — به همین ترتیب، تا زمینه‌ی شروع آفتاب باشد.
+     */
+    private function multiMembers(): void
+    {
+        $aftab = Complex::where('slug', 'aftab')->first()
+            ?? throw new RuntimeException('مجتمعِ «آفتاب» نیست؛ اول DemoSeeder را اجرا کنید.');
+
+        $second = Complex::firstOrCreate(['slug' => 'e2e-second'], [
+            'name' => self::SECOND_COMPLEX,
+            'type' => ComplexType::Residential,
+            'address' => 'نشانیِ آزمونِ سرتاسری',
+            'payment_gateway' => 'none',
+        ]);
+        Unit::withoutGlobalScopes()->firstOrCreate(
+            ['complex_id' => $second->id, 'unit_number' => 'دوم-۱'],
+            ['floor' => 1, 'area' => 90, 'residents_count' => 1, 'coefficient' => 1, 'occupancy_status' => OccupancyStatus::Vacant],
+        );
+
+        $ledger = app(MembershipLedger::class);
+
+        foreach (self::MULTI as $i => $phone) {
+            $user = User::withoutGlobalScopes()->firstOrNew(['phone' => $phone]);
+            while ($user->exists && $user->complex_id !== null) {
+                $ledger->end($user, ComplexMembership::END_REMOVED);
+            }
+            $user->fill([
+                'complex_id' => null,
+                'first_name' => 'چندمجتمعی',
+                'last_name' => 'سرتاسری '.($i + 1),
+                'password' => Hash::make('password'),
+                'role' => UserRole::Owner,
+                'is_active' => true,
+                'terms_accepted_at' => now(),
+            ])->save();
+
+            $ledger->start($user, $second, UserRole::ComplexAdmin, ComplexMembership::SOURCE_DIRECT);
+            $ledger->start($user, $aftab, UserRole::Tenant, ComplexMembership::SOURCE_DIRECT);
+        }
     }
 
     /** همان حسابی که `AuthController::register` می‌سازد: مالکِ بی‌مجتمع، بی‌واحد، بی‌دعوت */
@@ -101,8 +158,8 @@ class E2eSeeder extends Seeder
     {
         $user = User::withoutGlobalScopes()->firstOrNew(['phone' => $phone]);
 
-        // سفرِ پیشین عضوش کرده بود: عضویت از دفترِ عضویت پایان می‌یابد و تاریخچه می‌ماند (۱۰/۲)
-        if ($user->exists && $user->complex_id !== null) {
+        // سفرِ پیشین عضوش کرده بود: همه‌ی عضویت‌ها از دفترِ عضویت پایان می‌یابند و تاریخچه می‌ماند (۱۰/۲–۱۰/۴)
+        while ($user->exists && $user->complex_id !== null) {
             app(MembershipLedger::class)->end($user, ComplexMembership::END_REMOVED);
         }
         $user->fill([

@@ -62,6 +62,20 @@ export interface CurrentUser {
   accountState: AccountState
   canWrite: boolean
   pendingInvitations: number
+
+  /**
+   * عضویت‌های فعالِ حساب (مرحلهٔ ۱۰ · فاز ۴) — یکی برای هر مجتمع؛ `current` زمینه‌ی
+   * فعال است. ادمینِ کل عضویت ندارد.
+   */
+  memberships: MembershipSummary[]
+}
+
+export interface MembershipSummary {
+  complexId: number
+  complexName: string
+  role: UserRole
+  roleLabel: string
+  current: boolean
 }
 
 export type AccountState = 'initial' | 'member' | 'platform'

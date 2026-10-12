@@ -2,12 +2,12 @@
 
 namespace App\Http\Controllers\Api;
 
-use App\Enums\AccountState;
 use App\Enums\UserRole;
 use App\Exceptions\DomainException;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\ApproveJoinRequestRequest;
 use App\Models\ComplexInvitation;
+use App\Models\ComplexMembership;
 use App\Models\Unit;
 use App\Models\User;
 use App\Notifications\JoinRequestNotification;
@@ -61,19 +61,20 @@ class JoinRequestController extends Controller
     {
         $user = Auth::user();
 
-        if (AccountState::of($user) !== AccountState::Initial) {
-            throw DomainException::invalid(
-                'شما از قبل عضو یک مجتمع هستید.',
-                'account.already_member',
-            );
-        }
-
         $manager = $this->managerByPhone((string) $request->input('phone'));
 
         if (! $manager || ! $manager->complex) {
             throw DomainException::invalid(
                 'این شماره متعلق به هیچ مدیر مجتمعی نیست.',
                 'join_request.manager_not_found',
+            );
+        }
+
+        // از ۱۰/۴ عضوِ مجتمعِ دیگر هم درخواست می‌دهد؛ عضوِ همین مجتمع نه
+        if (ComplexMembers::has($user, $manager->complex_id, ComplexMembership::ROLES)) {
+            throw DomainException::invalid(
+                'شما از قبل عضوِ همین مجتمع هستید.',
+                'account.already_member',
             );
         }
 

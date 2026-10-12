@@ -64,6 +64,12 @@ listenForAuthChanges((message) => {
     return
   }
 
+  // مجتمعِ فعالِ حساب در تبِ دیگری عوض شد: هیچ دادهٔ مجتمعِ قبلی در این تب نماند
+  if (message.type === 'context') {
+    window.location.reload()
+    return
+  }
+
   const current = useAuthStore.getState().user
   if (current && current.id !== message.userId) window.location.reload()
 })

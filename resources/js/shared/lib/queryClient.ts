@@ -1,4 +1,19 @@
-import { QueryClient } from '@tanstack/react-query'
+import { QueryClient, hashKey, type QueryKey } from '@tanstack/react-query'
+import { useAuthStore } from '@/shared/stores/authStore'
+
+/**
+ * کلیدِ کش با زمینه‌ی فعال (مرحلهٔ ۱۰ · فاز ۴؛ بندِ ۸۳ ِ فایلِ معماری).
+ *
+ * یک حساب در چند مجتمع عضو است و همان نشانی (`/units`، `/my-bills`) در هر مجتمع دادهٔ
+ * دیگری می‌دهد. هر کلید با «حساب و مجتمعِ فعال» درهم‌سازی می‌شود، پس کشِ مجتمعِ الف
+ * هرگز در زمینه‌ی ب پاسخ داده نمی‌شود — حتی اگر جایی بی ناوبریِ کامل زمینه عوض شود
+ * (`enterNewContext` همیشه با ناوبریِ کامل می‌رود؛ این لایه‌ی دوم است). کلیدهای
+ * `queryKeys` دست نمی‌خورند و ابطال (`invalidateQueries`) مثلِ قبل با پیشوند کار می‌کند.
+ */
+export function contextualHash(queryKey: QueryKey): string {
+  const user = useAuthStore.getState().user
+  return hashKey([user?.id ?? 0, user?.complex?.id ?? 0, ...queryKey])
+}
 
 /**
  * پیکربندیِ TanStack Query.
@@ -30,6 +45,8 @@ export function createQueryClient(): QueryClient {
       queries: {
         // شبکه و تلاشِ دوباره کارِ لایه‌ی زیرین است — بالا را ببینید
         retry: false,
+
+        queryKeyHashFn: contextualHash,
 
         /*
          * داده تا نیم دقیقه «تازه» است. عددِ کوچک یعنی درخواستِ زیاد، عددِ

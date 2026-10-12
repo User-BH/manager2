@@ -313,21 +313,34 @@ class JoinRequestTest extends TestCase
     }
 
     /**
-     * اگر متقاضی بینِ ارسال و تایید جای دیگری عضو شده باشد، تایید نباید
-     * بی‌سروصدا از مجتمعِ فعلی‌اش بیرونش بکشد.
+     * متقاضی بینِ ارسال و تأیید جای دیگری عضو شده: تأیید عضویتِ **دوم** می‌سازد و عضویتِ
+     * دیگرش را دست نمی‌زند — بیرون‌کشیدنِ بی‌سروصدا ناممکن است (مرحلهٔ ۱۰ · فاز ۴). پیش از
+     * ۱۰/۴ این تأیید ۴۲۲ می‌گرفت، چون حساب فقط یک مجتمع داشت.
      */
-    public function test_approving_someone_who_already_joined_elsewhere_is_refused(): void
+    public function test_approving_someone_who_joined_elsewhere_adds_a_membership_and_keeps_the_other(): void
     {
         $request = $this->makeRequest();
 
-        app(MembershipLedger::class)->start($this->applicant, Complex::factory()->create(), UserRole::Owner, ComplexMembership::SOURCE_DIRECT);
-        $elsewhere = $this->applicant->fresh()->complex_id;
+        $elsewhere = Complex::factory()->create();
+        app(MembershipLedger::class)->start($this->applicant, $elsewhere, UserRole::Owner, ComplexMembership::SOURCE_DIRECT);
+
+        $this->actingAs($this->manager)
+            ->postJson("/api/v1/join-requests/{$request->id}/approve", $this->placement())
+            ->assertOk();
+
+        $active = ComplexMembership::withoutGlobalScopes()->active()->where('user_id', $this->applicant->id)->pluck('complex_id')->sort()->values()->all();
+        $this->assertSame(collect([$elsewhere->id, $this->complex->id])->sort()->values()->all(), $active, 'عضویتِ دیگرِ متقاضی از دست رفت.');
+    }
+
+    /** ولی عضوِ **همین** مجتمع دوباره عضو نمی‌شود. */
+    public function test_approving_someone_already_in_this_complex_is_refused(): void
+    {
+        $request = $this->makeRequest();
+        app(MembershipLedger::class)->start($this->applicant, $this->complex, UserRole::Tenant, ComplexMembership::SOURCE_DIRECT);
 
         $this->actingAs($this->manager)
             ->postJson("/api/v1/join-requests/{$request->id}/approve", $this->placement())
             ->assertStatus(422);
-
-        $this->assertSame($elsewhere, $this->applicant->fresh()->complex_id);
     }
 
     /* ── قفلِ حالتِ اولیه نباید مانع شود ────────────────────────────────── */

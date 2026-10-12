@@ -64,57 +64,67 @@ class InvitationConcurrencyTest extends TestCase
         parent::tearDown();
     }
 
-    /** چند پذیرشِ هم‌زمانِ **یک** دعوت: یک عضویت، نه بیشتر. */
+    /** چند پذیرشِ هم‌زمانِ **یک** دعوت: یک عضویت در همان مجتمع، نه بیشتر. */
     public function test_one_invitation_accepted_concurrently_makes_one_membership(): void
     {
         $invitation = $this->data['invitations'][0];
         [$outputs, $state] = $this->race(array_fill(0, self::WORKERS, $invitation));
 
-        $this->assertInvariants($outputs, $state);
+        $this->assertInvariants($outputs, $state, 1);
     }
 
-    /** دو دعوتِ دو مجتمع، هم‌زمان: حساب فقط در یکی می‌نشیند و دیگری می‌میرد. */
-    public function test_two_invitations_accepted_concurrently_make_one_membership(): void
+    /**
+     * دو دعوتِ دو مجتمع، هم‌زمان و هرکدام دو بار (مرحلهٔ ۱۰ · فاز ۴): هر دعوت **یک** بار
+     * پذیرفته می‌شود و حساب در هر دو مجتمع یک عضویت می‌گیرد — چند عضویت مجاز است، عضویتِ
+     * تکراری در یک مجتمع نه. (پیش از ۱۰/۴ حساب فقط در یکی می‌نشست و دیگری می‌مُرد.)
+     */
+    public function test_two_invitations_accepted_concurrently_make_one_membership_each(): void
     {
         [$a, $b] = $this->data['invitations'];
         [$outputs, $state] = $this->race([$a, $b, $a, $b]);
 
-        $this->assertInvariants($outputs, $state);
+        $this->assertInvariants($outputs, $state, 2);
     }
 
     /**
      * @param  list<string>  $outputs
-     * @param  array{complex: int|null, tenures: int, openTenures: int, tenureComplexes: list<int>, accepted: list<int>, live: int}  $state
+     * @param  array{complex: int|null, tenures: int, openTenures: int, tenureComplexes: list<int>, accepted: list<int>, live: int, activeMemberships: list<int>}  $state
      */
-    private function assertInvariants(array $outputs, array $state): void
+    private function assertInvariants(array $outputs, array $state, int $expectedOnMysql): void
     {
         $context = "\nخروجیِ پردازه‌ها:\n  ".implode("\n  ", $outputs)."\nوضعیت: ".json_encode($state);
         $ok = count(array_filter($outputs, fn (string $o) => str_contains($o, 'OK')));
 
         /*
-         * ⚠️ SQLite نویسنده‌ی هم‌زمان را با «database is locked» رد می‌کند؛ پس
-         * محلی ممکن است هیچ‌کدام ننشیند. «دقیقاً یک» فقط با قفلِ ردیفِ واقعی
-         * (MySQL ِ CI) ادعا می‌شود. «بیش از یک» در هر دو شکست است.
+         * ⚠️ SQLite نویسنده‌ی هم‌زمان را با «database is locked» رد می‌کند؛ پس محلی
+         * ممکن است کمتر بنشیند. «دقیقاً همان تعداد» فقط با قفلِ ردیفِ واقعی (MySQL ِ CI)
+         * ادعا می‌شود. «بیش از آن» در هر دو شکست است.
          */
-        $expected = config('database.default') === 'sqlite' ? [0, 1] : [1];
+        $expected = config('database.default') === 'sqlite' ? range(0, $expectedOnMysql) : [$expectedOnMysql];
         $this->assertContains($ok, $expected, 'تعدادِ پذیرش‌های موفق نادرست است.'.$context);
+
+        $accepted = $state['accepted'];
+        sort($accepted);
+        $this->assertSame(count(array_unique($accepted)), count($accepted), 'یک دعوت دو بار پذیرفته شد.'.$context);
+        $this->assertCount($ok, $accepted, 'هر پذیرشِ موفق دقیقاً یک دعوتِ پذیرفته نیست.'.$context);
+
+        $memberships = $state['activeMemberships'];
+        sort($memberships);
+        $this->assertSame($accepted, $memberships, 'عضویتِ فعال با دعوت‌های پذیرفته نمی‌خواند (تکراری یا جاافتاده).'.$context);
+
+        $tenureComplexes = $state['tenureComplexes'];
+        sort($tenureComplexes);
+        $this->assertSame([$ok, $ok], [$state['tenures'], $state['openTenures']], 'دوره‌ی سکونتِ تکراری یا جاافتاده.'.$context);
+        $this->assertSame($accepted, $tenureComplexes, 'دوره‌ی سکونت در مجتمعی است که پذیرفته نشده.'.$context);
+
+        // دعوتی که پذیرفته نشد زنده می‌ماند — مجتمعِ دیگر است و حساب را جابه‌جا نمی‌کند
+        $this->assertSame(2 - $ok, $state['live'], 'دعوتِ پذیرفته‌شده زنده ماند یا دعوتِ دیگر بی‌دلیل مُرد.'.$context);
 
         if ($ok === 0) {
             $this->assertNull($state['complex'], 'بی پذیرشِ موفق، حساب عضو شد.'.$context);
-            $this->assertSame(0, $state['tenures'], $context);
-            $this->assertSame([], $state['accepted'], $context);
-            $this->assertSame([], $state['activeMemberships'], 'بی پذیرشِ موفق، عضویت ساخته شد.'.$context);
-
-            return;
+        } else {
+            $this->assertContains($state['complex'], $accepted, 'زمینه‌ی فعال در مجتمعی است که پذیرفته نشده.'.$context);
         }
-
-        $this->assertNotNull($state['complex'], 'پذیرشِ موفق، عضویت نساخت.'.$context);
-        $this->assertSame(1, $state['tenures'], 'دوره‌ی سکونتِ تکراری.'.$context);
-        $this->assertSame(1, $state['openTenures'], $context);
-        $this->assertSame([$state['complex']], $state['tenureComplexes'], 'دوره‌ی سکونت در مجتمعِ دیگری است.'.$context);
-        $this->assertSame([$state['complex']], $state['accepted'], 'بیش از یک دعوتِ پذیرفته، یا دعوتِ مجتمعِ دیگر.'.$context);
-        $this->assertSame(0, $state['live'], 'دعوتِ زنده‌ای مانده که حساب را جابه‌جا می‌کند.'.$context);
-        $this->assertSame([$state['complex']], $state['activeMemberships'], 'عضویتِ فعالِ تکراری یا در مجتمعِ دیگر.'.$context);
     }
 
     /**

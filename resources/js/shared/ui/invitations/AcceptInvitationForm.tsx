@@ -3,6 +3,7 @@ import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { Check, Loader2 } from 'lucide-react'
 import { TextField } from '@/shared/ui/Field'
+import { enterNewContext } from '@/shared/lib/accountContext'
 import { api, ApiError } from '@/shared/lib/api'
 import { toAsciiDigits } from '@/shared/lib/inputFilters'
 import {
@@ -49,10 +50,10 @@ export function AcceptInvitationForm({
         body: { code: toAsciiDigits(values.code) },
       })
       /*
-       * پذیرش، حالتِ حساب را عوض می‌کند و کلِ ناوبری باید از نو ساخته شود.
-       * بارگذاریِ کاملِ صفحه ساده‌ترین راهِ درست است.
+       * پذیرش به زمینه‌ی مجتمعِ تازه می‌برد (مرحلهٔ ۱۰ · فاز ۴): کشِ API پاک، تب‌های دیگر
+       * باخبر، و ناوبریِ کامل — هیچ دادهٔ زمینه‌ی قبلی نمی‌ماند.
        */
-      window.location.replace('/dashboard')
+      await enterNewContext()
     } catch (error) {
       if (error instanceof ApiError && error.errors.code) {
         setError('code', { message: error.errors.code[0] })

@@ -1,24 +1,10 @@
-import { useState, type ReactNode } from 'react'
-import { useQuery } from '@tanstack/react-query'
-import {
-  ArrowLeft,
-  Building2,
-  Check,
-  PlayCircle,
-  ShieldAlert,
-  UserRound,
-  UserPlus,
-  X,
-} from 'lucide-react'
-import { api } from '@/shared/lib/api'
-import { queryKeys } from '@/shared/lib/queryKeys'
+import { type ReactNode } from 'react'
+import { ArrowLeft, Building2, PlayCircle, ShieldAlert, UserRound, UserPlus } from 'lucide-react'
 import { useDocumentTitle } from '@/shared/hooks'
-import { useAction } from '@/shared/hooks/useAction'
 import { useAuth } from '@/shared/stores/authStore'
-import type { Invitation } from '@/shared/types'
 import { JoinByManagerPhone } from './JoinByManagerPhone'
 import { RegistrantGuide } from './RegistrantGuide'
-import { AcceptInvitationForm } from './AcceptInvitationForm'
+import { ReceivedInvitations } from '@/shared/ui/invitations/ReceivedInvitations'
 
 /**
  * داشبوردِ «ثبت‌نام‌کننده‌ی اولیه» (R21؛ از مرحلهٔ ۸ · فاز ۱ تجربه‌ی جدا با
@@ -42,7 +28,7 @@ export function RegistrantDashboardPage() {
       </h1>
       <StatusBanner />
       {user?.needsName ? <CompleteName /> : null}
-      <InvitationList />
+      <ReceivedInvitations />
       <JoinByManagerPhone />
       <NextSteps />
       <RegistrantGuide />
@@ -112,126 +98,6 @@ function CompleteName() {
 }
 
 /* ── دعوت‌ها ─────────────────────────────────────────────────────────────── */
-
-/** گامِ کدِ پذیرش برای یک دعوت (مرحلهٔ ۹ · فاز ۶) */
-interface CodeStep {
-  id: number
-  message: string
-  devCode: string | null
-}
-
-function InvitationList() {
-  const { run, pendingKey } = useAction()
-  const [codeStep, setCodeStep] = useState<CodeStep | null>(null)
-
-  const { data, isLoading } = useQuery({
-    queryKey: queryKeys.invitations.all(),
-    // ⚠️ `signal` تنها چیزی است که با unmount یا تغییرِ مسیر درخواست را لغو می‌کند (فاز ۳)
-    queryFn: ({ signal }) => api<{ data: Invitation[] }>('/invitations', { signal }),
-  })
-
-  /*
-   * «پیوستن» اول کدِ تازه به شماره‌ی خودِ کاربر می‌فرستد (مرحلهٔ ۹ · فاز ۶).
-   * فقط وقتی ادمینِ کل OTP را برای کلِ سامانه خاموش کرده باشد (پیش از آماده‌شدنِ
-   * پیامک) مستقیم پذیرفته می‌شود — همان قاعده‌ی گامِ دومِ ورود.
-   */
-  const accept = (id: number) =>
-    run(
-      async () => {
-        const step = await api<{ otpRequired: boolean; message?: string; devCode?: string | null }>(
-          `/invitations/${id}/code`,
-          { method: 'POST' },
-        )
-
-        if (step.otpRequired) {
-          setCodeStep({
-            id,
-            message: step.message ?? 'کدِ تأیید فرستاده شد.',
-            devCode: step.devCode ?? null,
-          })
-          return
-        }
-
-        await api(`/invitations/${id}/accept`, { method: 'POST' })
-        // پذیرش، حالتِ حساب را عوض می‌کند؛ بارگذاریِ کامل همه‌ی حالتِ محلیِ «اولیه» را پاک می‌کند
-        window.location.replace('/dashboard')
-      },
-      { key: id },
-    )
-
-  const decline = (id: number) =>
-    run(() => api(`/invitations/${id}/decline`, { method: 'POST' }), {
-      key: id,
-      success: 'دعوت رد شد.',
-      invalidate: [queryKeys.invitations.all()],
-    })
-
-  if (isLoading || !data?.data.length) return null
-
-  return (
-    <section className="flex flex-col gap-3">
-      <h2 className="text-sm font-bold" style={{ color: 'var(--text-primary)' }}>
-        دعوت‌های شما
-      </h2>
-
-      {data.data.map((invitation) => (
-        <div
-          key={invitation.id}
-          className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border p-4"
-          style={{ borderColor: 'var(--border-default)', backgroundColor: 'var(--surface-base)' }}
-        >
-          <div className="flex items-start gap-3">
-            <Building2
-              size={18}
-              className="mt-0.5 shrink-0"
-              style={{ color: 'var(--color-brand-500)' }}
-            />
-            <div>
-              <p className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>
-                {invitation.complexName}
-              </p>
-              <p className="mt-0.5 text-xs" style={{ color: 'var(--text-tertiary)' }}>
-                {[invitation.unitLabel, `به عنوان ${invitation.roleLabel}`, invitation.invitedBy]
-                  .filter(Boolean)
-                  .join(' · ')}
-              </p>
-            </div>
-          </div>
-
-          {codeStep?.id === invitation.id ? (
-            <AcceptInvitationForm
-              invitationId={invitation.id}
-              message={codeStep.message}
-              devCode={codeStep.devCode}
-              onCancel={() => setCodeStep(null)}
-            />
-          ) : (
-            <div className="flex gap-2">
-              <button
-                onClick={() => void accept(invitation.id)}
-                disabled={pendingKey !== null}
-                className="flex items-center gap-1.5 rounded-xl px-4 py-2 text-xs font-bold text-white disabled:opacity-60"
-                style={{ backgroundColor: 'var(--color-brand-500)' }}
-              >
-                <Check size={14} />
-                پیوستن
-              </button>
-              <button
-                onClick={() => void decline(invitation.id)}
-                disabled={pendingKey !== null}
-                className="flex items-center gap-1.5 rounded-xl border px-3 py-2 text-xs font-semibold disabled:opacity-60"
-                style={{ borderColor: 'var(--border-default)', color: 'var(--text-secondary)' }}
-              >
-                <X size={14} />
-                رد
-              </button>
-            </div>
-          )}
-        </div>
-      ))}
-    </section>
-  )
-}
 
 /* ── دو راهِ پیشِ رو ─────────────────────────────────────────────────────── */
 

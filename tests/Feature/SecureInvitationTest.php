@@ -396,8 +396,12 @@ class SecureInvitationTest extends TestCase
         $this->assertNull($recipient->fresh()->complex_id);
     }
 
-    /** دعوت هیچ‌وقت کسی را از مجتمعِ دیگری بیرون نمی‌کشد. */
-    public function test_a_member_elsewhere_cannot_accept_even_with_a_valid_code(): void
+    /**
+     * دعوت هیچ‌وقت کسی را از مجتمعِ دیگری بیرون نمی‌کشد — از ۱۰/۴ با عضویتِ دوم: عضوِ جای
+     * دیگر با کدِ معتبر می‌پذیرد و عضویتِ قبلی‌اش سرِ جایش می‌ماند. (پیش از ۱۰/۴ پذیرش ۴۲۲
+     * می‌گرفت، چون حساب فقط یک مجتمع داشت.)
+     */
+    public function test_a_member_elsewhere_accepts_and_keeps_the_first_membership(): void
     {
         [$id] = $this->inviteViaApi();
         $recipient = $this->registrant();
@@ -406,12 +410,17 @@ class SecureInvitationTest extends TestCase
 
         app(MembershipLedger::class)->start($recipient, $elsewhere, UserRole::Owner, ComplexMembership::SOURCE_DIRECT);
 
-        $this->as($recipient->fresh())->postJson("/api/v1/invitations/{$id}/accept", ['code' => $code])->assertStatus(422);
-        $this->assertSame($elsewhere->id, $recipient->fresh()->complex_id);
+        $this->as($recipient->fresh())->postJson("/api/v1/invitations/{$id}/accept", ['code' => $code])->assertOk();
+
+        $active = ComplexMembership::withoutGlobalScopes()->active()->where('user_id', $recipient->id)->pluck('complex_id')->sort()->values()->all();
+        $this->assertSame(collect([$elsewhere->id, $this->complex->id])->sort()->values()->all(), $active, 'عضویتِ قبلی با پذیرش پایان یافت.');
     }
 
-    /** دعوتِ مجتمعِ دیگر پس از عضویت مُرده است: نه پذیرفته می‌شود نه حساب را جابه‌جا می‌کند. */
-    public function test_another_complexes_invitation_dies_once_the_account_joins(): void
+    /**
+     * دعوتِ مجتمعِ دیگر پس از عضویت زنده می‌ماند و پذیرفتنش عضویتِ **دوم** است (مرحلهٔ ۱۰ ·
+     * فاز ۴) — عضویتِ اول و دوره‌ی واحدش سرِ جایش. پیش از ۱۰/۴ این دعوت با پیوستن می‌مُرد.
+     */
+    public function test_another_complexes_invitation_stays_alive_and_adds_a_second_membership(): void
     {
         $other = Complex::factory()->create();
         $otherUnit = Unit::factory()->create(['complex_id' => $other->id]);
@@ -421,13 +430,16 @@ class SecureInvitationTest extends TestCase
         $recipient = $this->registrant();
 
         $this->acceptWithCode($recipient, $id)->assertOk();
-        $code = $this->as($recipient->fresh())->postJson("/api/v1/invitations/{$foreign->id}/code");
-        $this->assertContains($code->status(), [404, 422], 'برای دعوتِ مُرده کد صادر شد.');
-        $this->as($recipient->fresh())->postJson("/api/v1/invitations/{$foreign->id}/accept", ['code' => '123456'])->assertNotFound();
+        $this->assertSame(ComplexInvitation::PENDING, $foreign->fresh()->status, 'دعوتِ مجتمعِ دیگر با پیوستن مُرد.');
 
-        $this->assertSame($this->complex->id, $recipient->fresh()->complex_id);
-        $this->assertSame(1, UnitTenure::where('user_id', $recipient->id)->count());
-        $this->assertSame(ComplexInvitation::DECLINED, $foreign->fresh()->status);
+        // کدِ تازه برای همان شماره پس از فاصله‌ی ارسالِ دوباره
+        $this->travel(OtpService::RESEND_COOLDOWN + 1)->seconds();
+        $this->acceptWithCode($recipient->fresh(), $foreign->id)->assertOk();
+
+        $active = ComplexMembership::withoutGlobalScopes()->active()->where('user_id', $recipient->id)->pluck('complex_id')->sort()->values()->all();
+        $this->assertSame(collect([$this->complex->id, $other->id])->sort()->values()->all(), $active);
+        $this->assertSame(2, UnitTenure::where('user_id', $recipient->id)->current()->count(), 'دوره‌ی واحدِ مجتمعِ اول با پیوستن به دوم بسته شد.');
+        $this->assertSame(ComplexInvitation::ACCEPTED, $foreign->fresh()->status);
         $this->assertNull($foreign->fresh()->live_key);
     }
 

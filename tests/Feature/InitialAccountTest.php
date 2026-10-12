@@ -9,6 +9,7 @@ use App\Models\Announcement;
 use App\Models\Bill;
 use App\Models\Complex;
 use App\Models\ComplexInvitation;
+use App\Models\ComplexMembership;
 use App\Models\Plan;
 use App\Models\Subscription;
 use App\Models\Unit;
@@ -269,14 +270,17 @@ class InitialAccountTest extends TestCase
     }
 
     /**
-     * ساکنِ مجتمعِ دیگر همچنان دعوت نمی‌شود.
+     * ساکنِ مجتمعِ دیگر دعوت می‌شود — و هیچ چیزش جابه‌جا نمی‌شود (مرحلهٔ ۱۰ · فاز ۴).
      *
-     * وگرنه این مسیر تبدیل می‌شد به راهی برای بیرون‌کشیدنِ ساکنِ رقیب.
+     * پیش از ۱۰/۴ این شماره ۴۲۲ می‌گرفت، چون پذیرفتنِ دعوت حساب را از مجتمعِ قبلی‌اش
+     * بیرون می‌کشید («راهی برای بیرون‌کشیدنِ ساکنِ رقیب»). حالا یک حساب در چند مجتمع
+     * عضو است: دعوت فقط پیشنهاد است، عضویتِ قبلی دست نمی‌خورد، و پذیرفتنش — با کدِ
+     * پیامکیِ خودِ صاحبِ شماره — عضویتِ **دوم** می‌سازد.
      */
-    public function test_a_member_of_another_complex_still_gets_a_validation_error(): void
+    public function test_a_member_of_another_complex_is_invited_and_nothing_moves(): void
     {
         $otherComplex = Complex::factory()->create();
-        User::factory()->create([
+        $member = User::factory()->create([
             'complex_id' => $otherComplex->id,
             'phone' => '09125554444',
             'is_active' => true,
@@ -286,10 +290,12 @@ class InitialAccountTest extends TestCase
             ->postJson('/api/v1/residents', [
                 'phone' => '09125554444', 'role' => 'owner', 'unit_id' => $this->unit->id,
             ])
-            ->assertStatus(422)
-            ->assertJsonValidationErrors('phone');
+            ->assertCreated()
+            ->assertJsonPath('invited', true);
 
-        $this->assertDatabaseMissing('complex_invitations', ['phone' => '09125554444']);
+        $this->assertDatabaseHas('complex_invitations', ['phone' => '09125554444', 'complex_id' => $this->complex->id]);
+        $this->assertSame($otherComplex->id, $member->fresh()->complex_id, 'دعوت حساب را جابه‌جا کرد.');
+        $this->assertTrue(ComplexMembership::withoutGlobalScopes()->active()->where('user_id', $member->id)->where('complex_id', $otherComplex->id)->exists());
     }
 
     /**
@@ -402,17 +408,25 @@ class InitialAccountTest extends TestCase
         $upgrader->upgrade($this->fresh->fresh(), 'دومی', null, ComplexType::Residential);
     }
 
-    public function test_upgrading_cancels_any_pending_invitation(): void
+    /**
+     * خرید دعوت‌های در انتظار را باطل نمی‌کند؛ پذیرفتنِ بعدی عضویتِ **دوم** است و مدیریتِ
+     * مجتمعِ خودِ خریدار سرِ جایش می‌ماند (مرحلهٔ ۱۰ · فاز ۴).
+     *
+     * پیش از ۱۰/۴ دعوت باطل می‌شد، چون پذیرفتنش خریدار را بی‌سروصدا از مدیریتِ مجتمعِ
+     * خودش به ساکنِ جای دیگری تبدیل می‌کرد. همان خطر حالا با عضویتِ دوم برطرف است.
+     */
+    public function test_upgrading_keeps_pending_invitations_and_accepting_one_adds_a_membership(): void
     {
-        /*
-         * وگرنه کاربر پس از ساختِ مجتمعِ خودش می‌توانست دعوتِ قدیمی را بپذیرد
-         * و بی‌سروصدا از مدیریتِ مجتمعِ خودش به ساکنِ جای دیگری تبدیل شود.
-         */
         $invitation = $this->invite();
 
-        app(ComplexUpgrader::class)->upgrade($this->fresh, 'مجتمع خودم', null, ComplexType::Residential);
+        $own = app(ComplexUpgrader::class)->upgrade($this->fresh, 'مجتمع خودم', null, ComplexType::Residential);
+        $this->assertSame(ComplexInvitation::PENDING, $invitation->fresh()->status);
 
-        $this->assertSame(ComplexInvitation::DECLINED, $invitation->fresh()->status);
+        app(Membership::class)->accept($invitation->fresh(), $this->fresh->fresh());
+
+        $roles = ComplexMembership::withoutGlobalScopes()->active()->where('user_id', $this->fresh->id)->pluck('role', 'complex_id');
+        $this->assertSame(UserRole::ComplexAdmin, $roles[$own->id], 'مدیریتِ مجتمعِ خودِ خریدار از دست رفت.');
+        $this->assertArrayHasKey($this->complex->id, $roles->all());
     }
 
     /* ── کمکی ──────────────────────────────────────────────────────────── */

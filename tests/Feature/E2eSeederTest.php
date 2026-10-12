@@ -132,4 +132,26 @@ class E2eSeederTest extends TestCase
         $this->assertSame(['chromium', 'firefox', 'webkit'], $pairs[1]);
         $this->assertSame(E2eSeeder::REGISTRANTS, $pairs[2]);
     }
+
+    /**
+     * حساب‌های چندمجتمعی (مرحلهٔ ۱۰ · فاز ۴): مدیرِ مجتمعِ دوم و مستأجرِ آفتاب، با زمینه‌ی
+     * آفتاب. اجرای دوباره همان را از نو می‌سازد و عضویت‌های قبلی تاریخچه می‌شوند، نه حذف.
+     */
+    public function test_multi_members_start_in_aftab_with_two_memberships_again_and_again(): void
+    {
+        $this->seed(DemoSeeder::class);
+        $this->seed(E2eSeeder::class);
+        $this->seed(E2eSeeder::class);
+
+        foreach (E2eSeeder::MULTI as $phone) {
+            $user = User::withoutGlobalScopes()->where('phone', $phone)->sole();
+            $active = ComplexMembership::withoutGlobalScopes()->active()->where('user_id', $user->id)->with('complex')->get();
+
+            $this->assertEqualsCanonicalizing(['aftab', 'e2e-second'], $active->pluck('complex.slug')->all(), $phone);
+            $this->assertSame(UserRole::ComplexAdmin, $active->firstWhere('complex.slug', 'e2e-second')->role);
+            $this->assertSame([Complex::where('slug', 'aftab')->value('id'), UserRole::Tenant], [$user->complex_id, $user->role]);
+            $this->assertSame(2, ComplexMembership::withoutGlobalScopes()->where('user_id', $user->id)->where('status', 'ended')->count(), 'اجرای دوباره عضویت‌ها را حذف کرد به‌جای پایان.');
+        }
+        $this->assertSame([], app(MembershipLedger::class)->violations());
+    }
 }

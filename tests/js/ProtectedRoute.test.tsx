@@ -31,6 +31,7 @@ function makeUser(role: CurrentUser['role']): CurrentUser {
     accountState: 'member',
     canWrite: true,
     pendingInvitations: 0,
+    memberships: [],
     isAdmin: role === 'super_admin' || role === 'complex_admin',
     isSuperAdmin: role === 'super_admin',
     complex: null,

@@ -12,7 +12,9 @@
  * سرور همچنان نشستِ بسته را رد می‌کند.
  */
 
-export type AuthMessage = { type: 'logout' } | { type: 'login'; userId: number }
+/** `context`: زمینه‌ی مجتمعِ حساب عوض شد (مرحلهٔ ۱۰ · فاز ۴) — تب‌های دیگر از نو بار می‌شوند. */
+export type AuthMessage =
+  { type: 'logout' } | { type: 'context' } | { type: 'login'; userId: number }
 
 const NAME = 'sakena-auth'
 
@@ -29,7 +31,7 @@ export function isAuthMessage(value: unknown): value is AuthMessage {
   if (typeof value !== 'object' || value === null) return false
   const message = value as Record<string, unknown>
 
-  if (message.type === 'logout') return true
+  if (message.type === 'logout' || message.type === 'context') return true
 
   return (
     message.type === 'login' &&

@@ -50,6 +50,7 @@ function user(accountState: CurrentUser['accountState']): CurrentUser {
     accountState,
     canWrite: accountState !== 'initial',
     pendingInvitations: 0,
+    memberships: [],
     isAdmin: false,
     isSuperAdmin: false,
     complex:

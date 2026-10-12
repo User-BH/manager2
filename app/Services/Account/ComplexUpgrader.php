@@ -7,7 +7,6 @@ use App\Enums\ComplexType;
 use App\Enums\UserRole;
 use App\Exceptions\DomainException;
 use App\Models\Complex;
-use App\Models\ComplexInvitation;
 use App\Models\ComplexMembership;
 use App\Models\User;
 use App\Support\Audit;
@@ -82,19 +81,10 @@ class ComplexUpgrader
             $this->ledger->start($fresh, $complex, UserRole::ComplexAdmin, ComplexMembership::SOURCE_PURCHASE);
 
             /*
-             * دعوت‌های در انتظار باطل می‌شوند: کاربر حالا مدیرِ مجتمعِ خودش
-             * است و پذیرفتنِ دعوتِ قدیمی او را بی‌سروصدا از مجتمعِ خودش بیرون
-             * می‌برد و ساکنِ جای دیگری می‌کند.
+             * دعوت‌های در انتظار دیگر باطل نمی‌شوند (مرحلهٔ ۱۰ · فاز ۴): پیش از این پذیرفتنِ
+             * دعوتِ قدیمی خریدار را بی‌سروصدا از مجتمعِ خودش بیرون می‌برد. حالا پذیرفتنش
+             * عضویتِ **دوم** است و مدیریتِ مجتمعِ خودش سرِ جایش می‌ماند.
              */
-            // از مرحلهٔ ۹ · فاز ۶ دعوت به شماره است، نه به حساب؛ `live_key` آزاد می‌شود
-            ComplexInvitation::query()
-                ->pending()
-                ->where(fn ($q) => $q->where('user_id', $fresh->id)->orWhere('phone', $fresh->phone))
-                ->update([
-                    'status' => ComplexInvitation::DECLINED,
-                    'responded_at' => now(),
-                    'live_key' => null,
-                ]);
 
             Audit::log('account.upgraded', 'ارتقا به مدیر مجتمع', $complex, [
                 'user_id' => $fresh->id,

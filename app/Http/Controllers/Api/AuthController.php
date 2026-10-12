@@ -16,6 +16,7 @@ use App\Http\Requests\ResetPasswordRequest;
 use App\Listeners\StartAuthenticatedSession;
 use App\Models\Complex;
 use App\Models\ComplexInvitation;
+use App\Models\ComplexMembership;
 use App\Models\LoginEvent;
 use App\Models\User;
 use App\Services\Auth\LoginRecorder;
@@ -29,6 +30,7 @@ use App\Support\SystemSettings;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\ValidationException;
 
@@ -553,9 +555,28 @@ class AuthController extends Controller
              */
             'accountState' => AccountState::of($user)->value,
             'canWrite' => AccountState::of($user)->canWrite(),
-            'pendingInvitations' => AccountState::of($user)->canWrite()
+            // از ۱۰/۴ عضو هم دعوت می‌گیرد؛ ادمینِ کل نه
+            'pendingInvitations' => $user->isSuperAdmin()
                 ? 0
                 : ComplexInvitation::invites()->live()->where('phone', $user->phone)->count(),
+
+            /*
+             * عضویت‌های فعالِ خودِ حساب برای تعویضِ مجتمع (مرحلهٔ ۱۰ · فاز ۴). یک کوئری؛
+             * ادمینِ کل عضویت ندارد و مجتمعِ کاری‌اش را از پنلِ سیستم انتخاب می‌کند.
+             */
+            'memberships' => $user->isSuperAdmin() ? [] : DB::table('complex_memberships as cm')
+                ->join('complexes', 'complexes.id', '=', 'cm.complex_id')
+                ->where('cm.user_id', $user->id)
+                ->where('cm.status', ComplexMembership::ACTIVE)
+                ->orderBy('cm.started_at')
+                ->get(['cm.complex_id', 'cm.role', 'complexes.name'])
+                ->map(fn (object $m) => [
+                    'complexId' => (int) $m->complex_id,
+                    'complexName' => $m->name,
+                    'role' => $m->role,
+                    'roleLabel' => UserRole::from($m->role)->label(),
+                    'current' => (int) $m->complex_id === $user->complex_id,
+                ])->values()->all(),
         ];
     }
 }

@@ -2,7 +2,6 @@
 
 namespace App\Services\Account;
 
-use App\Enums\AccountState;
 use App\Enums\ResidentRelation;
 use App\Enums\UserRole;
 use App\Exceptions\DomainException;
@@ -62,11 +61,6 @@ class Membership
 
         if ($account && ComplexMembers::has($account, $complex->id, ComplexMembership::ROLES)) {
             throw $this->phoneError('این شماره از قبل عضوِ همین مجتمع است.', 'invitation.already_member');
-        }
-
-        if ($account && $account->complex_id !== null) {
-            // همان پاسخِ پیشین (`phone.unique`)؛ مجتمعِ دیگر نام برده نمی‌شود
-            throw $this->phoneError('این شماره تلفن قبلا ثبت شده است.', 'invitation.member_elsewhere');
         }
 
         if ($unit && $role === UserRole::Owner) {
@@ -133,8 +127,9 @@ class Membership
                 throw DomainException::invalid('این دعوت برای شماره‌ی شما نیست.', 'invitation.wrong_phone');
             }
 
-            if (AccountState::of($account) !== AccountState::Initial) {
-                throw DomainException::invalid('شما از قبل عضو یک مجتمع هستید.', 'account.already_member');
+            // از ۱۰/۴ عضوِ مجتمعِ دیگر هم می‌پذیرد؛ فقط عضویتِ دوم در **همین** مجتمع رد می‌شود
+            if (ComplexMembers::has($account, $fresh->complex_id, ComplexMembership::ROLES)) {
+                throw DomainException::invalid('شما از قبل عضوِ همین مجتمع هستید.', 'account.already_member');
             }
 
             $unit = $fresh->unit_id ? Unit::withoutGlobalScopes()->find($fresh->unit_id) : null;
@@ -143,7 +138,7 @@ class Membership
             $this->join($account, $complex, $fresh->role, $unit, ComplexMembership::SOURCE_INVITATION, $fresh);
 
             $fresh->close(ComplexInvitation::ACCEPTED, $account->id);
-            $this->closeOthers($account, $fresh->id);
+            $this->closeOthers($account, $fresh->id, $fresh->complex_id);
         }, attempts: 3);
     }
 
@@ -175,10 +170,11 @@ class Membership
             $applicant = User::withoutGlobalScopes()->lockForUpdate()->find($fresh->user_id);
 
             /*
-             * ممکن است بینِ ارسال و تایید، خودش جای دیگری عضو شده باشد.
-             * تاییدِ کورکورانه او را بی‌خبر از مجتمعِ فعلی‌اش بیرون می‌کشید.
+             * ممکن است بینِ ارسال و تایید، خودش از راهِ دیگری عضوِ **همین** مجتمع شده باشد.
+             * عضویت در مجتمعِ دیگر مانع نیست (۱۰/۴): عضویتِ تازه کنارِ آن ساخته می‌شود و
+             * عضویتِ قبلی دست نمی‌خورد.
              */
-            if (! $applicant || AccountState::of($applicant) !== AccountState::Initial) {
+            if (! $applicant || ComplexMembers::has($applicant, $fresh->complex_id, ComplexMembership::ROLES)) {
                 throw DomainException::invalid('این کاربر دیگر در انتظار پیوستن نیست.', 'join_request.user_unavailable');
             }
 
@@ -187,7 +183,7 @@ class Membership
 
             $fresh->forceFill(['role' => $role, 'unit_id' => $unit->id])->save();
             $fresh->close(ComplexInvitation::ACCEPTED);
-            $this->closeOthers($applicant, $fresh->id);
+            $this->closeOthers($applicant, $fresh->id, $fresh->complex_id);
         }, attempts: 3);
     }
 
@@ -263,10 +259,12 @@ class Membership
      * کاربر حالا عضو است: دعوت‌های زنده‌ی دیگرِ همین شماره و درخواست‌هایش
      * باطل می‌شوند، وگرنه پذیرفتنِ دومی یعنی جابه‌جا شدنِ بی‌سروصدا.
      */
-    private function closeOthers(User $user, int $except): void
+    private function closeOthers(User $user, int $except, int $complexId): void
     {
         ComplexInvitation::query()
             ->whereKeyNot($except)
+            // فقط همین مجتمع (۱۰/۴): دعوتِ مجتمعِ دیگر زنده می‌ماند و پذیرفتنش عضویتِ دوم است
+            ->where('complex_id', $complexId)
             ->where('status', ComplexInvitation::PENDING)
             ->where(fn ($q) => $q->where('phone', $user->phone)->orWhere('user_id', $user->id))
             ->lockForUpdate()

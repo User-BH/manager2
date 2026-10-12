@@ -23,6 +23,8 @@ import { Card } from '@/shared/ui/Card'
 import { ErrorState } from '@/shared/ui/PageState'
 import { FormSkeleton } from '@/shared/ui/Skeleton'
 import { ProfileEditForm } from './ProfileEditForm'
+import { ReceivedInvitations } from '@/shared/ui/invitations/ReceivedInvitations'
+import { useAuth } from '@/shared/stores/authStore'
 import { PasswordCard } from './PasswordCard'
 import { PhoneCard } from './PhoneCard'
 import { SecurityCard } from './SecurityCard'
@@ -43,6 +45,7 @@ import type { ProfileResponse } from './types'
  */
 export function ProfilePage() {
   const [editing, setEditing] = useState(false)
+  const { user } = useAuth()
 
   useDocumentTitle('پروفایل من')
 
@@ -59,6 +62,10 @@ export function ProfilePage() {
 
   return (
     <div className="flex flex-col gap-5">
+      {/* عضوی که به مجتمعِ دیگری دعوت شده (مرحلهٔ ۱۰ · فاز ۴) — بی دعوت، هیچ */}
+      {user?.accountState === 'member' && user.pendingInvitations > 0 ? (
+        <ReceivedInvitations />
+      ) : null}
       <ProfileHero
         name={profile.name}
         roleLabel={profile.roleLabel}

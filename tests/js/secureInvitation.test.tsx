@@ -7,7 +7,7 @@ import { resolve } from 'node:path'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { ResidentForm } from '@/features/residents/ResidentForm'
 import { JoinRequestInbox } from '@/features/residents/JoinRequestInbox'
-import { AcceptInvitationForm } from '@/features/registrant/AcceptInvitationForm'
+import { AcceptInvitationForm } from '@/shared/ui/invitations/AcceptInvitationForm'
 import { InvitePage } from '@/features/auth/InvitePage'
 import type { Resident } from '@/features/residents/types'
 
