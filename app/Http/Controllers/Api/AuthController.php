@@ -610,14 +610,16 @@ class AuthController extends Controller
             'memberships' => $user->isSuperAdmin() ? [] : DB::table('complex_memberships as cm')
                 ->join('complexes', 'complexes.id', '=', 'cm.complex_id')
                 ->where('cm.user_id', $user->id)
-                ->where('cm.status', ComplexMembership::ACTIVE)
+                // معلق‌ها هم، با وضعیت (۱۰/۶): کاربر می‌بیند کجا معلق است؛ تعویض به آن‌جا را سرور رد می‌کند
+                ->whereIn('cm.status', ComplexMembership::LIVE)
                 ->orderBy('cm.started_at')
-                ->get(['cm.complex_id', 'cm.role', 'complexes.name'])
+                ->get(['cm.complex_id', 'cm.role', 'cm.status', 'complexes.name'])
                 ->map(fn (object $m) => [
                     'complexId' => (int) $m->complex_id,
                     'complexName' => $m->name,
                     'role' => $m->role,
                     'roleLabel' => UserRole::from($m->role)->label(),
+                    'status' => $m->status,
                     'current' => (int) $m->complex_id === $user->complex_id,
                 ])->values()->all(),
         ];

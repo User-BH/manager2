@@ -65,7 +65,8 @@ class MembershipLedger
                 throw DomainException::invalid('ادمینِ کل عضوِ مجتمع نمی‌شود.', 'membership.platform_account');
             }
 
-            if ($this->activeOf($account)->where('complex_id', $complex->id)->exists()) {
+            // عضویتِ معلق هم عضویت است: دعوت، درخواست یا خرید دورش نمی‌زند (۱۰/۶)
+            if ($this->liveOf($account)->where('complex_id', $complex->id)->exists()) {
                 throw DomainException::invalid('شما از قبل عضوِ همین مجتمع هستید.', 'account.already_member');
             }
 
@@ -129,7 +130,7 @@ class MembershipLedger
                 $this->close($account, ComplexMembership::END_PROMOTED, $by);
                 $this->writeAccount($account, ['complex_id' => null, 'role' => $role]);
             } elseif ($target !== null) {
-                $updated = $this->activeOf($account)->where('complex_id', $target)
+                $updated = $this->liveOf($account)->where('complex_id', $target)
                     ->update(['role' => $role->value, 'updated_at' => now()]);
 
                 if ($updated === 0) {
@@ -164,6 +165,64 @@ class MembershipLedger
             }
 
             $this->writeAccount($account, ['complex_id' => $membership->complex_id, 'role' => $membership->role]);
+            $this->sync($user, $account);
+
+            return $membership;
+        }, attempts: 3);
+    }
+
+    /**
+     * تعلیقِ عضویت در یک مجتمع به دستِ مدیرِ همان‌جا (مرحلهٔ ۱۰ · فاز ۶).
+     *
+     * دسترسی به همین مجتمع بسته می‌شود — زنجیره‌ی مجوز فقط عضویتِ **فعال** را می‌پذیرد — و هیچ چیزِ دیگری
+     * عوض نمی‌شود: حساب، واحد و دوره، قبض و کیف، پیام‌ها و عضویت‌های دیگر. اگر همین مجتمع زمینه‌ی فعالِ حساب
+     * بود، حساب مثلِ پایانِ عضویت به عضویتِ فعالِ دیگرش (یا حالتِ اولیه) می‌رود.
+     */
+    public function suspend(User $user, int $complexId, ?User $by = null): ComplexMembership
+    {
+        return DB::transaction(function () use ($user, $complexId, $by): ComplexMembership {
+            $account = $this->lock($user);
+            $membership = $this->activeOf($account)->where('complex_id', $complexId)->lockForUpdate()->first();
+
+            if ($membership === null) {
+                throw DomainException::invalid('عضویتِ فعالی در این مجتمع نیست که معلق شود.', 'membership.not_active');
+            }
+
+            $membership->forceFill([
+                'status' => ComplexMembership::SUSPENDED,
+                'suspended_at' => now(),
+                'suspended_by' => $by?->id,
+            ])->save();
+
+            if ($account->complex_id === $complexId) {
+                $this->fallBack($account);
+            }
+            $this->sync($user, $account);
+
+            return $membership;
+        }, attempts: 3);
+    }
+
+    /**
+     * برداشتنِ تعلیق. حسابِ بی‌زمینه (همین تنها عضویتش بود) به همین مجتمع برمی‌گردد؛ حسابی که جای دیگری کار
+     * می‌کند همان‌جا می‌ماند و خودش تعویض می‌کند — همان قاعده‌ی تأییدِ درخواست (۱۰/۵).
+     */
+    public function resume(User $user, int $complexId): ComplexMembership
+    {
+        return DB::transaction(function () use ($user, $complexId): ComplexMembership {
+            $account = $this->lock($user);
+            $membership = $this->liveOf($account)->where('complex_id', $complexId)
+                ->where('status', ComplexMembership::SUSPENDED)->lockForUpdate()->first();
+
+            if ($membership === null) {
+                throw DomainException::invalid('عضویتِ معلقی در این مجتمع نیست.', 'membership.not_suspended');
+            }
+
+            $membership->forceFill(['status' => ComplexMembership::ACTIVE, 'suspended_at' => null, 'suspended_by' => null])->save();
+
+            if ($account->complex_id === null) {
+                $this->writeAccount($account, ['complex_id' => $membership->complex_id, 'role' => $membership->role]);
+            }
             $this->sync($user, $account);
 
             return $membership;
@@ -254,6 +313,12 @@ class MembershipLedger
         return ComplexMembership::withoutGlobalScopes()->active()->where('user_id', $account->id);
     }
 
+    /** @return Builder<ComplexMembership> */
+    private function liveOf(User $account)
+    {
+        return ComplexMembership::withoutGlobalScopes()->live()->where('user_id', $account->id);
+    }
+
     /** زمینه پس از پایانِ عضویتِ زمینه: تازه‌ترین عضویتِ فعالِ دیگر، وگرنه حالتِ اولیه. */
     private function fallBack(User $account): void
     {
@@ -267,7 +332,8 @@ class MembershipLedger
 
     private function close(User $account, string $reason, ?User $by, ?int $complexId = null): void
     {
-        $this->activeOf($account)
+        // پایانِ عضویتِ معلق هم پایان است؛ زمانِ تعلیقش به‌عنوانِ سابقه روی ردیف می‌ماند
+        $this->liveOf($account)
             ->when($complexId !== null, fn ($q) => $q->where('complex_id', $complexId))
             ->update([
                 'status' => ComplexMembership::ENDED,

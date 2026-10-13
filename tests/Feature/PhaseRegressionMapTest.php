@@ -1066,6 +1066,24 @@ class PhaseRegressionMapTest extends TestCase
             '۱۰/۵: تمدید هنوز فقط کارِ مدیرِ همان مجتمع' => [
                 'MemberComplexPurchaseTest', 'test_renewal_is_still_the_current_complexes_managers_alone', '۱۰',
             ],
+            '🔴 ۱۰/۶: تعلیق در یک مجتمع حساب و مجتمعِ دیگر را نمی‌بندد' => [
+                'MembershipSuspensionTest', 'test_suspending_in_one_complex_leaves_the_account_and_the_other_complex_untouched', '۱۰',
+            ],
+            '🔴 ۱۰/۶: نشستِ باز مجتمعِ معلق را در همان درخواستِ بعدی از دست می‌دهد' => [
+                'MembershipSuspensionTest', 'test_an_open_session_loses_the_suspended_complex_on_its_very_next_request', '۱۰',
+            ],
+            '🔴 ۱۰/۶: عضوِ معلق با دعوت، درخواست یا QR برنمی‌گردد' => [
+                'MembershipSuspensionTest', 'test_a_suspended_member_cannot_slip_back_in_by_invitation_request_or_qr', '۱۰',
+            ],
+            '🔴 ۱۰/۶: بستنِ حساب در کلِ سکو فقط کارِ ادمینِ کل' => [
+                'MembershipSuspensionTest', 'test_blocking_the_whole_account_is_still_the_super_admins_alone', '۱۰',
+            ],
+            '۱۰/۶: تعلیق حساب، واحد، قبض و سابقه را نگه می‌دارد' => [
+                'MembershipSuspensionTest', 'test_suspension_keeps_the_account_unit_bills_and_history', '۱۰',
+            ],
+            '۱۰/۶: مهاجرت فقط غیرفعالیِ مدیر را به تعلیق تبدیل می‌کند' => [
+                'MembershipSuspensionTest', 'test_the_migration_turns_a_managers_old_deactivation_into_a_suspension_only', '۱۰',
+            ],
             'مدیر از درخواستِ عضویت با اعلانِ داشبورد باخبر می‌شود' => [
                 'JoinRequestTest', 'test_the_complexes_managers_get_a_dashboard_notification_once', '۹',
             ],
@@ -1234,6 +1252,8 @@ class PhaseRegressionMapTest extends TestCase
             'qrCode' => ['۱۰/۵', 'ماژول‌به‌ماژول همان OpenCV است'],
             'publicJoin' => ['۱۰/۵', 'درخواست فقط با کلیکِ خودش می‌رود'],
             'memberPurchase' => ['۱۰/۵', 'بی عضویتِ فعال هیچ تعویضی نمی‌سازد'],
+            // مرحلهٔ ۱۰ · فاز ۶: عضویتِ معلق دیده می‌شود، تعویض به آن بسته است
+            'membershipSuspension' => ['۱۰/۶', 'مجتمعِ معلق دیده می‌شود'],
         ];
 
         // 🔴 مثلِ ردیف‌های PHP، این فهرست هم فقط بزرگ می‌شود (خرابکاریِ فاز ۸)

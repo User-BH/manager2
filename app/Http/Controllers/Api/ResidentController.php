@@ -9,6 +9,7 @@ use App\Http\Requests\StoreResidentRequest;
 use App\Http\Requests\UpdateResidentRequest;
 use App\Http\Resources\InvitationPresenter;
 use App\Http\Resources\ResidentResource;
+use App\Models\ComplexMembership;
 use App\Models\Unit;
 use App\Models\User;
 use App\Services\Account\ComplexMembers;
@@ -34,7 +35,8 @@ class ResidentController extends Controller
         $complexId = $this->requireComplex()->id;
 
         // اعضای همین مجتمع از عضویت، با نقشِ عضویتِ همین‌جا (مرحلهٔ ۱۰ · فاز ۳)
-        $residents = ComplexMembers::query($complexId, [UserRole::Owner, UserRole::Tenant])
+        // معلق‌ها هم در فهرست‌اند — با «غیرفعال» — تا مدیر بتواند دوباره فعالشان کند (۱۰/۶)
+        $residents = ComplexMembers::query($complexId, [UserRole::Owner, UserRole::Tenant], withSuspended: true)
             ->when($request->string('search')->trim()->value(), function ($query, string $search) {
                 $query->where(fn ($q) => $q
                     ->where('users.name', 'like', "%{$search}%")
@@ -130,7 +132,7 @@ class ResidentController extends Controller
         // نقش مالِ عضویت است و فقط از دفترِ عضویت عوض می‌شود (مرحلهٔ ۱۰ · فاز ۲)
         $role = UserRole::from($data['role']);
         $complexId = $this->requireComplex()->id;
-        if (ComplexMembers::roleOf($resident, $complexId) !== $role) {
+        if (ComplexMembers::roleOf($resident, $complexId, withSuspended: true) !== $role) {
             $this->ledger->changeRole($resident, $role, $request->user(), $complexId);
         }
 
@@ -138,7 +140,8 @@ class ResidentController extends Controller
 
         // نقشی که برمی‌گردد نقشِ عضویتِ همین مجتمع است، نه زمینه‌ی فعالِ ساکن
         $fresh = $resident->fresh('currentUnits');
-        $fresh->setAttribute('membership_role', ComplexMembers::roleOf($fresh, $complexId)?->value);
+        $fresh->setAttribute('membership_role', ComplexMembers::roleOf($fresh, $complexId, withSuspended: true)?->value);
+        $fresh->setAttribute('membership_status', ComplexMembers::statusOf($fresh, $complexId));
 
         return response()->json(['resident' => $this->present($fresh)]);
     }
@@ -167,19 +170,37 @@ class ResidentController extends Controller
         ]);
     }
 
+    /**
+     * «فعال / غیرفعال» = تعلیقِ **عضویت در همین مجتمع** (مرحلهٔ ۱۰ · فاز ۶).
+     *
+     * ⚠️ پیش از این `users.is_active` نوشته می‌شد — ستونِ حساب. مدیرِ مجتمعِ الف ورودِ همان شخص را به مجتمعِ
+     * ب هم می‌بست، جایی که عضوِ سالم است (بندهای ۱۲ و ۷۴). حالا فقط عضویتِ همین‌جا معلق می‌شود؛ مسدودسازیِ
+     * حساب در کلِ سکو فقط کارِ ادمینِ کل است.
+     */
     public function toggleActive(User $resident): JsonResponse
     {
         $this->guard($resident);
-        $resident->update(['is_active' => ! $resident->is_active]);
+        $complexId = $this->requireComplex()->id;
+        $suspended = ComplexMembers::statusOf($resident, $complexId) === ComplexMembership::SUSPENDED;
+
+        if ($suspended) {
+            $this->ledger->resume($resident, $complexId);
+        } else {
+            $this->ledger->suspend($resident, $complexId, Auth::user());
+        }
 
         Audit::log(
-            $resident->is_active ? 'resident.activated' : 'resident.deactivated',
-            $resident->is_active ? 'فعال‌سازی حساب ساکن' : 'غیرفعال‌سازی حساب ساکن',
+            $suspended ? 'membership.resumed' : 'membership.suspended',
+            $suspended ? 'برداشتنِ تعلیقِ عضویتِ ساکن' : 'تعلیقِ عضویتِ ساکن در این مجتمع',
             $resident,
-            ['name' => $resident->name],
+            ['name' => $resident->name, 'complex_id' => $complexId],
         );
 
-        return response()->json(['resident' => $this->present($resident->fresh('currentUnits'))]);
+        $fresh = $resident->fresh('currentUnits');
+        $fresh->setAttribute('membership_role', ComplexMembers::roleOf($fresh, $complexId, withSuspended: true)?->value);
+        $fresh->setAttribute('membership_status', ComplexMembers::statusOf($fresh, $complexId));
+
+        return response()->json(['resident' => $this->present($fresh)]);
     }
 
     /**

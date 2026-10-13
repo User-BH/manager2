@@ -22,6 +22,7 @@ const membership = (
   complexName: `مجتمع ${complexId}`,
   role,
   roleLabel: role === 'complex_admin' ? 'مدیر' : 'مالک',
+  status: 'active',
   current,
 })
 

@@ -31,14 +31,17 @@ class UserPolicy
     {
         $complexId = ComplexResolver::idFor($user);
 
-        return $complexId !== null && ComplexMembers::has($manager, $complexId, [UserRole::ComplexAdmin]);
+        return $complexId !== null && ComplexMembers::has($manager, $complexId, [UserRole::ComplexAdmin], withSuspended: true);
     }
 
-    /** مدیریتِ یک ساکن: مالک یا مستأجرِ فعالِ مجتمعِ جاری. */
+    /**
+     * مدیریتِ یک ساکن: مالک یا مستأجرِ مجتمعِ جاری — فعال یا معلق (۱۰/۶)؛ مدیر باید بتواند عضوِ معلق را
+     * دوباره فعال کند یا عضویتش را پایان دهد. عضوِ مجتمعِ دیگر هرگز.
+     */
     public function manageResident(User $user, User $resident): bool
     {
         $complexId = ComplexResolver::idFor($user);
 
-        return $complexId !== null && ComplexMembers::has($resident, $complexId, [UserRole::Owner, UserRole::Tenant]);
+        return $complexId !== null && ComplexMembers::has($resident, $complexId, [UserRole::Owner, UserRole::Tenant], withSuspended: true);
     }
 }

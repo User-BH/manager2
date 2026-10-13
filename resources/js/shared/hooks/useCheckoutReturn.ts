@@ -25,7 +25,9 @@ export function useCheckoutReturn(): void {
     handled.current = true
 
     const target = Number(params.get('complex'))
-    const owns = (user.memberships ?? []).some((m) => m.complexId === target)
+    const owns = (user.memberships ?? []).some(
+      (m) => m.complexId === target && m.status !== 'suspended',
+    )
 
     if (target && owns && user.complex?.id !== target) {
       void switchContext(target, '/dashboard?checkout=success')

@@ -85,7 +85,14 @@ function member(pendingInvitations: number): CurrentUser {
     canWrite: true,
     pendingInvitations,
     memberships: [
-      { complexId: 1, complexName: 'الف', role: 'owner', roleLabel: 'مالک', current: true },
+      {
+        complexId: 1,
+        complexName: 'الف',
+        role: 'owner',
+        roleLabel: 'مالک',
+        status: 'active',
+        current: true,
+      },
     ],
   }
 }

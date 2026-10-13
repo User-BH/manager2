@@ -45,6 +45,40 @@ export function RegistrantDashboardPage() {
  * که هنوز به مجتمعی وصل نشده. همان را صریح می‌گوید (مرحلهٔ ۸ · فاز ۱).
  */
 function StatusBanner() {
+  /*
+   * عضوِ معلق (۱۰/۶): حسابی که تنها عضویتش را مدیرِ همان مجتمع معلق کرده هم این‌جا می‌آید. «هنوز عضو هیچ
+   * مجتمعی نیستید» برای او نادرست است؛ می‌گوییم کجا معلق است و با چه کسی صحبت کند.
+   */
+  const { user } = useAuth()
+  const suspended = (user?.memberships ?? []).filter((m) => m.status === 'suspended')
+
+  if (suspended.length > 0) {
+    return (
+      <div
+        className="flex items-start gap-3 rounded-2xl border p-4"
+        style={{
+          borderColor: 'var(--color-amber-400, #fbbf24)',
+          backgroundColor: 'var(--surface-sunken)',
+        }}
+        role="status"
+      >
+        <ShieldAlert
+          size={20}
+          className="mt-0.5 shrink-0"
+          style={{ color: 'var(--state-warning)' }}
+        />
+        <div>
+          <p className="text-sm font-bold" style={{ color: 'var(--text-primary)' }}>
+            عضویت شما معلق است
+          </p>
+          <p className="mt-1 text-[13px] leading-6" style={{ color: 'var(--text-secondary)' }}>
+            {`عضویتِ شما در ${suspended.map((m) => `«${m.complexName}»`).join('، ')} از سوی مدیرِ همان مجتمع معلق شده است. حساب و سابقه‌تان سرِ جایش است؛ برای فعال شدنِ دوباره با مدیرِ مجتمع تماس بگیرید.`}
+          </p>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div
       className="flex items-start gap-3 rounded-2xl border p-4"

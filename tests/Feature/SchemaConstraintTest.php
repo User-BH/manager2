@@ -203,7 +203,17 @@ class SchemaConstraintTest extends TestCase
             // مرحلهٔ ۱۰ · فاز ۲: چرخه‌ی عمرِ عضویت در خودِ پایگاه‌داده
             'وضعیتِ ناشناخته‌ی عضویت' => ['complex_memberships',
                 ['role' => 'owner', 'status' => 'paused', 'source' => 'direct', 'started_at' => '2026-10-01 00:00:00',
-                    'ended_at' => '2026-10-02 00:00:00'], 'عضویت با وضعیتِ بیرون از active/ended'],
+                    'ended_at' => '2026-10-02 00:00:00'], 'عضویت با وضعیتِ بیرون از active/suspended/ended'],
+            // مرحلهٔ ۱۰ · فاز ۶: تعلیق یعنی زمانِ تعلیق، و فعال یعنی بی آن
+            'عضویتِ معلق بی زمانِ تعلیق' => ['complex_memberships',
+                ['role' => 'owner', 'status' => 'suspended', 'source' => 'direct', 'started_at' => '2026-10-01 00:00:00',
+                    'active_key' => '999997:999997'], 'عضویتِ معلق بی زمانِ تعلیق'],
+            'عضویتِ فعال با زمانِ تعلیق' => ['complex_memberships',
+                ['role' => 'owner', 'status' => 'active', 'source' => 'direct', 'started_at' => '2026-10-01 00:00:00',
+                    'suspended_at' => '2026-10-02 00:00:00', 'active_key' => '999996:999996'], 'عضویتِ فعال که زمانِ تعلیق دارد'],
+            'عضویتِ معلق بی کلیدِ یکتا' => ['complex_memberships',
+                ['role' => 'owner', 'status' => 'suspended', 'source' => 'direct', 'started_at' => '2026-10-01 00:00:00',
+                    'suspended_at' => '2026-10-02 00:00:00'], 'عضویتِ معلق که جای «عضویتِ زنده» را نگرفته'],
             'عضویتِ فعال با زمانِ پایان' => ['complex_memberships',
                 ['role' => 'owner', 'status' => 'active', 'source' => 'direct', 'started_at' => '2026-10-01 00:00:00',
                     'ended_at' => '2026-10-02 00:00:00', 'active_key' => '999999:999999'], 'عضویتِ فعال که پایان هم دارد'],

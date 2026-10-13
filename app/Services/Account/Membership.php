@@ -59,7 +59,7 @@ class Membership
             throw $this->phoneError('این شماره متعلق به ادمینِ سامانه است.', 'invitation.platform_account');
         }
 
-        if ($account && ComplexMembers::has($account, $complex->id, ComplexMembership::ROLES)) {
+        if ($account && ComplexMembers::has($account, $complex->id, ComplexMembership::ROLES, withSuspended: true)) {
             throw $this->phoneError('این شماره از قبل عضوِ همین مجتمع است.', 'invitation.already_member');
         }
 
@@ -128,7 +128,7 @@ class Membership
             }
 
             // از ۱۰/۴ عضوِ مجتمعِ دیگر هم می‌پذیرد؛ فقط عضویتِ دوم در **همین** مجتمع رد می‌شود
-            if (ComplexMembers::has($account, $fresh->complex_id, ComplexMembership::ROLES)) {
+            if (ComplexMembers::has($account, $fresh->complex_id, ComplexMembership::ROLES, withSuspended: true)) {
                 throw DomainException::invalid('شما از قبل عضوِ همین مجتمع هستید.', 'account.already_member');
             }
 
@@ -174,7 +174,7 @@ class Membership
              * عضویت در مجتمعِ دیگر مانع نیست (۱۰/۴): عضویتِ تازه کنارِ آن ساخته می‌شود و
              * عضویتِ قبلی دست نمی‌خورد.
              */
-            if (! $applicant || ComplexMembers::has($applicant, $fresh->complex_id, ComplexMembership::ROLES)) {
+            if (! $applicant || ComplexMembers::has($applicant, $fresh->complex_id, ComplexMembership::ROLES, withSuspended: true)) {
                 throw DomainException::invalid('این کاربر دیگر در انتظار پیوستن نیست.', 'join_request.user_unavailable');
             }
 
@@ -204,7 +204,8 @@ class Membership
             $account = User::withoutGlobalScopes()->lockForUpdate()->find($member->id);
             $target = $complexId ?? $account?->complex_id;
 
-            if (! $account || $target === null || ! ComplexMembers::has($account, $target, ComplexMembership::ROLES)) {
+            // عضوِ معلق هم پایان‌پذیر است (۱۰/۶)
+            if (! $account || $target === null || ! ComplexMembers::has($account, $target, ComplexMembership::ROLES, withSuspended: true)) {
                 throw DomainException::invalid('این کاربر عضوِ این مجتمع نیست.', 'membership.not_member');
             }
 

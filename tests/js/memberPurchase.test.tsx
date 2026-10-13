@@ -17,6 +17,7 @@ const membership = (complexId: number, current: boolean, role = 'owner'): Member
   complexName: `مجتمع ${complexId}`,
   role: role as MembershipSummary['role'],
   roleLabel: role,
+  status: 'active',
   current,
 })
 

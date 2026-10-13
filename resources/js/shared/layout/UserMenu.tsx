@@ -136,7 +136,8 @@ export function UserMenu() {
                   <button
                     key={m.complexId}
                     onClick={() => (m.current ? setOpen(false) : void switchTo(m.complexId))}
-                    disabled={pendingKey !== null}
+                    // عضویتِ معلق (۱۰/۶): دیده می‌شود، ولی سرور تعویض به آن را رد می‌کند و اینجا هم بسته است
+                    disabled={pendingKey !== null || m.status === 'suspended'}
                     aria-current={m.current ? 'true' : undefined}
                     className="flex w-full items-center gap-2.5 px-3.5 py-2 text-right text-sm transition-colors duration-150 hover:bg-(--surface-sunken) disabled:opacity-60"
                     style={{ color: 'var(--text-secondary)' }}
@@ -147,7 +148,7 @@ export function UserMenu() {
                         {m.complexName}
                       </span>
                       <span className="block text-xs" style={{ color: 'var(--text-tertiary)' }}>
-                        {m.roleLabel}
+                        {m.status === 'suspended' ? `${m.roleLabel} · معلق` : m.roleLabel}
                       </span>
                     </span>
                     {m.current && <Check size={14} style={{ color: 'var(--color-brand-500)' }} />}

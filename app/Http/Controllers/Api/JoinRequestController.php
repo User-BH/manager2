@@ -95,7 +95,8 @@ class JoinRequestController extends Controller
         }
 
         // از ۱۰/۴ عضوِ مجتمعِ دیگر هم درخواست می‌دهد؛ عضوِ همین مجتمع نه
-        if (ComplexMembers::has($user, $complex->id, ComplexMembership::ROLES)) {
+        // عضوِ معلقِ همین مجتمع هم عضو است: درخواستِ تازه تعلیق را دور نمی‌زند (۱۰/۶)
+        if (ComplexMembers::has($user, $complex->id, ComplexMembership::ROLES, withSuspended: true)) {
             throw DomainException::invalid(
                 'شما از قبل عضوِ همین مجتمع هستید.',
                 'account.already_member',

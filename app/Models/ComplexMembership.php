@@ -31,6 +31,8 @@ use Illuminate\Support\Carbon;
  * @property int|null $ended_by
  * @property string|null $end_reason
  * @property string|null $active_key
+ * @property Carbon|null $suspended_at
+ * @property int|null $suspended_by
  */
 class ComplexMembership extends Model
 {
@@ -38,7 +40,16 @@ class ComplexMembership extends Model
 
     public const ACTIVE = 'active';
 
+    /**
+     * معلق به دستِ مدیرِ همان مجتمع (مرحلهٔ ۱۰ · فاز ۶): دسترسی به همین مجتمع بسته، عضویت زنده — برگشت‌پذیر و
+     * هنوز «عضو» برای دعوت و درخواست. مجتمع‌های دیگرِ همان حساب دست نمی‌خورند.
+     */
+    public const SUSPENDED = 'suspended';
+
     public const ENDED = 'ended';
+
+    /** عضویتِ «زنده»: فعال یا معلق — همان که `active_key` ِ یکتا دارد */
+    public const LIVE = [self::ACTIVE, self::SUSPENDED];
 
     /** از کجا برقرار شد */
     public const SOURCE_INVITATION = 'invitation';
@@ -70,6 +81,7 @@ class ComplexMembership extends Model
             'role' => UserRole::class,
             'started_at' => 'datetime',
             'ended_at' => 'datetime',
+            'suspended_at' => 'datetime',
         ];
     }
 
@@ -85,6 +97,15 @@ class ComplexMembership extends Model
     public function scopeActive(Builder $query): Builder
     {
         return $query->where('status', self::ACTIVE);
+    }
+
+    /**
+     * @param  Builder<ComplexMembership>  $query
+     * @return Builder<ComplexMembership>
+     */
+    public function scopeLive(Builder $query): Builder
+    {
+        return $query->whereIn('status', self::LIVE);
     }
 
     public function isActive(): bool

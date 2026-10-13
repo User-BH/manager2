@@ -75,6 +75,8 @@ export interface MembershipSummary {
   complexName: string
   role: UserRole
   roleLabel: string
+  /** معلق به دستِ مدیرِ همان مجتمع (۱۰/۶): دیده می‌شود ولی تعویض به آن ممکن نیست */
+  status: 'active' | 'suspended'
   current: boolean
 }
 

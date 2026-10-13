@@ -2,6 +2,7 @@
 
 namespace App\Http\Resources;
 
+use App\Models\ComplexMembership;
 use App\Models\Unit;
 use App\Models\User;
 use App\Services\Account\ComplexMembers;
@@ -38,7 +39,11 @@ class ResidentResource extends JsonResource
             // نقشِ عضویتِ همین مجتمع (۱۰/۳)، نه نقشِ زمینه‌ی فعالِ ساکن
             'role' => ComplexMembers::displayedRole($user)->value,
             'roleLabel' => ComplexMembers::displayedRole($user)->label(),
-            'isActive' => (bool) $user->is_active,
+            /*
+             * فعال یعنی عضویتِ همین مجتمع معلق نیست **و** حساب را ادمینِ کل مسدود نکرده (۱۰/۶). وضعیتِ عضویت از
+             * همان کوئریِ فهرست می‌آید (`membership_status`)؛ بی‌آن فقط حساب سنجیده می‌شود.
+             */
+            'isActive' => (bool) $user->is_active && $user->getAttribute('membership_status') !== ComplexMembership::SUSPENDED,
             'canMessage' => (bool) $user->can_message,
             'units' => $user->currentUnits->map(fn (Unit $u) => [
                 'id' => $u->id,

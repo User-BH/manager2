@@ -218,12 +218,16 @@ class OperationalHardeningTest extends TestCase
         $this->assertSame($this->admin->id, $log->user_id);
     }
 
+    /**
+     * «غیرفعال کردنِ» ساکن از ۱۰/۶ تعلیقِ عضویتِ همین مجتمع است، نه بستنِ حساب — رویدادش هم همین را می‌گوید.
+     * هدفِ آزمون همان ماند: این کارِ حساس بی ردِ audit نمی‌ماند.
+     */
     public function test_deactivating_a_resident_is_recorded(): void
     {
         $this->actingAs($this->admin)
             ->patchJson("/api/residents/{$this->resident->id}/toggle-active")->assertOk();
 
-        $this->assertDatabaseHas('audit_logs', ['action' => 'resident.deactivated']);
+        $this->assertDatabaseHas('audit_logs', ['action' => 'membership.suspended', 'subject_id' => $this->resident->id]);
     }
 
     public function test_deleting_a_unit_is_recorded(): void

@@ -31,31 +31,33 @@ final class ComplexMembers
      * @param  list<UserRole>  $roles
      * @return Builder<User>
      */
-    public static function query(int $complexId, array $roles): Builder
+    public static function query(int $complexId, array $roles, bool $withSuspended = false): Builder
     {
+        $statuses = $withSuspended ? ComplexMembership::LIVE : [ComplexMembership::ACTIVE];
+
         return User::query()
-            ->join('complex_memberships as cm', function ($join) use ($complexId): void {
+            ->join('complex_memberships as cm', function ($join) use ($complexId, $statuses): void {
                 $join->on('cm.user_id', '=', 'users.id')
                     ->where('cm.complex_id', $complexId)
-                    ->where('cm.status', ComplexMembership::ACTIVE);
+                    ->whereIn('cm.status', $statuses);
             })
             ->whereIn('cm.role', self::values($roles))
-            ->select('users.*', 'cm.role as membership_role');
+            ->select('users.*', 'cm.role as membership_role', 'cm.status as membership_status');
     }
 
     /** @param  list<UserRole>  $roles */
-    public static function has(User $user, int $complexId, array $roles): bool
+    public static function has(User $user, int $complexId, array $roles, bool $withSuspended = false): bool
     {
-        return self::active()
+        return self::statuses($withSuspended)
             ->where('user_id', $user->id)
             ->where('complex_id', $complexId)
             ->whereIn('role', self::values($roles))
             ->exists();
     }
 
-    public static function roleOf(User $user, int $complexId): ?UserRole
+    public static function roleOf(User $user, int $complexId, bool $withSuspended = false): ?UserRole
     {
-        $role = self::active()->where('user_id', $user->id)->where('complex_id', $complexId)->value('role');
+        $role = self::statuses($withSuspended)->where('user_id', $user->id)->where('complex_id', $complexId)->value('role');
 
         return $role === null ? null : UserRole::from((string) $role);
     }
@@ -69,9 +71,22 @@ final class ComplexMembers
     }
 
     /** @return \Illuminate\Database\Query\Builder */
-    private static function active()
+    /** وضعیتِ عضویتِ زنده‌ی این حساب در این مجتمع — `active`، `suspended` یا null (۱۰/۶) */
+    public static function statusOf(User $user, int $complexId): ?string
     {
-        return DB::table('complex_memberships')->where('status', ComplexMembership::ACTIVE);
+        $status = self::statuses(true)->where('user_id', $user->id)->where('complex_id', $complexId)->value('status');
+
+        return $status === null ? null : (string) $status;
+    }
+
+    /**
+     * عضویت‌های فعال — یا زنده (فعال و معلق) وقتی `$withSuspended`. پیش‌فرض همان فعال است: مجوز، اعلان و شمارشِ
+     * مدیران فقط عضوِ فعال را می‌شناسند؛ «از قبل عضو است» و مدیریتِ عضو، معلق را هم.
+     */
+    private static function statuses(bool $withSuspended)
+    {
+        return DB::table('complex_memberships')
+            ->whereIn('status', $withSuspended ? ComplexMembership::LIVE : [ComplexMembership::ACTIVE]);
     }
 
     /**

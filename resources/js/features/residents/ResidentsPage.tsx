@@ -238,7 +238,12 @@ export function ResidentsPage() {
                           <button
                             onClick={() => handleToggle(resident)}
                             aria-label={resident.isActive ? 'غیرفعال کردن' : 'فعال کردن'}
-                            title={resident.isActive ? 'غیرفعال کردن' : 'فعال کردن'}
+                            // تعلیقِ عضویت در همین مجتمع، نه بستنِ حساب (مرحلهٔ ۱۰ · فاز ۶)
+                            title={
+                              resident.isActive
+                                ? 'تعلیقِ عضویت در همین مجتمع — حساب و مجتمع‌های دیگرش دست نمی‌خورند'
+                                : 'برداشتنِ تعلیقِ عضویت'
+                            }
                             className="flex h-8 w-8 items-center justify-center rounded-lg transition-colors hover:bg-(--surface-sunken)"
                             style={{
                               color: resident.isActive
