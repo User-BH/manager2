@@ -133,6 +133,10 @@ export interface SearchGroup {
   icon: string
   path: string
   count: number
+  /** نتیجه‌ی بیشتری از آنچه آمده هست — فهرست بریده شده است. */
+  hasMore: boolean
+  /** صفحه‌ی بعدِ همین گروه، فقط وقتی گروه باز شده (`group`)؛ در نمای کلی null. */
+  nextPage: number | null
   items: SearchItem[]
 }
 
@@ -141,6 +145,9 @@ export interface SearchResponse {
   total: number
   groups: SearchGroup[]
   message?: string
+  /** گروهِ بازشده، یا null در نمای کلی. */
+  group?: string | null
+  page?: number
 }
 
 /** یک عبارت جستجوشده که در localStorage نگه داشته می‌شود. */

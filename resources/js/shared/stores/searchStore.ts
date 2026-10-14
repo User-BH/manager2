@@ -1,6 +1,7 @@
 import { create } from 'zustand'
 import { api, ApiError } from '@/shared/lib/api'
-import type { RecentSearch, SearchResponse } from '@/shared/types'
+import { useAuthStore } from '@/shared/stores/authStore'
+import type { CurrentUser, RecentSearch, SearchResponse } from '@/shared/types'
 
 /**
  * حالتِ جستجوی سراسری با zustand.
@@ -43,9 +44,23 @@ export function isRecent(value: unknown): value is RecentSearch[] {
   )
 }
 
+/**
+ * کلیدِ تاریخچه برای **همین حساب در همین مجتمع** (مرحلهٔ ۱۰ · فاز ۸؛ بندهای ۸۲ و ۸۳ ِ فایلِ معماری).
+ *
+ * ⚠️ تا ۱۰/۸ یک کلیدِ سراسری بود: «علی احمدی — ۳ نتیجه» که مدیرِ مجتمعِ الف جست‌وجو کرده بود در مجتمعِ ب
+ * هم دیده می‌شد، و برای حسابِ بعدی روی همان مرورگر هم. عبارت و شمارِ نتیجه خودشان داده‌ی آن مجتمع‌اند.
+ * بی کاربر (پیش از ورود) هیچ چیز خوانده یا نوشته نمی‌شود.
+ */
+function recentKey(user: CurrentUser | null): string | null {
+  return user ? `${RECENT_KEY}:${user.id}:${user.complex?.id ?? 0}` : null
+}
+
 function readRecent(): RecentSearch[] {
+  const key = recentKey(useAuthStore.getState().user)
+  if (!key) return []
+
   try {
-    const raw = window.localStorage.getItem(RECENT_KEY)
+    const raw = window.localStorage.getItem(key)
     if (!raw) return []
 
     const parsed: unknown = JSON.parse(raw)
@@ -58,8 +73,11 @@ function readRecent(): RecentSearch[] {
 }
 
 function writeRecent(list: RecentSearch[]): void {
+  const key = recentKey(useAuthStore.getState().user)
+  if (!key) return
+
   try {
-    window.localStorage.setItem(RECENT_KEY, JSON.stringify(list))
+    window.localStorage.setItem(key, JSON.stringify(list))
   } catch {
     // فضای ذخیره‌سازی در دسترس نیست؛ بی‌خطر
   }
@@ -152,6 +170,31 @@ export const useSearchStore = create<SearchState>((set, get) => {
     },
   }
 })
+
+/*
+ * ورود، خروج یا تعویضِ مجتمع: تاریخچه و نتیجه‌ی جست‌وجوی حساب یا مجتمعِ قبلی همان لحظه کنار می‌رود. تعویضِ
+ * مجتمع خودش صفحه را از نو بار می‌کند (`enterNewContext`)؛ این برای ورود و خروجِ درونِ همان صفحه است.
+ */
+useAuthStore.subscribe((state, previous) => {
+  if (recentKey(state.user) === recentKey(previous.user)) return
+
+  controller?.abort()
+  useSearchStore.setState({
+    recent: readRecent(),
+    results: null,
+    query: '',
+    debouncedQuery: '',
+    isSearching: false,
+    error: null,
+  })
+})
+
+// تاریخچه‌ی بی‌صاحبِ نسخه‌های پیش از ۱۰/۸ — معلوم نیست مالِ کدام حساب و مجتمع بود
+try {
+  window.localStorage.removeItem(RECENT_KEY)
+} catch {
+  // فضای ذخیره‌سازی در دسترس نیست؛ بی‌خطر
+}
 
 /** رابطِ سازگار با نسخه‌ی قبلی؛ `hasResults` هم مثل قبل محاسبه می‌شود. */
 export function useSearch() {

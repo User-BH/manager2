@@ -12,7 +12,9 @@ use App\Models\Unit;
 use App\Models\User;
 use App\Services\Account\ComplexMembers;
 use App\Services\Features\FeatureFlags;
+use App\Services\Search\CommunityLookup;
 use App\Support\Jalali;
+use App\Support\SearchTerm;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -34,13 +36,17 @@ class SearchController extends Controller
     private const PER_GROUP = 8;
 
     /**
-     * سقفِ گروهی که کاربر «همه» را زده (R30).
+     * اندازه‌ی هر صفحه وقتی کاربر «همه‌ی نتایجِ این گروه» را باز کرده (`group` + `page`).
      *
-     * صفحه‌بندیِ کامل اینجا لازم نشد: جست‌وجو ابزارِ **یافتن** است نه
-     * مرور. اگر کسی بیش از ۵۰ نتیجه دارد، عبارتش را باید دقیق‌تر کند —
-     * و همان پیام هم به او نشان داده می‌شود.
+     * ⚠️ تا ۱۰/۸ این‌جا سقفِ ثابتِ ۵۰ بود و صفحه‌ی دومی نداشت — و کلاینت حتی آن را هم نمی‌خواست: هر گروه
+     * بی‌صدا در ۸ بریده می‌شد. بندِ ۲۰ ِ فایلِ معماری صفحه‌بندی می‌خواهد؛ مجتمعِ ۵۰۰ واحدی «علی» ِ بیش از ۸
+     * دارد. صفحه با `OFFSET` است، نه نشانگر: نتیجه‌ی جست‌وجو به ترتیبِ ثابت (نام، شماره) است و چیزی به
+     * سرش نمی‌پرد.
      */
-    private const EXPANDED = 50;
+    private const PAGE = 20;
+
+    /** صفحه‌ی بیش از این خواسته نمی‌شود: ۲۰۰۰ نتیجه در یک گروه یعنی عبارت باید دقیق‌تر شود. */
+    private const MAX_PAGE = 100;
 
     public function index(Request $request): JsonResponse
     {
@@ -52,10 +58,14 @@ class SearchController extends Controller
          * کل جدول را برمی‌گرداند و «_» با هر تک‌نویسه‌ای جور می‌شد — یعنی
          * نتیجه بی‌ربط می‌شد و کاربر گمان می‌کرد جستجو خراب است.
          * (خطر تزریق نبود؛ مقادیر bind می‌شوند.)
+         *
+         * ⚠️ `query` ِ پاسخ همین عبارت است، نه شکلِ یکدست‌شده‌اش: کلاینت پاسخ را با عبارتِ نشانی می‌سنجد
+         * تا پاسخِ کهنه را کنار بگذارد، و «۱۰» ِ تبدیل‌شده به «10» آن را همیشه کهنه می‌دید.
          */
         $term = $this->stripLikeWildcards($term);
+        $parsed = SearchTerm::parse($term);
 
-        if (mb_strlen($term) < 2) {
+        if (! $parsed->isSearchable()) {
             return response()->json([
                 'query' => $term,
                 'total' => 0,
@@ -74,14 +84,16 @@ class SearchController extends Controller
          */
         $only = $request->string('group')->value();
 
+        $text = $parsed->text;
+
         $groups = array_values(array_filter([
-            $user->isAdmin() ? $this->units($term) : null,
-            $user->isAdmin() ? $this->residents($term) : null,
-            $user->isAdmin() ? $this->bills($term) : null,
-            $user->isAdmin() ? $this->expenses($term) : null,
-            $user->isAdmin() ? null : $this->myBills($user, $term),
-            $this->announcements($user, $term),
-            $this->messages($user, $term),
+            $user->isAdmin() ? $this->units($parsed) : null,
+            $user->isAdmin() ? $this->residents($parsed) : null,
+            $user->isAdmin() ? $this->bills($parsed) : null,
+            $user->isAdmin() ? $this->expenses($text) : null,
+            $user->isAdmin() ? null : $this->myBills($user, $parsed->digits),
+            $this->announcements($user, $text),
+            $this->messages($user, $text),
         ], fn (?array $group) => $group !== null && $group['items'] !== []));
 
         if ($only !== '') {
@@ -93,7 +105,9 @@ class SearchController extends Controller
             'total' => array_sum(array_column($groups, 'count')),
             'groups' => $groups,
             'group' => $only ?: null,
-            'expandedLimit' => self::EXPANDED,
+            'page' => $this->page(),
+            // نامِ قدیمِ R30، همان اندازه‌ی صفحه
+            'expandedLimit' => self::PAGE,
         ]);
     }
 
@@ -110,13 +124,26 @@ class SearchController extends Controller
         return str_replace(['%', '_', '\\'], '', $term);
     }
 
-    private function units(string $term): array
+    /**
+     * «۱۰» هر واحدی که ۱۰ در شماره‌اش هست؛ «واحد ۱۰» و «مالک واحد ۱۰» فقط خودِ واحدِ ۱۰. دامنه‌ی مستأجر
+     * (`Unit`) و شرطِ صریحِ `CommunityLookup` هر دو به همین مجتمع می‌بندند.
+     */
+    private function units(SearchTerm $term): array
     {
+        $complex = $this->currentComplex();
+        $matching = $complex ? CommunityLookup::units($complex->id, $term) : null;
+
         $units = Unit::with('building')
-            ->where(fn ($q) => $q
-                ->where('unit_number', 'like', "%{$term}%")
-                ->orWhere('notes', 'like', "%{$term}%"))
+            ->when(
+                $matching,
+                fn ($q, $ids) => $q->whereIn('units.id', $ids),
+                fn ($q) => $q->where(fn ($w) => $w
+                    ->where('unit_number', 'like', "%{$term->digits}%")
+                    ->orWhere('notes', 'like', "%{$term->text}%")),
+            )
             ->orderBy('unit_number')
+            ->orderBy('id')
+            ->offset($this->offset())
             ->limit($this->limit() + 1)
             ->get();
 
@@ -129,20 +156,37 @@ class SearchController extends Controller
         ])->all());
     }
 
-    private function residents(string $term): array
+    /**
+     * ساکنانِ این مجتمع — با نام، تلفن یا کدِ ملی، یا با «مالک/مستأجر/ساکن واحد N».
+     *
+     * «مالک واحد ۱۰» پیش از ۱۰/۸ به `name LIKE '%مالک واحد ۱۰%'` می‌رسید و همیشه خالی بود. حالا مالکِ
+     * **فعلیِ** واحدِ ۱۰ ِ همین مجتمع است؛ «۱۰» ِ تنها هم ساکنانِ خودِ واحدِ ۱۰ را کنارِ نام و تلفن می‌آورد.
+     */
+    private function residents(SearchTerm $term): array
     {
         $complex = $this->currentComplex();
         if (! $complex) {
             return $this->group('residents', 'ساکنین', 'Users', '/residents', []);
         }
 
-        $residents = ComplexMembers::query($complex->id, [UserRole::Owner, UserRole::Tenant])
-            ->where(fn ($q) => $q
-                ->where('users.name', 'like', "%{$term}%")
-                ->orWhere('users.phone', 'like', "%{$term}%")
-                ->orWhere('users.national_id', 'like', "%{$term}%"))
+        $roles = [UserRole::Owner, UserRole::Tenant];
+        // «۱۰» ِ تنها: کنارِ نام و تلفن، ساکنانِ خودِ واحدِ ۱۰ (نه ۱۰۰ و ۱۱۰)
+        $unitTerm = match (true) {
+            $term->unit === null => null,
+            $term->exactUnit => $term,
+            default => SearchTerm::parse('واحد '.$term->unit),
+        };
+        $inUnit = $unitTerm ? CommunityLookup::currentResidents($complex->id, $unitTerm) : null;
+
+        $residents = ComplexMembers::query($complex->id, $roles)
+            ->where(fn ($q) => $term->exactUnit && $inUnit
+                ? $q->whereIn('users.id', $inUnit)
+                : $q->whereIn('users.id', CommunityLookup::membersMatching($complex->id, $term, $roles))
+                    ->when($inUnit, fn ($w, $ids) => $w->orWhereIn('users.id', $ids)))
             ->with('currentUnits')
             ->orderBy('users.name')
+            ->orderBy('users.id')
+            ->offset($this->offset())
             ->limit($this->limit() + 1)
             ->get();
 
@@ -155,13 +199,22 @@ class SearchController extends Controller
         ])->all());
     }
 
-    private function bills(string $term): array
+    private function bills(SearchTerm $term): array
     {
+        $complex = $this->currentComplex();
+        $exactUnit = $complex && $term->exactUnit ? CommunityLookup::units($complex->id, $term) : null;
+
         $bills = Bill::with('unit')
-            ->where(fn ($q) => $q
-                ->where('period', 'like', "%{$term}%")
-                ->orWhereHas('unit', fn ($u) => $u->where('unit_number', 'like', "%{$term}%")))
+            ->when(
+                $exactUnit,
+                fn ($q, $ids) => $q->whereIn('unit_id', $ids),
+                fn ($q) => $q->where(fn ($w) => $w
+                    ->where('period', 'like', "%{$term->digits}%")
+                    ->orWhereHas('unit', fn ($u) => $u->where('unit_number', 'like', "%{$term->digits}%"))),
+            )
             ->orderByDesc('period')
+            ->orderByDesc('id')
+            ->offset($this->offset())
             ->limit($this->limit() + 1)
             ->get();
 
@@ -180,6 +233,8 @@ class SearchController extends Controller
             ->where('title', 'like', "%{$term}%")
             ->orWhere('description', 'like', "%{$term}%"))
             ->orderByDesc('spend_date')
+            ->orderByDesc('id')
+            ->offset($this->offset())
             ->limit($this->limit() + 1)
             ->get();
 
@@ -204,6 +259,8 @@ class SearchController extends Controller
             ->visibleToResident($user)
             ->where('period', 'like', "%{$term}%")
             ->orderByDesc('period')
+            ->orderByDesc('id')
+            ->offset($this->offset())
             ->limit($this->limit() + 1)
             ->get();
 
@@ -224,6 +281,8 @@ class SearchController extends Controller
                 ->where('title', 'like', "%{$term}%")
                 ->orWhere('body', 'like', "%{$term}%"))
             ->orderByDesc('published_at')
+            ->orderByDesc('id')
+            ->offset($this->offset())
             ->limit($this->limit() + 1)
             ->get();
 
@@ -260,6 +319,8 @@ class SearchController extends Controller
                 ->where('body', 'like', "%{$term}%")
                 ->orWhere('author_name', 'like', "%{$term}%"))
             ->orderByDesc('created_at')
+            ->orderByDesc('id')
+            ->offset($this->offset())
             ->limit($this->limit() + 1)
             ->get();
 
@@ -275,17 +336,30 @@ class SearchController extends Controller
     }
 
     /**
-     * @param  array<int,array<string,mixed>>  $items
-     */
-    /**
-     * سقفِ فعلی: عادی، یا بالاتر برای گروهی که کاربر بازش کرده.
+     * سقفِ فعلی: عادی، یا اندازه‌ی صفحه برای گروهی که کاربر بازش کرده.
      *
      * سازنده‌ها `limit() + 1` می‌خوانند تا بدانیم نتیجه‌ی بیشتری هست یا
      * نه — بدونِ یک `count()` جدا که روی هر هفت گروه هفت کوئریِ اضافه بود.
      */
     private function limit(): int
     {
-        return request()->string('group')->value() !== '' ? self::EXPANDED : self::PER_GROUP;
+        return $this->expanded() ? self::PAGE : self::PER_GROUP;
+    }
+
+    private function expanded(): bool
+    {
+        return request()->string('group')->value() !== '';
+    }
+
+    /** صفحه فقط در حالتِ «همه‌ی نتایجِ این گروه» معنا دارد؛ نمای کلی همیشه صفحه‌ی اول است. */
+    private function page(): int
+    {
+        return $this->expanded() ? max(1, min(self::MAX_PAGE, request()->integer('page', 1))) : 1;
+    }
+
+    private function offset(): int
+    {
+        return ($this->page() - 1) * $this->limit();
     }
 
     /**
@@ -306,6 +380,8 @@ class SearchController extends Controller
             'count' => min(count($items), $limit),
             // «نتیجه‌ی بیشتری هست» — تا کاربر بداند فهرست بریده شده
             'hasMore' => $hasMore,
+            // صفحه‌ی بعدِ همین گروه؛ در نمای کلی null است و «همه» صفحه‌ی ۱ ِ گروه را باز می‌کند
+            'nextPage' => $hasMore && $this->expanded() && $this->page() < self::MAX_PAGE ? $this->page() + 1 : null,
             'items' => array_slice($items, 0, $limit),
         ];
     }

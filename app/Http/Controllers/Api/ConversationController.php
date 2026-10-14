@@ -16,6 +16,7 @@ use App\Services\Messenger\ConversationDirectory;
 use App\Services\Messenger\MessageSender;
 use App\Support\CursorPage;
 use App\Support\Notifications;
+use App\Support\SearchTerm;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
@@ -68,8 +69,16 @@ class ConversationController extends Controller
             }
         }
 
+        // جست‌وجوی فهرست (۱۰/۸): کمتر از دو نویسه یعنی فهرستِ کامل، همان قاعده‌ی جست‌وجوی کلی
+        $search = SearchTerm::parse(is_string($request->query('q')) ? $request->query('q') : '');
+
         return response()->json([
-            ...$this->directory->page($user, $request->query('cursor') ? (string) $request->query('cursor') : null),
+            ...$this->directory->page(
+                $user,
+                $request->query('cursor') ? (string) $request->query('cursor') : null,
+                $search->isSearchable() ? $search : null,
+                $complex,
+            ),
             'canSend' => $complex->messenger_enabled && $user->can_message,
             'reason' => $this->blockReason($complex, $user),
             'isAdmin' => $user->isAdmin(),

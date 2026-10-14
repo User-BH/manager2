@@ -1105,6 +1105,24 @@ class PhaseRegressionMapTest extends TestCase
             '۱۰/۷: اطلاعاتِ واحد فقط برای مدیر و ساکنانِ فعلیِ همان واحد' => [
                 'CommunityAndUnitInformationTest', 'test_another_units_resident_a_former_tenant_or_another_complex_get_nothing', '۱۰',
             ],
+            '🔴 ۱۰/۸: جست‌وجوی مدیر نتیجه‌ی مجتمعِ دیگر را برنمی‌گرداند' => [
+                'ManagerSearchTest', 'test_the_manager_of_another_community_never_receives_this_communitys_results', '۱۰',
+            ],
+            '🔴 ۱۰/۸: مرزِ مجتمع در خودِ کمکِ جست‌وجو' => [
+                'ManagerSearchTest', 'test_the_lookup_itself_never_crosses_the_community', '۱۰',
+            ],
+            '۱۰/۸: «مالک/مستأجر واحد N» و ارقامِ فارسی' => [
+                'ManagerSearchTest', 'test_the_four_examples_of_the_spec_find_the_right_people_in_the_managers_own_community', '۱۰',
+            ],
+            '۱۰/۸: گروهِ جست‌وجو صفحه‌بندی دارد، بی هم‌پوشانی' => [
+                'ManagerSearchTest', 'test_a_group_is_paginated_without_gaps_or_overlap', '۱۰',
+            ],
+            '🔴 ۱۰/۸: جست‌وجوی پیام‌رسان فقط از میانِ دیده‌ها' => [
+                'ConversationSearchTest', 'test_a_resident_searches_only_among_what_they_already_see', '۱۰',
+            ],
+            '۱۰/۸: جست‌وجوی گفت‌وگوها مستأجرِ رفته و مجتمعِ دیگر را نمی‌یابد' => [
+                'ConversationSearchTest', 'test_the_former_tenant_and_the_other_community_are_never_found', '۱۰',
+            ],
             'مدیر از درخواستِ عضویت با اعلانِ داشبورد باخبر می‌شود' => [
                 'JoinRequestTest', 'test_the_complexes_managers_get_a_dashboard_notification_once', '۹',
             ],
@@ -1277,6 +1295,8 @@ class PhaseRegressionMapTest extends TestCase
             'membershipSuspension' => ['۱۰/۶', 'مجتمعِ معلق دیده می‌شود'],
             // مرحلهٔ ۱۰ · فاز ۷: تصویرِ canonical و دو صفحه‌ی «اطلاعات»
             'profileAndInformation' => ['۱۰/۷', 'هرگز فرستاده نمی‌شوند'],
+            // مرحلهٔ ۱۰ · فاز ۸: گروهِ بریده راه به باقی دارد؛ تاریخچه‌ی جست‌وجو مالِ حساب و مجتمع
+            'managerSearch' => ['۱۰/۸', 'مالِ همین حساب در همین مجتمع است'],
         ];
 
         // 🔴 مثلِ ردیف‌های PHP، این فهرست هم فقط بزرگ می‌شود (خرابکاریِ فاز ۸)

@@ -119,10 +119,16 @@ export const queryKeys = {
     all: () => ['subscription'] as const,
   },
 
+  // ── جست‌وجوی سراسری: صفحه‌های یک گروه (۱۰/۸) ──────────────────────────────
+  search: {
+    group: (q: string, group: string, page: number) => ['search', 'group', q, group, page] as const,
+  },
+
   // ── پیام‌رسان (فاز ۱۲) ────────────────────────────────────────────────────
   messenger: {
     all: () => ['messenger'] as const,
-    conversations: () => ['messenger', 'conversations'] as const,
+    // با عبارتِ جست‌وجو و شمارِ صفحه‌ها (۱۰/۸)؛ پیشوندِ `all` همه را با هم باطل می‌کند
+    conversations: (q = '', pages = 1) => ['messenger', 'conversations', q, pages] as const,
     // صفِ گزارش‌های پیام برای مدیر (فاز ۱۴)
     reports: () => ['messenger', 'reports'] as const,
   },

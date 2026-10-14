@@ -2,12 +2,15 @@
 
 namespace App\Services\Messenger;
 
+use App\Enums\UserRole;
 use App\Models\Complex;
 use App\Models\Conversation;
 use App\Models\Message;
 use App\Models\Unit;
 use App\Models\User;
+use App\Services\Search\CommunityLookup;
 use App\Support\Jalali;
+use App\Support\SearchTerm;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Support\Collection;
@@ -109,15 +112,27 @@ class ConversationDirectory
      * نشانگر `last_message_id:id` است نه شماره‌ی صفحه: گفت‌وگویی که پیامِ تازه
      * می‌گیرد به بالا می‌پرد و `OFFSET` همان را دو بار یا هیچ بار نشان می‌داد.
      *
+     * با `$search` (مرحلهٔ ۱۰ · فاز ۸؛ بندِ ۴۱): همان فهرست، همان ترتیب و همان نشانگر، فقط باریک‌تر. جست‌وجو
+     * **پس از** `visibleTo` و دامنه‌ی مستأجر می‌آید، پس هرگز گفت‌وگویی را که بیننده نمی‌بیند پیدا نمی‌کند — فقط
+     * از میانِ دیده‌شده‌ها کم می‌کند. هیچ گفت‌وگویی هم نمی‌سازد.
+     *
      * @return array{data: array<int, array<string, mixed>>, hasMore: bool, nextCursor: ?string}
      */
-    public function page(User $viewer, ?string $cursor): array
+    public function page(User $viewer, ?string $cursor, ?SearchTerm $search = null, ?Complex $within = null): array
     {
         $query = Conversation::query()->visibleTo($viewer)->with(['unit:id,unit_number', 'user:id,name']);
 
-        // مدیر رشته‌ی بی‌پیامِ واحدها را در فهرست نمی‌بیند؛ گروه و کانال را چرا
-        if ($viewer->role->isAdmin()) {
+        /*
+         * مدیر رشته‌ی بی‌پیامِ واحدها را در فهرست نمی‌بیند؛ گروه و کانال را چرا. ⚠️ در جست‌وجو می‌بیند: رشته‌ی
+         * واحدی که ساکنش پیام‌رسان را باز کرده ولی هنوز ننوشته، همان جایی است که «مالک واحد ۱۰» باید برسد.
+         */
+        if ($viewer->role->isAdmin() && $search === null) {
             $query->where(fn (Builder $q) => $q->where('last_message_id', '>', 0)->orWhereIn('type', [Conversation::CHANNEL, Conversation::GROUP]));
+        }
+
+        if ($search !== null) {
+            // مجتمع صریح است، نه `users.complex_id`: ادمینِ کل مجتمعش را از نشست می‌گیرد
+            $this->narrow($query, $viewer, $search, $within ?? throw new \LogicException('جست‌وجوی گفت‌وگو مجتمعِ صریح می‌خواهد.'));
         }
 
         if ($cursor !== null && preg_match('/^(\d+):(\d+)$/', $cursor, $m)) {
@@ -139,6 +154,64 @@ class ConversationDirectory
             'hasMore' => $hasMore,
             'nextCursor' => $hasMore ? $page->last()->last_message_id.':'.$page->last()->id : null,
         ];
+    }
+
+    /**
+     * گفت‌وگوهایی که عبارت به آن‌ها اشاره می‌کند — از دیدِ همین بیننده.
+     *
+     * مدیر (عنوان‌هایش «واحد ۱۰» و نامِ ساکن است):
+     *   - «واحد ۱۰» یا «۱۰»: رشته‌ی آن واحد؛
+     *   - «مالک واحد ۱۰»، «مستأجر واحد ۲۵»: رشته‌ی واحدی که آن شخص **الان** در آن است — رشته‌ی خصوصیِ
+     *     ساختار امروز مالِ واحد است، نه فرد (ساختارِ فرد‌به‌فرد: ۱۰/۹)؛
+     *   - «علی احمدی»: رشته‌ی خودِ او (بی‌واحد) و رشته‌ی واحدهای فعلی‌اش؛
+     *   - عنوانِ گروه، و «همه‌ی اهالی» برای کانال.
+     * ساکن (عنوان‌هایش «مدیریتِ ساختمان» است): فقط عنوانِ گروه و کانال — بندِ ۴۲ جست‌وجو را برای او الزامی
+     * نمی‌داند، و نامِ دیگران را از این راه نباید بشنود.
+     *
+     * هر زیرپرسش `complex_id` ِ همین مجتمع را صریح دارد (`CommunityLookup`)؛ ساکنِ قبلیِ واحد و همنامِ
+     * مجتمعِ دیگر پیدا نمی‌شوند.
+     *
+     * @param  Builder<Conversation>  $query
+     */
+    private function narrow(Builder $query, User $viewer, SearchTerm $search, Complex $complex): void
+    {
+        $complexId = $complex->id;
+        $text = $search->text;
+
+        $query->where(function (Builder $q) use ($viewer, $search, $complexId, $text): void {
+            $q->where(fn (Builder $g) => $g->where('type', Conversation::GROUP)->where('title', 'like', "%{$text}%"));
+
+            if (str_contains('همه‌ی اهالی', $text) || str_contains('همه ی اهالی', $text)) {
+                $q->orWhere('type', Conversation::CHANNEL);
+            }
+
+            if (! $viewer->role->isAdmin()) {
+                return;
+            }
+
+            if ($search->relation !== null && ($occupied = CommunityLookup::occupiedUnits($complexId, $search))) {
+                // «مالک واحد ۱۰»: رشته‌ی واحدِ ۱۰ فقط اگر الان مالک دارد — واحدِ بی‌مستأجر «مستأجر واحد ۱۰» نیست
+                $q->orWhere(fn (Builder $u) => $u->where('type', Conversation::UNIT)
+                    ->whereIn('unit_id', $occupied));
+
+                return;
+            }
+
+            if ($units = CommunityLookup::units($complexId, $search)) {
+                // «۱۰» یا «واحد ۱۰»: خودِ رشته‌ی واحد
+                $q->orWhere(fn (Builder $u) => $u->where('type', Conversation::UNIT)->whereIn('unit_id', $units));
+            }
+
+            if ($search->exactUnit) {
+                return;
+            }
+
+            // «علی احمدی»: رشته‌ی خودش (بی‌واحد) و رشته‌ی واحدهای فعلی‌اش
+            $members = CommunityLookup::membersMatching($complexId, $search, [UserRole::Owner, UserRole::Tenant]);
+            $q->orWhere(fn (Builder $u) => $u->where('type', Conversation::USER)->whereIn('user_id', $members))
+                ->orWhere(fn (Builder $u) => $u->where('type', Conversation::UNIT)
+                    ->whereIn('unit_id', CommunityLookup::unitsOf($complexId, $members)));
+        });
     }
 
     /**

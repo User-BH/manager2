@@ -1,7 +1,9 @@
 import { useEffect } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { motion } from 'framer-motion'
+import { keepPreviousData, useQuery } from '@tanstack/react-query'
 import {
+  ArrowRight,
   Building2,
   ChevronLeft,
   Clock,
@@ -21,8 +23,10 @@ import { Card } from '@/shared/ui/Card'
 import { ErrorState, LoadingState } from '@/shared/ui/PageState'
 import { useSearch } from '@/shared/stores/searchStore'
 import { useDocumentTitle } from '@/shared/hooks'
+import { api } from '@/shared/lib/api'
 import { formatNumber, formatRelative } from '@/shared/lib/format'
-import type { RecentSearch, SearchGroup, SearchItem } from '@/shared/types'
+import { queryKeys } from '@/shared/lib/queryKeys'
+import type { RecentSearch, SearchGroup, SearchItem, SearchResponse } from '@/shared/types'
 
 /** نگاشت نام آیکونی که سرور می‌فرستد به کامپوننت lucide. */
 const GROUP_ICONS: Record<string, LucideIcon> = {
@@ -44,6 +48,8 @@ export function SearchResultsPage() {
   const [params] = useSearchParams()
   const navigate = useNavigate()
   const urlQuery = params.get('q')?.trim() ?? ''
+  const openGroup = params.get('group')?.trim() ?? ''
+  const openPage = Math.max(1, Number.parseInt(params.get('page') ?? '1', 10) || 1)
 
   const { query, setQuery, results, isSearching, error, recent, removeRecent, clearRecent } =
     useSearch()
@@ -65,6 +71,8 @@ export function SearchResultsPage() {
 
   const isStale = results?.query !== urlQuery
   const groups = isStale ? [] : (results?.groups ?? [])
+  // نمای کلی هر گروه را در ۸ می‌بُرد؛ «۸ مورد یافت شد» وقتی بیشتر هست دروغ بود (۱۰/۸)
+  const truncated = groups.some((group) => group.hasMore)
 
   // بدون عبارت (مثلاً بعد از زدن ضربدرِ باکس جستجو) این صفحه جای «جستجوهای
   // اخیر» را می‌گیرد، تا کاربر روی یک صفحه‌ی خالی نیفتد.
@@ -78,6 +86,17 @@ export function SearchResultsPage() {
         }}
         onRemove={removeRecent}
         onClear={clearRecent}
+      />
+    )
+  }
+
+  if (openGroup) {
+    return (
+      <GroupPages
+        query={urlQuery}
+        groupId={openGroup}
+        page={openPage}
+        onOpen={(path) => void navigate(path)}
       />
     )
   }
@@ -98,7 +117,9 @@ export function SearchResultsPage() {
             <span className="font-bold" style={{ color: 'var(--text-secondary)' }}>
               «{urlQuery}»
             </span>
-            {!isStale && results && ` — ${formatNumber(results.total)} مورد یافت شد`}
+            {!isStale &&
+              results &&
+              ` — ${truncated ? 'بیش از ' : ''}${formatNumber(results.total)} مورد یافت شد`}
           </>
         </p>
       </header>
@@ -127,7 +148,13 @@ export function SearchResultsPage() {
       {!isSearching &&
         !isStale &&
         groups.map((group, index) => (
-          <GroupCard key={group.id} group={group} delay={index * 0.06} onOpen={navigate} />
+          <GroupCard
+            key={group.id}
+            group={group}
+            delay={index * 0.06}
+            onOpen={navigate}
+            allPath={`/search?q=${encodeURIComponent(urlQuery)}&group=${encodeURIComponent(group.id)}`}
+          />
         ))}
     </div>
   )
@@ -264,10 +291,12 @@ function GroupCard({
   group,
   delay,
   onOpen,
+  allPath,
 }: {
   group: SearchGroup
   delay: number
   onOpen: (path: string) => void
+  allPath: string
 }) {
   const Icon = GROUP_ICONS[group.icon] ?? Search
 
@@ -311,7 +340,119 @@ function GroupCard({
           />
         ))}
       </ul>
+
+      {group.hasMore && (
+        <Link
+          to={allPath}
+          className="mt-2 flex items-center justify-center gap-1 rounded-xl py-2 text-small font-semibold"
+          style={{ color: 'var(--color-brand-600)', backgroundColor: 'var(--surface-sunken)' }}
+        >
+          نمایشِ همه‌ی {group.title}
+          <ChevronLeft size={13} />
+        </Link>
+      )}
     </Card>
+  )
+}
+
+/**
+ * همه‌ی نتایجِ یک گروه، صفحه به صفحه (مرحلهٔ ۱۰ · فاز ۸؛ بندِ ۲۰ ِ فایلِ معماری).
+ *
+ * تا پیش از این، نمای کلی هر گروه را بی‌صدا در ۸ می‌برید و راهی به نهمی نبود — مدیرِ مجتمعِ ۵۰۰ واحدی «علی» ِ
+ * نهم را هرگز نمی‌دید. صفحه را سرور می‌دهد (`page`/`nextPage`) و در نشانی می‌ماند، پس «بازگشت» و بارگذاریِ
+ * دوباره همان صفحه را می‌دهند.
+ *
+ * ⚠️ عمداً `useQuery` با شماره‌ی صفحه، نه `useInfiniteQuery`: آن هوک جز این‌جا فقط در پیام‌رسان است و باندلر
+ * برای دو صفحه‌ی تنبل چانکِ ریزِ جدایش می‌ساخت (بودجه‌ی «فایلِ ریز» در `bundleBudget`).
+ */
+function GroupPages({
+  query,
+  groupId,
+  page,
+  onOpen,
+}: {
+  query: string
+  groupId: string
+  page: number
+  onOpen: (path: string) => void
+}) {
+  const pageLink = (to: number) =>
+    `/search?q=${encodeURIComponent(query)}&group=${encodeURIComponent(groupId)}&page=${to}`
+
+  const { data, error, isLoading, isFetching, refetch } = useQuery({
+    queryKey: queryKeys.search.group(query, groupId, page),
+    queryFn: ({ signal }) => api<SearchResponse>(pageLink(page), { signal }),
+    placeholderData: keepPreviousData,
+  })
+
+  const group = data?.groups[0]
+  const items = group?.items ?? []
+
+  useDocumentTitle(group ? `${group.title}: ${query}` : `نتایج جستجو: ${query}`)
+
+  const pagerClass = 'rounded-lg border px-3 py-1.5 text-small'
+  const pagerStyle = { borderColor: 'var(--border-subtle)', color: 'var(--text-secondary)' }
+
+  return (
+    <div className="flex flex-col gap-5">
+      <header className="flex flex-col gap-1">
+        <Link
+          to={`/search?q=${encodeURIComponent(query)}`}
+          className="flex items-center gap-1 self-start text-small font-semibold"
+          style={{ color: 'var(--color-brand-600)' }}
+        >
+          <ArrowRight size={14} />
+          همه‌ی نتایج
+        </Link>
+        <h1 className="text-xl font-extrabold" style={{ color: 'var(--text-primary)' }}>
+          {group?.title ?? 'نتایج جستجو'}
+        </h1>
+        <p className="text-small" style={{ color: 'var(--text-tertiary)' }}>
+          برای عبارت «{query}» — صفحه‌ی {formatNumber(page)}
+        </p>
+      </header>
+
+      {isLoading && <LoadingState rows={4} />}
+      {error && <ErrorState error={error} onRetry={() => void refetch()} />}
+
+      {!isLoading && !error && items.length === 0 && (
+        <Card>
+          <p className="py-8 text-center text-small" style={{ color: 'var(--text-secondary)' }}>
+            چیزی با «{query}» پیدا نشد.
+          </p>
+        </Card>
+      )}
+
+      {items.length > 0 && (
+        <Card>
+          <ul className="flex flex-col gap-1" aria-busy={isFetching}>
+            {items.map((item, index) => (
+              <ResultRow
+                key={`${groupId}-${item.id}`}
+                item={item}
+                delay={index * 0.02}
+                onOpen={onOpen}
+              />
+            ))}
+          </ul>
+
+          {(page > 1 || group?.nextPage) && (
+            <nav aria-label="صفحه‌بندی" className="mt-3 flex items-center justify-center gap-3">
+              {page > 1 && (
+                <Link to={pageLink(page - 1)} className={pagerClass} style={pagerStyle}>
+                  صفحه‌ی قبل
+                </Link>
+              )}
+              {group?.nextPage && (
+                <Link to={pageLink(group.nextPage)} className={pagerClass} style={pagerStyle}>
+                  صفحه‌ی بعد
+                </Link>
+              )}
+            </nav>
+          )}
+        </Card>
+      )}
+    </div>
   )
 }
 

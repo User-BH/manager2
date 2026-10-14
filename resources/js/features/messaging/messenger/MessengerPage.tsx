@@ -1,9 +1,9 @@
 import { useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
-import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { keepPreviousData, useQuery, useQueryClient } from '@tanstack/react-query'
 import { ArrowRight, Flag, Hash, Lock, MessageSquare, Plus, Users } from 'lucide-react'
 import { ErrorState, InlineSpinner } from '@/shared/ui/PageState'
-import { useDocumentTitle } from '@/shared/hooks'
+import { useDebounce, useDocumentTitle } from '@/shared/hooks'
 import { api } from '@/shared/lib/api'
 import { cn } from '@/shared/lib/cn'
 import { queryKeys } from '@/shared/lib/queryKeys'
@@ -38,22 +38,58 @@ export function MessengerPage() {
   const queryClient = useQueryClient()
   const [creating, setCreating] = useState(false)
   const [reviewing, setReviewing] = useState(false)
+  const [term, setTerm] = useState('')
+  const [pages, setPages] = useState(1)
 
   const selectedId = id && /^\d+$/.test(id) ? Number(id) : null
 
-  const { data, error, isLoading, refetch } = useQuery({
-    queryKey: queryKeys.messenger.conversations(),
-    queryFn: ({ signal }) => api<ConversationsResponse>('/messenger/conversations', { signal }),
+  // کمتر از دو نویسه یعنی فهرستِ کامل — همان قاعده‌ی سرور
+  const typed = useDebounce(term.trim(), 350)
+  const search = typed.length >= 2 ? typed : ''
+
+  /*
+   * فهرست صفحه به صفحه با نشانگرِ خودِ سرور (مرحلهٔ ۱۰ · فاز ۸؛ بندِ ۴۱). ⚠️ تا پیش از این فقط ۳۰ گفت‌وگوی اول
+   * خوانده می‌شد و `nextCursor` بی‌مصرف می‌ماند: مدیری با صدها رشته به سی‌ویکمی هرگز نمی‌رسید. جست‌وجو همان
+   * فهرست است با `q`؛ سرور پس از قاعده‌ی دید باریکش می‌کند.
+   *
+   * «بیشتر» شمارِ صفحه را بالا می‌برد و یک پرسش همه را پشتِ هم با نشانگرها می‌خواند — پس پرسشِ دوره‌ای شمارِ
+   * نخوانده‌ی صفحه‌های قبلی را هم تازه می‌کند و گفت‌وگویی که به بالا پریده دو بار دیده نمی‌شود. ⚠️ عمداً نه
+   * `useInfiniteQuery`: همان یک هوک چانکِ مشترکی را که صفحه‌ی پشتیبانی هم بار می‌کند از سقفش رد می‌کرد
+   * (`bundleBudget`).
+   */
+  const { data, error, isLoading, isFetching, refetch } = useQuery({
+    queryKey: queryKeys.messenger.conversations(search, pages),
+    queryFn: async ({ signal }) => {
+      const read: ConversationsResponse[] = []
+      let cursor: string | null = null
+
+      do {
+        const params = new URLSearchParams()
+        if (search) params.set('q', search)
+        if (cursor) params.set('cursor', cursor)
+        const page: ConversationsResponse = await api<ConversationsResponse>(
+          `/messenger/conversations?${params.toString()}`,
+          { signal },
+        )
+        read.push(page)
+        cursor = page.nextCursor
+      } while (cursor && read.length < pages)
+
+      return { ...read[0], data: read.flatMap((page) => page.data), nextCursor: cursor }
+    },
+    // نوشتن در کادرِ جست‌وجو یا «بیشتر» فهرست را به چرخنده تبدیل نمی‌کند
+    placeholderData: keepPreviousData,
     // شمارِ نخوانده‌ی گفت‌وگوهای دیگر؛ فقط وقتی تب دیده می‌شود
     refetchInterval: 15_000,
     refetchIntervalInBackground: false,
   })
+  const first = data
 
   // شمارِ گزارش‌های باز — فقط مدیر؛ همان کلیدِ پنلِ گزارش‌ها
   const { data: reports } = useQuery({
     queryKey: queryKeys.messenger.reports(),
     queryFn: ({ signal }) => messageActions.reports(signal),
-    enabled: Boolean(data?.isAdmin),
+    enabled: Boolean(first?.isAdmin),
     refetchInterval: 60_000,
     refetchIntervalInBackground: false,
   })
@@ -79,7 +115,7 @@ export function MessengerPage() {
           </p>
         </div>
         <div className="flex items-center gap-2">
-          {data?.isAdmin && (
+          {first?.isAdmin && (
             <button
               type="button"
               onClick={() => setReviewing(true)}
@@ -98,7 +134,7 @@ export function MessengerPage() {
               )}
             </button>
           )}
-          {data?.isAdmin && data.canSend && (
+          {first?.isAdmin && first.canSend && (
             <button
               type="button"
               onClick={() => setCreating(true)}
@@ -111,9 +147,9 @@ export function MessengerPage() {
         </div>
       </header>
 
-      {data?.reason && (
+      {first?.reason && (
         <p className="text-small" style={{ color: 'var(--text-secondary)' }}>
-          {data.reason}
+          {first.reason}
         </p>
       )}
 
@@ -126,9 +162,23 @@ export function MessengerPage() {
           )}
           style={{ borderColor: 'var(--border-subtle)', backgroundColor: 'var(--surface-base)' }}
         >
+          {/* بندِ ۴۱: مدیر با صدها گفت‌وگو؛ برای ساکن (بندِ ۴۲) الزامی نیست و گفت‌وگوهایش انگشت‌شمارند */}
+          {first?.isAdmin && (
+            <input
+              type="search"
+              value={term}
+              onChange={(event) => {
+                setTerm(event.target.value)
+                setPages(1)
+              }}
+              placeholder="مالک واحد ۱۰، نامِ ساکن، واحد ۲۵…"
+              aria-label="جست‌وجوی گفت‌وگوها"
+              className="field mb-2 w-full rounded-xl px-3 py-2 text-small"
+            />
+          )}
           {conversations.length === 0 ? (
             <p className="p-4 text-center text-small" style={{ color: 'var(--text-tertiary)' }}>
-              گفت‌وگویی نیست.
+              {search ? `گفت‌وگویی با «${search}» پیدا نشد.` : 'گفت‌وگویی نیست.'}
             </p>
           ) : (
             <ul className="flex flex-col gap-1">
@@ -183,6 +233,17 @@ export function MessengerPage() {
               })}
             </ul>
           )}
+          {data?.nextCursor && (
+            <button
+              type="button"
+              disabled={isFetching}
+              onClick={() => setPages((count) => count + 1)}
+              className="mt-2 w-full rounded-xl py-2 text-small font-semibold disabled:opacity-60"
+              style={{ color: 'var(--color-brand-600)', backgroundColor: 'var(--surface-sunken)' }}
+            >
+              {isFetching ? 'در حال بارگذاری…' : 'گفت‌وگوهای بیشتر'}
+            </button>
+          )}
         </nav>
 
         <section className={cn('min-h-0', selectedId === null && 'hidden md:block')}>
@@ -224,9 +285,9 @@ export function MessengerPage() {
         />
       )}
 
-      {creating && data && (
+      {creating && first && (
         <NewConversationDialog
-          units={data.units}
+          units={first.units}
           onClose={() => setCreating(false)}
           onCreated={(conversation) => {
             setCreating(false)
