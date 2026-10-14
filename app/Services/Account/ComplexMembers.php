@@ -42,7 +42,8 @@ final class ComplexMembers
                     ->whereIn('cm.status', $statuses);
             })
             ->whereIn('cm.role', self::values($roles))
-            ->select('users.*', 'cm.role as membership_role', 'cm.status as membership_status');
+            // بستنِ پیام‌رسان هم مالِ همین عضویت است (۱۰/۹)
+            ->select('users.*', 'cm.role as membership_role', 'cm.status as membership_status', 'cm.messaging_blocked_at as membership_messaging_blocked_at');
     }
 
     /** @param  list<UserRole>  $roles */

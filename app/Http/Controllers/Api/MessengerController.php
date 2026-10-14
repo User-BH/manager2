@@ -17,6 +17,7 @@ use App\Models\User;
 use App\Services\Messenger\ConversationDirectory;
 use App\Services\Messenger\MessageActions;
 use App\Services\Messenger\MessageSender;
+use App\Services\Messenger\MessagingAccess;
 use App\Services\Poll\PollService;
 use App\Support\Notifications;
 use App\Support\Uploads;
@@ -102,7 +103,7 @@ class MessengerController extends Controller
                     ->map(fn (Unit $u) => ['id' => $u->id, 'label' => 'واحد '.$u->unit_number])
                     ->values()
                 : [],
-            'canSend' => $complex->messenger_enabled && $user->can_message,
+            'canSend' => MessagingAccess::allowed($user, $complex),
             'reason' => $this->blockReason($complex, $user),
             'isAdmin' => $user->isAdmin(),
         ]);
@@ -135,10 +136,8 @@ class MessengerController extends Controller
                 Unit::whereIn('id', $data['unit_ids'])->pluck('id')->map(fn ($id) => (int) $id)->all(),
                 $user,
             ),
-            // ساکن: رشته‌ی واحدِ فعلی‌اش؛ مدیرِ «به مدیریت»: رشته‌ی خودش با مدیریت
-            MessageAudience::Management => $user->role->isAdmin()
-                ? $directory->userThread($complex, $user)
-                : $directory->ownThreads($complex, $user)->first(),
+            // «به مدیریت»: گفت‌وگوی خصوصیِ خودش با مدیریت (۱۰/۹ — رشته‌ی مشترکِ واحد دیگر نوشته نمی‌شود)
+            MessageAudience::Management => $directory->userThread($complex, $user),
         };
 
         [$message] = $sender->send($complex, $conversation, $user, $data, $request->file('attachment'));
@@ -282,6 +281,8 @@ class MessengerController extends Controller
     public function toggleHide(Message $message): JsonResponse
     {
         $user = Auth::user();
+        // پیامِ گفت‌وگوی خصوصیِ دیگران برای مدیر «نیست»، نه «ممنوع» (۱۰/۹)
+        abort_unless(Message::query()->visibleTo($user)->whereKey($message->id)->exists(), 404);
         $this->authorize('hide', $message);
 
         $message->update([
@@ -312,8 +313,8 @@ class MessengerController extends Controller
             return 'پیام‌رسان این مجتمع توسط مدیر بسته شده است.';
         }
 
-        if (! $user->can_message) {
-            return 'ارسال پیام برای شما محدود شده است.';
+        if (MessagingAccess::blocked($user, $complex->id)) {
+            return 'ارسال پیام برای شما در این مجتمع محدود شده است.';
         }
 
         return null;

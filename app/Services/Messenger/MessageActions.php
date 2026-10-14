@@ -113,7 +113,7 @@ class MessageActions
     /** همان واکنشِ دوباره برمی‌داردش؛ واکنشِ دیگر جایش را می‌گیرد. */
     public function react(Complex $complex, Message $message, User $user, string $emoji): void
     {
-        if (! $complex->messenger_enabled || ! $user->can_message) {
+        if (! $complex->messenger_enabled || MessagingAccess::blocked($user, $complex->id)) {
             abort(403, 'امکانِ واکنش برای شما فعال نیست.');
         }
 
@@ -197,12 +197,12 @@ class MessageActions
 
     private function ensureCanWrite(Complex $complex, Conversation $conversation, User $user): void
     {
-        if (! $complex->messenger_enabled || ! $user->can_message) {
+        if (! $complex->messenger_enabled || ($conversation->type !== Conversation::SAVED && MessagingAccess::blocked($user, $complex->id))) {
             abort(403, 'امکان ارسال پیام برای شما فعال نیست.');
         }
 
         if (! $conversation->allowsPostingBy($user)) {
-            throw new DomainException('در این گفت‌وگو فقط مدیریت پیام می‌فرستد.', 'messenger.read_only', 403);
+            throw new DomainException($conversation->readOnlyReason(), 'messenger.read_only', 403);
         }
     }
 

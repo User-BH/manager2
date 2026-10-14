@@ -153,6 +153,10 @@ class TenantIsolationTest extends TestCase
             'conversation' => Conversation::withoutGlobalScopes()->create([
                 'complex_id' => $complex->id, 'type' => 'unit', 'key' => 'unit:'.$unit->id, 'unit_id' => $unit->id,
             ]),
+            // گروهِ مجتمع (۱۰/۹): «اطلاعاتِ گروه» فقط برای گروه است و رکوردِ خودی باید واقعاً پاسخ بدهد
+            'group' => Conversation::withoutGlobalScopes()->create([
+                'complex_id' => $complex->id, 'type' => 'channel', 'key' => 'channel', 'members_can_post' => true,
+            ]),
             'message' => Message::withoutGlobalScopes()->create([
                 'complex_id' => $complex->id, 'user_id' => $resident->id, 'body' => 'پیام',
                 'author_name' => 'ساکن', 'author_role' => 'owner', 'unit_label' => '۱',
@@ -260,6 +264,9 @@ class TenantIsolationTest extends TestCase
             'گزارشِ پیامِ مجتمعِ دیگر' => ['POST', 'messenger/conversations/%d/messages/%d/report', 'conversation+message', []],
             'سنجاق در گفت‌وگوی مجتمعِ دیگر' => ['POST', 'messenger/conversations/%d/pin', 'conversation', ['message_id' => null]],
             'جست‌وجو در گفت‌وگوی مجتمعِ دیگر' => ['GET', 'messenger/conversations/%d/search', 'conversation', []],
+            // ۱۰/۹: اطلاعاتِ گروه و «فقط مدیریت بنویسد»
+            'اطلاعاتِ گروهِ مجتمعِ دیگر' => ['GET', 'messenger/conversations/%d/info', 'group', []],
+            'بستنِ گروهِ مجتمعِ دیگر' => ['POST', 'messenger/conversations/%d/posting', 'group', ['members_can_post' => false]],
             'رسیدگی به گزارشِ مجتمعِ دیگر' => ['POST', 'messenger/reports/%d/resolve', 'report', ['resolution' => 'hidden']],
             'خواندنِ اطلاعیهٔ دیگری' => ['POST', 'notifications/%d/read', 'announcement', []],
         ];

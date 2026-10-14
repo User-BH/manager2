@@ -2,18 +2,26 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Enums\UserRole;
+use App\Exceptions\DomainException;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\ReadConversationRequest;
 use App\Http\Requests\SendConversationMessageRequest;
 use App\Http\Requests\StoreConversationRequest;
+use App\Http\Requests\UpdateConversationPostingRequest;
 use App\Http\Resources\MessageResource;
 use App\Models\Complex;
 use App\Models\Conversation;
 use App\Models\Message;
 use App\Models\Unit;
 use App\Models\User;
+use App\Services\Account\ComplexMembers;
+use App\Services\Account\ProfilePhoto;
 use App\Services\Messenger\ConversationDirectory;
+use App\Services\Messenger\ConversationParticipants;
 use App\Services\Messenger\MessageSender;
+use App\Services\Messenger\MessagingAccess;
+use App\Support\Audit;
 use App\Support\CursorPage;
 use App\Support\Notifications;
 use App\Support\SearchTerm;
@@ -41,6 +49,9 @@ class ConversationController extends Controller
     /** سقفِ پیام‌های تازه در یک پرسش. */
     private const SINCE_LIMIT = 100;
 
+    /** عضو در هر صفحه‌ی اطلاعاتِ گروه — مجتمعِ ۵۰۰ واحدی یک‌جا فرستاده نمی‌شود. */
+    private const MEMBER_PAGE = 50;
+
     public function __construct(private readonly ConversationDirectory $directory) {}
 
     public function index(Request $request): JsonResponse
@@ -57,16 +68,11 @@ class ConversationController extends Controller
         }
 
         /*
-         * کانال همیشه هست؛ رشته‌ی خصوصیِ ساکن با مدیریت هم — پیش از اولین پیام،
-         * تا جایی برای نوشتن داشته باشد. هر دو «یافتن یا ساختن»‌اند و تکرارشان
-         * چیزی نمی‌سازد.
+         * گروهِ مجتمع، «ذخیره‌شده»، گفت‌وگوی خصوصی با مدیریت و «مالک ↔ مستأجر» از همان بارِ اول هستند — پیش از
+         * اولین پیام، تا جایی برای نوشتن باشد (بندِ ۴۰). همه «یافتن یا ساختن»‌اند و تکرارشان چیزی نمی‌سازد.
          */
         if ($request->query('cursor') === null) {
-            $this->directory->channel($complex);
-
-            if (! $user->role->isAdmin()) {
-                $this->directory->ownThreads($complex, $user);
-            }
+            $this->directory->ensureFor($complex, $user);
         }
 
         // جست‌وجوی فهرست (۱۰/۸): کمتر از دو نویسه یعنی فهرستِ کامل، همان قاعده‌ی جست‌وجوی کلی
@@ -79,15 +85,17 @@ class ConversationController extends Controller
                 $search->isSearchable() ? $search : null,
                 $complex,
             ),
-            'canSend' => $complex->messenger_enabled && $user->can_message,
+            'canSend' => MessagingAccess::allowed($user, $complex),
             'reason' => $this->blockReason($complex, $user),
             'isAdmin' => $user->isAdmin(),
             'unreadTotal' => Notifications::messengerUnread($user),
-            // فهرستِ واحدها فقط برای مدیر، برای شروعِ رشته یا ساختِ گروه
+            // فهرستِ واحدها فقط برای مدیر، برای ساختِ گروه
             'units' => $user->role->isAdmin()
                 ? Unit::orderBy('unit_number')->get(['id', 'unit_number'])
                     ->map(fn (Unit $u) => ['id' => $u->id, 'label' => 'واحد '.$u->unit_number])->values()
                 : [],
+            // اعضای فعال، برای گفت‌وگوی خصوصی با یک نفر (۱۰/۹)
+            'members' => $user->role->isAdmin() ? $this->members($complex) : [],
         ]);
     }
 
@@ -98,8 +106,8 @@ class ConversationController extends Controller
         $complex = $this->requireComplex();
         $data = $request->validated();
 
-        $conversation = $data['type'] === Conversation::UNIT
-            ? $this->directory->unitThread($complex, Unit::findOrFail($data['unit_id']))
+        $conversation = $data['type'] === Conversation::USER
+            ? $this->directory->userThread($complex, User::findOrFail($data['user_id']))
             : $this->directory->createGroup(
                 $complex,
                 trim($data['title']),
@@ -205,6 +213,81 @@ class ConversationController extends Controller
      * ⚠️ فقط در گفت‌وگویی که کاربر می‌بیند، و فقط شناسه‌های **همان** گفت‌وگو —
      * شناسه‌ی پیامِ گفت‌وگوی دیگر در `up_to` چیزی را علامت نمی‌زند.
      */
+    /**
+     * اطلاعاتِ گروه (بندهای ۳۵، ۳۶ و ۷۰): نام، شمار و فهرستِ اعضا — از عضویتِ فعال، هر بار.
+     *
+     * فقط گروهِ مجتمع و گروهِ مدیر؛ گفت‌وگوی دونفره «گروه» نیست و ۴۰۴ است. هر کس گروه را می‌بیند اعضایش را هم
+     * می‌بیند — نام، تصویر، نقش و واحد، **نه** تلفن و ایمیل.
+     */
+    public function info(Request $request, Conversation $conversation): JsonResponse
+    {
+        $user = Auth::user();
+        $this->ensureVisible($conversation, $user);
+        abort_unless(in_array($conversation->type, [Conversation::CHANNEL, Conversation::GROUP], true), 404);
+
+        $page = max(1, min(1000, $request->integer('page', 1)));
+        $rows = ConversationParticipants::query($conversation)
+            ->with('currentUnits:id,unit_number')
+            ->orderBy('users.name')
+            ->orderBy('users.id')
+            ->offset(($page - 1) * self::MEMBER_PAGE)
+            ->limit(self::MEMBER_PAGE + 1)
+            ->get();
+
+        $conversation->loadMissing('complex:id,name');
+
+        return response()->json([
+            'conversation' => [
+                'id' => $conversation->id,
+                'type' => $conversation->type,
+                'title' => $conversation->titleFor($user),
+                'membersCanPost' => $conversation->members_can_post,
+                'canManage' => $user->role->isAdmin(),
+            ],
+            'counts' => ConversationParticipants::counts($conversation),
+            'members' => $rows->take(self::MEMBER_PAGE)->map(function (User $member) {
+                /** @var Unit|null $unit */
+                $unit = $member->currentUnits->first();
+                $role = ComplexMembers::displayedRole($member);
+
+                return [
+                    'id' => $member->id,
+                    'name' => $member->name,
+                    'avatarUrl' => ProfilePhoto::url($member),
+                    'role' => $role->value,
+                    'roleLabel' => $role->label(),
+                    'unit' => $unit ? 'واحد '.$unit->unit_number : null,
+                    // ناظرِ گروه با ۱۰/۱۰ می‌آید؛ تا آن روز هیچ عضوی ناظر نیست
+                    'isModerator' => false,
+                ];
+            })->values(),
+            'page' => $page,
+            'hasMore' => $rows->count() > self::MEMBER_PAGE,
+        ]);
+    }
+
+    /** «فقط مدیریت بنویسد» برای گروه — فقط مدیر، فقط گروهِ مجتمع یا گروهِ خودش. */
+    public function posting(UpdateConversationPostingRequest $request, Conversation $conversation): JsonResponse
+    {
+        $user = Auth::user();
+        $this->ensureVisible($conversation, $user);
+
+        if (! in_array($conversation->type, [Conversation::CHANNEL, Conversation::GROUP], true)) {
+            throw DomainException::invalid('نوشتنِ اعضا فقط برای گروه‌ها تنظیم می‌شود.', 'messenger.not_a_group');
+        }
+
+        $conversation->update(['members_can_post' => $request->boolean('members_can_post')]);
+
+        Audit::log(
+            'messenger.posting_changed',
+            $conversation->members_can_post ? 'نوشتنِ اعضا در گروه آزاد شد' : 'نوشتن در گروه فقط برای مدیریت شد',
+            $conversation,
+            ['members_can_post' => $conversation->members_can_post],
+        );
+
+        return response()->json(['conversation' => $this->directory->present($conversation->fresh(['complex:id,name']), $user)]);
+    }
+
     public function read(ReadConversationRequest $request, Conversation $conversation): JsonResponse
     {
         $user = Auth::user();
@@ -278,7 +361,12 @@ class ConversationController extends Controller
     {
         $complex = Complex::find($conversation->complex_id);
 
-        return (bool) $complex?->messenger_enabled && $user->can_message && $conversation->allowsPostingBy($user);
+        // «ذخیره‌شده» یادداشتِ خودِ اوست؛ بستنِ پیام‌رسان برای دیگران است، نه برای یادداشت (۱۰/۹)
+        $open = $conversation->type === Conversation::SAVED
+            ? (bool) $complex?->messenger_enabled
+            : MessagingAccess::allowed($user, $complex);
+
+        return $open && $conversation->allowsPostingBy($user);
     }
 
     /** @return array<string, mixed> */
@@ -287,11 +375,36 @@ class ConversationController extends Controller
         return (new MessageResource($message, $viewer))->toArray(request());
     }
 
+    /**
+     * مالکان و مستأجرانِ فعالِ همین مجتمع، با نقشِ عضویت و واحدِ فعلی‌شان — از عضویت، نه از زمینه‌ی حساب.
+     *
+     * @return list<array{id: int, label: string}>
+     */
+    private function members(Complex $complex): array
+    {
+        return ComplexMembers::query($complex->id, [UserRole::Owner, UserRole::Tenant])
+            ->with('currentUnits:id,unit_number')
+            ->orderBy('users.name')
+            ->get()
+            ->map(function (User $member) {
+                /** @var Unit|null $unit */
+                $unit = $member->currentUnits->first();
+                $role = ComplexMembers::displayedRole($member)->label();
+
+                return [
+                    'id' => $member->id,
+                    'label' => $member->name.' · '.$role.($unit ? ' واحد '.$unit->unit_number : ''),
+                ];
+            })
+            ->values()
+            ->all();
+    }
+
     private function blockReason(Complex $complex, User $user): ?string
     {
         return match (true) {
             ! $complex->messenger_enabled => 'پیام‌رسان این مجتمع توسط مدیر بسته شده است.',
-            ! $user->can_message => 'ارسال پیام برای شما محدود شده است.',
+            MessagingAccess::blocked($user, $complex->id) => 'ارسال پیام برای شما در این مجتمع محدود شده است.',
             default => null,
         };
     }

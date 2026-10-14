@@ -13,9 +13,13 @@ use App\Models\User;
  */
 class MessagePolicy
 {
+    /**
+     * ⚠️ فقط پیامی که مدیر **می‌بیند** (۱۰/۹): پیامِ گفت‌وگوی خصوصیِ دیگران (مالک ↔ مستأجر، ذخیره‌شده) با شناسه‌اش
+     * هم پنهان نمی‌شود — پاسخِ همین مسیر متنِ پیام را برمی‌گرداند.
+     */
     public function hide(User $user, Message $message): bool
     {
-        return $user->isAdmin();
+        return $user->isAdmin() && Message::query()->visibleTo($user)->whereKey($message->id)->exists();
     }
 
     /**
@@ -27,6 +31,6 @@ class MessagePolicy
      */
     public function closePoll(User $user, Message $message): bool
     {
-        return $user->isAdmin();
+        return $user->isAdmin() && Message::query()->visibleTo($user)->whereKey($message->id)->exists();
     }
 }

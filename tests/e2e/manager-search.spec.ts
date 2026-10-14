@@ -53,7 +53,7 @@ test('«مستأجر واحد ۴» در جست‌وجوی کلی و در پیا�
   await expect(rows).toHaveCount(1)
   await expect(rows.first()).toContainText(/۰۹۱۲۲۲۲۲۲۰۴|09122222204/)
 
-  // ── پیام‌رسان: رشته‌ی واحدِ ۴ (یافتن یا ساختن — تکرارش چیزی نمی‌سازد) ──
+  // ── پیام‌رسان: گفت‌وگوی مدیر با مستأجرِ واحدِ ۴ (۱۰/۹: با هر عضو، نه با واحد؛ یافتن یا ساختن) ──
   const created = await manager.evaluate(async () => {
     const xsrf = decodeURIComponent((document.cookie.match(/XSRF-TOKEN=([^;]+)/) ?? [])[1] ?? '')
     const headers = {
@@ -64,13 +64,15 @@ test('«مستأجر واحد ۴» در جست‌وجوی کلی و در پیا�
     const list = await (
       await fetch('/api/v1/messenger/conversations', { credentials: 'include', headers })
     ).json()
-    const unit = (list.units as { id: number; label: string }[]).find((u) => u.label === 'واحد 4')
-    if (!unit) return 0
+    const member = (list.members as { id: number; label: string }[]).find((m) =>
+      m.label.endsWith('مستاجر واحد 4'),
+    )
+    if (!member) return 0
     const res = await fetch('/api/v1/messenger/conversations', {
       method: 'POST',
       credentials: 'include',
       headers,
-      body: JSON.stringify({ type: 'unit', unit_id: unit.id }),
+      body: JSON.stringify({ type: 'user', user_id: member.id }),
     })
     return res.status
   })
@@ -82,9 +84,9 @@ test('«مستأجر واحد ۴» در جست‌وجوی کلی و در پیا�
 
   await box.fill('مستأجر واحد ۴')
   await expect(list.getByRole('button')).toHaveCount(1)
-  await expect(list.getByRole('button', { name: /واحد 4/ })).toBeVisible()
+  await expect(list.getByRole('button', { name: /مستاجر واحد 4/ })).toBeVisible()
 
-  // واحدِ ۱ مستأجر ندارد: هیچ، نه رشته‌ی واحدِ ۱
+  // واحدِ ۱ مستأجر ندارد: هیچ، نه گفت‌وگوی مالکش
   await box.fill('مستأجر واحد ۱')
   await expect(list.getByText('گفت‌وگویی با «مستأجر واحد ۱» پیدا نشد.')).toBeVisible()
 

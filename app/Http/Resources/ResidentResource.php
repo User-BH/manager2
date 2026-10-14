@@ -7,6 +7,8 @@ use App\Models\Unit;
 use App\Models\User;
 use App\Services\Account\ComplexMembers;
 use App\Services\Account\ProfilePhoto;
+use App\Services\Messenger\MessagingAccess;
+use App\Support\ComplexResolver;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
@@ -46,7 +48,10 @@ class ResidentResource extends JsonResource
              * همان کوئریِ فهرست می‌آید (`membership_status`)؛ بی‌آن فقط حساب سنجیده می‌شود.
              */
             'isActive' => (bool) $user->is_active && $user->getAttribute('membership_status') !== ComplexMembership::SUSPENDED,
-            'canMessage' => (bool) $user->can_message,
+            // پیام‌رسانِ همین مجتمع (۱۰/۹)، نه ستونِ حساب که مجتمع‌های دیگر را هم می‌بست
+            'canMessage' => array_key_exists('membership_messaging_blocked_at', $user->getAttributes())
+                ? $user->getAttribute('membership_messaging_blocked_at') === null
+                : ! MessagingAccess::blocked($user, (int) ComplexResolver::idFor($request->user())),
             'units' => $user->currentUnits->map(fn (Unit $u) => [
                 'id' => $u->id,
                 'label' => 'واحد '.$u->unit_number,

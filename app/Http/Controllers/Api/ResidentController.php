@@ -15,6 +15,7 @@ use App\Models\User;
 use App\Services\Account\ComplexMembers;
 use App\Services\Account\Membership;
 use App\Services\Account\MembershipLedger;
+use App\Services\Messenger\MessagingAccess;
 use App\Services\Units\TenureService;
 use App\Support\Audit;
 use Illuminate\Http\JsonResponse;
@@ -202,29 +203,34 @@ class ResidentController extends Controller
     }
 
     /**
-     * محدودکردن یک ساکن در پیام‌رسان.
+     * محدودکردن یک ساکن در پیام‌رسانِ **همین مجتمع** (مرحلهٔ ۱۰ · فاز ۹؛ یافته‌ی ۱۰/۶).
      *
-     * ستون `can_message` از قبل در MessengerController اعمال می‌شد ولی هیچ
-     * راهی برای تغییرش وجود نداشت؛ یعنی قابلیتِ «محدودیت کاربر» عملاً در
-     * دسترس مدیر نبود.
+     * تا ۱۰/۹ این `users.can_message` ِ حساب را می‌نوشت و پیام‌رسانِ همان شخص را در مجتمع‌های دیگرش هم می‌بست.
+     * حالا روی عضویتِ همین مجتمع است (`MessagingAccess`).
      */
     public function toggleMessaging(User $resident): JsonResponse
     {
         $this->guard($resident);
-        $resident->update(['can_message' => ! $resident->can_message]);
+        $complexId = $this->requireComplex()->id;
+        $open = MessagingAccess::toggle($resident, $complexId);
 
         Audit::log(
-            $resident->can_message ? 'resident.messaging_allowed' : 'resident.messaging_blocked',
-            $resident->can_message ? 'بازکردن پیام‌رسان برای ساکن' : 'بستن پیام‌رسان برای ساکن',
+            $open ? 'resident.messaging_allowed' : 'resident.messaging_blocked',
+            $open ? 'بازکردن پیام‌رسان برای ساکن' : 'بستن پیام‌رسان برای ساکن',
             $resident,
             ['name' => $resident->name],
         );
 
+        $fresh = $resident->fresh('currentUnits');
+        $fresh->setAttribute('membership_role', ComplexMembers::roleOf($fresh, $complexId, withSuspended: true)?->value);
+        $fresh->setAttribute('membership_status', ComplexMembers::statusOf($fresh, $complexId));
+        $fresh->setAttribute('membership_messaging_blocked_at', $open ? null : now());
+
         return response()->json([
-            'resident' => $this->present($resident->fresh('currentUnits')),
-            'message' => $resident->can_message
+            'resident' => $this->present($fresh),
+            'message' => $open
                 ? 'ارسال پیام برای این ساکن آزاد شد.'
-                : 'ارسال پیام برای این ساکن بسته شد.',
+                : 'ارسال پیام برای این ساکن در این مجتمع بسته شد.',
         ]);
     }
 

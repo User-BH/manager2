@@ -129,6 +129,8 @@ export const queryKeys = {
     all: () => ['messenger'] as const,
     // با عبارتِ جست‌وجو و شمارِ صفحه‌ها (۱۰/۸)؛ پیشوندِ `all` همه را با هم باطل می‌کند
     conversations: (q = '', pages = 1) => ['messenger', 'conversations', q, pages] as const,
+    // اطلاعاتِ گروه با شمارِ صفحه‌های اعضا (۱۰/۹)
+    info: (id: number, pages = 1) => ['messenger', 'info', id, pages] as const,
     // صفِ گزارش‌های پیام برای مدیر (فاز ۱۴)
     reports: () => ['messenger', 'reports'] as const,
   },

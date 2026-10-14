@@ -155,7 +155,17 @@ class Message extends Model
      */
     public function scopeVisibleTo(Builder $query, User $user): void
     {
+        /*
+         * 🔴 مدیر هر پیامِ مجتمع را می‌بیند **جز** پیامِ گفت‌وگوهای خصوصیِ دیگران (۱۰/۹؛ بندهای ۳۸ و ۳۹). همین
+         * یک‌جا جست‌وجو، پیوست، پنهان‌کردن، واکنش و شمارِ نخوانده را می‌بندد؛ بی‌این، شناسه‌ی پیام کافی بود.
+         */
         if ($user->role->isAdmin()) {
+            $query->where(fn (Builder $q) => $q->whereNull('conversation_id')
+                ->orWhereNotIn('conversation_id', Conversation::query()
+                    ->whereIn('type', Conversation::PRIVATE_TYPES)
+                    ->whereNot(fn (Builder $own) => $own->where('type', Conversation::SAVED)->where('user_id', $user->id))
+                    ->select('id')));
+
             return;
         }
 

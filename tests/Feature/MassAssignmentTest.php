@@ -488,6 +488,9 @@ class MassAssignmentTest extends TestCase
         // ── رفتن به مجتمعِ دیگر (۱۰/۳): شناسه فقط «کدام» است؛ اجازه از عضویتِ فعالِ خودِ حساب ──
         'SwitchContextRequest.php' => ['complex_id'],
 
+        // ── گفت‌وگوی خصوصیِ مدیر با یک عضو (۱۰/۹): شناسه فقط «با کدام عضو» است؛ مالک یا مستأجرِ فعالِ همین مجتمع ──
+        'StoreConversationRequest.php' => ['user_id'],
+
         // ── فقط ادمینِ کل: نقش و فعال‌بودنِ کاربر ──
         'UpdateMemberRequest.php' => ['role', 'is_active'],
 

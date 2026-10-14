@@ -10,15 +10,15 @@ import type { ConversationSummary } from './types'
 
 const schema = z
   .object({
-    type: z.enum(['unit', 'group']),
-    unitId: z.string(),
+    type: z.enum(['user', 'group']),
+    userId: z.string(),
     title: z.string().trim().max(120, 'نام حداکثر ۱۲۰ نویسه است.'),
     unitIds: z.array(z.string()),
     membersCanPost: z.boolean(),
   })
   .superRefine((values, ctx) => {
-    if (values.type === 'unit' && !values.unitId) {
-      ctx.addIssue({ code: 'custom', path: ['unitId'], message: 'واحد را انتخاب کنید.' })
+    if (values.type === 'user' && !values.userId) {
+      ctx.addIssue({ code: 'custom', path: ['userId'], message: 'عضو را انتخاب کنید.' })
     }
     if (values.type === 'group' && !values.title) {
       ctx.addIssue({ code: 'custom', path: ['title'], message: 'نامِ گروه را بنویسید.' })
@@ -31,17 +31,19 @@ const schema = z
 type Values = z.infer<typeof schema>
 
 /**
- * شروعِ گفت‌وگو — فقط مدیریت (مرحلهٔ ۶ · فاز ۱۲): رشته‌ی خصوصی با یک واحد
- * (اگر هست، همان باز می‌شود) یا گروهی از واحدها.
+ * شروعِ گفت‌وگو — فقط مدیریت (مرحلهٔ ۶ · فاز ۱۲): گفت‌وگوی خصوصی با **یک عضو** (۱۰/۹؛ اگر هست، همان باز
+ * می‌شود) یا گروهی از واحدها. مالک و مستأجرِ یک واحد هر کدام گفت‌وگوی خودشان را دارند (بندِ ۳۷).
  *
  * ⚠️ اعضای گروه پس از ساخت عوض نمی‌شوند؛ این در خودِ فرم گفته می‌شود.
  */
 export function NewConversationDialog({
   units,
+  members,
   onClose,
   onCreated,
 }: {
   units: { id: number; label: string }[]
+  members: { id: number; label: string }[]
   onClose: () => void
   onCreated: (conversation: ConversationSummary) => void
 }) {
@@ -52,7 +54,7 @@ export function NewConversationDialog({
     formState: { errors, isSubmitting },
   } = useForm<Values>({
     resolver: zodResolver(schema),
-    defaultValues: { type: 'unit', unitId: '', title: '', unitIds: [], membersCanPost: true },
+    defaultValues: { type: 'user', userId: '', title: '', unitIds: [], membersCanPost: true },
   })
 
   const type = useWatch({ control, name: 'type' })
@@ -64,8 +66,8 @@ export function NewConversationDialog({
         {
           method: 'POST',
           body:
-            values.type === 'unit'
-              ? { type: 'unit', unit_id: Number(values.unitId) }
+            values.type === 'user'
+              ? { type: 'user', user_id: Number(values.userId) }
               : {
                   type: 'group',
                   title: values.title,
@@ -86,19 +88,19 @@ export function NewConversationDialog({
         <SelectField
           label="نوع"
           options={[
-            { value: 'unit', label: 'خصوصی با یک واحد' },
+            { value: 'user', label: 'خصوصی با یک عضو' },
             { value: 'group', label: 'گروهی از واحدها' },
           ]}
           {...register('type')}
         />
 
-        {type === 'unit' ? (
+        {type === 'user' ? (
           <SelectField
-            label="واحد"
+            label="عضو"
             placeholder="انتخاب کنید"
-            options={units.map((u) => ({ value: String(u.id), label: u.label }))}
-            error={errors.unitId?.message}
-            {...register('unitId')}
+            options={members.map((m) => ({ value: String(m.id), label: m.label }))}
+            error={errors.userId?.message}
+            {...register('userId')}
           />
         ) : (
           <>

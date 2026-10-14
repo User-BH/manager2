@@ -11,6 +11,7 @@ use App\Models\MessageReport;
 use App\Models\Unit;
 use App\Models\User;
 use App\Services\Messenger\ConversationDirectory;
+use App\Services\Messenger\MessagingAccess;
 use App\Support\PrivateFiles;
 use App\Support\TenantContext;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -85,11 +86,15 @@ class MessengerEnrichmentTest extends TestCase
         return $this->actingAs($user);
     }
 
+    /**
+     * گفت‌وگوی خصوصیِ ساکنِ این واحد با مدیریت. ⚠️ ۱۰/۹: پیش از این رشته‌ی مشترکِ **واحد** بود؛ آن حالا بایگانیِ
+     * فقط‌خواندنی است و نوشتنِ تازه در گفت‌وگوی هر عضو است (بندِ ۳۷). قابلیت‌های این فایل همان‌اند.
+     */
     private function thread(Unit $unit): Conversation
     {
         app(TenantContext::class)->set(null);
 
-        return app(ConversationDirectory::class)->unitThread($this->complex, $unit);
+        return app(ConversationDirectory::class)->userThread($this->complex, $unit->is($this->unitA) ? $this->alice : $this->bob);
     }
 
     private function channel(): Conversation
@@ -264,7 +269,8 @@ class MessengerEnrichmentTest extends TestCase
             ->assertForbidden()->assertJsonPath('code', 'messenger.moderated');
 
         $another = $this->say($this->alice, $thread, ['body' => 'دوم']);
-        $this->alice->forceFill(['can_message' => false])->save();
+        // ۱۰/۹: بستن روی عضویتِ همین مجتمع
+        MessagingAccess::toggle($this->alice, $this->complex->id);
         $this->as($this->alice)->patchJson($this->url($thread, "/messages/{$another}"), ['body' => 'x'])->assertForbidden();
 
         $this->assertSame('متنِ آلیس', Message::find($alices)->body);
@@ -370,7 +376,8 @@ class MessengerEnrichmentTest extends TestCase
             ->assertStatus(422)->assertJsonPath('code', 'messenger.unavailable');
 
         $open = $this->say($this->admin, $thread, ['body' => 'باز']);
-        $this->alice->forceFill(['can_message' => false])->save();
+        // ۱۰/۹: بستن روی عضویتِ همین مجتمع
+        MessagingAccess::toggle($this->alice, $this->complex->id);
         $this->as($this->alice)->postJson($this->url($thread, "/messages/{$open}/reactions"), ['emoji' => '👍'])->assertForbidden();
     }
 

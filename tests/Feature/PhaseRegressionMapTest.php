@@ -339,8 +339,10 @@ class PhaseRegressionMapTest extends TestCase
             'رشته‌ی خصوصیِ واحدِ دیگر بسته است' => [
                 'MessengerConversationTest', 'test_a_resident_cannot_reach_another_units_private_thread', '۶',
             ],
-            'ساکن در کانالِ مجتمع نمی‌نویسد' => [
-                'MessengerConversationTest', 'test_a_resident_cannot_post_to_the_channel', '۶',
+            // ⚠️ قاعده در ۱۰/۹ عوض شد (بندهای ۳۲، ۵۴ و ۵۵): کانال گروهِ اصلیِ مجتمع است و اعضا در آن می‌نویسند؛ محافظِ
+            // همین ردیف حالا «فقط مدیریت» را می‌سنجد که مدیر می‌گذارد — همان مرزِ نوشتن، نه حذفِ آن
+            'ساکن در گروهِ «فقط مدیریت» نمی‌نویسد' => [
+                'MessengerConversationTest', 'test_residents_post_to_the_community_group_unless_management_closes_it', '۶',
             ],
             'ارسالِ دوباره پیامِ تکراری نمی‌سازد' => [
                 'MessengerConversationTest', 'test_a_retried_send_does_not_duplicate', '۶',
@@ -1123,6 +1125,27 @@ class PhaseRegressionMapTest extends TestCase
             '۱۰/۸: جست‌وجوی گفت‌وگوها مستأجرِ رفته و مجتمعِ دیگر را نمی‌یابد' => [
                 'ConversationSearchTest', 'test_the_former_tenant_and_the_other_community_are_never_found', '۱۰',
             ],
+            '🔴 ۱۰/۹: مدیر «مالک ↔ مستأجر» و «ذخیره‌شده»ِ دیگران را از هیچ راهی نمی‌بیند' => [
+                'MessengerStructureTest', 'test_the_manager_never_reaches_a_pair_or_someone_elses_saved_messages', '۱۰',
+            ],
+            '🔴 ۱۰/۹: هر عضو گفت‌وگوی خودش با مدیریت؛ هم‌واحد آن را نمی‌خواند' => [
+                'MessengerStructureTest', 'test_owner_and_tenant_each_get_their_own_manager_chat_and_one_together', '۱۰',
+            ],
+            '🔴 ۱۰/۹: بستنِ پیام‌رسان در یک مجتمع مجتمعِ دیگر را نمی‌بندد' => [
+                'MembershipMessagingTest', 'test_muting_in_one_community_leaves_the_account_and_the_other_community_untouched', '۱۰',
+            ],
+            '🔴 ۱۰/۹: برگشتِ مهاجرت گفت‌وگوی خصوصی را جلوی مدیر نمی‌گذارد' => [
+                'MembershipMessagingTest', 'test_rolling_back_removes_private_conversations_instead_of_exposing_them', '۱۰',
+            ],
+            '۱۰/۹: چرخه‌ی کاملِ مالک، مستأجر، رفتن و مستأجرِ تازه' => [
+                'MessengerStructureTest', 'test_the_lifecycle_of_the_spec_from_owner_to_a_new_tenant', '۱۰',
+            ],
+            '۱۰/۹: بایگانیِ رشته‌ی مشترکِ واحد فقط‌خواندنی است' => [
+                'MessengerStructureTest', 'test_the_old_shared_unit_thread_is_kept_read_only_for_whoever_saw_it', '۱۰',
+            ],
+            '۱۰/۹: شمارِ گروه از عضویتِ فعال' => [
+                'GroupInfoTest', 'test_the_counts_come_from_active_memberships_and_follow_them', '۱۰',
+            ],
             'مدیر از درخواستِ عضویت با اعلانِ داشبورد باخبر می‌شود' => [
                 'JoinRequestTest', 'test_the_complexes_managers_get_a_dashboard_notification_once', '۹',
             ],
@@ -1297,6 +1320,8 @@ class PhaseRegressionMapTest extends TestCase
             'profileAndInformation' => ['۱۰/۷', 'هرگز فرستاده نمی‌شوند'],
             // مرحلهٔ ۱۰ · فاز ۸: گروهِ بریده راه به باقی دارد؛ تاریخچه‌ی جست‌وجو مالِ حساب و مجتمع
             'managerSearch' => ['۱۰/۸', 'مالِ همین حساب در همین مجتمع است'],
+            // مرحلهٔ ۱۰ · فاز ۹: اطلاعاتِ گروه، دلیلِ فقط‌خواندنی و گفت‌وگو با یک عضو
+            'messengerStructure' => ['۱۰/۹', 'خصوصی با یک عضو است، نه با واحد'],
         ];
 
         // 🔴 مثلِ ردیف‌های PHP، این فهرست هم فقط بزرگ می‌شود (خرابکاریِ فاز ۸)

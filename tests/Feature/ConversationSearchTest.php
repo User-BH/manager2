@@ -48,6 +48,9 @@ class ConversationSearchTest extends TestCase
 
     private Conversation $threadB;
 
+    /** @var array<string, Unit> */
+    private array $units = [];
+
     protected function setUp(): void
     {
         parent::setUp();
@@ -60,21 +63,31 @@ class ConversationSearchTest extends TestCase
         $tenures = app(TenureService::class);
         $directory = app(ConversationDirectory::class);
 
+        /*
+         * ۱۰/۹: گفت‌وگوی خصوصی مالِ **هر عضو** با مدیریت است (بندِ ۳۷)، نه مالِ واحد؛ پس «مالک واحد ۱۰» به گفت‌وگوی
+         * مالکِ فعلیِ واحدِ ۱۰ می‌رسد. `threads[N]` گفت‌وگوی ساکنِ فعلیِ واحدِ N است.
+         */
         $units = [];
         foreach (['10', '25', '100', '110'] as $number) {
             $units[$number] = Unit::factory()->create(['complex_id' => $this->a->id, 'unit_number' => $number]);
-            $this->threads[$number] = $directory->unitThread($this->a, $units[$number]);
         }
+        $this->units = $units;
 
         $this->ali = $this->person($this->a, 'علی احمدی', '09128880011', UserRole::Owner);
+        $hasan = $this->person($this->a, 'حسن صدوده', '09128880012', UserRole::Owner);
+        $mina = $this->person($this->a, 'مینا صدی', '09128880013', UserRole::Owner);
         $tenures->open($units['10'], $this->ali, ResidentRelation::Owner, 100, now()->subYear());
-        $tenures->open($units['110'], $this->person($this->a, 'حسن صدوده', '09128880012', UserRole::Owner), ResidentRelation::Owner, 100, now()->subYear());
-        $tenures->open($units['100'], $this->person($this->a, 'مینا صدی', '09128880013', UserRole::Owner), ResidentRelation::Owner, 100, now()->subYear());
+        $tenures->open($units['110'], $hasan, ResidentRelation::Owner, 100, now()->subYear());
+        $tenures->open($units['100'], $mina, ResidentRelation::Owner, 100, now()->subYear());
 
         $reza = $this->person($this->a, 'رضا رفته', '09128880014', UserRole::Tenant);
         $tenures->close($tenures->open($units['25'], $reza, ResidentRelation::Tenant, 100, now()->subYears(2)), now()->subYear());
         $this->sara = $this->person($this->a, 'سارا تهرانی', '09128880015', UserRole::Tenant);
         $tenures->open($units['25'], $this->sara, ResidentRelation::Tenant, 100, now()->subMonths(6));
+
+        foreach (['10' => $this->ali, '25' => $this->sara, '100' => $mina, '110' => $hasan] as $number => $resident) {
+            $this->threads[$number] = $directory->userThread($this->a, $resident);
+        }
 
         // ساکنِ بی‌واحد: رشته‌ی خودش
         $this->narges = $this->person($this->a, 'نرگس بی‌واحد', '09128880016', UserRole::Tenant);
@@ -85,18 +98,19 @@ class ConversationSearchTest extends TestCase
 
         // مجتمعِ ب: همان شماره و همنامِ علی
         $unitB = Unit::factory()->create(['complex_id' => $this->b->id, 'unit_number' => '10']);
-        $tenures->open($unitB, $this->person($this->b, 'علی احمدی', '09128880021', UserRole::Owner), ResidentRelation::Owner, 100, now()->subYear());
-        $this->threadB = $directory->unitThread($this->b, $unitB);
+        $aliB = $this->person($this->b, 'علی احمدی', '09128880021', UserRole::Owner);
+        $tenures->open($unitB, $aliB, ResidentRelation::Owner, 100, now()->subYear());
+        $this->threadB = $directory->userThread($this->b, $aliB);
     }
 
     public function test_the_manager_finds_conversations_by_the_examples_of_the_spec(): void
     {
-        // «مالک واحد ۱۰» و «مستأجر واحد ۲۵»: رشته‌ی همان واحد، اگر الان چنین ساکنی دارد
+        // «مالک واحد ۱۰» و «مستأجر واحد ۲۵»: گفت‌وگوی همان ساکنِ فعلی؛ واحدِ بی‌مستأجر هیچ
         $this->assertSame([$this->threads['10']->id], $this->found($this->managerA, 'مالک واحد ۱۰'));
         $this->assertSame([$this->threads['25']->id], $this->found($this->managerA, 'مستأجر واحد ۲۵'));
         $this->assertSame([], $this->found($this->managerA, 'مستأجر واحد ۱۰'), 'واحدِ ۱۰ مستأجر ندارد.');
 
-        // «علی احمدی»: رشته‌ی واحدِ فعلی‌اش؛ «نرگس»: رشته‌ی خودش
+        // «علی احمدی» و «نرگس»: گفت‌وگوی خودشان
         $this->assertSame([$this->threads['10']->id], $this->found($this->managerA, 'علی احمدی'));
         $this->assertSame([$this->threads['narges']->id], $this->found($this->managerA, 'نرگس'));
 
@@ -107,14 +121,20 @@ class ConversationSearchTest extends TestCase
             $this->found($this->managerA, '۱۰'),
         );
 
-        // عنوانِ گروه و کانال
+        // عنوانِ گروه، و گروهِ مجتمع با نامِ خودش (بندِ ۳۳) یا نامِ پیش از ۱۰/۹
         $this->assertSame([$this->board->id], $this->found($this->managerA, 'هیئت'));
         $this->assertCount(1, $this->found($this->managerA, 'اهالی'));
+        $this->assertCount(1, $this->found($this->managerA, 'گروه مجتمع الف'));
+
+        // بایگانیِ رشته‌ی مشترکِ واحدِ ۱۰ (دادهٔ پیش از ۱۰/۹) هم با «واحد ۱۰» پیدا می‌شود
+        app(TenantContext::class)->set(null);
+        $archive = app(ConversationDirectory::class)->unitThread($this->a, $this->units['10']);
+        $this->assertEqualsCanonicalizing([$this->threads['10']->id, $archive->id], $this->found($this->managerA, 'واحد ۱۰'));
     }
 
     public function test_the_former_tenant_and_the_other_community_are_never_found(): void
     {
-        $this->assertSame([], $this->found($this->managerA, 'رضا'), 'مستأجرِ رفته رشته‌ی واحدِ ۲۵ را پیدا کرد.');
+        $this->assertNotContains($this->threads['25']->id, $this->found($this->managerA, 'رضا'), 'مستأجرِ رفته گفت‌وگوی مستأجرِ فعلیِ ۲۵ را پیدا کرد.');
 
         $this->assertSame([$this->threadB->id], $this->found($this->managerB, 'علی احمدی'));
         $this->assertSame([$this->threadB->id], $this->found($this->managerB, 'مالک واحد ۱۰'));
@@ -144,9 +164,10 @@ class ConversationSearchTest extends TestCase
     /** جست‌وجو هیچ رشته‌ای نمی‌سازد، و رشته‌ی بی‌پیام را — که فهرستِ مدیر پنهانش می‌کند — پیدا می‌کند. */
     public function test_search_creates_nothing_and_reaches_threads_without_messages(): void
     {
+        // بارِ اولِ فهرست گروه و «ذخیره‌شده»ِ مدیر را می‌سازد (بندِ ۴۰)؛ جست‌وجو پس از آن چیزی نمی‌سازد
+        $plain = collect($this->as($this->managerA)->getJson('/api/v1/messenger/conversations')->assertOk()->json('data'))->pluck('id');
         $before = Conversation::withoutGlobalScopes()->count();
 
-        $plain = collect($this->as($this->managerA)->getJson('/api/v1/messenger/conversations')->assertOk()->json('data'))->pluck('id');
         $this->assertNotContains($this->threads['25']->id, $plain);
         $this->assertSame([$this->threads['25']->id], $this->found($this->managerA, 'سارا'));
 
@@ -213,7 +234,7 @@ class ConversationSearchTest extends TestCase
             $person = $this->person($this->a, 'پرویز '.$i, '0914'.str_pad((string) $i, 7, '0', STR_PAD_LEFT), UserRole::Owner);
             $unit = Unit::factory()->create(['complex_id' => $this->a->id, 'unit_number' => 'P'.$i]);
             app(TenureService::class)->open($unit, $person, ResidentRelation::Owner, 100, now()->subYear());
-            $thread = app(ConversationDirectory::class)->unitThread($this->a, $unit);
+            $thread = app(ConversationDirectory::class)->userThread($this->a, $person);
             app(TenantContext::class)->set(null);
             $this->actingAs($person);
             app(MessageSender::class)->send($this->a, $thread, $person, ['body' => 'سلام '.$i]);

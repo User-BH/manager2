@@ -13,7 +13,7 @@ use App\Support\Jalali;
 use App\Support\SearchTerm;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\UniqueConstraintViolationException;
-use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
 /**
@@ -27,9 +27,13 @@ class ConversationDirectory
 {
     public const PAGE = 30;
 
+    /**
+     * گروهِ اصلیِ مجتمع (بندِ ۳۲). از ۱۰/۹ اعضا در آن می‌نویسند — فایل ویرایش و حذفِ پیامِ خودِ «هر member» را در
+     * گروه می‌خواهد (بندهای ۵۴ و ۵۵)؛ مدیر می‌تواند از «اطلاعاتِ گروه» نوشتن را فقط برای مدیریت بگذارد.
+     */
     public function channel(Complex $complex): Conversation
     {
-        return $this->ensure($complex, 'channel', ['type' => Conversation::CHANNEL, 'members_can_post' => false]);
+        return $this->ensure($complex, 'channel', ['type' => Conversation::CHANNEL, 'members_can_post' => true]);
     }
 
     public function unitThread(Complex $complex, Unit $unit): Conversation
@@ -42,21 +46,57 @@ class ConversationDirectory
         return $this->ensure($complex, 'user:'.$user->id, ['type' => Conversation::USER, 'user_id' => $user->id]);
     }
 
-    /**
-     * رشته‌های خصوصیِ خودِ ساکن با مدیریت: یکی برای هر واحدِ فعلی، یا — اگر
-     * هنوز واحدی ندارد — یکی برای خودش. بدونِ این، ساکنِ تازه‌واردی که بیش از
-     * همه به مدیر نیاز دارد جایی برای نوشتن نداشت.
-     *
-     * @return Collection<int, Conversation>
-     */
-    public function ownThreads(Complex $complex, User $user): Collection
+    /** «پیام‌های ذخیره‌شده»ِ این حساب در این مجتمع (بندِ ۳۹؛ تصمیمِ کارفرما: در هر مجتمع یکی). */
+    public function savedThread(Complex $complex, User $user): Conversation
     {
-        /** @var \Illuminate\Database\Eloquent\Collection<int, Unit> $units */
-        $units = $user->currentUnits()->get();
+        return $this->ensure($complex, 'saved:'.$user->id, ['type' => Conversation::SAVED, 'user_id' => $user->id]);
+    }
 
-        return $units->isEmpty()
-            ? collect([$this->userThread($complex, $user)])
-            : $units->map(fn (Unit $unit) => $this->unitThread($complex, $unit))->values();
+    /**
+     * «مالک ↔ مستأجر»ِ همین دو نفر در همین واحد (بندِ ۳۸). کلید هر سه را دارد: مستأجرِ تازه گفت‌وگوی تازه می‌گیرد
+     * و گفت‌وگوی مستأجرِ قبلی جدا می‌ماند (بندهای ۷۲ و ۱۱۷).
+     */
+    public function pairThread(Complex $complex, int $unitId, int $ownerId, int $tenantId): Conversation
+    {
+        return $this->ensure($complex, "pair:{$unitId}:{$ownerId}:{$tenantId}", [
+            'type' => Conversation::PAIR, 'unit_id' => $unitId, 'user_id' => $ownerId, 'peer_id' => $tenantId,
+        ]);
+    }
+
+    /**
+     * گفت‌وگوهایی که هر عضو از همان بارِ اول دارد (بندِ ۴۰) — «یافتن یا ساختن»، پس تکرارش چیزی نمی‌سازد:
+     *
+     *   همه      گروهِ مجتمع و «ذخیره‌شده»
+     *   عضو      گفت‌وگوی خصوصیِ خودش با مدیریت (بندِ ۳۷)
+     *   مالک     با هر مستأجرِ **فعلیِ** واحدش؛ مستأجر با هر مالکِ فعلی — واحدِ بی‌مستأجر گفت‌وگوی جعلی نمی‌گیرد
+     *
+     * ⚠️ همه از دوره‌های **جاریِ همین مجتمع** (`unit_user.complex_id`)؛ دوره‌ی بسته گفت‌وگوی تازه نمی‌سازد.
+     */
+    public function ensureFor(Complex $complex, User $user): void
+    {
+        $this->channel($complex);
+        $this->savedThread($complex, $user);
+
+        if ($user->role->isAdmin()) {
+            return;
+        }
+
+        $this->userThread($complex, $user);
+
+        $mine = DB::table('unit_user')->where('complex_id', $complex->id)->where('user_id', $user->id)
+            ->where('is_current', true)->whereIn('relation', ['owner', 'tenant'])->get(['unit_id', 'relation']);
+
+        foreach ($mine as $tenure) {
+            $counterparts = DB::table('unit_user')->where('complex_id', $complex->id)->where('unit_id', $tenure->unit_id)
+                ->where('is_current', true)->where('relation', $tenure->relation === 'owner' ? 'tenant' : 'owner')
+                ->where('user_id', '!=', $user->id)->pluck('user_id');
+
+            foreach ($counterparts as $other) {
+                $tenure->relation === 'owner'
+                    ? $this->pairThread($complex, (int) $tenure->unit_id, $user->id, (int) $other)
+                    : $this->pairThread($complex, (int) $tenure->unit_id, (int) $other, $user->id);
+            }
+        }
     }
 
     /**
@@ -120,14 +160,20 @@ class ConversationDirectory
      */
     public function page(User $viewer, ?string $cursor, ?SearchTerm $search = null, ?Complex $within = null): array
     {
-        $query = Conversation::query()->visibleTo($viewer)->with(['unit:id,unit_number', 'user:id,name']);
+        $query = Conversation::query()->visibleTo($viewer)
+            ->with(['unit:id,unit_number', 'user:id,name', 'peer:id,name', 'complex:id,name']);
 
         /*
          * مدیر رشته‌ی بی‌پیامِ واحدها را در فهرست نمی‌بیند؛ گروه و کانال را چرا. ⚠️ در جست‌وجو می‌بیند: رشته‌ی
          * واحدی که ساکنش پیام‌رسان را باز کرده ولی هنوز ننوشته، همان جایی است که «مالک واحد ۱۰» باید برسد.
          */
         if ($viewer->role->isAdmin() && $search === null) {
-            $query->where(fn (Builder $q) => $q->where('last_message_id', '>', 0)->orWhereIn('type', [Conversation::CHANNEL, Conversation::GROUP]));
+            $query->where(fn (Builder $q) => $q->where('last_message_id', '>', 0)->orWhereIn('type', [Conversation::CHANNEL, Conversation::GROUP, Conversation::SAVED]));
+        }
+
+        // بایگانیِ بی‌پیامِ واحد (ساخته‌ی نسخه‌ی پیش از ۱۰/۹) چیزی برای خواندن ندارد
+        if (! $viewer->role->isAdmin()) {
+            $query->where(fn (Builder $q) => $q->where('type', '!=', Conversation::UNIT)->orWhere('last_message_id', '>', 0));
         }
 
         if ($search !== null) {
@@ -178,35 +224,47 @@ class ConversationDirectory
         $complexId = $complex->id;
         $text = $search->text;
 
-        $query->where(function (Builder $q) use ($viewer, $search, $complexId, $text): void {
+        $groupName = 'گروهِ '.$complex->name;
+
+        $query->where(function (Builder $q) use ($viewer, $search, $complexId, $text, $groupName): void {
             $q->where(fn (Builder $g) => $g->where('type', Conversation::GROUP)->where('title', 'like', "%{$text}%"));
 
-            if (str_contains('همه‌ی اهالی', $text) || str_contains('همه ی اهالی', $text)) {
+            // گروهِ مجتمع با نامِ خودش (و نامِ پیش از ۱۰/۹)؛ «ذخیره‌شده» با نامش — `visibleTo` فقط مالِ خودِ بیننده را دارد
+            if (str_contains($groupName, $text) || str_contains(str_replace('گروهِ', 'گروه', $groupName), $text) || str_contains('همه‌ی اهالی', $text)) {
                 $q->orWhere('type', Conversation::CHANNEL);
+            }
+            if (str_contains('پیام‌های ذخیره‌شده', $text) || str_contains('پیام های ذخیره شده', $text)) {
+                $q->orWhere('type', Conversation::SAVED);
             }
 
             if (! $viewer->role->isAdmin()) {
                 return;
             }
 
-            if ($search->relation !== null && ($occupied = CommunityLookup::occupiedUnits($complexId, $search))) {
-                // «مالک واحد ۱۰»: رشته‌ی واحدِ ۱۰ فقط اگر الان مالک دارد — واحدِ بی‌مستأجر «مستأجر واحد ۱۰» نیست
-                $q->orWhere(fn (Builder $u) => $u->where('type', Conversation::UNIT)
-                    ->whereIn('unit_id', $occupied));
+            /*
+             * مدیر: گفت‌وگوی خصوصیِ **هر عضو** با مدیریت (۱۰/۹) و بایگانیِ واحد. «مالک واحد ۱۰» گفت‌وگوی مالکِ
+             * فعلیِ واحدِ ۱۰ است — نه مستأجرش، که حالا گفت‌وگوی خودش را دارد.
+             */
+            if ($search->relation !== null && ($people = CommunityLookup::currentResidents($complexId, $search))) {
+                $q->orWhere(fn (Builder $u) => $u->where('type', Conversation::USER)->whereIn('user_id', $people))
+                    ->orWhere(fn (Builder $u) => $u->where('type', Conversation::UNIT)
+                        ->whereIn('unit_id', CommunityLookup::occupiedUnits($complexId, $search)));
 
                 return;
             }
 
             if ($units = CommunityLookup::units($complexId, $search)) {
-                // «۱۰» یا «واحد ۱۰»: خودِ رشته‌ی واحد
-                $q->orWhere(fn (Builder $u) => $u->where('type', Conversation::UNIT)->whereIn('unit_id', $units));
+                // «۱۰» یا «واحد ۱۰»: گفت‌وگوی ساکنانِ فعلیِ واحد و بایگانیِ خودِ واحد
+                $q->orWhere(fn (Builder $u) => $u->where('type', Conversation::USER)
+                    ->whereIn('user_id', CommunityLookup::currentResidents($complexId, $search)))
+                    ->orWhere(fn (Builder $u) => $u->where('type', Conversation::UNIT)->whereIn('unit_id', $units));
             }
 
             if ($search->exactUnit) {
                 return;
             }
 
-            // «علی احمدی»: رشته‌ی خودش (بی‌واحد) و رشته‌ی واحدهای فعلی‌اش
+            // «علی احمدی»: گفت‌وگوی خودش و بایگانیِ واحدِ فعلی‌اش
             $members = CommunityLookup::membersMatching($complexId, $search, [UserRole::Owner, UserRole::Tenant]);
             $q->orWhere(fn (Builder $u) => $u->where('type', Conversation::USER)->whereIn('user_id', $members))
                 ->orWhere(fn (Builder $u) => $u->where('type', Conversation::UNIT)
@@ -250,7 +308,9 @@ class ConversationDirectory
             'id' => $conversation->id,
             'type' => $conversation->type,
             'title' => $conversation->titleFor($viewer),
-            'canPost' => $conversation->allowsPostingBy($viewer),
+            'canPost' => $canPost = $conversation->allowsPostingBy($viewer),
+            // چرا نه — بایگانیِ واحد، «مالک ↔ مستأجر»ِ پس از رفتن، گروهِ «فقط مدیریت» (۱۰/۹)
+            'readOnlyReason' => $canPost ? null : $conversation->readOnlyReason(),
             'membersCanPost' => $conversation->members_can_post,
             'unreadCount' => $unread,
             'lastMessage' => $last ? [

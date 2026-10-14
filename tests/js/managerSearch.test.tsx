@@ -206,6 +206,7 @@ describe('پیام‌رسان: فهرستِ گفت‌وگوها', () => {
       type: 'unit',
       title: `واحد ${id}`,
       canPost: true,
+      readOnlyReason: null,
       membersCanPost: true,
       unreadCount: 0,
       lastMessage: null,
@@ -222,6 +223,7 @@ describe('پیام‌رسان: فهرستِ گفت‌وگوها', () => {
       isAdmin,
       unreadTotal: 0,
       units: [],
+      members: [],
     }
   }
 

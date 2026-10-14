@@ -4,6 +4,7 @@ namespace App\Http\Resources;
 
 use App\Models\User;
 use App\Services\Account\ProfilePhoto;
+use App\Services\Messenger\MessagingAccess;
 use App\Support\Jalali;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
@@ -49,7 +50,8 @@ class ProfileResource extends JsonResource
             'roleLabel' => $user->role->label(),
             'isAdmin' => $user->isAdmin(),
             'isActive' => (bool) $user->is_active,
-            'canMessage' => (bool) $user->can_message,
+            // در مجتمعِ فعال (۱۰/۹)
+            'canMessage' => $user->complex_id === null || ! MessagingAccess::blocked($user, (int) $user->complex_id),
             'joinedAt' => Jalali::date($user->created_at),
             'complex' => $user->complex ? [
                 'id' => $user->complex->id,

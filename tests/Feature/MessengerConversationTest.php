@@ -12,6 +12,7 @@ use App\Models\User;
 use App\Services\Messenger\ConversationBackfill;
 use App\Services\Messenger\ConversationDirectory;
 use App\Services\Messenger\MessageSender;
+use App\Services\Messenger\MessagingAccess;
 use App\Support\PrivateFiles;
 use App\Support\TenantContext;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -91,12 +92,35 @@ class MessengerConversationTest extends TestCase
         return $this->actingAs($user);
     }
 
+    /**
+     * گفت‌وگوی خصوصیِ ساکنِ این واحد با مدیریت. ⚠️ ۱۰/۹: پیش از این رشته‌ی مشترکِ **واحد** بود (`archive()`)؛ حالا
+     * هر عضو گفت‌وگوی خودش را دارد (بندِ ۳۷) و قاعده‌های این فایل روی همان سنجیده می‌شوند.
+     */
     private function thread(Unit $unit): Conversation
     {
+        $resident = $unit->is($this->unitA) ? $this->alice : $this->bob;
+
         return Conversation::withoutGlobalScopes()->firstOrCreate(
+            ['complex_id' => $this->complex->id, 'key' => 'user:'.$resident->id],
+            ['type' => 'user', 'user_id' => $resident->id],
+        );
+    }
+
+    /** بایگانیِ رشته‌ی مشترکِ واحد از پیش از ۱۰/۹ — فقط‌خواندنی؛ پیامش مستقیم، مثلِ دادهٔ قدیم. */
+    private function archive(Unit $unit, User $author, string $body): Conversation
+    {
+        $archive = Conversation::withoutGlobalScopes()->firstOrCreate(
             ['complex_id' => $this->complex->id, 'key' => 'unit:'.$unit->id],
             ['type' => 'unit', 'unit_id' => $unit->id],
         );
+        $id = DB::table('messages')->insertGetId([
+            'complex_id' => $this->complex->id, 'conversation_id' => $archive->id, 'user_id' => $author->id, 'body' => $body,
+            'audience' => 'management', 'unit_id' => $unit->id, 'author_name' => $author->name, 'is_hidden' => false,
+            'created_at' => now(), 'updated_at' => now(),
+        ]);
+        $archive->forceFill(['last_message_id' => $id])->save();
+
+        return $archive;
     }
 
     /**
@@ -120,9 +144,10 @@ class MessengerConversationTest extends TestCase
     {
         $list = $this->as($this->alice)->getJson('/api/v1/messenger/conversations')->assertOk();
         $types = collect($list->json('data'))->pluck('type')->all();
-        $this->assertEqualsCanonicalizing(['channel', 'unit'], $types, 'ساکن کانال و رشته‌ی خودش را از همان بارِ اول دارد.');
+        // ۱۰/۹ (بندِ ۴۰): گروهِ مجتمع، گفت‌وگوی خودش با مدیریت و «ذخیره‌شده» — واحدِ بی‌مستأجر «مالک ↔ مستأجر» ندارد
+        $this->assertEqualsCanonicalizing(['channel', 'user', 'saved'], $types, 'ساکن گروه، مدیریت و ذخیره‌شده را از همان بارِ اول دارد.');
 
-        $thread = collect($list->json('data'))->firstWhere('type', 'unit');
+        $thread = collect($list->json('data'))->firstWhere('type', 'user');
         $this->assertSame('مدیریتِ ساختمان', $thread['title']);
 
         $sent = $this->as($this->alice)->postJson("/api/v1/messenger/conversations/{$thread['id']}/messages", [
@@ -132,7 +157,7 @@ class MessengerConversationTest extends TestCase
 
         $adminList = $this->as($this->admin)->getJson('/api/v1/messenger/conversations')->json('data');
         $row = collect($adminList)->firstWhere('id', $thread['id']);
-        $this->assertSame('واحد 101', $row['title']);
+        $this->assertSame('آلیس', $row['title']);
         $this->assertSame(1, $row['unreadCount']);
         $this->assertSame('آسانسور خراب است', $row['lastMessage']['preview']);
 
@@ -283,21 +308,29 @@ class MessengerConversationTest extends TestCase
         $this->assertSame(0, Message::withoutGlobalScopes()->where('body', 'نفوذ')->count());
     }
 
-    /** ۲ — ساکن در کانالِ کلِ مجتمع نمی‌نویسد. */
-    public function test_a_resident_cannot_post_to_the_channel(): void
+    /**
+     * ۲ — ⚠️ قاعده در ۱۰/۹ عوض شد: کانال گروهِ اصلیِ مجتمع است و اعضا در آن می‌نویسند (بندهای ۳۲، ۵۴ و ۵۵)؛ فقط اگر
+     * مدیر «فقط مدیریت بنویسد» را بگذارد بسته است — و آن را فقط مدیر می‌گذارد.
+     */
+    public function test_residents_post_to_the_community_group_unless_management_closes_it(): void
     {
         $this->as($this->alice)->getJson('/api/v1/messenger/conversations');
         $channel = Conversation::withoutGlobalScopes()->where('key', 'channel')->firstOrFail();
 
+        $this->send($this->alice, $channel, ['body' => 'سلام همسایه‌ها'])->assertCreated();
+
+        $this->as($this->alice)->postJson("/api/v1/messenger/conversations/{$channel->id}/posting", ['members_can_post' => false])->assertForbidden();
+        $this->as($this->admin)->postJson("/api/v1/messenger/conversations/{$channel->id}/posting", ['members_can_post' => false])->assertOk();
+
         $this->send($this->alice, $channel, ['body' => 'به همه'])
             ->assertForbidden()->assertJsonPath('code', 'messenger.read_only');
+        $this->send($this->admin, $channel, ['body' => 'اطلاعیه'])->assertCreated();
     }
 
-    /** ۳ — 🔴 مستأجرِ رفته دیگر رشته‌ی واحدِ قبلی‌اش را نمی‌بیند. */
+    /** ۳ — 🔴 مستأجرِ رفته دیگر رشته‌ی (بایگانیِ) واحدِ قبلی‌اش را نمی‌بیند. */
     public function test_a_former_tenant_loses_the_old_units_thread(): void
     {
-        $thread = $this->thread($this->unitA);
-        $this->send($this->admin, $thread, ['body' => 'پاسخِ مدیریت به ساکنِ فعلی']);
+        $thread = $this->archive($this->unitA, $this->admin, 'پاسخِ مدیریت به ساکنِ فعلی');
 
         $former = $this->person('مستأجرِ قبلی', '09120000074', UserRole::Tenant);
         $former->units()->attach($this->unitA->id, [
@@ -451,11 +484,13 @@ class MessengerConversationTest extends TestCase
         $this->send($this->admin, $this->thread($this->unitA), ['body' => 'x'])->assertForbidden();
     }
 
+    /** ⚠️ ۱۰/۹: بستن روی عضویتِ همین مجتمع است، نه `users.can_message` (`MembershipMessagingTest`). */
     public function test_a_muted_resident_cannot_send(): void
     {
-        $this->alice->forceFill(['can_message' => false])->save();
+        MessagingAccess::toggle($this->alice, $this->complex->id);
 
-        $this->send($this->alice->fresh(), $this->thread($this->unitA), ['body' => 'x'])->assertForbidden();
+        $this->send($this->alice->fresh(), $this->thread($this->unitA), ['body' => 'x'])
+            ->assertForbidden()->assertJsonPath('message', 'امکان ارسال پیام برای شما فعال نیست.');
         $this->assertSame(0, Message::withoutGlobalScopes()->count());
     }
 

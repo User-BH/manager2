@@ -18,6 +18,9 @@ const ICONS: Record<ConversationType, typeof Hash> = {
   unit: Lock,
   user: Lock,
   group: Users,
+  pair: Lock,
+  // خصوصی مثلِ بقیه؛ آیکونِ تازه چانکِ مشترکِ آیکون‌ها را از سقفِ صفحه‌ی پشتیبانی رد می‌کرد
+  saved: Lock,
 }
 
 /**
@@ -288,6 +291,7 @@ export function MessengerPage() {
       {creating && first && (
         <NewConversationDialog
           units={first.units}
+          members={first.members}
           onClose={() => setCreating(false)}
           onCreated={(conversation) => {
             setCreating(false)

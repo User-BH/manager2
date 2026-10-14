@@ -2,7 +2,11 @@ import type { MessagePoll } from '@/shared/ui/PollCard'
 
 /** پیام‌رسانِ گفت‌وگومحور (مرحلهٔ ۶ · فاز ۱۲) — شکلِ پاسخ‌های API. */
 
-export type ConversationType = 'channel' | 'unit' | 'user' | 'group'
+/**
+ * ۱۰/۹: `channel` گروهِ مجتمع است، `user` گفت‌وگوی خصوصیِ یک عضو با مدیریت، `pair` «مالک ↔ مستأجر»، `saved`
+ * «پیام‌های ذخیره‌شده»، و `unit` بایگانیِ فقط‌خواندنیِ رشته‌ی مشترکِ پیشینِ واحد.
+ */
+export type ConversationType = 'channel' | 'unit' | 'user' | 'group' | 'pair' | 'saved'
 
 export interface ConversationSummary {
   id: number
@@ -10,6 +14,8 @@ export interface ConversationSummary {
   /** از دیدِ همین بیننده: ساکن «مدیریتِ ساختمان» می‌بیند، مدیر «واحد ۱۰۱». */
   title: string
   canPost: boolean
+  /** چرا این بیننده نمی‌نویسد؛ وقتی می‌نویسد null. */
+  readOnlyReason: string | null
   membersCanPost: boolean
   unreadCount: number
   lastMessage: {
@@ -29,8 +35,33 @@ export interface ConversationsResponse {
   reason: string | null
   isAdmin: boolean
   unreadTotal: number
-  /** فقط برای مدیر، برای شروعِ رشته یا ساختِ گروه. */
+  /** فقط برای مدیر، برای ساختِ گروه. */
   units: { id: number; label: string }[]
+  /** فقط برای مدیر: اعضای فعال، برای گفت‌وگوی خصوصی با یک نفر (۱۰/۹). */
+  members: { id: number; label: string }[]
+}
+
+/** اطلاعاتِ گروه (۱۰/۹) — همه از عضویتِ فعال، سمتِ سرور. */
+export interface GroupInfo {
+  conversation: {
+    id: number
+    type: ConversationType
+    title: string
+    membersCanPost: boolean
+    canManage: boolean
+  }
+  counts: { members: number; owners: number; tenants: number; managers: number }
+  members: {
+    id: number
+    name: string
+    avatarUrl: string | null
+    role: string
+    roleLabel: string
+    unit: string | null
+    isModerator: boolean
+  }[]
+  page: number
+  hasMore: boolean
 }
 
 /**

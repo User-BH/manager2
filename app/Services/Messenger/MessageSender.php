@@ -41,12 +41,13 @@ class MessageSender
      */
     public function send(Complex $complex, Conversation $conversation, User $user, array $data, ?UploadedFile $attachment = null): array
     {
-        if (! $complex->messenger_enabled || ! $user->can_message) {
+        // بستنِ پیام‌رسان روی عضویتِ همین مجتمع است (۱۰/۹)؛ «ذخیره‌شده» یادداشتِ خودِ اوست و بسته نمی‌شود
+        if (! $complex->messenger_enabled || ($conversation->type !== Conversation::SAVED && MessagingAccess::blocked($user, $complex->id))) {
             abort(403, 'امکان ارسال پیام برای شما فعال نیست.');
         }
 
         if (! $conversation->allowsPostingBy($user)) {
-            throw new DomainException('در این گفت‌وگو فقط مدیریت پیام می‌فرستد.', 'messenger.read_only', 403);
+            throw new DomainException($conversation->readOnlyReason(), 'messenger.read_only', 403);
         }
 
         $clientId = $data['client_id'] ?? null;

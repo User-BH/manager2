@@ -11,6 +11,7 @@ import { Composer, type ComposeTarget, type OutgoingDraft } from './Composer'
 import { MessageBubble, type BubbleHandlers } from './MessageBubble'
 import { messageActions } from './messageActions'
 import { ThreadSearch } from './ThreadSearch'
+import { GroupInfoPanel } from './GroupInfoPanel'
 import {
   applyReadUpTo,
   markFailed,
@@ -56,6 +57,7 @@ export function ConversationThread({ conversationId }: { conversationId: number 
   const { user } = useAuth()
   const queryClient = useQueryClient()
 
+  const [showInfo, setShowInfo] = useState(false)
   const [messages, setMessages] = useState<ChatMessage[]>([])
   const [info, setInfo] = useState<ThreadInfo>({
     conversation: null,
@@ -401,11 +403,24 @@ export function ConversationThread({ conversationId }: { conversationId: number 
   return (
     <div className="flex h-full min-h-0 flex-col gap-3">
       <header className="flex items-center justify-between gap-2">
-        <h2 className="text-body font-bold" style={{ color: 'var(--text-primary)' }}>
-          {conversation?.title}
-        </h2>
+        {/* بندِ ۳۵: کلیک روی نامِ گروه اطلاعاتِ گروه را باز می‌کند */}
+        {conversation?.type === 'channel' || conversation?.type === 'group' ? (
+          <button
+            type="button"
+            onClick={() => setShowInfo(true)}
+            className="text-right text-body font-bold"
+            style={{ color: 'var(--text-primary)' }}
+            aria-label={`اطلاعاتِ ${conversation.title}`}
+          >
+            {conversation.title}
+          </button>
+        ) : (
+          <h2 className="text-body font-bold" style={{ color: 'var(--text-primary)' }}>
+            {conversation?.title}
+          </h2>
+        )}
         <div className="flex items-center gap-3">
-          {conversation?.type === 'unit' || conversation?.type === 'user' ? (
+          {conversation && ['unit', 'user', 'pair', 'saved'].includes(conversation.type) ? (
             <span
               className="flex items-center gap-1 text-tiny"
               style={{ color: 'var(--text-tertiary)' }}
@@ -522,9 +537,13 @@ export function ConversationThread({ conversationId }: { conversationId: number 
         >
           <Lock size={15} />
           {readOnlyGroup
-            ? 'در این گفت‌وگو فقط مدیریت پیام می‌فرستد.'
+            ? (conversation.readOnlyReason ?? 'در این گفت‌وگو فقط مدیریت پیام می‌فرستد.')
             : 'امکان ارسال پیام برای شما فعال نیست.'}
         </div>
+      )}
+
+      {showInfo && (
+        <GroupInfoPanel conversationId={conversationId} onClose={() => setShowInfo(false)} />
       )}
     </div>
   )

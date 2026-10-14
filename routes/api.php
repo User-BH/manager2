@@ -229,6 +229,11 @@ Route::middleware('auth')->group(function () {
             ->middleware('throttle:messenger-send')->name('messenger.conversations.send');
         Route::post('messenger/conversations/{conversation}/read', [ConversationController::class, 'read'])
             ->middleware('throttle:messenger')->name('messenger.conversations.read');
+        // اطلاعاتِ گروه و «فقط مدیریت بنویسد» (مرحلهٔ ۱۰ · فاز ۹)
+        Route::get('messenger/conversations/{conversation}/info', [ConversationController::class, 'info'])
+            ->middleware('throttle:messenger')->name('messenger.conversations.info');
+        Route::post('messenger/conversations/{conversation}/posting', [ConversationController::class, 'posting'])
+            ->middleware('throttle:messenger-send')->name('messenger.conversations.posting');
 
         /*
          * غنی‌سازی (مرحلهٔ ۶ · فاز ۱۴). `scopeBindings`: پیام فقط از **همین**

@@ -14,6 +14,7 @@ use App\Services\Messenger\ConversationDirectory;
 use App\Services\Messenger\MessageSender;
 use App\Support\TenantContext;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Tests\TestCase;
 
@@ -99,7 +100,8 @@ class MessageSearchPrivacyTest extends TestCase
 
     public function test_a_private_unit_thread_is_not_searchable_by_other_residents(): void
     {
-        $this->write($this->alice, app(ConversationDirectory::class)->unitThread($this->complex, $this->unitA), 'لوله‌کشی حمامِ ما نشت دارد');
+        // ۱۰/۹: گفت‌وگوی خصوصیِ خودِ آلیس با مدیریت
+        $this->write($this->alice, app(ConversationDirectory::class)->userThread($this->complex, $this->alice), 'لوله‌کشی حمامِ ما نشت دارد');
 
         $this->assertSame([], $this->found($this->bob, 'لوله‌کشی'), '🔴 ساکنِ واحدِ دیگر پیامِ خصوصی را در جست‌وجو دید.');
         $this->assertCount(1, $this->found($this->alice, 'لوله‌کشی'));
@@ -113,9 +115,18 @@ class MessageSearchPrivacyTest extends TestCase
             'complex_id' => $this->complex->id, 'relation' => 'tenant', 'share_percent' => 100, 'is_current' => false,
         ]);
 
-        $this->write($this->alice, app(ConversationDirectory::class)->unitThread($this->complex, $this->unitA), 'رمزِ درِ پارکینگ عوض شد');
+        // بایگانیِ رشته‌ی مشترکِ واحد (دادهٔ پیش از ۱۰/۹) — دیگر کسی در آن نمی‌نویسد، پس مستقیم مثلِ دادهٔ قدیم
+        app(TenantContext::class)->set(null);
+        $archive = app(ConversationDirectory::class)->unitThread($this->complex, $this->unitA);
+        DB::table('messages')->insert([
+            'complex_id' => $this->complex->id, 'conversation_id' => $archive->id, 'user_id' => $this->alice->id,
+            'body' => 'رمزِ درِ پارکینگ عوض شد', 'audience' => 'management', 'unit_id' => $this->unitA->id,
+            'author_name' => 'آلیس', 'is_hidden' => false, 'created_at' => now(), 'updated_at' => now(),
+        ]);
 
         $this->assertSame([], $this->found($former, 'پارکینگ'));
+        // ضدِ پوچی: ساکنِ فعلیِ واحد بایگانی را هنوز می‌یابد
+        $this->assertCount(1, $this->found($this->alice, 'پارکینگ'));
     }
 
     public function test_a_group_is_searchable_only_by_its_members(): void

@@ -61,7 +61,9 @@ class MessengerAudienceTest extends TestCase
         $message = Message::withoutGlobalScopes()->latest('id')->first();
 
         $this->assertSame(MessageAudience::Management, $message->audience);
-        $this->assertSame($this->unitA->id, $message->unit_id);
+        // ۱۰/۹: گفت‌وگوی خصوصیِ **خودِ او** با مدیریت (بندِ ۳۷)، نه رشته‌ی مشترکِ واحد
+        $this->assertSame('user', $message->conversation->type);
+        $this->assertSame($this->residentA->id, $message->conversation->user_id);
     }
 
     /**
@@ -136,14 +138,19 @@ class MessengerAudienceTest extends TestCase
      * عمدی است: بقیه‌ی سامانه هم واحد-محور است، و دو رشته‌ی جدا یعنی مدیر
      * باید حدس بزند کدام را جواب بدهد.
      */
-    public function test_co_residents_of_a_unit_share_the_thread(): void
+    /**
+     * ⚠️ قاعده در ۱۰/۹ عوض شد (بندِ ۳۷): پیش از این ساکنانِ هم‌واحد رشته‌ی مدیریت را با هم داشتند و مستأجر گفت‌وگوی
+     * مالک با مدیر را می‌خواند. حالا هر عضو گفت‌وگوی خودش را دارد؛ مدیر هر دو را.
+     */
+    public function test_co_residents_of_a_unit_no_longer_read_each_others_management_chat(): void
     {
         $tenant = $this->makeUser(UserRole::Tenant, $this->unitA);
 
         $this->actingAs($this->residentA)
             ->postJson('/api/v1/messenger', ['body' => 'پیام مالک'])->assertStatus(201);
 
-        $this->assertContains('پیام مالک', $this->bodiesSeenBy($tenant));
+        $this->assertNotContains('پیام مالک', $this->bodiesSeenBy($tenant));
+        $this->assertContains('پیام مالک', $this->bodiesSeenBy($this->manager));
     }
 
     /**
