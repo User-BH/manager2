@@ -52,8 +52,8 @@ class ReportService
 
     public function totalDebt(): float
     {
+        // همان فرمولِ کشِ `units.balance` روی همه‌ی قبض‌ها (۱۰/۱۳): وضعیت مشتق است، مبلغ‌ها منبع‌اند
         return (float) Bill::where('complex_id', $this->complex->id)
-            ->whereIn('status', [BillStatus::Unpaid, BillStatus::Partial])
             ->selectRaw('COALESCE(SUM(total_amount - paid_amount),0) as debt')
             ->value('debt');
     }

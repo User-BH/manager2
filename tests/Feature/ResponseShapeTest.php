@@ -99,8 +99,6 @@ class ResponseShapeTest extends TestCase
             'complex_id' => $complex->id, 'unit_number' => '1', 'floor' => 1, 'area' => 100,
             'residents_count' => 2, 'coefficient' => 1,
             'occupancy_status' => OccupancyStatus::OwnerOccupied, 'uses_elevator' => true,
-            // ⚠️ `dashboard.debtors` از همین ستون می‌خواند، نه از جمعِ قبض‌ها
-            'balance' => 400000,
         ]);
 
         /*
@@ -119,6 +117,8 @@ class ResponseShapeTest extends TestCase
             'total_amount' => 500000, 'paid_amount' => 0,
             'status' => BillStatus::Unpaid, 'issued_at' => now(),
         ]);
+        // ⚠️ `dashboard.debtors` از کشِ `units.balance` می‌خواند؛ از ۱۰/۱۳ فقط از قبض‌ها پر می‌شود، نه با مقدارِ دستی
+        $unit->recalculateBalance();
 
         Payment::withoutGlobalScopes()->create([
             'complex_id' => $complex->id, 'unit_id' => $unit->id, 'bill_id' => $bill->id,

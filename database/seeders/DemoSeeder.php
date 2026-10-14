@@ -18,6 +18,7 @@ use App\Models\Expense;
 use App\Models\Income;
 use App\Models\Message;
 use App\Models\Payment;
+use App\Models\PaymentAllocation;
 use App\Models\Unit;
 use App\Models\User;
 use App\Services\Charge\BillGenerator;
@@ -216,6 +217,11 @@ class DemoSeeder extends Seeder
                 'status' => PaymentStatus::Success, 'period' => $prevPeriod,
                 'gateway' => 'fake', 'ref_id' => 'FAKE-DEMO-0001', 'tracking_code' => 'TRK-DEMO0001',
                 'paid_at' => now()->subDays(20),
+            ]);
+            // ردِ دفتر: پرداخت‌شده‌ی قبض باید از تخصیص بیاید (`finance:check`؛ مرحلهٔ ۱۰ · فاز ۱۳)
+            PaymentAllocation::create([
+                'complex_id' => $complex->id, 'payment_id' => $payment->id,
+                'bill_id' => $prevBill->id, 'amount' => $prevBill->total_amount,
             ]);
             $prevBill->paid_amount = $prevBill->total_amount;
             $prevBill->syncStatus();

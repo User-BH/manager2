@@ -1188,6 +1188,18 @@ class PhaseRegressionMapTest extends TestCase
             '۱۰/۱۲: فایلِ بزرگ جریانی، نه در حافظه' => [
                 'MessengerFilesTest', 'test_large_files_stream_instead_of_loading_into_memory', '۱۰',
             ],
+            '🔴 ۱۰/۱۳: هر مسیرِ پولی کش و دفتر را هم‌خوان می‌گذارد' => [
+                'FinancialInvariantTest', 'test_every_money_path_keeps_the_cache_and_the_ledger_in_step', '۱۰',
+            ],
+            '🔴 ۱۰/۱۳: مانده‌ی واحد بی قبض نوشته نمی‌شود' => [
+                'FinancialInvariantTest', 'test_no_normal_path_writes_the_balance_without_a_bill', '۱۰',
+            ],
+            '🔴 ۱۰/۱۳: «بدهیِ من» همان قبض‌ها؛ نه ساکنِ قبلی، نه بعدی' => [
+                'FinancialInvariantTest', 'test_every_debt_figure_reads_the_same_bills', '۱۰',
+            ],
+            '۱۰/۱۳: finance:check فقط کش را ترمیم می‌کند' => [
+                'FinancialInvariantTest', 'test_the_checker_reports_drift_and_repairs_only_the_cache', '۱۰',
+            ],
             'مدیر از درخواستِ عضویت با اعلانِ داشبورد باخبر می‌شود' => [
                 'JoinRequestTest', 'test_the_complexes_managers_get_a_dashboard_notification_once', '۹',
             ],

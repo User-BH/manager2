@@ -41,7 +41,7 @@ class Complex extends Model
         'messenger_enabled', 'good_payer_enabled', 'good_payer_config',
         'payment_gateway', 'gateway_config',
         'charge_due_day', 'penalty_enabled', 'penalty_type', 'penalty_value', 'penalty_grace_days',
-        'fund_balance', 'settings', 'is_active',
+        'settings', 'is_active',
         // تعلیق (R29) — بدونِ اینها `update()` بی‌صدا نادیده‌شان می‌گیرد
         'suspended_at', 'suspension_reason',
     ];
@@ -51,7 +51,12 @@ class Complex extends Model
      * نه در تنظیماتِ مجتمع برای هر عضو، نه در فهرستِ ادمینِ کل، نه در پشتیبانِ خروجی. نوشتنش هم فقط
      * از `PublicJoinLink` (عمداً در `$fillable` نیست).
      */
-    protected $hidden = ['join_code'];
+    /**
+     * `fund_balance` ستونی مرده است (مرحلهٔ ۱۰ · فاز ۱۳؛ بندِ ۲): هیچ کدی نمی‌نویسدش و موجودیِ صندوق از دفتر حساب
+     * می‌شود (`ReportService::fundBalance` = پرداخت‌های موفق + درآمد − هزینه). پنهان است تا هیچ پاسخی عددِ دومی
+     * برای «موجودیِ صندوق» نشان ندهد؛ حذفِ ستون برگشتِ دقیقِ مهاجرت را روی SQLite می‌شکست.
+     */
+    protected $hidden = ['join_code', 'fund_balance'];
 
     protected function casts(): array
     {
@@ -74,7 +79,6 @@ class Complex extends Model
             'settings' => 'array',
             'penalty_enabled' => 'boolean',
             'penalty_value' => 'decimal:2',
-            'fund_balance' => 'decimal:2',
             'is_active' => 'boolean',
             'suspended_at' => 'datetime',
             'join_code_created_at' => 'datetime',

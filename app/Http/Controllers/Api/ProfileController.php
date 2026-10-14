@@ -15,6 +15,7 @@ use App\Models\User;
 use App\Services\Account\ComplexMembers;
 use App\Services\Auth\SessionRegistry;
 use App\Services\Auth\TrustedDeviceService;
+use App\Services\Finance\ResidentDebt;
 use App\Support\Jalali;
 use App\Support\Phone;
 use Illuminate\Http\JsonResponse;
@@ -130,7 +131,15 @@ class ProfileController extends Controller
     /** واحدهایی که کاربر مالک یا مستاجرشان است. */
     private function units(User $user): array
     {
-        return $user->units()->with('building')->get()->map(fn (Unit $unit) => [
+        /*
+         * بدهیِ خودِ او روی هر واحد (۱۰/۱۳)، نه `units.balance`: ساکنِ رفته مانده‌ی ساکنِ بعدی را نمی‌بیند و ساکنِ
+         * تازه بدهیِ قبلی را. واحدِ جاری از دوره‌های جاری، واحدِ پیشین از دوره‌های گذشته‌ی خودش.
+         */
+        $debt = app(ResidentDebt::class);
+        $current = $debt->perUnit($user);
+        $all = $debt->perUnit($user, includePast: true);
+
+        return $user->units()->with('building')->get()->map(fn (Unit $unit) => $this->withOwnDebt([
             'id' => $unit->id,
             'label' => 'واحد '.$unit->unit_number,
             'buildingName' => $unit->building?->name,
@@ -140,10 +149,23 @@ class ProfileController extends Controller
             'relationLabel' => $unit->pivot->relation === 'owner' ? 'مالک' : 'مستاجر',
             'sharePercent' => (float) $unit->pivot->share_percent,
             'isCurrent' => (bool) $unit->pivot->is_current,
-            'balance' => (float) $unit->balance,
+            'balance' => 0.0,
             'startDate' => $unit->pivot->start_date ? Jalali::date($unit->pivot->start_date) : null,
             'endDate' => $unit->pivot->end_date ? Jalali::date($unit->pivot->end_date) : null,
-        ])->all();
+        ], $current, $all))->all();
+    }
+
+    /**
+     * @param  array<string, mixed>  $row
+     * @param  array<int, float>  $current
+     * @param  array<int, float>  $all
+     * @return array<string, mixed>
+     */
+    private function withOwnDebt(array $row, array $current, array $all): array
+    {
+        $row['balance'] = ($row['isCurrent'] ? $current : $all)[$row['id']] ?? 0.0;
+
+        return $row;
     }
 
     /**
@@ -232,7 +254,7 @@ class ProfileController extends Controller
             'unitsCount' => $unitIds->count(),
             'billsCount' => (clone $bills)->count(),
             'paidCount' => Payment::where('user_id', $user->id)->where('status', 'success')->count(),
-            'totalDebt' => (float) ((clone $bills)->sum('total_amount') - (clone $bills)->sum('paid_amount')),
+            'totalDebt' => app(ResidentDebt::class)->total($user),
         ];
     }
 }

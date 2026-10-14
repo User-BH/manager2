@@ -12,6 +12,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\DB;
+use LogicException;
 
 /**
  * واحدِ مسکونی.
@@ -48,8 +50,24 @@ class Unit extends Model
     protected $fillable = [
         'complex_id', 'building_id', 'unit_number', 'floor', 'area',
         'residents_count', 'parking_count', 'storage_count', 'occupancy_status',
-        'coefficient', 'uses_elevator', 'balance', 'notes', 'is_active',
+        'coefficient', 'uses_elevator', 'notes', 'is_active',
     ];
+
+    /**
+     * `balance` کشِ بدهیِ واحد است، نه داده‌ی مستقل (مرحلهٔ ۱۰ · فاز ۱۳؛ بندهای ۲ و ۱۰۵).
+     *
+     * منبعِ حقیقت قبض‌ها هستند: `balance = Σ (total_amount − paid_amount)` ِ قبض‌های واحد. پس `balance` در `fillable`
+     * نیست و هر ذخیره‌ای که آن را عوض کند رد می‌شود — تنها راهِ نوشتنش `recalculateBalance()` است که از قبض‌ها
+     * می‌شمارد. ناهمخوانی را `finance:check` می‌یابد.
+     */
+    protected static function booted(): void
+    {
+        static::saving(function (Unit $unit): void {
+            if ($unit->isDirty('balance') && (float) $unit->balance !== (float) $unit->getOriginal('balance', 0)) {
+                throw new LogicException('مانده‌ی واحد فقط از قبض‌ها حساب می‌شود (recalculateBalance)، نه با مقداردهیِ مستقیم.');
+            }
+        });
+    }
 
     protected function casts(): array
     {
@@ -125,10 +143,28 @@ class Unit extends Model
         return 'واحد '.$this->unit_number.' - طبقه '.$this->floor;
     }
 
-    /** Recompute the cached debt balance from outstanding bills. */
+    /**
+     * کشِ بدهی را از قبض‌ها دوباره می‌شمارد — **در یک دستور**.
+     *
+     * خواندنِ جمع و نوشتنِ جدا (روشِ پیشین) با دو پرداختِ هم‌زمان می‌توانست جمعِ کهنه را آخر بنویسد؛ `UPDATE … SET
+     * balance = (SELECT SUM …)` جمع را همان لحظه‌ی نوشتن از قبض‌های ثبت‌شده می‌خواند.
+     */
     public function recalculateBalance(): void
     {
-        $this->balance = $this->bills()->sum('total_amount') - $this->bills()->sum('paid_amount');
-        $this->saveQuietly();
+        self::recalculateBalanceFor($this->id);
+
+        $this->setRawAttributes(
+            ['balance' => DB::table('units')->where('id', $this->id)->value('balance')] + $this->getAttributes(),
+        );
+        $this->syncOriginalAttribute('balance');
+    }
+
+    /** همان، بی بارکردنِ مدل — برای رویدادِ ذخیره‌ی قبض */
+    public static function recalculateBalanceFor(int $unitId): void
+    {
+        DB::update(
+            'UPDATE units SET balance = (SELECT COALESCE(SUM(bills.total_amount - bills.paid_amount), 0) FROM bills WHERE bills.unit_id = units.id) WHERE id = ?',
+            [$unitId],
+        );
     }
 }

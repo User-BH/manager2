@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\BillResource;
 use App\Models\Bill;
+use App\Services\Finance\ResidentDebt;
 use App\Support\Jalali;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Auth;
@@ -17,7 +18,7 @@ use Illuminate\Support\Facades\Auth;
  */
 class MyBillController extends Controller
 {
-    public function index(): JsonResponse
+    public function index(ResidentDebt $debt): JsonResponse
     {
         $user = Auth::user();
         // فقط دوره‌های سکونتِ خودش، نه سابقه‌ی ساکنِ قبلیِ واحد (مرحلهٔ ۹ · فاز ۶، F4)
@@ -34,7 +35,8 @@ class MyBillController extends Controller
                 'total' => $bills->total(),
             ],
             'currency' => $user->complex?->currencyLabel() ?? 'تومان',
-            'totalDebt' => (float) $user->currentUnits()->sum('balance'),
+            // بدهیِ دوره‌های خودش، همان قبض‌های بالا — نه مانده‌ی کلِ واحد با ساکنِ قبلی (۱۰/۱۳)
+            'totalDebt' => $debt->total($user),
         ]);
     }
 

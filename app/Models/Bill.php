@@ -38,6 +38,24 @@ class Bill extends Model
         'paid_amount', 'status', 'due_date', 'paid_at', 'issued_at', 'breakdown', 'last_reminded_at',
     ];
 
+    /**
+     * هر ذخیره‌ی قبض کشِ بدهیِ واحد را از قبض‌ها می‌شمارد (مرحلهٔ ۱۰ · فاز ۱۳؛ بندِ ۱۰۵).
+     *
+     * پیش‌تر فقط `syncStatus()` این کار را می‌کرد؛ قبضی که بی آن ذخیره می‌شد کش را کهنه می‌گذاشت. حالا ناوردایی به
+     * خودِ ذخیره بسته است، نه به یادِ فراخواننده.
+     */
+    protected static function booted(): void
+    {
+        static::saved(function (Bill $bill): void {
+            if ($bill->relationLoaded('unit') && $bill->unit !== null) {
+                $bill->unit->recalculateBalance();
+
+                return;
+            }
+            Unit::recalculateBalanceFor((int) $bill->unit_id);
+        });
+    }
+
     protected function casts(): array
     {
         return [
@@ -122,7 +140,7 @@ class Bill extends Model
         return max(0, (float) $this->total_amount - (float) $this->paid_amount);
     }
 
-    /** Re-derive status from paid_amount and refresh the unit balance. */
+    /** وضعیت را از پرداخت‌شده می‌سازد؛ کشِ واحد را رویدادِ `saved` به‌روز می‌کند. */
     public function syncStatus(): void
     {
         $remaining = $this->remaining();
@@ -137,6 +155,5 @@ class Bill extends Model
         }
 
         $this->save();
-        $this->unit->recalculateBalance();
     }
 }

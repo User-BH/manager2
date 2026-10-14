@@ -10,6 +10,7 @@ use App\Models\Message;
 use App\Models\MessagePoll;
 use App\Models\ServiceRequest;
 use App\Models\Unit;
+use App\Services\Finance\ResidentDebt;
 use App\Services\Poll\PollService;
 use App\Services\ReportService;
 use App\Support\Jalali;
@@ -129,11 +130,14 @@ class DashboardController extends Controller
             ->unique('unit_id')
             ->keyBy('unit_id');
 
+        // بدهیِ دوره‌های خودِ ساکن، نه مانده‌ی کلِ واحد (۱۰/۱۳؛ همان عددِ «قبض‌های من» و پروفایل)
+        $debts = app(ResidentDebt::class)->perUnit($user);
+
         return [
             'unitCount' => $units->count(),
-            'totalDebt' => (float) $units->sum('balance'),
+            'totalDebt' => round(array_sum($debts), 2),
             'currency' => $user->complex?->currencyLabel() ?? 'تومان',
-            'units' => $units->map(function (Unit $unit) use ($latestBills) {
+            'units' => $units->map(function (Unit $unit) use ($latestBills, $debts) {
                 /** @var Bill|null $latest */
                 $latest = $latestBills->get($unit->id);
 
@@ -142,7 +146,7 @@ class DashboardController extends Controller
                     'label' => $unit->label(),
                     // یادآوریِ «اطلاعاتِ واحد خود را تکمیل کنید» (مرحلهٔ ۱۰ · فاز ۷؛ بندِ ۹) — بی کوئریِ تازه
                     'informationCompleted' => $unit->information_completed_at !== null,
-                    'balance' => (float) $unit->balance,
+                    'balance' => $debts[$unit->id] ?? 0.0,
                     'latestBill' => $latest ? [
                         'id' => $latest->id,
                         'periodLabel' => Jalali::periodLabel($latest->period),
