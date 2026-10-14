@@ -1146,6 +1146,21 @@ class PhaseRegressionMapTest extends TestCase
             '۱۰/۹: شمارِ گروه از عضویتِ فعال' => [
                 'GroupInfoTest', 'test_the_counts_come_from_active_memberships_and_follow_them', '۱۰',
             ],
+            '🔴 ۱۰/۱۰: ناظر مدیر نیست — نه عضویت، نه مالی، نه نظرسنجی' => [
+                'GroupModerationTest', 'test_the_moderator_is_not_a_manager_anywhere_else', '۱۰',
+            ],
+            '🔴 ۱۰/۱۰: هدایت دو دسترسی را جدا می‌سنجد' => [
+                'GroupModerationTest', 'test_forwarding_checks_the_source_and_the_target_separately', '۱۰',
+            ],
+            '۱۰/۱۰: در گروه فقط مدیر و ناظر پیامِ دیگران را حذف می‌کنند' => [
+                'GroupModerationTest', 'test_in_the_group_only_the_manager_and_the_moderator_delete_others', '۱۰',
+            ],
+            '۱۰/۱۰: ناظری با عضویت تمام می‌شود' => [
+                'GroupModerationTest', 'test_moderation_ends_with_the_membership', '۱۰',
+            ],
+            '۱۰/۱۰: چند سنجاق و سقفش' => [
+                'GroupModerationTest', 'test_pins_are_many_and_follow_the_matrix', '۱۰',
+            ],
             'مدیر از درخواستِ عضویت با اعلانِ داشبورد باخبر می‌شود' => [
                 'JoinRequestTest', 'test_the_complexes_managers_get_a_dashboard_notification_once', '۹',
             ],
@@ -1322,6 +1337,8 @@ class PhaseRegressionMapTest extends TestCase
             'managerSearch' => ['۱۰/۸', 'مالِ همین حساب در همین مجتمع است'],
             // مرحلهٔ ۱۰ · فاز ۹: اطلاعاتِ گروه، دلیلِ فقط‌خواندنی و گفت‌وگو با یک عضو
             'messengerStructure' => ['۱۰/۹', 'خصوصی با یک عضو است، نه با واحد'],
+            // مرحلهٔ ۱۰ · فاز ۱۰: منوی پیام، هدایت و ناظرِ گروه
+            'messengerModeration' => ['۱۰/۱۰', 'عضو ناظر تعیین نمی‌کند'],
         ];
 
         // 🔴 مثلِ ردیف‌های PHP، این فهرست هم فقط بزرگ می‌شود (خرابکاریِ فاز ۸)

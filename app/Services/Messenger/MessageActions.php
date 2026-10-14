@@ -9,6 +9,7 @@ use App\Models\Message;
 use App\Models\MessageReaction;
 use App\Models\MessageReport;
 use App\Models\User;
+use App\Support\Audit;
 use App\Support\PrivateFiles;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
@@ -33,6 +34,9 @@ use Illuminate\Support\Facades\Storage;
  */
 class MessageActions
 {
+    /** سقفِ سنجاق در هر گفت‌وگو — بیشتر از این یعنی «سنجاق» دیگر چیزی را برجسته نمی‌کند. */
+    public const MAX_PINS = 10;
+
     public function edit(Complex $complex, Conversation $conversation, Message $message, User $user, string $body): Message
     {
         $this->ensureCanWrite($complex, $conversation, $user);
@@ -68,7 +72,13 @@ class MessageActions
      */
     public function delete(Conversation $conversation, Message $message, User $user): Message
     {
-        if ($message->user_id !== $user->id) {
+        /*
+         * بندِ ۵۵ (مرحلهٔ ۱۰ · فاز ۱۰): در گروه مدیر و ناظرِ همان گروه پیامِ دیگران را هم حذف می‌کنند؛ در گفت‌وگوی خصوصی
+         * هر کس فقط پیامِ خودش را. پیش از این مدیر فقط «پنهان» می‌کرد.
+         */
+        $own = $message->user_id === $user->id;
+
+        if (! $own && ! ConversationRights::for($conversation, $user)->canDeleteOthers) {
             throw new DomainException('فقط پیامِ خودتان را می‌توانید حذف کنید.', 'messenger.not_yours', 403);
         }
 
@@ -76,7 +86,10 @@ class MessageActions
             return $message;
         }
 
-        $this->ensureNotModerated($message);
+        // نویسنده پیامِ پنهان‌شده‌اش را پاک نمی‌کند (سابقه‌ی مدیریت)؛ مدیر و ناظر چرا
+        if ($own) {
+            $this->ensureNotModerated($message);
+        }
 
         if ($message->poll !== null) {
             throw DomainException::conflict('پیامِ نظرسنجی حذف نمی‌شود؛ می‌توانید نظرسنجی را ببندید.', 'messenger.poll_message');
@@ -84,23 +97,26 @@ class MessageActions
 
         $path = $message->attachment_path;
 
-        DB::transaction(function () use ($conversation, $message): void {
+        DB::transaction(function () use ($message, $user): void {
             $message->update([
                 'body' => '',
                 'attachment_path' => null,
                 'attachment_name' => null,
                 'attachment_kind' => null,
                 'deleted_at' => now(),
+                'deleted_by' => $user->id,
             ]);
 
             $message->reactions()->delete();
             $this->touchReplies($message->id);
-
-            Conversation::withoutGlobalScopes()
-                ->whereKey($conversation->id)
-                ->where('pinned_message_id', $message->id)
-                ->update(['pinned_message_id' => null]);
+            DB::table('conversation_pins')->where('message_id', $message->id)->delete();
         });
+
+        if (! $own) {
+            Audit::log('messenger.message_removed', 'حذفِ پیامِ عضو در گروه', $message, [
+                'conversation_id' => $conversation->id, 'author_id' => $message->user_id,
+            ]);
+        }
 
         // فایل پس از ثبتِ تراکنش: اگر تراکنش برمی‌گشت، پیوستِ پیامِ زنده گم نمی‌شد
         if ($path !== null) {
@@ -134,17 +150,39 @@ class MessageActions
         $message->touch();
     }
 
-    public function pin(Conversation $conversation, ?Message $message, User $user): void
+    /**
+     * سنجاق یا برداشتنش (بندهای ۵۸ و ۵۹): در گروه مدیر و ناظر، در گفت‌وگوی خصوصی هر دو طرف. چند سنجاق، تا سقف؛
+     * `$message` ِ تهی همه را برمی‌دارد (رفتارِ API ِ پیشین).
+     */
+    public function pin(Conversation $conversation, ?Message $message, User $user, bool $pinned = true): void
     {
-        if (! $user->isAdmin()) {
-            throw new DomainException('سنجاق کارِ مدیریت است.', 'messenger.pin_forbidden', 403);
+        if (! ConversationRights::for($conversation, $user)->canPin) {
+            throw new DomainException('در این گفت‌وگو اجازه‌ی سنجاق ندارید.', 'messenger.pin_forbidden', 403);
         }
 
-        if ($message !== null) {
-            $this->ensureLive($message);
+        if ($message === null || ! $pinned) {
+            DB::table('conversation_pins')->where('conversation_id', $conversation->id)
+                ->when($message, fn ($q, $m) => $q->where('message_id', $m->id))
+                ->delete();
+
+            return;
         }
 
-        $conversation->update(['pinned_message_id' => $message?->id]);
+        $this->ensureLive($message);
+
+        DB::transaction(function () use ($conversation, $message, $user): void {
+            // قفلِ گفت‌وگو: دو سنجاقِ هم‌زمان سقف را دور نمی‌زنند
+            Conversation::withoutGlobalScopes()->whereKey($conversation->id)->lockForUpdate()->first();
+
+            $pins = DB::table('conversation_pins')->where('conversation_id', $conversation->id);
+            if (! (clone $pins)->where('message_id', $message->id)->exists() && (clone $pins)->count() >= self::MAX_PINS) {
+                throw DomainException::conflict('حداکثر '.self::MAX_PINS.' پیام سنجاق می‌شود؛ یکی را بردارید.', 'messenger.too_many_pins');
+            }
+
+            DB::table('conversation_pins')->insertOrIgnore([
+                'conversation_id' => $conversation->id, 'message_id' => $message->id, 'pinned_by' => $user->id, 'created_at' => now(),
+            ]);
+        }, attempts: 3);
     }
 
     /** @return array{0: MessageReport, 1: bool} گزارش، و اینکه تازه بود یا تکراری */

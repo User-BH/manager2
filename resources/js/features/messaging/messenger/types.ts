@@ -98,7 +98,15 @@ export interface ChatMessage {
   isEdited?: boolean
   /** سرور می‌گوید، نه کلاینت: پنجره‌ی ۱۵ دقیقه و پنهان‌نبودن را همان‌جا می‌سنجد. */
   canEdit?: boolean
+  /** ۱۰/۱۰: در گروه مدیر و ناظر پیامِ دیگران را هم حذف می‌کنند — باز هم سرور می‌گوید */
   canDelete?: boolean
+  /** سنجاق در این گفت‌وگو: گروه مدیر و ناظر، خصوصی هر دو طرف (۱۰/۱۰) */
+  canPin?: boolean
+  canForward?: boolean
+  /** نسخه‌ی هدایت‌شده: نامِ نویسنده‌ی مبدأ همان لحظه */
+  forwardedFrom?: { authorName: string } | null
+  /** حذف به دستِ مدیر یا ناظر، نه نویسنده */
+  removedByModeration?: boolean
   replyTo?: ReplyPreview | null
   reactions?: ReactionSummary[]
 }
@@ -133,6 +141,9 @@ export interface MessagesResponse {
   /** برای `changed_after` در پرسشِ بعدی. */
   serverTime?: number
   pinned?: ChatMessage | null
+  /** ۱۰/۱۰: چند سنجاق، تازه‌ترین اول */
+  pins?: ChatMessage[]
+  rights?: { isModerator: boolean; canPin: boolean; canDeleteOthers: boolean }
   conversation: ConversationSummary
   canSend: boolean
   isAdmin: boolean

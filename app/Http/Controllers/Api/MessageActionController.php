@@ -11,11 +11,13 @@ use App\Http\Resources\MessageResource;
 use App\Models\Conversation;
 use App\Models\Message;
 use App\Models\User;
+use App\Services\Messenger\ConversationRights;
 use App\Services\Messenger\MessageActions;
 use App\Support\Jalali;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
 /**
@@ -40,7 +42,7 @@ class MessageActionController extends Controller
 
         $this->actions->edit($this->requireComplex(), $conversation, $message, $user, (string) $request->input('body', ''));
 
-        return $this->respond($message, $user);
+        return $this->respond($message, $user, $conversation);
     }
 
     public function destroy(Conversation $conversation, Message $message): JsonResponse
@@ -49,7 +51,7 @@ class MessageActionController extends Controller
 
         $this->actions->delete($conversation, $message, $user);
 
-        return $this->respond($message, $user);
+        return $this->respond($message, $user, $conversation);
     }
 
     public function react(ReactMessageRequest $request, Conversation $conversation, Message $message): JsonResponse
@@ -58,7 +60,7 @@ class MessageActionController extends Controller
 
         $this->actions->react($this->requireComplex(), $message, $user, (string) $request->validated('emoji'));
 
-        return $this->respond($message, $user);
+        return $this->respond($message, $user, $conversation);
     }
 
     public function report(ReportMessageRequest $request, Conversation $conversation, Message $message): JsonResponse
@@ -81,11 +83,16 @@ class MessageActionController extends Controller
             ? null
             : Message::query()->where('conversation_id', $conversation->id)->whereKey((int) $id)->firstOrFail();
 
-        $this->actions->pin($conversation, $message, $user);
+        $this->actions->pin($conversation, $message, $user, $request->boolean('pinned', true));
 
-        return response()->json([
-            'pinned' => $message ? $this->present($message->fresh(MessageResource::RELATIONS), $user) : null,
-        ]);
+        // فهرستِ تازه‌ی سنجاق‌ها؛ `pinned` برای کلاینتِ پیشین
+        $pins = Message::query()->where('conversation_id', $conversation->id)->visibleTo($user)->whereNull('deleted_at')
+            ->whereIn('id', DB::table('conversation_pins')->where('conversation_id', $conversation->id)->select('message_id'))
+            ->with(MessageResource::RELATIONS)->orderByDesc('id')->get()
+            ->filter(fn (Message $m) => ! $m->is_hidden || $user->isAdmin())
+            ->map(fn (Message $m) => $this->present($m, $user))->values()->all();
+
+        return response()->json(['pinned' => $pins[0] ?? null, 'pins' => $pins]);
     }
 
     /**
@@ -142,14 +149,18 @@ class MessageActionController extends Controller
         return $user;
     }
 
-    private function respond(Message $message, User $user): JsonResponse
+    private function respond(Message $message, User $user, Conversation $conversation): JsonResponse
     {
-        return response()->json(['message' => $this->present($message->fresh(MessageResource::RELATIONS), $user)]);
+        return response()->json(['message' => $this->present(
+            $message->fresh(MessageResource::RELATIONS),
+            $user,
+            ConversationRights::for($conversation, $user),
+        )]);
     }
 
     /** @return array<string, mixed> */
-    private function present(Message $message, User $viewer): array
+    private function present(Message $message, User $viewer, ?ConversationRights $rights = null): array
     {
-        return (new MessageResource($message, $viewer))->toArray(request());
+        return (new MessageResource($message, $viewer, $rights))->toArray(request());
     }
 }

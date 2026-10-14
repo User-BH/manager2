@@ -234,6 +234,11 @@ Route::middleware('auth')->group(function () {
             ->middleware('throttle:messenger')->name('messenger.conversations.info');
         Route::post('messenger/conversations/{conversation}/posting', [ConversationController::class, 'posting'])
             ->middleware('throttle:messenger-send')->name('messenger.conversations.posting');
+        // هدایت و ناظرِ گروه (مرحلهٔ ۱۰ · فاز ۱۰)
+        Route::post('messenger/conversations/{conversation}/forward', [ConversationController::class, 'forward'])
+            ->middleware('throttle:messenger-send')->name('messenger.conversations.forward');
+        Route::post('messenger/conversations/{conversation}/moderators', [ConversationController::class, 'moderator'])
+            ->middleware('throttle:messenger-send')->name('messenger.conversations.moderators');
 
         /*
          * غنی‌سازی (مرحلهٔ ۶ · فاز ۱۴). `scopeBindings`: پیام فقط از **همین**

@@ -12,6 +12,9 @@ import { MessageBubble, type BubbleHandlers } from './MessageBubble'
 import { messageActions } from './messageActions'
 import { ThreadSearch } from './ThreadSearch'
 import { GroupInfoPanel } from './GroupInfoPanel'
+import { ForwardDialog } from './ForwardDialog'
+import { copyText } from '@/shared/lib/clipboard'
+import { formatNumber } from '@/shared/lib/format'
 import {
   applyReadUpTo,
   markFailed,
@@ -32,7 +35,8 @@ interface ThreadInfo {
   conversation: ConversationSummary | null
   canSend: boolean
   isAdmin: boolean
-  pinned: ChatMessage | null
+  /** ۱۰/۱۰: چند سنجاق، تازه‌ترین اول */
+  pins: ChatMessage[]
 }
 
 /**
@@ -58,12 +62,14 @@ export function ConversationThread({ conversationId }: { conversationId: number 
   const queryClient = useQueryClient()
 
   const [showInfo, setShowInfo] = useState(false)
+  const [forwarding, setForwarding] = useState<ChatMessage | null>(null)
+  const [pinIndex, setPinIndex] = useState(0)
   const [messages, setMessages] = useState<ChatMessage[]>([])
   const [info, setInfo] = useState<ThreadInfo>({
     conversation: null,
     canSend: false,
     isAdmin: false,
-    pinned: null,
+    pins: [],
   })
   const [older, setOlder] = useState<{ has: boolean; cursor: number | null; loading: boolean }>({
     has: false,
@@ -105,7 +111,7 @@ export function ConversationThread({ conversationId }: { conversationId: number 
       conversation: data.conversation,
       canSend: data.canSend,
       isAdmin: data.isAdmin,
-      pinned: data.pinned ?? null,
+      pins: data.pins ?? (data.pinned ? [data.pinned] : []),
     })
     setMessages((current) =>
       applyReadUpTo(
@@ -342,7 +348,7 @@ export function ConversationThread({ conversationId }: { conversationId: number 
         .then(({ message: updated }) => replace(updated))
         .catch((error: unknown) => alertError(error, failure))
 
-    const isPinned = info.pinned?.id === message.id
+    const isPinned = info.pins.some((pin) => pin.id === message.id)
 
     return {
       onReply: () => setCompose({ mode: 'reply', message }),
@@ -360,9 +366,21 @@ export function ConversationThread({ conversationId }: { conversationId: number 
         }),
       onPin: () =>
         void messageActions
-          .pin(conversationId, isPinned ? null : message.id)
-          .then(({ pinned }) => setInfo((current) => ({ ...current, pinned })))
+          .pin(conversationId, message.id, !isPinned)
+          .then(({ pins }) => setInfo((current) => ({ ...current, pins })))
           .catch((error: unknown) => alertError(error, 'سنجاق ثبت نشد.')),
+      onCopy: () =>
+        void copyText(message.body ?? '').then((ok) =>
+          ok ? toastSuccess('متن کپی شد.') : alertError(null, 'کپی ممکن نشد.'),
+        ),
+      onForward: () => setForwarding(message),
+      onDownload: () => {
+        if (!message.attachment) return
+        const link = document.createElement('a')
+        link.href = message.attachment.url
+        link.download = message.attachment.name
+        link.click()
+      },
       onReport: () =>
         void promptText({
           title: 'گزارش به مدیریت',
@@ -397,7 +415,8 @@ export function ConversationThread({ conversationId }: { conversationId: number 
   if (load.loading) return <InlineSpinner />
   if (load.error) return <ErrorState error={load.error} />
 
-  const { conversation, pinned } = info
+  const { conversation, pins } = info
+  const pinned = pins.length > 0 ? pins[pinIndex % pins.length] : null
   const readOnlyGroup = conversation && !conversation.canPost
 
   return (
@@ -451,7 +470,11 @@ export function ConversationThread({ conversationId }: { conversationId: number 
       {pinned && (
         <button
           type="button"
-          onClick={() => jumpTo(pinned.id)}
+          onClick={() => {
+            jumpTo(pinned.id)
+            // سنجاق‌ها یکی‌یکی، مثلِ پیام‌رسان‌های آشنا
+            setPinIndex((index) => index + 1)
+          }}
           className="flex items-center gap-2 rounded-xl border px-3 py-2 text-right text-small"
           style={{ borderColor: 'var(--border-subtle)', backgroundColor: 'var(--surface-base)' }}
         >
@@ -460,6 +483,11 @@ export function ConversationThread({ conversationId }: { conversationId: number 
           <span className="min-w-0 flex-1 truncate" style={{ color: 'var(--text-primary)' }}>
             {pinned.body || pinned.attachment?.name || 'نظرسنجی'}
           </span>
+          {pins.length > 1 && (
+            <span className="text-tiny tabular-nums" style={{ color: 'var(--text-tertiary)' }}>
+              {formatNumber((pinIndex % pins.length) + 1)} از {formatNumber(pins.length)}
+            </span>
+          )}
         </button>
       )}
 
@@ -502,7 +530,7 @@ export function ConversationThread({ conversationId }: { conversationId: number 
                 <MessageBubble
                   message={message}
                   isAdmin={info.isAdmin}
-                  isPinned={pinned?.id === message.id}
+                  isPinned={pins.some((pin) => pin.id === message.id)}
                   menuOpen={ui.menu === message.id}
                   onToggleMenu={(open) =>
                     setUi((current) => ({ ...current, menu: open ? message.id : null }))
@@ -544,6 +572,14 @@ export function ConversationThread({ conversationId }: { conversationId: number 
 
       {showInfo && (
         <GroupInfoPanel conversationId={conversationId} onClose={() => setShowInfo(false)} />
+      )}
+
+      {forwarding && (
+        <ForwardDialog
+          message={forwarding}
+          fromConversationId={conversationId}
+          onClose={() => setForwarding(null)}
+        />
       )}
     </div>
   )

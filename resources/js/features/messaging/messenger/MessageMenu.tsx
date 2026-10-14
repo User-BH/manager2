@@ -1,5 +1,17 @@
 import { useCallback, useEffect, useRef } from 'react'
-import { Eye, EyeOff, Flag, Pencil, Pin, PinOff, Reply, Trash2 } from 'lucide-react'
+import {
+  Copy,
+  Download,
+  Eye,
+  EyeOff,
+  Flag,
+  Pencil,
+  Pin,
+  PinOff,
+  Reply,
+  Share2,
+  Trash2,
+} from 'lucide-react'
 import { useClickOutside } from '@/shared/hooks'
 import { cn } from '@/shared/lib/cn'
 import { REACTIONS, type ChatMessage } from './types'
@@ -12,6 +24,10 @@ export interface MessageMenuActions {
   onPin: () => void
   onReport: () => void
   onHide: () => void
+  // ۱۰/۱۰ (بندِ ۵۰): کپی، هدایت، دانلود
+  onCopy: () => void
+  onForward: () => void
+  onDownload: () => void
 }
 
 /**
@@ -110,8 +126,15 @@ export function MessageMenu({
       )}
 
       {live && <Item icon={Reply} label="پاسخ" onClick={run(actions.onReply)} />}
+      {live && message.body && <Item icon={Copy} label="کپی" onClick={run(actions.onCopy)} />}
+      {message.canForward && message.id > 0 && (
+        <Item icon={Share2} label="هدایت" onClick={run(actions.onForward)} />
+      )}
+      {live && message.attachment && (
+        <Item icon={Download} label="دانلود" onClick={run(actions.onDownload)} />
+      )}
       {message.canEdit && <Item icon={Pencil} label="ویرایش" onClick={run(actions.onEdit)} />}
-      {isAdmin && live && !message.isHidden && (
+      {message.canPin && live && (!message.isHidden || isAdmin) && (
         <Item
           icon={isPinned ? PinOff : Pin}
           label={isPinned ? 'برداشتنِ سنجاق' : 'سنجاق'}

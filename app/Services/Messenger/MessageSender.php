@@ -11,10 +11,13 @@ use App\Models\Conversation;
 use App\Models\Message;
 use App\Models\Unit;
 use App\Models\User;
+use App\Support\PrivateFiles;
 use App\Support\Uploads;
 use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 
 /**
  * فرستادنِ یک پیام در یک گفت‌وگو (مرحلهٔ ۶ · فاز ۱۲) — **تنها** راهِ نوشتنِ
@@ -88,6 +91,87 @@ class MessageSender
         }
 
         return $message;
+    }
+
+    /**
+     * هدایتِ پیامی که فرستنده می‌بیند به گفت‌وگویی که در آن می‌نویسد (مرحلهٔ ۱۰ · فاز ۱۰؛ بندهای ۵۲ و ۵۳).
+     *
+     * نسخه‌ی جدا، نه ارجاع: متن و پیوست **کپی** می‌شوند، پس حذفِ مبدأ نسخه را پاک نمی‌کند و حذفِ نسخه فایلِ مبدأ را. نامِ
+     * نویسنده‌ی مبدأ همان لحظه ثبت می‌شود. همان دروازه‌های ارسال: پیام‌رسانِ روشن، عضوِ بازنشده، و مقصدی که این شخص در
+     * آن می‌نویسد. پیامِ حذف‌شده، پنهان‌شده و نظرسنجی هدایت نمی‌شوند. `client_id` همان تکرارناپذیریِ ارسال است.
+     *
+     * ⚠️ دیدنِ مبدأ را فراخواننده با `Message::visibleTo` سنجیده است (۴۰۴ برای نادیدنی).
+     *
+     * @return array{0: Message, 1: bool}
+     */
+    public function forward(Complex $complex, Conversation $target, User $user, Message $source, ?string $clientId = null): array
+    {
+        if (! $complex->messenger_enabled || ($target->type !== Conversation::SAVED && MessagingAccess::blocked($user, $complex->id))) {
+            abort(403, 'امکان ارسال پیام برای شما فعال نیست.');
+        }
+
+        if (! $target->allowsPostingBy($user)) {
+            throw new DomainException($target->readOnlyReason(), 'messenger.read_only', 403);
+        }
+
+        if ($source->isDeleted() || $source->is_hidden || $source->poll !== null) {
+            throw DomainException::invalid('این پیام هدایت نمی‌شود.', 'messenger.not_forwardable');
+        }
+
+        if ($clientId !== null && ($existing = $this->existing($user, $clientId, $target))) {
+            return [$existing, false];
+        }
+
+        [$audience, $unitId] = $this->legacyAudience($target);
+        $disk = Storage::disk(PrivateFiles::name());
+        $copy = null;
+
+        if ($source->attachment_path !== null) {
+            $extension = pathinfo($source->attachment_path, PATHINFO_EXTENSION);
+            $copy = 'messages/'.$complex->id.'/'.Str::random(40).($extension !== '' ? '.'.$extension : '');
+            $disk->copy($source->attachment_path, $copy);
+        }
+
+        try {
+            $message = DB::transaction(function () use ($complex, $target, $user, $source, $clientId, $audience, $unitId, $copy): Message {
+                $message = Message::create([
+                    'complex_id' => $complex->id,
+                    'conversation_id' => $target->id,
+                    'user_id' => $user->id,
+                    'client_id' => $clientId,
+                    'body' => $source->body,
+                    'audience' => $audience,
+                    'unit_id' => $unitId,
+                    'attachment_path' => $copy,
+                    'attachment_name' => $copy !== null ? $source->attachment_name : null,
+                    'attachment_kind' => $copy !== null ? $source->attachment_kind : null,
+                    'author_name' => $user->name,
+                    'author_role' => $user->role->value,
+                    'unit_label' => $this->unitLabel($user),
+                    'forwarded_from_id' => $source->id,
+                    'forwarded_author_name' => $source->author_name,
+                ]);
+
+                if ($audience === MessageAudience::Units) {
+                    $message->recipientUnits()->sync($target->units()->pluck('units.id'));
+                }
+
+                Conversation::withoutGlobalScopes()
+                    ->whereKey($target->id)
+                    ->where('last_message_id', '<', $message->id)
+                    ->update(['last_message_id' => $message->id, 'last_message_at' => $message->created_at]);
+
+                return $message;
+            }, attempts: 3);
+        } catch (\Throwable $e) {
+            if ($copy !== null) {
+                $disk->delete($copy);
+            }
+
+            throw $e;
+        }
+
+        return [$message, true];
     }
 
     /** @param  array<string, mixed>  $data */

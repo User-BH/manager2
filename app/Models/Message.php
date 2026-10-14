@@ -35,6 +35,8 @@ class Message extends Model
         'attachment_path', 'attachment_name', 'attachment_kind',
         'author_name', 'author_role', 'unit_label',
         'is_hidden', 'hidden_by', 'reply_to_id', 'edited_at', 'deleted_at',
+        // ۱۰/۱۰: حذف‌کننده (نویسنده، مدیر یا ناظر) و منبعِ هدایت
+        'deleted_by', 'forwarded_from_id', 'forwarded_author_name',
     ];
 
     /**

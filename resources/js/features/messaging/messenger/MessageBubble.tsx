@@ -39,6 +39,9 @@ function StatusIcon({ status }: { status: DeliveryStatus }) {
 /** جای لازم برای منوی کامل زیرِ پیام (شش واکنش و چند گزینه). */
 const MENU_ROOM = 280
 
+/** لمسِ طولانی برای منوی پیام روی موبایل */
+const LONG_PRESS_MS = 500
+
 export interface BubbleHandlers extends MessageMenuActions {
   onRetry: () => void
   onDiscard: () => void
@@ -70,6 +73,12 @@ export function MessageBubble({
   const muted = message.isMine ? 'rgba(255,255,255,0.75)' : 'var(--text-tertiary)'
   const hasMenu = message.id > 0
   const triggerRef = useRef<HTMLButtonElement>(null)
+  // لمسِ طولانی روی موبایل همان منو را باز می‌کند (بندِ ۵۰)؛ حرکت یا رها کردن لغوش می‌کند
+  const pressTimer = useRef<number | null>(null)
+  const cancelPress = () => {
+    if (pressTimer.current !== null) window.clearTimeout(pressTimer.current)
+    pressTimer.current = null
+  }
   // پیامِ پایینِ فهرست: منو رو به بالا، وگرنه لبه‌ی قابِ اسکرول می‌بُردش
   const [openUp, setOpenUp] = useState(false)
 
@@ -94,6 +103,14 @@ export function MessageBubble({
         event.preventDefault()
         openMenu(true)
       }}
+      onTouchStart={() => {
+        if (!hasMenu) return
+        cancelPress()
+        pressTimer.current = window.setTimeout(() => openMenu(true), LONG_PRESS_MS)
+      }}
+      onTouchEnd={cancelPress}
+      onTouchMove={cancelPress}
+      onTouchCancel={cancelPress}
     >
       <div
         className={cn(
@@ -139,9 +156,18 @@ export function MessageBubble({
           </button>
         )}
 
+        {message.forwardedFrom && !message.isDeleted && (
+          <p className="mb-1 text-tiny opacity-80">
+            هدایت‌شده از {message.forwardedFrom.authorName}
+          </p>
+        )}
+
         {message.isDeleted ? (
           <p className="flex items-center gap-1.5 text-small italic opacity-80">
-            <Trash2 size={12} /> این پیام حذف شد.
+            <Trash2 size={12} />{' '}
+            {message.removedByModeration
+              ? 'این پیام به دستِ مدیریتِ گروه حذف شد.'
+              : 'این پیام حذف شد.'}
           </p>
         ) : message.body === null ? (
           <p className="flex items-center gap-1.5 text-small italic opacity-80">

@@ -490,6 +490,8 @@ class MassAssignmentTest extends TestCase
 
         // ── گفت‌وگوی خصوصیِ مدیر با یک عضو (۱۰/۹): شناسه فقط «با کدام عضو» است؛ مالک یا مستأجرِ فعالِ همین مجتمع ──
         'StoreConversationRequest.php' => ['user_id'],
+        // ناظرِ گروه (۱۰/۱۰): فقط مدیر؛ شناسه فقط «کدام عضو» است و عضوِ فعالِ همان گروه بودنش سنجیده می‌شود
+        'UpdateModeratorRequest.php' => ['user_id'],
 
         // ── فقط ادمینِ کل: نقش و فعال‌بودنِ کاربر ──
         'UpdateMemberRequest.php' => ['role', 'is_active'],

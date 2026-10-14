@@ -7,6 +7,7 @@ import { api } from '@/shared/lib/api'
 import { alertError } from '@/shared/lib/alert'
 import { formatNumber } from '@/shared/lib/format'
 import { queryKeys } from '@/shared/lib/queryKeys'
+import { messageActions } from './messageActions'
 import type { GroupInfo } from './types'
 
 /**
@@ -43,6 +44,16 @@ export function GroupInfoPanel({
     },
     placeholderData: keepPreviousData,
   })
+
+  // ناظرِ گروه (۱۰/۱۰): فقط مدیر، فقط برای مالک و مستأجر
+  async function setModerator(userId: number, moderator: boolean) {
+    try {
+      await messageActions.moderator(conversationId, userId, moderator)
+      await queryClient.invalidateQueries({ queryKey: queryKeys.messenger.all() })
+    } catch (failure) {
+      alertError(failure, 'تغییر ثبت نشد.')
+    }
+  }
 
   async function setPosting(membersCanPost: boolean) {
     try {
@@ -126,6 +137,16 @@ export function GroupInfoPanel({
                     {member.isModerator && ' · ناظرِ گروه'}
                   </span>
                 </span>
+                {data.conversation.canManage && member.role !== 'complex_admin' && (
+                  <button
+                    type="button"
+                    onClick={() => void setModerator(member.id, !member.isModerator)}
+                    className="shrink-0 rounded-lg border px-2 py-1 text-tiny"
+                    style={{ borderColor: 'var(--border-subtle)', color: 'var(--text-secondary)' }}
+                  >
+                    {member.isModerator ? 'برداشتنِ ناظر' : 'ناظر کن'}
+                  </button>
+                )}
               </li>
             ))}
           </ul>

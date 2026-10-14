@@ -44,7 +44,6 @@ use Illuminate\Support\Facades\DB;
  * @property int|null $created_by
  * @property int $last_message_id
  * @property Carbon|null $last_message_at
- * @property int|null $pinned_message_id
  */
 class Conversation extends Model
 {
@@ -66,7 +65,7 @@ class Conversation extends Model
     public const PRIVATE_TYPES = [self::PAIR, self::SAVED];
 
     protected $fillable = [
-        'complex_id', 'type', 'key', 'title', 'unit_id', 'user_id', 'peer_id', 'members_can_post', 'created_by', 'pinned_message_id',
+        'complex_id', 'type', 'key', 'title', 'unit_id', 'user_id', 'peer_id', 'members_can_post', 'created_by',
         'last_message_id', 'last_message_at',
     ];
 

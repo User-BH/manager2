@@ -29,8 +29,30 @@ export const messageActions = {
   ): Promise<{ message: string }> =>
     api(`${base(conversationId)}/messages/${id}/report`, { method: 'POST', body: { reason } }),
 
-  pin: (conversationId: number, id: number | null): Promise<{ pinned: ChatMessage | null }> =>
-    api(`${base(conversationId)}/pin`, { method: 'POST', body: { message_id: id } }),
+  pin: (
+    conversationId: number,
+    id: number | null,
+    pinned = true,
+  ): Promise<{ pinned: ChatMessage | null; pins: ChatMessage[] }> =>
+    api(`${base(conversationId)}/pin`, { method: 'POST', body: { message_id: id, pinned } }),
+
+  // هدایت (۱۰/۱۰): مقصد در نشانی، مبدأ با شناسه
+  forward: (targetId: number, id: number, clientId: string): MessageReply =>
+    api(`${base(targetId)}/forward`, {
+      method: 'POST',
+      body: { message_id: id, client_id: clientId },
+    }),
+
+  // ناظرِ گروه — فقط مدیر
+  moderator: (
+    conversationId: number,
+    userId: number,
+    moderator: boolean,
+  ): Promise<{ moderators: number[] }> =>
+    api(`${base(conversationId)}/moderators`, {
+      method: 'POST',
+      body: { user_id: userId, moderator },
+    }),
 
   search: (
     conversationId: number,

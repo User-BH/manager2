@@ -4054,6 +4054,90 @@
                 }
             }
         },
+        "/api/v1/messenger/conversations/{conversation}/forward": {
+            "post": {
+                "summary": "api.messenger.conversations.forward",
+                "tags": [
+                    "messenger"
+                ],
+                "parameters": [
+                    {
+                        "name": "conversation",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "موفق"
+                    },
+                    "422": {
+                        "description": "خطای اعتبارسنجی",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    },
+                    "429": {
+                        "description": "عبور از محدودیتِ نرخ",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "وارد نشده‌اید",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "دسترسی ندارید",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    }
+                },
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "message_id": {
+                                        "type": "number"
+                                    },
+                                    "client_id": {
+                                        "type": "string"
+                                    }
+                                },
+                                "required": [
+                                    "message_id"
+                                ]
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/api/v1/messenger/conversations/{conversation}/info": {
             "get": {
                 "summary": "api.messenger.conversations.info",
@@ -4625,6 +4709,91 @@
                 }
             }
         },
+        "/api/v1/messenger/conversations/{conversation}/moderators": {
+            "post": {
+                "summary": "api.messenger.conversations.moderators",
+                "tags": [
+                    "messenger"
+                ],
+                "parameters": [
+                    {
+                        "name": "conversation",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "موفق"
+                    },
+                    "422": {
+                        "description": "خطای اعتبارسنجی",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    },
+                    "429": {
+                        "description": "عبور از محدودیتِ نرخ",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "وارد نشده‌اید",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "دسترسی ندارید",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    }
+                },
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "user_id": {
+                                        "type": "number"
+                                    },
+                                    "moderator": {
+                                        "type": "boolean"
+                                    }
+                                },
+                                "required": [
+                                    "user_id",
+                                    "moderator"
+                                ]
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/api/v1/messenger/conversations/{conversation}/pin": {
             "post": {
                 "summary": "api.messenger.conversations.pin",
@@ -4695,6 +4864,9 @@
                                 "properties": {
                                     "message_id": {
                                         "type": "number"
+                                    },
+                                    "pinned": {
+                                        "type": "boolean"
                                     }
                                 }
                             }

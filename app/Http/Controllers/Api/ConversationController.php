@@ -5,10 +5,12 @@ namespace App\Http\Controllers\Api;
 use App\Enums\UserRole;
 use App\Exceptions\DomainException;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\ForwardMessageRequest;
 use App\Http\Requests\ReadConversationRequest;
 use App\Http\Requests\SendConversationMessageRequest;
 use App\Http\Requests\StoreConversationRequest;
 use App\Http\Requests\UpdateConversationPostingRequest;
+use App\Http\Requests\UpdateModeratorRequest;
 use App\Http\Resources\MessageResource;
 use App\Models\Complex;
 use App\Models\Conversation;
@@ -19,6 +21,8 @@ use App\Services\Account\ComplexMembers;
 use App\Services\Account\ProfilePhoto;
 use App\Services\Messenger\ConversationDirectory;
 use App\Services\Messenger\ConversationParticipants;
+use App\Services\Messenger\ConversationRights;
+use App\Services\Messenger\GroupModeration;
 use App\Services\Messenger\MessageSender;
 use App\Services\Messenger\MessagingAccess;
 use App\Support\Audit;
@@ -136,7 +140,9 @@ class ConversationController extends Controller
          * واحد، پیامِ ساکنِ قبلی برای ساکنِ تازه نیست (مرحلهٔ ۹ · فاز ۶، F4).
          */
         $base = Message::query()->where('conversation_id', $conversation->id)->visibleTo($user)->with(MessageResource::RELATIONS);
-        $present = fn (Message $m) => $this->present($m, $user);
+        // اختیارِ بیننده در همین گفت‌وگو، یک بار برای کلِ صفحه (۱۰/۱۰)
+        $rights = ConversationRights::for($conversation, $user);
+        $present = fn (Message $m) => $this->present($m, $user, $rights);
 
         if (($since = $request->integer('since')) > 0) {
             $messages = (clone $base)->where('id', '>', $since)->orderBy('id')->limit(self::SINCE_LIMIT)->get();
@@ -169,15 +175,17 @@ class ConversationController extends Controller
                 ->where('message_reads.user_id', '!=', $user->id)
                 ->max('message_reads.message_id'),
             'conversation' => $this->directory->present($conversation, $user),
-            // پیامِ سنجاق‌شده (فاز ۱۴) — همان قاعده‌ی دیدِ بقیه‌ی پیام‌ها
-            'pinned' => $this->pinned($conversation, $user),
+            // سنجاق‌ها (۱۰/۱۰: چند تا، تازه‌ترین اول) — همان قاعده‌ی دیدِ بقیه‌ی پیام‌ها؛ `pinned` برای کلاینتِ پیشین
+            'pins' => $pins = $this->pins($conversation, $user, $rights),
+            'pinned' => $pins[0] ?? null,
+            'rights' => ['isModerator' => $rights->isModerator, 'canPin' => $rights->canPin, 'canDeleteOthers' => $rights->canDeleteOthers],
             /*
              * 🔴 تغییرِ پیام‌هایی که از قبل در کلاینت‌اند (فاز ۱۴): ویرایش، حذف،
              * واکنش و پنهان‌شدن. `since` فقط پیامِ تازه می‌آورد؛ بی‌این، ویرایش یا
              * حذفِ طرفِ مقابل تا بارگذاریِ دوباره دیده نمی‌شد. کلاینت
              * `serverTime`ِ پاسخِ قبلی را (با دو ثانیه هم‌پوشانی) پس می‌فرستد.
              */
-            'changed' => $this->changed($conversation, $user, $since, $request->integer('changed_after')),
+            'changed' => $this->changed($conversation, $user, $since, $request->integer('changed_after'), $rights),
             'serverTime' => now()->getTimestamp(),
             'canSend' => $this->canSend($conversation, $user),
             'isAdmin' => $user->isAdmin(),
@@ -202,9 +210,45 @@ class ConversationController extends Controller
 
         // تکراری ۲۰۰ است نه ۲۰۱: کلاینت می‌فهمد این همان پیامِ قبلی است
         return response()->json(
-            ['message' => $this->present($message->fresh(MessageResource::RELATIONS), $user)],
+            ['message' => $this->present($message->fresh(MessageResource::RELATIONS), $user, ConversationRights::for($conversation, $user))],
             $created ? 201 : 200,
         );
+    }
+
+    /**
+     * هدایتِ یک پیام به این گفت‌وگو (بندهای ۵۲ و ۵۳) — نسخه‌ی جدا در مقصد، نه ارجاع.
+     *
+     * دو دسترسی جدا سنجیده می‌شوند: پیامِ مبدأ باید برای فرستنده **دیدنی** باشد (همان `visibleTo`؛ نادیدنی ۴۰۴، نه
+     * ۴۲۲ که وجودش را بگوید) و مقصد باید برای او **نوشتنی** باشد (همان قاعده‌های ارسال).
+     */
+    public function forward(ForwardMessageRequest $request, Conversation $conversation, MessageSender $sender): JsonResponse
+    {
+        $user = Auth::user();
+        $this->ensureVisible($conversation, $user);
+
+        $source = Message::query()->visibleTo($user)->whereKey((int) $request->validated('message_id'))->first();
+        abort_if($source === null, 404);
+
+        [$message, $created] = $sender->forward($this->requireComplex(), $conversation, $user, $source, $request->validated('client_id'));
+
+        return response()->json(
+            ['message' => $this->present($message->fresh(MessageResource::RELATIONS), $user, ConversationRights::for($conversation, $user))],
+            $created ? 201 : 200,
+        );
+    }
+
+    /** تعیین یا برداشتنِ ناظرِ گروه (بندِ ۵۶) — فقط مدیر. */
+    public function moderator(UpdateModeratorRequest $request, Conversation $conversation, GroupModeration $moderation): JsonResponse
+    {
+        $user = Auth::user();
+        $this->ensureVisible($conversation, $user);
+        $member = User::query()->findOrFail((int) $request->validated('user_id'));
+
+        $request->boolean('moderator')
+            ? $moderation->appoint($conversation, $member, $user)
+            : $moderation->dismiss($conversation, $member);
+
+        return response()->json(['moderators' => ConversationRights::moderatorIds($conversation)]);
     }
 
     /**
@@ -235,6 +279,7 @@ class ConversationController extends Controller
             ->get();
 
         $conversation->loadMissing('complex:id,name');
+        $moderators = ConversationRights::moderatorIds($conversation);
 
         return response()->json([
             'conversation' => [
@@ -245,7 +290,7 @@ class ConversationController extends Controller
                 'canManage' => $user->role->isAdmin(),
             ],
             'counts' => ConversationParticipants::counts($conversation),
-            'members' => $rows->take(self::MEMBER_PAGE)->map(function (User $member) {
+            'members' => $rows->take(self::MEMBER_PAGE)->map(function (User $member) use ($moderators) {
                 /** @var Unit|null $unit */
                 $unit = $member->currentUnits->first();
                 $role = ComplexMembers::displayedRole($member);
@@ -257,8 +302,7 @@ class ConversationController extends Controller
                     'role' => $role->value,
                     'roleLabel' => $role->label(),
                     'unit' => $unit ? 'واحد '.$unit->unit_number : null,
-                    // ناظرِ گروه با ۱۰/۱۰ می‌آید؛ تا آن روز هیچ عضوی ناظر نیست
-                    'isModerator' => false,
+                    'isModerator' => in_array($member->id, $moderators, true),
                 ];
             })->values(),
             'page' => $page,
@@ -310,7 +354,7 @@ class ConversationController extends Controller
     }
 
     /** @return list<array<string, mixed>> */
-    private function changed(Conversation $conversation, User $user, int $since, int $changedAfter): array
+    private function changed(Conversation $conversation, User $user, int $since, int $changedAfter, ConversationRights $rights): array
     {
         if ($since <= 0 || $changedAfter <= 0) {
             return [];
@@ -325,31 +369,37 @@ class ConversationController extends Controller
             ->orderBy('id')
             ->limit(self::SINCE_LIMIT)
             ->get()
-            ->map(fn (Message $m) => $this->present($m, $user))
+            ->map(fn (Message $m) => $this->present($m, $user, $rights))
             ->values()
             ->all();
     }
 
-    /** @return array<string, mixed>|null */
-    private function pinned(Conversation $conversation, User $user): ?array
+    /**
+     * سنجاق‌های این گفت‌وگو، تازه‌ترین اول — فقط آنچه بیننده می‌بیند؛ پیامِ سنجاقی که بعداً پنهان شد برای ساکن نیست.
+     *
+     * @return list<array<string, mixed>>
+     */
+    private function pins(Conversation $conversation, User $user, ConversationRights $rights): array
     {
-        if ($conversation->pinned_message_id === null) {
-            return null;
+        $ids = DB::table('conversation_pins')->where('conversation_id', $conversation->id)->orderByDesc('id')->pluck('message_id');
+
+        if ($ids->isEmpty()) {
+            return [];
         }
 
-        $message = Message::query()->where('conversation_id', $conversation->id)
+        $messages = Message::query()->where('conversation_id', $conversation->id)
             ->visibleTo($user)
-            ->whereKey($conversation->pinned_message_id)
+            ->whereIn('id', $ids)
             ->whereNull('deleted_at')
             ->with(MessageResource::RELATIONS)
-            ->first();
+            ->get()
+            ->keyBy('id');
 
-        // پیامِ سنجاقی که بعداً پنهان شد برای ساکن سنجاق نیست
-        if ($message === null || ($message->is_hidden && ! $user->isAdmin())) {
-            return null;
-        }
-
-        return $this->present($message, $user);
+        return $ids->map(fn ($id) => $messages->get($id))
+            ->filter(fn (?Message $m) => $m !== null && (! $m->is_hidden || $user->isAdmin()))
+            ->map(fn (Message $m) => $this->present($m, $user, $rights))
+            ->values()
+            ->all();
     }
 
     private function ensureVisible(Conversation $conversation, User $user): void
@@ -370,9 +420,9 @@ class ConversationController extends Controller
     }
 
     /** @return array<string, mixed> */
-    private function present(Message $message, User $viewer): array
+    private function present(Message $message, User $viewer, ?ConversationRights $rights = null): array
     {
-        return (new MessageResource($message, $viewer))->toArray(request());
+        return (new MessageResource($message, $viewer, $rights))->toArray(request());
     }
 
     /**

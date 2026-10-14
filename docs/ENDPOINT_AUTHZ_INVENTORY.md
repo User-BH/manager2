@@ -6,17 +6,19 @@
 
 ## جمع‌بندی
 
-- **220** عملیات روی مسیرهای `api/v1`: 24 عمومی، 80 هر حسابِ واردشده،
+- **222** عملیات روی مسیرهای `api/v1`: 24 عمومی، 82 هر حسابِ واردشده،
   57 مدیر (و ادمینِ کل)، 59 فقط ادمینِ کل. مسیرهای قدیمیِ `/api/*` همان کنترلر و همان
   محافظ‌ها را دارند (`test_legacy_aliases_carry_the_same_guards`).
-- **جاروی BOLA/IDOR:** 1082 درخواستِ مهاجم روی 196 مسیرِ واردشده؛ هر درخواست با شناسه‌ی
+- **جاروی BOLA/IDOR:** 1094 درخواستِ مهاجم روی 198 مسیرِ واردشده؛ هر درخواست با شناسه‌ی
   **دیگران**: «→ب» منابعِ مجتمعِ دیگر، «→همسایه» دادهٔ خصوصیِ ساکنِ دیگرِ همان مجتمع و حسابِ او.
   چهار مهاجم: حسابِ اولیه (داشبوردِ اولیه)، ساکن (داشبوردِ واحد)، مدیر (داشبوردِ مدیر) و ساکنِ **رفته**ی مجتمعِ ب
   (عضویتِ پایان‌یافته؛ فقط «→ب»). پنلِ ادمینِ کل
   برای هر چهار رد می‌شود (ستونِ «ادمینِ کل» پایین).
-- وضعیت‌ها: 200×164, 201×3, 202×2, 403×451, 404×411, 409×3, 422×48. هیچ ۴۰۱ (مهاجم واقعاً وارد بود) و هیچ ۵۰۰.
+- وضعیت‌ها: 200×164, 201×3, 202×2, 403×451, 404×421, 409×3, 422×50. هیچ ۴۰۱ (مهاجم واقعاً وارد بود) و هیچ ۵۰۰.
   ۲xx فقط روی فهرست‌ها و دادهٔ خودِ مهاجم، و در آن‌ها هیچ نشانِ قربانی نیامد؛ هیچ ردیفی از قربانی عوض نشد.
 - **۴۲۲ ِ پنهان‌کننده:** هر ۴۲۲ روی منبعِ قربانی دوباره با بدنه‌ی معتبر از سمتِ مهاجم فرستاده شد:
+  - POST api/v1/messenger/conversations/{conversation}/forward [residentA→a2] → 422
+  - POST api/v1/messenger/conversations/{conversation}/pin [residentA→a2] → 422
   - POST api/v1/join-requests/{invitation}/approve [managerA→b] → 404
   - PUT api/v1/residents/{resident} [managerA→b] → 403
   - PATCH api/v1/residents/{resident} [managerA→b] → 403
@@ -72,6 +74,7 @@
 | هر حساب   | `POST messenger`                                                           | —                                                                                  | feature:messenger           | رفته→ب: 403 · مدیر→ب: 201 · اولیه→ب: 403 · ساکن→ب: 201                                                           |
 | هر حساب   | `GET messenger/conversations`                                              | —                                                                                  | feature:messenger           | رفته→ب: 200 · مدیر→ب: 200 · اولیه→همسایه: 200 · اولیه→ب: 200 · ساکن→همسایه: 200 · ساکن→ب: 200                    |
 | هر حساب   | `POST messenger/conversations`                                             | —                                                                                  | feature:messenger           | رفته→ب: 403 · مدیر→ب: 422 · اولیه→ب: 403 · ساکن→ب: 403                                                           |
+| هر حساب   | `POST messenger/conversations/{conversation}/forward`                      | `conversation` → Conversation (دامنه‌ی مجتمع)                                      | feature:messenger           | رفته→ب: 404 · مدیر→ب: 404 · اولیه→همسایه: 404 · اولیه→ب: 404 · ساکن→همسایه: 422 · ساکن→ب: 404                    |
 | هر حساب   | `GET messenger/conversations/{conversation}/info`                          | `conversation` → Conversation (دامنه‌ی مجتمع)                                      | feature:messenger           | رفته→ب: 404 · مدیر→ب: 404 · اولیه→همسایه: 404 · اولیه→ب: 404 · ساکن→همسایه: 404 · ساکن→ب: 404                    |
 | هر حساب   | `GET messenger/conversations/{conversation}/messages`                      | `conversation` → Conversation (دامنه‌ی مجتمع)                                      | feature:messenger           | رفته→ب: 404 · مدیر→ب: 404 · اولیه→همسایه: 404 · اولیه→ب: 404 · ساکن→همسایه: 404 · ساکن→ب: 404                    |
 | هر حساب   | `POST messenger/conversations/{conversation}/messages`                     | `conversation` → Conversation (دامنه‌ی مجتمع)                                      | feature:messenger           | رفته→ب: 404 · مدیر→ب: 404 · اولیه→همسایه: 404 · اولیه→ب: 404 · ساکن→همسایه: 404 · ساکن→ب: 404                    |
@@ -79,7 +82,8 @@
 | هر حساب   | `PATCH messenger/conversations/{conversation}/messages/{message}`          | `conversation` → Conversation (دامنه‌ی مجتمع), `message` → Message (دامنه‌ی مجتمع) | feature:messenger           | رفته→ب: 404 · مدیر→ب: 404 · اولیه→همسایه: 404 · اولیه→ب: 404 · ساکن→همسایه: 404 · ساکن→ب: 404                    |
 | هر حساب   | `POST messenger/conversations/{conversation}/messages/{message}/reactions` | `conversation` → Conversation (دامنه‌ی مجتمع), `message` → Message (دامنه‌ی مجتمع) | feature:messenger           | رفته→ب: 404 · مدیر→ب: 404 · اولیه→همسایه: 404 · اولیه→ب: 404 · ساکن→همسایه: 404 · ساکن→ب: 404                    |
 | هر حساب   | `POST messenger/conversations/{conversation}/messages/{message}/report`    | `conversation` → Conversation (دامنه‌ی مجتمع), `message` → Message (دامنه‌ی مجتمع) | feature:messenger           | رفته→ب: 404 · مدیر→ب: 404 · اولیه→همسایه: 404 · اولیه→ب: 404 · ساکن→همسایه: 404 · ساکن→ب: 404                    |
-| هر حساب   | `POST messenger/conversations/{conversation}/pin`                          | `conversation` → Conversation (دامنه‌ی مجتمع)                                      | feature:messenger           | رفته→ب: 404 · مدیر→ب: 404 · اولیه→همسایه: 404 · اولیه→ب: 404 · ساکن→همسایه: 403 · ساکن→ب: 404                    |
+| هر حساب   | `POST messenger/conversations/{conversation}/moderators`                   | `conversation` → Conversation (دامنه‌ی مجتمع)                                      | feature:messenger           | رفته→ب: 404 · مدیر→ب: 404 · اولیه→همسایه: 404 · اولیه→ب: 404 · ساکن→همسایه: 403 · ساکن→ب: 404                    |
+| هر حساب   | `POST messenger/conversations/{conversation}/pin`                          | `conversation` → Conversation (دامنه‌ی مجتمع)                                      | feature:messenger           | رفته→ب: 404 · مدیر→ب: 404 · اولیه→همسایه: 404 · اولیه→ب: 404 · ساکن→همسایه: 422 · ساکن→ب: 404                    |
 | هر حساب   | `POST messenger/conversations/{conversation}/posting`                      | `conversation` → Conversation (دامنه‌ی مجتمع)                                      | feature:messenger           | رفته→ب: 404 · مدیر→ب: 404 · اولیه→همسایه: 404 · اولیه→ب: 404 · ساکن→همسایه: 403 · ساکن→ب: 404                    |
 | هر حساب   | `POST messenger/conversations/{conversation}/read`                         | `conversation` → Conversation (دامنه‌ی مجتمع)                                      | feature:messenger           | رفته→ب: 404 · مدیر→ب: 404 · اولیه→همسایه: 404 · اولیه→ب: 404 · ساکن→همسایه: 404 · ساکن→ب: 404                    |
 | هر حساب   | `GET messenger/conversations/{conversation}/search`                        | `conversation` → Conversation (دامنه‌ی مجتمع)                                      | feature:messenger           | رفته→ب: 404 · مدیر→ب: 404 · اولیه→همسایه: 404 · اولیه→ب: 404 · ساکن→همسایه: 404 · ساکن→ب: 404                    |

@@ -267,6 +267,9 @@ class TenantIsolationTest extends TestCase
             // ۱۰/۹: اطلاعاتِ گروه و «فقط مدیریت بنویسد»
             'اطلاعاتِ گروهِ مجتمعِ دیگر' => ['GET', 'messenger/conversations/%d/info', 'group', []],
             'بستنِ گروهِ مجتمعِ دیگر' => ['POST', 'messenger/conversations/%d/posting', 'group', ['members_can_post' => false]],
+            // ۱۰/۱۰: هدایت به گفت‌وگوی مجتمعِ دیگر و تعیینِ ناظر در آن
+            'هدایت به گروهِ مجتمعِ دیگر' => ['POST', 'messenger/conversations/%d/forward', 'group', ['message_id' => 1]],
+            'تعیینِ ناظر در گروهِ مجتمعِ دیگر' => ['POST', 'messenger/conversations/%d/moderators', 'group', ['user_id' => 1, 'moderator' => true]],
             'رسیدگی به گزارشِ مجتمعِ دیگر' => ['POST', 'messenger/reports/%d/resolve', 'report', ['resolution' => 'hidden']],
             'خواندنِ اطلاعیهٔ دیگری' => ['POST', 'notifications/%d/read', 'announcement', []],
         ];

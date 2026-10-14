@@ -46,6 +46,9 @@ function handlers(): BubbleHandlers {
     onPin: vi.fn(),
     onReport: vi.fn(),
     onHide: vi.fn(),
+    onCopy: vi.fn(),
+    onForward: vi.fn(),
+    onDownload: vi.fn(),
     onRetry: vi.fn(),
     onDiscard: vi.fn(),
     onJump: vi.fn(),
@@ -171,12 +174,23 @@ describe('منوی پیام', () => {
     expect(labels()).not.toContain('گزارش به مدیریت')
   })
 
+  /** ⚠️ ۱۰/۱۰: «سنجاق» را سرور می‌گوید (`canPin`)، نه «مدیر بودن» — در گفت‌وگوی خصوصی عضو هم سنجاق می‌کند. */
   it('مدیر: سنجاق و پنهان کردن، بی‌گزارش', () => {
-    bubble(message(12), { menuOpen: true, isAdmin: true })
+    bubble(message(12, { canPin: true }), { menuOpen: true, isAdmin: true })
 
     expect(labels()).toContain('سنجاق')
     expect(labels()).toContain('پنهان کردن')
     expect(labels()).not.toContain('گزارش به مدیریت')
+  })
+
+  it('سنجاق همان است که سرور اجازه داده، برای عضو هم', () => {
+    bubble(message(15, { canPin: true }), { menuOpen: true })
+    expect(labels()).toContain('سنجاق')
+  })
+
+  it('بی اجازه‌ی سرور «سنجاق» نیست، حتی برای مدیر', () => {
+    bubble(message(16, { canPin: false }), { menuOpen: true, isAdmin: true })
+    expect(labels()).not.toContain('سنجاق')
   })
 
   it('پیامِ حذف‌شده جز «پاسخ»ی هم ندارد — هیچ کاری', () => {

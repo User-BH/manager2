@@ -65,6 +65,9 @@ final class BackupManifest
         // گفت‌وگو پیش از پیام: پیام به آن اشاره می‌کند (مرحلهٔ ۶ · فاز ۱۲)
         'conversations',
         'conversation_units',
+        // ناظرِ گروه و سنجاق‌ها (۱۰/۱۰)
+        'conversation_moderators',
+        'conversation_pins',
         'messages',
         'message_units',
         'message_reads',

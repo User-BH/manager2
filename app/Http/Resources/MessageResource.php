@@ -8,6 +8,7 @@ use App\Models\MessageReaction;
 use App\Models\Unit;
 use App\Models\User;
 use App\Services\Account\ProfilePhoto;
+use App\Services\Messenger\ConversationRights;
 use App\Services\Poll\PollService;
 use App\Support\Jalali;
 use Illuminate\Http\Request;
@@ -42,7 +43,11 @@ class MessageResource extends JsonResource
      * *کاربرِ درخواست‌دهنده* است. اگر Resource خودش کاربر را می‌خواند، این
      * وابستگیِ پنهان در هر جای دیگری که استفاده می‌شد هم می‌آمد.
      */
-    public function __construct(Message $resource, private readonly User $viewer)
+    /**
+     * `$rights`: اختیارِ بیننده در **همین** گفت‌وگو (۱۰/۱۰) — حذفِ دیگران و سنجاق. API ِ قدیم آن را ندارد و همان
+     * رفتارِ پیشین را می‌گیرد: فقط حذفِ پیامِ خود، بی سنجاق.
+     */
+    public function __construct(Message $resource, private readonly User $viewer, private readonly ?ConversationRights $rights = null)
     {
         parent::__construct($resource);
     }
@@ -119,7 +124,13 @@ class MessageResource extends JsonResource
             'isDeleted' => $deleted,
             'isEdited' => ! $deleted && $message->edited_at !== null,
             'canEdit' => ! $hidden && $message->isEditableBy($this->viewer),
-            'canDelete' => $isMine && ! $deleted && ! $hidden && $message->poll === null,
+            'canDelete' => ! $deleted && $message->poll === null && ($isMine ? ! $hidden : (bool) $this->rights?->canDeleteOthers),
+            'canPin' => ! $deleted && (! $hidden || $mayReadHidden) && (bool) $this->rights?->canPin,
+            // هدایت (بندِ ۵۲): پیامِ حذف‌شده، پنهان‌شده و نظرسنجی نه
+            'canForward' => ! $deleted && ! $hidden && $message->poll === null,
+            'forwardedFrom' => $message->forwarded_author_name !== null ? ['authorName' => $message->forwarded_author_name] : null,
+            // «حذف به دستِ مدیر یا ناظر» با «حذف به دستِ نویسنده» یکی نیست
+            'removedByModeration' => $deleted && $message->deleted_by !== null && $message->deleted_by !== $message->user_id,
             'replyTo' => $this->replyTo($message),
             'reactions' => $deleted ? [] : $this->reactions($message),
         ];
