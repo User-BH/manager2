@@ -11,6 +11,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Carbon;
 
 /**
  * واحدِ مسکونی.
@@ -24,6 +25,21 @@ use Illuminate\Database\Eloquent\SoftDeletes;
  * توجه: شماره‌ی واحدِ حذف‌شده رزرو می‌ماند (قیدِ یکتاییِ
  * `complex_id, unit_number` دست‌نخورده است). حذفِ اشتباهی را با `restore()`
  * برگردانید، نه با ساختِ دوباره.
+ *
+ * @property OccupancyStatus|null $occupancy_status
+ * @property string|null $block
+ * @property string|null $unit_type
+ * @property int|null $rooms_count
+ * @property int|null $bedrooms_count
+ * @property int|null $bathrooms_count
+ * @property string|null $parking_numbers
+ * @property string|null $storage_numbers
+ * @property bool|null $has_terrace
+ * @property bool|null $has_balcony
+ * @property string|null $orientation
+ * @property array<string, string>|null $meters
+ * @property string|null $description
+ * @property Carbon|null $information_completed_at
  */
 class Unit extends Model
 {
@@ -44,6 +60,11 @@ class Unit extends Model
             'uses_elevator' => 'boolean',
             'is_active' => 'boolean',
             'occupancy_status' => OccupancyStatus::class,
+            // «اطلاعاتِ واحد» (مرحلهٔ ۱۰ · فاز ۷)
+            'has_terrace' => 'boolean',
+            'has_balcony' => 'boolean',
+            'meters' => 'array',
+            'information_completed_at' => 'datetime',
         ];
     }
 

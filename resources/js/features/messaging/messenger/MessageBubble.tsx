@@ -14,6 +14,7 @@ import {
 } from 'lucide-react'
 import { PollCard } from '@/shared/ui/PollCard'
 import { cn } from '@/shared/lib/cn'
+import { UserAvatar } from '@/shared/ui/UserAvatar'
 import { MessageMenu, type MessageMenuActions } from './MessageMenu'
 import type { ChatMessage, DeliveryStatus } from './types'
 
@@ -107,6 +108,9 @@ export function MessageBubble({
         }
       >
         <div className="mb-1 flex items-center gap-2 text-tiny" style={{ color: muted }}>
+          {!message.isMine && (
+            <UserAvatar name={message.authorName} url={message.authorAvatarUrl} size={18} />
+          )}
           <span className="font-semibold">{message.authorName}</span>
           {message.unitLabel && (
             <>

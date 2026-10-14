@@ -1084,6 +1084,27 @@ class PhaseRegressionMapTest extends TestCase
             '۱۰/۶: مهاجرت فقط غیرفعالیِ مدیر را به تعلیق تبدیل می‌کند' => [
                 'MembershipSuspensionTest', 'test_the_migration_turns_a_managers_old_deactivation_into_a_suspension_only', '۱۰',
             ],
+            '🔴 ۱۰/۷: تصویرِ پروفایل بی metadata ِ فایلِ اصلی' => [
+                'ProfilePhotoTest', 'test_the_photo_is_re_encoded_square_and_without_the_originals_metadata', '۱۰',
+            ],
+            '🔴 ۱۰/۷: تصویر فقط برای هم‌مجتمعی‌ها' => [
+                'ProfilePhotoTest', 'test_only_people_who_share_a_complex_see_the_photo', '۱۰',
+            ],
+            '🔴 ۱۰/۷: مدیر ایمیل و کدِ ملیِ حساب را بازنویسی نمی‌کند' => [
+                'ProfilePhotoTest', 'test_a_manager_cannot_rewrite_the_accounts_email_or_national_id', '۱۰',
+            ],
+            '🔴 ۱۰/۷: ورودی‌های شارژ از «اطلاعاتِ واحد» نوشته نمی‌شوند' => [
+                'CommunityAndUnitInformationTest', 'test_billing_inputs_are_never_written_here_not_even_by_the_manager', '۱۰',
+            ],
+            '۱۰/۷: پیام‌رسان تصویرِ فعلیِ نویسنده را نشان می‌دهد' => [
+                'ProfilePhotoTest', 'test_the_messenger_shows_the_authors_current_photo_not_a_copy', '۱۰',
+            ],
+            '۱۰/۷: شمارش‌های مجتمع از داده‌اند و با آن عوض می‌شوند' => [
+                'CommunityAndUnitInformationTest', 'test_the_counts_come_from_the_data_and_follow_it', '۱۰',
+            ],
+            '۱۰/۷: اطلاعاتِ واحد فقط برای مدیر و ساکنانِ فعلیِ همان واحد' => [
+                'CommunityAndUnitInformationTest', 'test_another_units_resident_a_former_tenant_or_another_complex_get_nothing', '۱۰',
+            ],
             'مدیر از درخواستِ عضویت با اعلانِ داشبورد باخبر می‌شود' => [
                 'JoinRequestTest', 'test_the_complexes_managers_get_a_dashboard_notification_once', '۹',
             ],
@@ -1254,6 +1275,8 @@ class PhaseRegressionMapTest extends TestCase
             'memberPurchase' => ['۱۰/۵', 'بی عضویتِ فعال هیچ تعویضی نمی‌سازد'],
             // مرحلهٔ ۱۰ · فاز ۶: عضویتِ معلق دیده می‌شود، تعویض به آن بسته است
             'membershipSuspension' => ['۱۰/۶', 'مجتمعِ معلق دیده می‌شود'],
+            // مرحلهٔ ۱۰ · فاز ۷: تصویرِ canonical و دو صفحه‌ی «اطلاعات»
+            'profileAndInformation' => ['۱۰/۷', 'هرگز فرستاده نمی‌شوند'],
         ];
 
         // 🔴 مثلِ ردیف‌های PHP، این فهرست هم فقط بزرگ می‌شود (خرابکاریِ فاز ۸)

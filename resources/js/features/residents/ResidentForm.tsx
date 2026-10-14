@@ -146,8 +146,6 @@ function EditResidentForm({
     resolver: zodResolver(editResidentSchema),
     defaultValues: {
       name: resident.name,
-      email: resident.email ?? '',
-      national_id: resident.nationalId ?? '',
       role: resident.role,
       unit_id: resident.units[0]?.id ? String(resident.units[0].id) : '',
     },
@@ -162,8 +160,6 @@ function EditResidentForm({
         body: {
           ...values,
           unit_id: Number(values.unit_id),
-          email: values.email || null,
-          national_id: values.national_id || null,
         },
       })
       onSaved()
@@ -193,19 +189,9 @@ function EditResidentForm({
           error={errors.unit_id?.message}
           {...register('unit_id')}
         />
-        <TextField
-          label="ایمیل (اختیاری)"
-          type="email"
-          dir="ltr"
-          error={errors.email?.message}
-          {...register('email')}
-        />
-        <TextField
-          label="کد ملی (اختیاری)"
-          dir="ltr"
-          error={errors.national_id?.message}
-          {...register('national_id')}
-        />
+        {/* ایمیل و کدِ ملی مالِ حساب‌اند و حساب بینِ مجتمع‌ها یکی است: فقط نمایش (مرحلهٔ ۱۰ · فاز ۷) */}
+        <TextField label="ایمیل" dir="ltr" value={resident.email ?? '—'} readOnly disabled />
+        <TextField label="کد ملی" dir="ltr" value={resident.nationalId ?? '—'} readOnly disabled />
       </div>
 
       <Actions

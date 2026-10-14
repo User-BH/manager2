@@ -100,6 +100,17 @@ const GoodPayersPage = lazy(() =>
     default: m.GoodPayersPage,
   })),
 )
+// «اطلاعاتِ مجتمع» و «اطلاعاتِ واحد» (مرحلهٔ ۱۰ · فاز ۷)
+const ComplexInformationPage = lazy(() =>
+  import('@/features/settings/ComplexInformationPage').then((m) => ({
+    default: m.ComplexInformationPage,
+  })),
+)
+const UnitInformationPage = lazy(() =>
+  import('@/features/units/UnitInformationPage').then((m) => ({
+    default: m.UnitInformationPage,
+  })),
+)
 const ComplexSettingsPage = lazy(() =>
   import('@/features/settings/ComplexSettingsPage').then((m) => ({
     default: m.ComplexSettingsPage,
@@ -286,6 +297,8 @@ export function AppRouter() {
             <Route path="/profile" element={<ProfilePage />} />
             <Route path="/account" element={<AccountPage />} />
             <Route path="/new-complex" element={<NewComplexPurchasePage />} />
+            {/* مالک/مستأجرِ فعلی یا مدیر — مجوز در سرور */}
+            <Route path="/units/:unitId/information" element={<UnitInformationPage />} />
           </Route>
         </Route>
 
@@ -303,6 +316,7 @@ export function AppRouter() {
             <Route path="/finance" element={<FinancePage />} />
             <Route path="/payments" element={<PaymentReviewPage />} />
             <Route path="/discounts" element={<DiscountsPage />} />
+            <Route path="/settings/information" element={<ComplexInformationPage />} />
             <Route path="/settings/complex" element={<ComplexSettingsPage />} />
             <Route path="/settings/backup" element={<ComplexBackupPage />} />
           </Route>

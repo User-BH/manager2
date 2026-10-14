@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Http\Middleware\SetCurrentComplex;
 use App\Models\Bill;
 use App\Models\Complex;
 use App\Models\Message;
@@ -76,6 +77,9 @@ class DashboardController extends Controller
         $period = Jalali::currentPeriod();
 
         return [
+            // یادآوریِ «اطلاعاتِ مجتمع را تکمیل کنید» تا نخستین تکمیل (مرحلهٔ ۱۰ · فاز ۷؛ بندِ ۷)
+            // از ردیفی که زنجیره‌ی مجوز همین درخواست خوانده (`SetCurrentComplex`) — بی کوئریِ تازه و بی نسخه‌ی کهنه
+            'complexInformationCompleted' => $this->freshComplexRow($complex)->information_completed_at !== null,
             'period' => $period,
             'periodLabel' => Jalali::periodLabel($period),
             'currency' => $complex->currencyLabel(),
@@ -104,6 +108,14 @@ class DashboardController extends Controller
         ];
     }
 
+    /** همان ردیفی که میان‌افزار برای این درخواست بار کرد؛ برای ادمینِ کل (بی آن) یک کوئری */
+    private function freshComplexRow(Complex $complex): Complex
+    {
+        $loaded = request()->attributes->get(SetCurrentComplex::COMPLEX);
+
+        return $loaded instanceof Complex && $loaded->id === $complex->id ? $loaded : (Complex::find($complex->id) ?? $complex);
+    }
+
     private function residentData(): array
     {
         $user = Auth::user();
@@ -128,6 +140,8 @@ class DashboardController extends Controller
                 return [
                     'id' => $unit->id,
                     'label' => $unit->label(),
+                    // یادآوریِ «اطلاعاتِ واحد خود را تکمیل کنید» (مرحلهٔ ۱۰ · فاز ۷؛ بندِ ۹) — بی کوئریِ تازه
+                    'informationCompleted' => $unit->information_completed_at !== null,
                     'balance' => (float) $unit->balance,
                     'latestBill' => $latest ? [
                         'id' => $latest->id,

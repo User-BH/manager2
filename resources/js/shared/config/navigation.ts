@@ -82,6 +82,8 @@ export const navSections: NavSection[] = [
     id: 'settings',
     title: 'تنظیمات',
     items: [
+      // «اطلاعاتِ مجتمع» — بخشِ داشبوردِ مدیر (مرحلهٔ ۱۰ · فاز ۷؛ بندهای ۷ و ۱۸)
+      { label: 'اطلاعات مجتمع', path: '/settings/information', icon: Building2, roles: ADMINS },
       { label: 'تنظیمات مجتمع', path: '/settings/complex', icon: Settings2, roles: ADMINS },
       { label: 'بکاپ مجتمع', path: '/settings/backup', icon: DatabaseBackup, roles: ADMINS },
     ],

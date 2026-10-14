@@ -46,6 +46,8 @@ export interface ChatMessage {
   /** پیامِ پنهان‌شده برای ساکن متن ندارد؛ سرور اصلاً نمی‌فرستدش. */
   body: string | null
   authorName: string
+  /** تصویرِ **فعلیِ** نویسنده (مرحلهٔ ۱۰ · فاز ۷)؛ نام snapshot است، تصویر canonical */
+  authorAvatarUrl?: string | null
   unitLabel: string
   isMine: boolean
   isHidden: boolean

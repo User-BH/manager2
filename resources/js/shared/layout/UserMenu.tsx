@@ -16,6 +16,7 @@ import { useAction } from '@/shared/hooks/useAction'
 import { switchContext } from '@/shared/lib/accountContext'
 import { leaveToAuth } from '@/shared/lib/leaveToAuth'
 import { useAuth } from '@/shared/stores/authStore'
+import { UserAvatar } from '@/shared/ui/UserAvatar'
 
 export function UserMenu() {
   const [open, , setOpen] = useToggle(false)
@@ -98,12 +99,17 @@ export function UserMenu() {
           </p>
         </div>
 
-        <div
-          className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-white"
-          style={{ backgroundColor: 'var(--color-brand-500)' }}
-        >
-          <UserRound size={16} />
-        </div>
+        {/* تصویرِ canonical ِ حساب (مرحلهٔ ۱۰ · فاز ۷)؛ بی تصویر همان شمایلِ قبلی */}
+        {user?.avatarUrl ? (
+          <UserAvatar name={user.name} url={user.avatarUrl} size={32} />
+        ) : (
+          <div
+            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-white"
+            style={{ backgroundColor: 'var(--color-brand-500)' }}
+          >
+            <UserRound size={16} />
+          </div>
+        )}
 
         <motion.span
           animate={{ rotate: open ? 180 : 0 }}

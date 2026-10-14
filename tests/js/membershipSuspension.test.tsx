@@ -70,7 +70,12 @@ beforeEach(() => {
   }))
 })
 
-describe('«مجتمع‌های من» با عضویتِ معلق', () => {
+/*
+ * ⚠️ مهلتِ ۲۰ ثانیه، نه ۵ ِ پیش‌فرض — همان دلیلِ `registrantExperience.test.tsx`: پس از `vi.resetModules()` کلِ گرافِ
+ * ماژولِ منوی کاربر (motion، آیکون‌ها، store) درونِ خودِ تست سرد بار می‌شود. زیرِ بارِ هوکِ pre-commit (eslint،
+ * prettier و pint هم‌زمان) همین تست با ۵ ثانیه در ۵٫۳ ثانیه افتاد؛ تنها و بی بار ۲۵ میلی‌ثانیه است. ادعاها همان‌اند.
+ */
+describe('«مجتمع‌های من» با عضویتِ معلق', { timeout: 20_000 }, () => {
   it('مجتمعِ معلق دیده می‌شود، «معلق» می‌گوید و کلیک بر آن تعویضی نمی‌سازد', async () => {
     const { useAuthStore } = await import('@/shared/stores/authStore')
     const { createQueryClient } = await import('@/shared/lib/queryClient')

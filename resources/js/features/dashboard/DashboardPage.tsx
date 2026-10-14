@@ -25,6 +25,7 @@ import { useCheckoutReturn } from '@/shared/hooks/useCheckoutReturn'
 import { formatMoney, formatNumber } from '@/shared/lib/format'
 import type { BillStatus } from '@/shared/types'
 import { OpenPollsCard } from './components/OpenPollsCard'
+import { CompletionPrompt } from '@/shared/ui/CompletionPrompt'
 import type { MessagePoll } from '@/shared/ui/PollCard'
 
 /** نظرسنجی‌های باز، مشترکِ هر سه نوعِ داشبورد (R24). */
@@ -34,6 +35,8 @@ interface WithPolls {
 
 interface AdminDashboard {
   type: 'admin'
+  /** تا نخستین تکمیل، یادآوری (مرحلهٔ ۱۰ · فاز ۷) */
+  complexInformationCompleted?: boolean
   periodLabel: string
   currency: string
   income: number
@@ -62,6 +65,8 @@ interface ResidentDashboard {
   units: {
     id: number
     label: string
+    /** تا نخستین تکمیل، یادآوری (مرحلهٔ ۱۰ · فاز ۷) */
+    informationCompleted?: boolean
     balance: number
     latestBill: { id: number; periodLabel: string; total: number; status: BillStatus } | null
   }[]
@@ -123,6 +128,13 @@ export function DashboardPage() {
 function AdminView({ data }: { data: AdminDashboard }) {
   return (
     <>
+      {data.complexInformationCompleted === false && (
+        <CompletionPrompt
+          title="اطلاعات مجتمع خود را تکمیل کنید"
+          text="نشانی، امکانات، اطلاعاتِ تماس و ساعاتِ پاسخ‌گویی؛ شمارش‌ها خودکار از واحدها و ساکنان می‌آیند."
+          to="/settings/information"
+        />
+      )}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <StatCard
           label="درآمد این ماه"
@@ -326,6 +338,16 @@ function SystemView({ data }: { data: SystemDashboard }) {
 function ResidentView({ data }: { data: ResidentDashboard }) {
   return (
     <>
+      {data.units
+        .filter((unit) => unit.informationCompleted === false)
+        .map((unit) => (
+          <CompletionPrompt
+            key={unit.id}
+            title="اطلاعات واحد خود را تکمیل کنید"
+            text={`${unit.label}: نوعِ واحد، اتاق‌ها، پارکینگ و انباری، کنتورها و توضیحات.`}
+            to={`/units/${unit.id}/information`}
+          />
+        ))}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <StatCard
           label="تعداد واحدهای شما"

@@ -203,6 +203,24 @@ test.describe('سفرِ مدیریت', () => {
   test('مدیرِ تازه واحد می‌سازد و شارژِ دوره را صادر می‌کند', async ({ page }, testInfo) => {
     expect(await signIn(page, phoneFor('0935', testInfo.project.name), PASSWORD)).toBe(200)
 
+    // ── مدیرِ مجتمعِ تازه: یادآوریِ «اطلاعات مجتمع» تا نخستین تکمیل (مرحلهٔ ۱۰ · فاز ۷؛ بندِ ۷) ──
+    await page.goto('/dashboard')
+    const prompt = page.getByRole('status', { name: 'اطلاعات مجتمع خود را تکمیل کنید' })
+    await expect(prompt).toBeVisible({ timeout: 15_000 })
+    await prompt.getByRole('link', { name: /تکمیل/ }).click()
+    await expect(page).toHaveURL(/\/settings\/information$/)
+    await page.getByLabel('استان').fill('تهران')
+    await page.getByLabel('شهر').fill('تهران')
+    await page.getByLabel('نشانی').fill('خیابانِ آزمونِ سرتاسری')
+    await page.getByLabel('آسانسور').check()
+    await page.getByRole('button', { name: /ذخیره اطلاعات مجتمع/ }).click()
+    await expect(page.getByText('اطلاعاتِ مجتمع ذخیره شد.')).toBeVisible()
+    await page.goto('/dashboard')
+    await expect(page.locator('aside').first()).toBeAttached({ timeout: 15_000 })
+    await expect(page.getByRole('status', { name: 'اطلاعات مجتمع خود را تکمیل کنید' })).toHaveCount(
+      0,
+    )
+
     // ── ساختِ واحد در رابط ──
     await page.goto('/units')
     await page.getByRole('button', { name: 'واحد جدید' }).click()
@@ -311,6 +329,23 @@ test.describe('سفرِ مدیریت', () => {
     await expect(page.locator('aside').first()).toBeAttached({ timeout: 15_000 })
     await expect(page.locator('[data-experience="registrant"]')).toHaveCount(0)
     await expect(page.getByRole('button', { name: 'پیوستن' })).toHaveCount(0)
+
+    // ── عضوِ تازه: یادآوریِ «اطلاعات واحد» تا نخستین تکمیل (مرحلهٔ ۱۰ · فاز ۷؛ بندِ ۹) ──
+    const unitPrompt = page.getByRole('status', { name: 'اطلاعات واحد خود را تکمیل کنید' })
+    await expect(unitPrompt).toBeVisible({ timeout: 15_000 })
+    await unitPrompt.getByRole('link', { name: /تکمیل/ }).click()
+    await expect(page).toHaveURL(/\/units\/\d+\/information$/)
+    // مساحت را مدیر ثبت کرده و این‌جا فقط دیده می‌شود
+    await expect(page.getByText('مساحت (متر مربع)')).toBeVisible()
+    await page.getByLabel('نوع واحد').selectOption('residential')
+    await page.getByLabel('تعداد خواب').fill('2')
+    await page.getByRole('button', { name: /ذخیره اطلاعات واحد/ }).click()
+    await expect(page.getByText('اطلاعاتِ واحد ذخیره شد.')).toBeVisible()
+    await page.goto('/dashboard')
+    await expect(page.locator('aside').first()).toBeAttached({ timeout: 15_000 })
+    await expect(page.getByRole('status', { name: 'اطلاعات واحد خود را تکمیل کنید' })).toHaveCount(
+      0,
+    )
   })
 
   test('مدیر اشتراک را با درگاهِ آزمایشی می‌خرد', async ({ page }, testInfo) => {

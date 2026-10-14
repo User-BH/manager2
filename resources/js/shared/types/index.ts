@@ -42,6 +42,8 @@ export interface CurrentUser {
   id: number
   /** نامِ نمایشی؛ از نام و نام خانوادگی ساخته می‌شود */
   name: string
+  /** تصویرِ canonical ِ حساب (مرحلهٔ ۱۰ · فاز ۷) — نشانیِ نسخه‌دار، یا null */
+  avatarUrl?: string | null
   firstName: string | null
   lastName: string | null
   /** حسابِ پیش از مرحلهٔ ۹ که نام و نام خانوادگی‌اش هنوز جدا ثبت نشده */

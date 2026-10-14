@@ -217,18 +217,6 @@ parameters:
 			path: app/Http/Resources/SubscriptionReviewResource.php
 
 		-
-			message: '#^Cannot access property \$value on string\.$#'
-			identifier: property.nonObject
-			count: 1
-			path: app/Http/Resources/UnitResource.php
-
-		-
-			message: '#^Cannot call method label\(\) on string\.$#'
-			identifier: method.nonObject
-			count: 1
-			path: app/Http/Resources/UnitResource.php
-
-		-
 			message: '#^Cannot call method gt\(\) on string\.$#'
 			identifier: method.nonObject
 			count: 1

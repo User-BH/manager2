@@ -145,6 +145,8 @@ final class BackupManifest
         'requests' => 'پیوستِ درخواست‌های خدمات',
         'ads' => 'تصویرِ آگهی‌ها',
         'blog' => 'تصویرهای بلاگ',
+        // مرحلهٔ ۱۰ · فاز ۷: تصویرِ پروفایلِ حساب‌ها (بی‌آن، هرسِ فایل‌های بی‌صاحب پاکشان می‌کرد)
+        'avatars' => 'تصویرِ پروفایلِ حساب‌ها',
     ];
 
     /**
@@ -174,6 +176,7 @@ final class BackupManifest
         'service_requests.attachment_path' => 'requests',
         'advertisements.image_path' => 'ads',
         'blog_posts.cover_path' => 'blog',
+        'users.avatar_path' => 'avatars',
         'generated_documents.path' => 'documents',
         'backups.path' => 'backups',
     ];

@@ -1,6 +1,8 @@
 export interface ProfileFields {
   id: number
   name: string
+  /** تصویرِ canonical ِ حساب (مرحلهٔ ۱۰ · فاز ۷) */
+  avatarUrl?: string | null
   firstName: string | null
   lastName: string | null
   needsName: boolean

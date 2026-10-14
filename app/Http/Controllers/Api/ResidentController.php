@@ -122,12 +122,10 @@ class ResidentController extends Controller
             ]);
         }
 
-        // شماره و رمز اینجا نیستند: `UpdateResidentRequest` هر دو را رد می‌کند
-        $resident->update(array_filter([
-            'name' => $data['name'] ?? null,
-            'email' => $data['email'] ?? null,
-            'national_id' => $data['national_id'] ?? null,
-        ], fn ($value) => $value !== null));
+        // شماره، رمز، ایمیل و کدِ ملی اینجا نیستند: مالِ حساب‌اند و `UpdateResidentRequest` ردشان می‌کند (۱۰/۷)
+        if (isset($data['name'])) {
+            $resident->update(['name' => $data['name']]);
+        }
 
         // نقش مالِ عضویت است و فقط از دفترِ عضویت عوض می‌شود (مرحلهٔ ۱۰ · فاز ۲)
         $role = UserRole::from($data['role']);

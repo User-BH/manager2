@@ -32,6 +32,13 @@ export const queryKeys = {
     list: (params: { search?: string; page?: number } = {}) => ['units', 'list', params] as const,
     // پرونده‌ی یک واحد با تاریخچه‌اش (R26)
     dossier: (id: number) => ['units', 'dossier', id] as const,
+    // «اطلاعاتِ واحد» (مرحلهٔ ۱۰ · فاز ۷)
+    information: (id: number) => ['units', 'information', id] as const,
+  },
+
+  // «اطلاعاتِ مجتمع» (مرحلهٔ ۱۰ · فاز ۷)
+  complexInformation: {
+    current: () => ['complex-information'] as const,
   },
 
   residents: {

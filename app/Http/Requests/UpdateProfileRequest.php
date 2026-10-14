@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests;
 
+use App\Support\Digits;
 use App\Support\PersianName;
 use Illuminate\Validation\Rule;
 
@@ -88,20 +89,8 @@ class UpdateProfileRequest extends BaseFormRequest
         $this->merge([
             'first_name' => PersianName::normalize($this->input('first_name')),
             'last_name' => PersianName::normalize($this->input('last_name')),
-            'national_id' => self::latinDigits($this->input('national_id')),
-            'emergency_phone' => self::latinDigits($this->input('emergency_phone')),
+            'national_id' => Digits::toLatin($this->input('national_id')),
+            'emergency_phone' => Digits::toLatin($this->input('emergency_phone')),
         ]);
-    }
-
-    private static function latinDigits(?string $value): ?string
-    {
-        if ($value === null || $value === '') {
-            return $value;
-        }
-
-        $from = ['۰', '۱', '۲', '۳', '۴', '۵', '۶', '۷', '۸', '۹', '٠', '١', '٢', '٣', '٤', '٥', '٦', '٧', '٨', '٩'];
-        $to = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '0', '1', '2', '3', '4', '5', '6', '7', '8', '9'];
-
-        return str_replace($from, $to, $value);
     }
 }

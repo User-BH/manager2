@@ -3,6 +3,7 @@
 namespace App\Http\Resources;
 
 use App\Models\User;
+use App\Services\Account\ProfilePhoto;
 use App\Support\Jalali;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
@@ -31,6 +32,8 @@ class ProfileResource extends JsonResource
         return [
             'id' => $user->id,
             'name' => $user->name,
+            // تصویرِ canonical ِ حساب (مرحلهٔ ۱۰ · فاز ۷)
+            'avatarUrl' => ProfilePhoto::url($user),
             'firstName' => $user->first_name,
             'lastName' => $user->last_name,
             'needsName' => $user->needsNameCompletion(),

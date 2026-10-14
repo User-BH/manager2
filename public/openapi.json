@@ -1357,6 +1357,206 @@
                 }
             }
         },
+        "/api/v1/complex/information": {
+            "get": {
+                "summary": "api.complex.information.show",
+                "tags": [
+                    "complex"
+                ],
+                "parameters": [],
+                "responses": {
+                    "200": {
+                        "description": "موفق"
+                    },
+                    "422": {
+                        "description": "خطای اعتبارسنجی",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    },
+                    "429": {
+                        "description": "عبور از محدودیتِ نرخ",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "وارد نشده‌اید",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "دسترسی ندارید",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    }
+                },
+                "description": "فقط برای نقشِ: super_admin,complex_admin"
+            },
+            "put": {
+                "summary": "api.complex.information.update",
+                "tags": [
+                    "complex"
+                ],
+                "parameters": [],
+                "responses": {
+                    "200": {
+                        "description": "موفق"
+                    },
+                    "422": {
+                        "description": "خطای اعتبارسنجی",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    },
+                    "429": {
+                        "description": "عبور از محدودیتِ نرخ",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "وارد نشده‌اید",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "دسترسی ندارید",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    }
+                },
+                "description": "فقط برای نقشِ: super_admin,complex_admin",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "name": {
+                                        "type": "string",
+                                        "description": "نامِ مجتمع"
+                                    },
+                                    "brand_name": {
+                                        "type": "string",
+                                        "description": "نامِ تجاری"
+                                    },
+                                    "address": {
+                                        "type": "string",
+                                        "description": "نشانی"
+                                    },
+                                    "province": {
+                                        "type": "string",
+                                        "description": "استان"
+                                    },
+                                    "city": {
+                                        "type": "string",
+                                        "description": "شهر"
+                                    },
+                                    "postal_code": {
+                                        "type": "string",
+                                        "description": "کدِ پستی"
+                                    },
+                                    "latitude": {
+                                        "type": "number",
+                                        "description": "عرضِ جغرافیایی"
+                                    },
+                                    "longitude": {
+                                        "type": "number",
+                                        "description": "طولِ جغرافیایی"
+                                    },
+                                    "description": {
+                                        "type": "string",
+                                        "description": "توضیحات"
+                                    },
+                                    "structure": {
+                                        "type": "string",
+                                        "description": "ساختارِ ساختمان"
+                                    },
+                                    "common_areas": {
+                                        "type": "string",
+                                        "description": "بخش‌های مشترک"
+                                    },
+                                    "facilities": {
+                                        "type": "array",
+                                        "description": "امکانات"
+                                    },
+                                    "facilities.*": {
+                                        "type": "string"
+                                    },
+                                    "facilities_other": {
+                                        "type": "string",
+                                        "description": "سایرِ امکانات"
+                                    },
+                                    "phone": {
+                                        "type": "string",
+                                        "description": "تلفنِ مدیریت"
+                                    },
+                                    "board": {
+                                        "type": "string",
+                                        "description": "هیئت‌مدیره"
+                                    },
+                                    "response_hours": {
+                                        "type": "string",
+                                        "description": "ساعاتِ پاسخ‌گویی"
+                                    },
+                                    "emergency_info": {
+                                        "type": "string",
+                                        "description": "اطلاعاتِ اضطراری"
+                                    },
+                                    "type": {
+                                        "type": "string"
+                                    }
+                                },
+                                "required": [
+                                    "name",
+                                    "address",
+                                    "province",
+                                    "city"
+                                ]
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/api/v1/csrf-token": {
             "get": {
                 "summary": "api.csrf-token",
@@ -6269,6 +6469,131 @@
                                     "first_name",
                                     "last_name"
                                 ]
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/profile/avatar": {
+            "post": {
+                "summary": "api.profile.avatar.store",
+                "tags": [
+                    "profile"
+                ],
+                "parameters": [],
+                "responses": {
+                    "200": {
+                        "description": "موفق"
+                    },
+                    "422": {
+                        "description": "خطای اعتبارسنجی",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    },
+                    "429": {
+                        "description": "عبور از محدودیتِ نرخ",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "وارد نشده‌اید",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "دسترسی ندارید",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    }
+                },
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "avatar": {
+                                        "type": "string",
+                                        "description": "تصویرِ پروفایل"
+                                    }
+                                },
+                                "required": [
+                                    "avatar"
+                                ]
+                            }
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "summary": "api.profile.avatar.destroy",
+                "tags": [
+                    "profile"
+                ],
+                "parameters": [],
+                "responses": {
+                    "200": {
+                        "description": "موفق"
+                    },
+                    "422": {
+                        "description": "خطای اعتبارسنجی",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    },
+                    "429": {
+                        "description": "عبور از محدودیتِ نرخ",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "وارد نشده‌اید",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "دسترسی ندارید",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
                             }
                         }
                     }
@@ -13562,6 +13887,238 @@
                 "description": "فقط برای نقشِ: super_admin,complex_admin"
             }
         },
+        "/api/v1/units/{unit}/information": {
+            "get": {
+                "summary": "api.units.information.show",
+                "tags": [
+                    "units"
+                ],
+                "parameters": [
+                    {
+                        "name": "unit",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "موفق"
+                    },
+                    "422": {
+                        "description": "خطای اعتبارسنجی",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    },
+                    "429": {
+                        "description": "عبور از محدودیتِ نرخ",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "وارد نشده‌اید",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "دسترسی ندارید",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "put": {
+                "summary": "api.units.information.update",
+                "tags": [
+                    "units"
+                ],
+                "parameters": [
+                    {
+                        "name": "unit",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "موفق"
+                    },
+                    "422": {
+                        "description": "خطای اعتبارسنجی",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    },
+                    "429": {
+                        "description": "عبور از محدودیتِ نرخ",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "وارد نشده‌اید",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "دسترسی ندارید",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    }
+                },
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "unit_type": {
+                                        "type": "string",
+                                        "description": "نوعِ واحد"
+                                    },
+                                    "block": {
+                                        "type": "string",
+                                        "description": "بلوک"
+                                    },
+                                    "rooms_count": {
+                                        "type": "number",
+                                        "description": "تعدادِ اتاق"
+                                    },
+                                    "bedrooms_count": {
+                                        "type": "number",
+                                        "description": "تعدادِ خواب"
+                                    },
+                                    "bathrooms_count": {
+                                        "type": "number",
+                                        "description": "تعدادِ سرویس"
+                                    },
+                                    "parking_numbers": {
+                                        "type": "string",
+                                        "description": "شماره‌ی پارکینگ"
+                                    },
+                                    "storage_numbers": {
+                                        "type": "string",
+                                        "description": "شماره‌ی انباری"
+                                    },
+                                    "has_terrace": {
+                                        "type": "boolean",
+                                        "description": "تراس"
+                                    },
+                                    "has_balcony": {
+                                        "type": "boolean",
+                                        "description": "بالکن"
+                                    },
+                                    "orientation": {
+                                        "type": "string",
+                                        "description": "جهت"
+                                    },
+                                    "meters": {
+                                        "type": "string",
+                                        "description": "کنتورها"
+                                    },
+                                    "meters.*": {
+                                        "type": "string"
+                                    },
+                                    "description": {
+                                        "type": "string",
+                                        "description": "توضیحات"
+                                    },
+                                    "unit_number": {
+                                        "type": "string"
+                                    },
+                                    "floor": {
+                                        "type": "string"
+                                    },
+                                    "building_id": {
+                                        "type": "string"
+                                    },
+                                    "area": {
+                                        "type": "string"
+                                    },
+                                    "residents_count": {
+                                        "type": "string"
+                                    },
+                                    "coefficient": {
+                                        "type": "string"
+                                    },
+                                    "uses_elevator": {
+                                        "type": "string"
+                                    },
+                                    "parking_count": {
+                                        "type": "string"
+                                    },
+                                    "storage_count": {
+                                        "type": "string"
+                                    },
+                                    "occupancy_status": {
+                                        "type": "string"
+                                    },
+                                    "balance": {
+                                        "type": "string"
+                                    },
+                                    "is_active": {
+                                        "type": "string"
+                                    },
+                                    "complex_id": {
+                                        "type": "string"
+                                    },
+                                    "notes": {
+                                        "type": "string"
+                                    }
+                                },
+                                "required": [
+                                    "unit_type"
+                                ]
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/api/v1/units/{unit}/tenures/{tenure}/end": {
             "patch": {
                 "summary": "api.units.tenures.end",
@@ -13721,6 +14278,69 @@
                                     "owners.*.user_id",
                                     "owners.*.share_percent"
                                 ]
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/users/{user}/avatar": {
+            "get": {
+                "summary": "api.users.avatar",
+                "tags": [
+                    "users"
+                ],
+                "parameters": [
+                    {
+                        "name": "user",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "موفق"
+                    },
+                    "422": {
+                        "description": "خطای اعتبارسنجی",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    },
+                    "429": {
+                        "description": "عبور از محدودیتِ نرخ",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "وارد نشده‌اید",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "دسترسی ندارید",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
                             }
                         }
                     }

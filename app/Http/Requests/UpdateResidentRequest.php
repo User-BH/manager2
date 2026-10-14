@@ -23,8 +23,13 @@ class UpdateResidentRequest extends BaseFormRequest
     {
         return [
             'name' => ['sometimes', 'required', 'string', 'max:120'],
-            'email' => ['nullable', 'email', Rule::unique('users', 'email')->ignore($this->route('resident')?->id)],
-            'national_id' => ['nullable', 'string', 'max:20'],
+            /*
+             * ایمیل و کدِ ملی مالِ **حساب** است و حساب بینِ مجتمع‌ها یکی است (مرحلهٔ ۱۰ · فاز ۷؛ بندهای ۲، ۴ و ۵):
+             * پیش از این مدیرِ هر مجتمعی که شخص عضوش بود آن‌ها را بازنویسی می‌کرد — و کدِ ملی را با قاعده‌ای
+             * سست‌تر از پروفایل (`max:20` در برابرِ دقیقاً ده رقم). حالا فقط خودِ کاربر در پروفایلش.
+             */
+            'email' => ['prohibited'],
+            'national_id' => ['prohibited'],
             'role' => ['required', 'in:owner,tenant'],
             'unit_id' => [
                 'required',
@@ -45,6 +50,8 @@ class UpdateResidentRequest extends BaseFormRequest
         return [
             'unit_id.required' => 'برای مالک و مستأجر انتخابِ واحد لازم است.',
             'phone.prohibited' => 'شماره‌ی حساب را فقط خودِ کاربر دارد؛ مدیر آن را عوض نمی‌کند.',
+            'email.prohibited' => 'ایمیلِ حساب را خودِ کاربر در پروفایلش تعیین می‌کند.',
+            'national_id.prohibited' => 'کدِ ملیِ حساب را خودِ کاربر در پروفایلش تعیین می‌کند.',
             'password.prohibited' => 'رمزِ حساب را فقط خودِ کاربر عوض می‌کند.',
         ];
     }

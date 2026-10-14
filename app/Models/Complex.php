@@ -16,6 +16,21 @@ use Illuminate\Support\Carbon;
  * @property array<string, mixed>|null $gateway_config
  * @property string|null $join_code
  * @property Carbon|null $join_code_created_at
+ * @property list<string>|null $facilities
+ * @property Carbon|null $information_completed_at
+ * @property string|null $brand_name
+ * @property string|null $province
+ * @property string|null $city
+ * @property string|null $postal_code
+ * @property string|null $latitude
+ * @property string|null $longitude
+ * @property string|null $description
+ * @property string|null $structure
+ * @property string|null $common_areas
+ * @property string|null $facilities_other
+ * @property string|null $board
+ * @property string|null $response_hours
+ * @property string|null $emergency_info
  */
 class Complex extends Model
 {
@@ -63,6 +78,11 @@ class Complex extends Model
             'is_active' => 'boolean',
             'suspended_at' => 'datetime',
             'join_code_created_at' => 'datetime',
+            // «اطلاعاتِ مجتمع» (مرحلهٔ ۱۰ · فاز ۷)
+            'facilities' => 'array',
+            'latitude' => 'decimal:7',
+            'longitude' => 'decimal:7',
+            'information_completed_at' => 'datetime',
         ];
     }
 

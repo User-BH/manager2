@@ -5,11 +5,13 @@ use App\Http\Controllers\Api\AccountRecoveryController;
 use App\Http\Controllers\Api\AdvertisementController;
 use App\Http\Controllers\Api\AnnouncementController;
 use App\Http\Controllers\Api\AuthController;
+use App\Http\Controllers\Api\AvatarController;
 use App\Http\Controllers\Api\BackupController;
 use App\Http\Controllers\Api\BillController;
 use App\Http\Controllers\Api\BlogController as PublicBlogController;
 use App\Http\Controllers\Api\ChargeRuleController;
 use App\Http\Controllers\Api\ClientErrorController;
+use App\Http\Controllers\Api\ComplexInformationController;
 use App\Http\Controllers\Api\ConversationController;
 use App\Http\Controllers\Api\DashboardController;
 use App\Http\Controllers\Api\DiscountController;
@@ -57,6 +59,7 @@ use App\Http\Controllers\Api\System\SiteSettingsController;
 use App\Http\Controllers\Api\System\SmsController;
 use App\Http\Controllers\Api\System\SubscriptionReviewController;
 use App\Http\Controllers\Api\UnitController;
+use App\Http\Controllers\Api\UnitInformationController;
 use App\Http\Controllers\Api\WalletController;
 use App\Http\Controllers\Api\WebVitalsController;
 use Illuminate\Support\Facades\Route;
@@ -390,6 +393,12 @@ Route::middleware('auth')->group(function () {
     // پروفایل و حساب کاربری — همیشه دربارهٔ خودِ کاربر واردشده
     Route::get('profile', [ProfileController::class, 'show'])->name('profile.show');
     Route::put('profile', [ProfileController::class, 'update'])->name('profile.update');
+    // تصویرِ پروفایل (مرحلهٔ ۱۰ · فاز ۷): زیرِ `profile/` تا حسابِ اولیه هم بگذاردش
+    Route::post('profile/avatar', [AvatarController::class, 'store'])
+        ->middleware('throttle:receipt-upload')->name('profile.avatar.store');
+    Route::delete('profile/avatar', [AvatarController::class, 'destroy'])->name('profile.avatar.destroy');
+    // سرو برای کسی که حقِ دیدن دارد — `ProfilePhoto::canView`
+    Route::get('users/{user}/avatar', [AvatarController::class, 'show'])->name('users.avatar');
     Route::put('profile/password', [ProfileController::class, 'updatePassword'])
         ->middleware('throttle:password-change')->name('profile.password');
     // تغییرِ شماره توسطِ خودِ کاربر: رمز دوباره + کدِ پیامکیِ شماره‌ی تازه (مرحلهٔ ۹)
@@ -430,6 +439,13 @@ Route::middleware('auth')->group(function () {
 
     // --- صورت‌حساب‌های خود کاربر (مدیر هم می‌تواند ببیند) ---
     Route::get('my-bills', [MyBillController::class, 'index'])->name('my-bills.index');
+
+    /*
+     * «اطلاعاتِ واحد» (مرحلهٔ ۱۰ · فاز ۷؛ بندِ ۹): مدیر یا مالک/مستأجرِ فعلیِ همان واحد — مجوز در کنترلر، و اتصالِ
+     * مدلِ مسیر واحد را به مجتمعِ فعال محدود می‌کند. مشخصاتِ شارژ از این مسیر نوشته نمی‌شوند.
+     */
+    Route::get('units/{unit}/information', [UnitInformationController::class, 'show'])->name('units.information.show');
+    Route::put('units/{unit}/information', [UnitInformationController::class, 'update'])->name('units.information.update');
     Route::get('my-bills/{bill}', [MyBillController::class, 'show'])->name('my-bills.show');
 
     // صفحه‌ی پرداخت یک قبض و ثبت رسید
@@ -490,6 +506,10 @@ Route::middleware('auth')->group(function () {
          * QR ِ ورودِ عمومی (مرحلهٔ ۱۰ · فاز ۵؛ بندهای ۲۲ و ۲۵): جدا از دعوتِ مستقیم. `POST` کدِ موجود را
          * نگه می‌دارد (QR ِ چاپ‌شده باطل نمی‌شود)؛ فقط `rotate` کدِ تازه می‌سازد و قبلی را از کار می‌اندازد.
          */
+        // «اطلاعاتِ مجتمع» (مرحلهٔ ۱۰ · فاز ۷؛ بندهای ۷ و ۱۸): نوشته‌های مدیر + شمارش‌های بیرون‌آمده از داده
+        Route::get('complex/information', [ComplexInformationController::class, 'show'])->name('complex.information.show');
+        Route::put('complex/information', [ComplexInformationController::class, 'update'])->name('complex.information.update');
+
         Route::get('join-link', [JoinLinkController::class, 'show'])->name('join-link.show');
         Route::post('join-link', [JoinLinkController::class, 'store'])->name('join-link.store');
         Route::post('join-link/rotate', [JoinLinkController::class, 'rotate'])->name('join-link.rotate');

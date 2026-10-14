@@ -66,6 +66,17 @@ class Message extends Model
         return $this->belongsToMany(Unit::class, 'message_units');
     }
 
+    /**
+     * حسابِ نویسنده — فقط برای تصویرِ پروفایلِ **فعلی‌اش** (مرحلهٔ ۱۰ · فاز ۷؛ بندِ ۵). نامِ نویسنده عمداً از
+     * `author_name` می‌آید (snapshot ِ تاریخی، بندِ ۲۹)؛ تصویر canonical است و عوض شدنش همه‌جا دیده می‌شود.
+     *
+     * @return BelongsTo<User, $this>
+     */
+    public function author(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'user_id');
+    }
+
     /** @return BelongsTo<Unit, $this> */
     public function unit(): BelongsTo
     {

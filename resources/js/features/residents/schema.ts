@@ -26,8 +26,6 @@ export type InviteResidentValues = z.infer<typeof inviteResidentSchema>
  */
 export const editResidentSchema = z.object({
   name: z.string().min(1, 'نام را وارد کنید').max(120, 'نام طولانی است'),
-  email: z.union([z.literal(''), z.string().email('ایمیل معتبر نیست')]).optional(),
-  national_id: z.string().max(20, 'کد ملی طولانی است').optional(),
   role,
   unit_id: unitId,
 })

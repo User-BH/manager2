@@ -25,6 +25,7 @@ import { FormSkeleton } from '@/shared/ui/Skeleton'
 import { ProfileEditForm } from './ProfileEditForm'
 import { ReceivedInvitations } from '@/shared/ui/invitations/ReceivedInvitations'
 import { useAuth } from '@/shared/stores/authStore'
+import { ProfilePhotoControl } from './ProfilePhotoControl'
 import { PasswordCard } from './PasswordCard'
 import { PhoneCard } from './PhoneCard'
 import { SecurityCard } from './SecurityCard'
@@ -68,6 +69,8 @@ export function ProfilePage() {
       ) : null}
       <ProfileHero
         name={profile.name}
+        avatarUrl={profile.avatarUrl ?? null}
+        onPhotoChanged={() => void refetch()}
         roleLabel={profile.roleLabel}
         complexName={profile.complex?.name ?? null}
         joinedAt={profile.joinedAt}
@@ -146,6 +149,8 @@ export function ProfilePage() {
 
 function ProfileHero({
   name,
+  avatarUrl,
+  onPhotoChanged,
   roleLabel,
   complexName,
   joinedAt,
@@ -154,6 +159,8 @@ function ProfileHero({
   onEdit,
 }: {
   name: string
+  avatarUrl: string | null
+  onPhotoChanged: () => void
   roleLabel: string
   complexName: string | null
   joinedAt: string
@@ -161,7 +168,7 @@ function ProfileHero({
   editing: boolean
   onEdit: () => void
 }) {
-  // حرف اول نام به‌جای عکس؛ سامانه هنوز آپلود آواتار ندارد
+  // حرفِ اولِ نام وقتی تصویری نیست (تصویر از مرحلهٔ ۱۰ · فاز ۷)
   const initial = name.trim().charAt(0) || '؟'
 
   return (
@@ -181,15 +188,32 @@ function ProfileHero({
       />
 
       <div className="flex flex-wrap items-end gap-4 px-5 pb-5">
-        <div
-          className="-mt-10 flex h-20 w-20 shrink-0 items-center justify-center rounded-2xl border-4 text-3xl font-extrabold text-white"
-          style={{
-            backgroundColor: 'var(--color-brand-500)',
-            borderColor: 'var(--surface-base)',
-          }}
-        >
-          {initial}
-        </div>
+        {avatarUrl ? (
+          <div
+            className="-mt-10 shrink-0 overflow-hidden rounded-2xl border-4"
+            style={{ borderColor: 'var(--surface-base)' }}
+          >
+            <img
+              src={avatarUrl}
+              alt={name}
+              width={80}
+              height={80}
+              // بالای صفحه و همان نگاهِ اول: بی‌درنگ
+              loading="eager"
+              className="h-20 w-20 object-cover"
+            />
+          </div>
+        ) : (
+          <div
+            className="-mt-10 flex h-20 w-20 shrink-0 items-center justify-center rounded-2xl border-4 text-3xl font-extrabold text-white"
+            style={{
+              backgroundColor: 'var(--color-brand-500)',
+              borderColor: 'var(--surface-base)',
+            }}
+          >
+            {initial}
+          </div>
+        )}
 
         <div className="min-w-0 flex-1 pt-2">
           <h1
@@ -217,7 +241,8 @@ function ProfileHero({
           </p>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
+          <ProfilePhotoControl hasPhoto={avatarUrl !== null} onChanged={onPhotoChanged} />
           <Link
             to="/account"
             className="flex items-center gap-1.5 rounded-xl border px-4 py-2.5 text-[13px] font-semibold"

@@ -207,6 +207,9 @@ class TenantIsolationTest extends TestCase
                 'residents_count' => 1, 'coefficient' => 1, 'occupancy_status' => 'owner_occupied',
             ]],
             'حذف واحد' => ['DELETE', 'units/%d', 'unit', []],
+            // «اطلاعاتِ واحد» (مرحلهٔ ۱۰ · فاز ۷)
+            'خواندن اطلاعات واحد' => ['GET', 'units/%d/information', 'unit', []],
+            'نوشتن اطلاعات واحد' => ['PUT', 'units/%d/information', 'unit', ['unit_type' => 'residential']],
             'تغییر وضعیت قانون شارژ' => ['PATCH', 'charge-rules/%d/toggle', 'rule', []],
             'حذف قانون شارژ' => ['DELETE', 'charge-rules/%d', 'rule', []],
             'حذف هزینه' => ['DELETE', 'finance/expenses/%d', 'expense', []],

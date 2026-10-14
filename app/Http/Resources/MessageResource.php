@@ -7,6 +7,7 @@ use App\Models\Message;
 use App\Models\MessageReaction;
 use App\Models\Unit;
 use App\Models\User;
+use App\Services\Account\ProfilePhoto;
 use App\Services\Poll\PollService;
 use App\Support\Jalali;
 use Illuminate\Http\Request;
@@ -30,6 +31,8 @@ class MessageResource extends JsonResource
     /** رابطه‌هایی که این خروجی می‌خواند — برای بارگذاریِ یک‌جا (بی N+1). */
     public const RELATIONS = [
         'recipientUnits:id,unit_number', 'readers:id', 'poll.options', 'poll.votes', 'replyTo', 'reactions',
+        // تصویرِ canonical ِ نویسنده (۱۰/۷) — فقط دو ستون، یک کوئری برای کلِ صفحه
+        'author:id,avatar_path',
     ];
 
     /**
@@ -61,6 +64,8 @@ class MessageResource extends JsonResource
             'id' => $message->id,
             'body' => $deleted || ($hidden && ! $mayReadHidden) ? null : $message->body,
             'authorName' => $message->author_name,
+            // تصویرِ فعلیِ نویسنده، نه نسخه‌ی کپی‌شده (بندِ ۵)؛ حسابِ حذف‌شده یا بی تصویر: null
+            'authorAvatarUrl' => ProfilePhoto::url($message->author),
             'unitLabel' => $message->unit_label,
             'isMine' => $isMine,
             'isHidden' => $hidden,

@@ -6,6 +6,7 @@ use App\Models\ComplexMembership;
 use App\Models\Unit;
 use App\Models\User;
 use App\Services\Account\ComplexMembers;
+use App\Services\Account\ProfilePhoto;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
@@ -33,6 +34,7 @@ class ResidentResource extends JsonResource
         return [
             'id' => $user->id,
             'name' => $user->name,
+            'avatarUrl' => ProfilePhoto::url($user),
             'phone' => $user->phone,
             'email' => $user->email,
             'nationalId' => $user->national_id,

@@ -20,6 +20,7 @@ use App\Models\ComplexMembership;
 use App\Models\LoginEvent;
 use App\Models\User;
 use App\Services\Account\Membership;
+use App\Services\Account\ProfilePhoto;
 use App\Services\Auth\LoginRecorder;
 use App\Services\Auth\OtpService;
 use App\Services\Auth\PasswordConfirmation;
@@ -571,6 +572,8 @@ class AuthController extends Controller
         return [
             'id' => $user->id,
             'name' => $user->name,
+            // تصویرِ canonical ِ حساب برای منوی کاربر (مرحلهٔ ۱۰ · فاز ۷)
+            'avatarUrl' => ProfilePhoto::url($user),
             'firstName' => $user->first_name,
             'lastName' => $user->last_name,
             // حسابِ پیش از مرحلهٔ ۹: نامش حفظ شده و فقط درخواستِ تکمیل می‌بیند
