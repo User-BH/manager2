@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Casts\EncryptedJson;
 use App\Enums\ComplexType;
+use App\Models\Concerns\KeepsHistory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
@@ -34,7 +35,8 @@ use Illuminate\Support\Carbon;
  */
 class Complex extends Model
 {
-    use HasFactory;
+    // مجتمع تعلیق می‌شود، هرگز حذف نه (۱۰/۱۴؛ بندِ ۷۹)
+    use HasFactory, KeepsHistory;
 
     protected $fillable = [
         'name', 'slug', 'type', 'address', 'phone', 'currency',

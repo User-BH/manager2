@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Enums\ResidentRelation;
+use App\Models\Concerns\KeepsHistory;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -33,6 +34,8 @@ use Illuminate\Support\Carbon;
  */
 class UnitTenure extends Model
 {
+    use KeepsHistory;
+
     protected $table = 'unit_user';
 
     protected $fillable = [

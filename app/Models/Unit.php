@@ -5,6 +5,7 @@ namespace App\Models;
 use App\Enums\OccupancyStatus;
 use App\Enums\ResidentRelation;
 use App\Models\Concerns\BelongsToComplex;
+use App\Models\Concerns\KeepsHistory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -45,7 +46,8 @@ use LogicException;
  */
 class Unit extends Model
 {
-    use BelongsToComplex, HasFactory, SoftDeletes;
+    // نرم حذف می‌شود؛ `forceDelete` بسته است (۱۰/۱۴؛ بندِ ۷۹)
+    use BelongsToComplex, HasFactory, KeepsHistory, SoftDeletes;
 
     protected $fillable = [
         'complex_id', 'building_id', 'unit_number', 'floor', 'area',

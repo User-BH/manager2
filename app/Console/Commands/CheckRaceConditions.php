@@ -245,9 +245,12 @@ class CheckRaceConditions extends Command
         $userId = (int) $this->option('user');
 
         DB::transaction(function () use ($complexId, $userId): void {
+            // فرزندان پیش از والد: کلیدهای مجتمع و واحد روی تاریخچه `restrict`اند (۱۰/۱۴)
             DB::table('wallet_transactions')->where('complex_id', $complexId)->where('user_id', $userId)->delete();
-            DB::table((new UnitTenure)->getTable())->where('user_id', $userId)->delete();
+            DB::table((new UnitTenure)->getTable())->where('user_id', $userId)->orWhere('complex_id', $complexId)->delete();
             DB::table('complex_memberships')->where('complex_id', $complexId)->delete();
+            DB::table('payment_allocations')->where('complex_id', $complexId)->delete();
+            DB::table('payments')->where('complex_id', $complexId)->delete();
             DB::table('bills')->where('complex_id', $complexId)->delete();
             DB::table('units')->where('complex_id', $complexId)->delete();
             DB::table('users')->where('id', $userId)->delete();
@@ -359,7 +362,7 @@ class CheckRaceConditions extends Command
         $complexIds = array_map('intval', explode(',', (string) $this->option('complex')));
 
         DB::transaction(function () use ($userId, $complexIds): void {
-            DB::table((new UnitTenure)->getTable())->where('user_id', $userId)->delete();
+            DB::table((new UnitTenure)->getTable())->where('user_id', $userId)->orWhereIn('complex_id', $complexIds)->delete();
             DB::table('complex_invitations')->whereIn('complex_id', $complexIds)->delete();
             DB::table('complex_memberships')->where('user_id', $userId)->orWhereIn('complex_id', $complexIds)->delete();
             DB::table('users')->where('id', $userId)->orWhereIn('complex_id', $complexIds)->delete();

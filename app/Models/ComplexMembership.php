@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Enums\UserRole;
 use App\Models\Concerns\BelongsToComplex;
+use App\Models\Concerns\KeepsHistory;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -36,7 +37,7 @@ use Illuminate\Support\Carbon;
  */
 class ComplexMembership extends Model
 {
-    use BelongsToComplex;
+    use BelongsToComplex, KeepsHistory;
 
     public const ACTIVE = 'active';
 

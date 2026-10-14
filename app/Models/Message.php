@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Enums\MessageAudience;
 use App\Models\Concerns\BelongsToComplex;
+use App\Models\Concerns\KeepsHistory;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -28,7 +29,7 @@ use Illuminate\Support\Facades\DB;
  */
 class Message extends Model
 {
-    use BelongsToComplex;
+    use BelongsToComplex, KeepsHistory;
 
     protected $fillable = [
         'complex_id', 'conversation_id', 'user_id', 'client_id', 'body', 'audience', 'unit_id',

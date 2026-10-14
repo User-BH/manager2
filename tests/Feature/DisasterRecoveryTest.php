@@ -338,9 +338,10 @@ class DisasterRecoveryTest extends TestCase
 
         $contents = PrivateFiles::disk()->get($safety->path);
 
-        // فاجعه، این بار پس از بازیابی
+        // فاجعه، این بار پس از بازیابی — فرزندان پیش از والد: کلیدهای تاریخچه `restrict`اند (۱۰/۱۴؛ بندِ ۷۹)
         DB::table('complex_memberships')->delete();
         DB::table('bills')->delete();
+        DB::table('units')->delete();
         DB::table('complexes')->delete();
 
         // ⚠️ بازیابی همه‌ی نشست‌ها را می‌بندد، تأییدِ رمز هم با آن‌ها (فاز ۱۰)

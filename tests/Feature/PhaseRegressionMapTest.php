@@ -1200,6 +1200,15 @@ class PhaseRegressionMapTest extends TestCase
             '۱۰/۱۳: finance:check فقط کش را ترمیم می‌کند' => [
                 'FinancialInvariantTest', 'test_the_checker_reports_drift_and_repairs_only_the_cache', '۱۰',
             ],
+            '🔴 ۱۰/۱۴: حذفِ خامِ والد تاریخچه را نمی‌برد' => [
+                'DeleteSemanticsTest', 'test_a_raw_parent_delete_never_erases_history', '۱۰',
+            ],
+            '🔴 ۱۰/۱۴: هر کلیدِ تاریخی قاعده‌ی حذفِ ثبت‌شده دارد' => [
+                'DeleteSemanticsTest', 'test_every_history_key_follows_the_register', '۱۰',
+            ],
+            '۱۰/۱۴: Eloquent صاحبِ تاریخچه را حذفِ سخت نمی‌کند' => [
+                'DeleteSemanticsTest', 'test_eloquent_never_hard_deletes_an_owner_of_history', '۱۰',
+            ],
             'مدیر از درخواستِ عضویت با اعلانِ داشبورد باخبر می‌شود' => [
                 'JoinRequestTest', 'test_the_complexes_managers_get_a_dashboard_notification_once', '۹',
             ],

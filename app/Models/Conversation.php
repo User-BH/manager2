@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Models\Concerns\BelongsToComplex;
+use App\Models\Concerns\KeepsHistory;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -47,7 +48,7 @@ use Illuminate\Support\Facades\DB;
  */
 class Conversation extends Model
 {
-    use BelongsToComplex;
+    use BelongsToComplex, KeepsHistory;
 
     public const CHANNEL = 'channel';
 
