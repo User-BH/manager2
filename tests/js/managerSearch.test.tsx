@@ -116,7 +116,8 @@ describe('جست‌وجوی سراسری: گروهِ بریده‌شده', () =>
     render_(<SearchResultsPage />, '/search?q=پرویز', '/search')
 
     expect(await screen.findByText(/بیش از ۸ مورد یافت شد/)).toBeInTheDocument()
-    const all = screen.getByRole('link', { name: /نمایشِ همه‌ی ساکنین/ })
+    // سربرگ از store پیش از فهرست می‌آید؛ پیوند با خودِ فهرست — منتظرِ خودش، نه همان لحظه (زیرِ بار شکست)
+    const all = await screen.findByRole('link', { name: /نمایشِ همه‌ی ساکنین/ })
     expect(all.getAttribute('href')).toBe(
       `/search?q=${encodeURIComponent('پرویز')}&group=residents`,
     )

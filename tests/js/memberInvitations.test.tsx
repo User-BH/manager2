@@ -1,7 +1,7 @@
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 import { useAuthStore } from '@/shared/stores/authStore'
 import type { CurrentUser } from '@/shared/types'
 
@@ -97,9 +97,10 @@ function member(pendingInvitations: number): CurrentUser {
   }
 }
 
-async function renderProfile(user: CurrentUser) {
+let ProfilePage: (typeof import('@/features/profile/ProfilePage'))['ProfilePage']
+
+function renderProfile(user: CurrentUser) {
   useAuthStore.setState({ user, isLoading: false })
-  const { ProfilePage } = await import('@/features/profile/ProfilePage')
   render(
     <QueryClientProvider
       client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}
@@ -112,6 +113,15 @@ async function renderProfile(user: CurrentUser) {
 }
 
 describe('دعوت‌های دریافتیِ عضو', () => {
+  /*
+   * ایمپورتِ سردِ درختِ ماژول‌ها یک بار و با بودجه‌ی زمانیِ خودش، نه در بدنه‌ی نخستین آزمون: زیرِ بارِ موازیِ کلِ Vitest
+   * (۱۶ کارگر؛ هوکِ پیش از کامیت) همین ایمپورت آزمون را از ۵ ثانیه گذراند (۵٫۴ ثانیه سنجیده شد) — شکستی که به رفتار
+   * ربطی نداشت و آزمونِ بعدی را هم با رندرِ نیمه‌کاره آلوده می‌کرد.
+   */
+  beforeAll(async () => {
+    ;({ ProfilePage } = await import('@/features/profile/ProfilePage'))
+  }, 30_000)
+
   beforeEach(() => {
     entered.mockReset()
     apiMock.mockReset().mockImplementation((path: string) => {
@@ -124,7 +134,7 @@ describe('دعوت‌های دریافتیِ عضو', () => {
   })
 
   it('عضوِ بی‌دعوت همان پروفایلِ قبلی را می‌بیند و دعوت‌ها خوانده نمی‌شوند', async () => {
-    await renderProfile(member(0))
+    renderProfile(member(0))
 
     expect(
       await screen.findByText('علی دوعضوی', { selector: 'h1, h2, p, span' }),
@@ -134,7 +144,7 @@ describe('دعوت‌های دریافتیِ عضو', () => {
   })
 
   it('عضوِ دعوت‌شده دعوت را می‌بیند و پذیرفتن به زمینه‌ی تازه می‌برد', async () => {
-    await renderProfile(member(1))
+    renderProfile(member(1))
 
     expect(await screen.findByText('دعوت‌های شما')).toBeInTheDocument()
     expect(screen.getByText('مجتمع سوم')).toBeInTheDocument()

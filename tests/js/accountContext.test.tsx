@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 import { QueryClientProvider } from '@tanstack/react-query'
@@ -163,22 +163,39 @@ describe('کشِ وابسته به زمینه', () => {
 
 describe('«مجتمع‌های من» در منوی کاربر', () => {
   const switched: number[] = []
+  let menu: {
+    useAuthStore: (typeof import('@/shared/stores/authStore'))['useAuthStore']
+    createQueryClient: (typeof import('@/shared/lib/queryClient'))['createQueryClient']
+    UserMenu: (typeof import('@/shared/layout/UserMenu'))['UserMenu']
+  }
 
-  beforeEach(() => {
+  /*
+   * ایمپورتِ سردِ درختِ ماژول‌ها یک بار و با بودجه‌ی زمانیِ خودش، نه در بدنه‌ی نخستین آزمون: زیرِ بارِ موازیِ کلِ Vitest
+   * (۱۶ کارگر؛ هوکِ پیش از کامیت) همین ایمپورت آزمون را از ۵ ثانیه گذراند (۵٫۴ ثانیه سنجیده شد) — شکستی که به رفتار
+   * ربطی نداشت و آزمونِ بعدی را هم با رندرِ نیمه‌کاره آلوده می‌کرد.
+   */
+  beforeAll(async () => {
     vi.resetModules()
-    switched.length = 0
     vi.doMock('@/shared/lib/accountContext', () => ({
       switchContext: (id: number) => {
         switched.push(id)
         return Promise.resolve()
       },
     }))
+    const [{ useAuthStore }, { createQueryClient }, { UserMenu }] = await Promise.all([
+      import('@/shared/stores/authStore'),
+      import('@/shared/lib/queryClient'),
+      import('@/shared/layout/UserMenu'),
+    ])
+    menu = { useAuthStore, createQueryClient, UserMenu }
+  }, 30_000)
+
+  beforeEach(() => {
+    switched.length = 0
   })
 
-  async function renderMenu(current: CurrentUser) {
-    const { useAuthStore } = await import('@/shared/stores/authStore')
-    const { createQueryClient } = await import('@/shared/lib/queryClient')
-    const { UserMenu } = await import('@/shared/layout/UserMenu')
+  function renderMenu(current: CurrentUser) {
+    const { useAuthStore, createQueryClient, UserMenu } = menu
     useAuthStore.setState({ user: current, isLoading: false })
 
     render(
@@ -192,14 +209,14 @@ describe('«مجتمع‌های من» در منوی کاربر', () => {
   }
 
   it('حسابِ تک‌مجتمعی همان منوی قبلی را می‌بیند', async () => {
-    await renderMenu(user([membership(1, true)]))
+    renderMenu(user([membership(1, true)]))
 
     expect(await screen.findByText('پروفایل من')).toBeInTheDocument()
     expect(screen.queryByRole('group', { name: 'مجتمع‌های من' })).toBeNull()
   })
 
   it('حسابِ چندمجتمعی فهرست و مجتمعِ فعال را می‌بیند و با کلیک می‌رود', async () => {
-    await renderMenu(user([membership(1, true), membership(2, false, 'complex_admin')]))
+    renderMenu(user([membership(1, true), membership(2, false, 'complex_admin')]))
 
     const group = await screen.findByRole('group', { name: 'مجتمع‌های من' })
     const current = group.querySelector('[aria-current="true"]')
@@ -215,7 +232,7 @@ describe('«مجتمع‌های من» در منوی کاربر', () => {
   })
 
   it('عضوِ دعوت‌شده به پروفایل هدایت می‌شود', async () => {
-    await renderMenu(user([membership(1, true)], { pendingInvitations: 2 }))
+    renderMenu(user([membership(1, true)], { pendingInvitations: 2 }))
 
     expect(await screen.findByText('دعوت‌ها (2)')).toBeInTheDocument()
   })

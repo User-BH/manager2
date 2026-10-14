@@ -655,7 +655,9 @@ class AuthorizationAttackTest extends TestCase
         // پیام‌رسانِ گفت‌وگومحور (مرحلهٔ ۶ · فاز ۱۲)
         'app/Services/Messenger/ConversationDirectory.php' => [1, 'یافتنِ گفت‌وگو با مجتمعِ صریح و کلیدِ یکتا، پس از خطای یکتاییِ ساختِ هم‌زمان'],
         'app/Services/Messenger/MessageActions.php' => [1, 'برداشتنِ سنجاقِ همان گفت‌وگویی که پیش‌تر دیده‌شدنش سنجیده شده، با شناسه‌ی صریح'],
-        'app/Services/Messenger/MessageSender.php' => [2, 'پیامِ پیشینِ همان کاربر با همان client_id، و جلو بردنِ آخرین پیامِ گفت‌وگویی که از قبل مجاز شده'],
+        'app/Services/Messenger/MessageSender.php' => [3, 'پیامِ پیشینِ همان کاربر با همان client_id، و جلو بردنِ آخرین پیامِ گفت‌وگویی که از قبل مجاز شده — در ارسال و در هدایت (مرحلهٔ ۱۰ · فاز ۱۰)'],
+        // مرحلهٔ ۱۰ · فاز ۱۳: فرمانِ کنسولیِ `finance:check --repair` — بی کاربر و بی مجتمعِ فعال، روی واحدی که خودِ سنجش در همه‌ی مجتمع‌ها یافته
+        'app/Services/Finance/FinancialInvariants.php' => [1, 'ترمیمِ کشِ مانده‌ی واحدِ ناهمخوانی که سنجشِ سراسریِ `finance:check` پیدا کرده (حتی واحدِ نرم‌حذف‌شده)'],
         'app/Services/Charge/BillGenerator.php' => [4, 'تولیدِ قبض با مجتمعِ صریح در پارامتر'],
 
         // ── شمارشِ سهمیه با مجتمعِ صریح ──

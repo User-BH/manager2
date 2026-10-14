@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 import { QueryClientProvider } from '@tanstack/react-query'
@@ -125,10 +125,29 @@ describe('بازگشت از خریدِ مجتمعِ تازه', () => {
 })
 
 describe('راهِ خرید در منوی کاربر', () => {
+  let menu: {
+    useAuthStore: (typeof import('@/shared/stores/authStore'))['useAuthStore']
+    createQueryClient: (typeof import('@/shared/lib/queryClient'))['createQueryClient']
+    UserMenu: (typeof import('@/shared/layout/UserMenu'))['UserMenu']
+  }
+
+  /*
+   * ایمپورتِ `UserMenu` و درختِ ماژول‌هایش یک بار، با بودجه‌ی زمانیِ خودش. `beforeEach` ِ بالا `vi.resetModules()`
+   * می‌زند، پس ایمپورت در بدنه‌ی هر آزمون هر بار سرد بود و زیرِ بارِ موازیِ کلِ Vitest (هوکِ پیش از کامیت) از ۵ ثانیه
+   * گذشت — شکستی که به رفتار ربطی نداشت. نمونه‌ها بیرون از رجیستری هم کار می‌کنند و store همان است که `UserMenu`
+   * می‌خواند (یک درخت).
+   */
+  beforeAll(async () => {
+    const [{ useAuthStore }, { createQueryClient }, { UserMenu }] = await Promise.all([
+      import('@/shared/stores/authStore'),
+      import('@/shared/lib/queryClient'),
+      import('@/shared/layout/UserMenu'),
+    ])
+    menu = { useAuthStore, createQueryClient, UserMenu }
+  }, 30_000)
+
   async function renderMenu(current: CurrentUser) {
-    const { useAuthStore } = await import('@/shared/stores/authStore')
-    const { createQueryClient } = await import('@/shared/lib/queryClient')
-    const { UserMenu } = await import('@/shared/layout/UserMenu')
+    const { useAuthStore, createQueryClient, UserMenu } = menu
     useAuthStore.setState({ user: current, isLoading: false })
 
     render(
@@ -155,7 +174,15 @@ describe('راهِ خرید در منوی کاربر', () => {
 })
 
 describe('فرمِ درگاه', () => {
-  it('«مجتمعِ تازه» می‌فرستد، نه تمدیدِ مجتمعِ فعال', async () => {
+  let page: {
+    useAuthStore: (typeof import('@/shared/stores/authStore'))['useAuthStore']
+    createQueryClient: (typeof import('@/shared/lib/queryClient'))['createQueryClient']
+    RegistrantPurchasePage: (typeof import('@/features/registrant/RegistrantPurchasePage'))['RegistrantPurchasePage']
+  }
+
+  // همان دلیلِ بالا: ایمپورتِ سردِ صفحه بیرون از زمانِ آزمون، با `api` ِ ساختگی که پیش از آن ثبت می‌شود
+  beforeAll(async () => {
+    vi.resetModules()
     vi.doMock('@/shared/lib/api', () => ({
       api: () =>
         Promise.resolve({
@@ -165,9 +192,22 @@ describe('فرمِ درگاه', () => {
         }),
       csrfToken: () => 'tok',
     }))
-    const { useAuthStore } = await import('@/shared/stores/authStore')
-    const { createQueryClient } = await import('@/shared/lib/queryClient')
-    const { RegistrantPurchasePage } = await import('@/features/registrant/RegistrantPurchasePage')
+    const [{ useAuthStore }, { createQueryClient }, { RegistrantPurchasePage }] = await Promise.all(
+      [
+        import('@/shared/stores/authStore'),
+        import('@/shared/lib/queryClient'),
+        import('@/features/registrant/RegistrantPurchasePage'),
+      ],
+    )
+    page = { useAuthStore, createQueryClient, RegistrantPurchasePage }
+  }, 30_000)
+
+  afterAll(() => {
+    vi.doUnmock('@/shared/lib/api')
+  })
+
+  it('«مجتمعِ تازه» می‌فرستد، نه تمدیدِ مجتمعِ فعال', async () => {
+    const { useAuthStore, createQueryClient, RegistrantPurchasePage } = page
     useAuthStore.setState({ user: user([membership(1, true)]), isLoading: false })
 
     render(
@@ -185,6 +225,5 @@ describe('فرمِ درگاه', () => {
     expect(purpose?.value).toBe('new_complex')
     // و متنِ عضو: عضویت‌های فعلی دست نمی‌خورند
     expect(screen.getByText(/عضویت و نقشتان در مجتمع‌های فعلی دست نمی‌خورد/)).toBeInTheDocument()
-    vi.doUnmock('@/shared/lib/api')
   })
 })

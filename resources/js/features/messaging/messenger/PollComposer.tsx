@@ -300,11 +300,14 @@ export function PollComposer({
               aria-label="حداکثر گزینه‌ی قابلِ انتخاب"
               className="field rounded-lg px-2 py-1 text-small"
             >
-              {draft.options.map((_, index) => (
-                <option key={index} value={String(index + 1)}>
-                  {index === 0 ? 'یک (تک‌گزینه‌ای)' : String(index + 1)}
-                </option>
-              ))}
+              {/* شمارِ مجاز ۱ تا n — کلید خودِ عدد است، نه جایگاهِ گزینه‌ای که حذف‌شدنی است */}
+              {Array.from({ length: draft.options.length }, (_, index) => index + 1).map(
+                (count) => (
+                  <option key={count} value={String(count)}>
+                    {count === 1 ? 'یک (تک‌گزینه‌ای)' : String(count)}
+                  </option>
+                ),
+              )}
             </select>
           </label>
         </div>
