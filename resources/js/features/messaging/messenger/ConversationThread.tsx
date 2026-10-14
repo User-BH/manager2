@@ -24,7 +24,7 @@ import {
   newestId,
   removeByClientId,
 } from './threadState'
-import type { ChatMessage, ConversationSummary, MessagesResponse } from './types'
+import type { ChatMessage, ConversationSummary, MessagesResponse, UploadRules } from './types'
 
 const POLL_INTERVAL = 8000
 
@@ -64,6 +64,7 @@ export function ConversationThread({ conversationId }: { conversationId: number 
   const [showInfo, setShowInfo] = useState(false)
   const [forwarding, setForwarding] = useState<ChatMessage | null>(null)
   const [pinIndex, setPinIndex] = useState(0)
+  const [uploads, setUploads] = useState<UploadRules | null>(null)
   const [messages, setMessages] = useState<ChatMessage[]>([])
   const [info, setInfo] = useState<ThreadInfo>({
     conversation: null,
@@ -113,6 +114,7 @@ export function ConversationThread({ conversationId }: { conversationId: number 
       isAdmin: data.isAdmin,
       pins: data.pins ?? (data.pinned ? [data.pinned] : []),
     })
+    if (data.uploads) setUploads(data.uploads)
     setMessages((current) =>
       applyReadUpTo(
         mergeMessages(
@@ -268,7 +270,10 @@ export function ConversationThread({ conversationId }: { conversationId: number 
     if (outgoing.attachment) {
       const form = new FormData()
       // پیامِ صوتی فیلدِ خودش را دارد؛ سرور نوعش را از همین می‌فهمد، نه از حدس
-      form.append(outgoing.voice ? 'voice' : 'attachment', outgoing.attachment)
+      form.append(
+        outgoing.voice ? 'voice' : outgoing.videoMessage ? 'video_message' : 'attachment',
+        outgoing.attachment,
+      )
       for (const [key, value] of Object.entries(payload)) {
         if (Array.isArray(value)) value.forEach((item) => form.append(`${key}[]`, item))
         else form.append(key, value)
@@ -302,7 +307,13 @@ export function ConversationThread({ conversationId }: { conversationId: number 
       {
         id: -Date.now(),
         clientId,
-        body: draft.body || (draft.voice ? 'پیامِ صوتی' : (draft.attachment?.name ?? '')),
+        body:
+          draft.body ||
+          (draft.voice
+            ? 'پیامِ صوتی'
+            : draft.videoMessage
+              ? 'پیامِ ویدیویی'
+              : (draft.attachment?.name ?? '')),
         authorName: user?.name ?? 'شما',
         unitLabel: '',
         isMine: true,
@@ -558,6 +569,7 @@ export function ConversationThread({ conversationId }: { conversationId: number 
         <Composer
           // نظرسنجی فقط در گروه (بندِ ۶۱) — دکمه‌اش هم فقط همان‌جا
           isAdmin={info.isAdmin}
+          uploads={uploads ?? undefined}
           canPoll={
             info.isAdmin &&
             (info.conversation?.type === 'channel' || info.conversation?.type === 'group')

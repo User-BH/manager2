@@ -1173,6 +1173,21 @@ class PhaseRegressionMapTest extends TestCase
             '۱۰/۱۱: سقفِ چندگزینه‌ای و گزینه‌ی تکراری' => [
                 'PollRulesTest', 'test_multiple_choice_respects_its_cap', '۱۰',
             ],
+            '🔴 ۱۰/۱۲: پسوند و محتوای پیوست باید بخوانند' => [
+                'MessengerFilesTest', 'test_extension_and_content_must_agree', '۱۰',
+            ],
+            '🔴 ۱۰/۱۲: polyglot هرگز چیزی اجراشدنی سرو نمی‌شود' => [
+                'MessengerFilesTest', 'test_a_polyglot_is_never_served_as_something_it_can_run_as', '۱۰',
+            ],
+            '🔴 ۱۰/۱۲: دانلودِ پیوست همان قاعده‌ی دیدنِ پیام' => [
+                'MessengerFilesTest', 'test_downloads_follow_who_may_see_the_message', '۱۰',
+            ],
+            '۱۰/۱۲: سقفِ پیوست در سرور و قابلِ تنظیم' => [
+                'MessengerFilesTest', 'test_limits_are_server_side_and_configurable', '۱۰',
+            ],
+            '۱۰/۱۲: فایلِ بزرگ جریانی، نه در حافظه' => [
+                'MessengerFilesTest', 'test_large_files_stream_instead_of_loading_into_memory', '۱۰',
+            ],
             'مدیر از درخواستِ عضویت با اعلانِ داشبورد باخبر می‌شود' => [
                 'JoinRequestTest', 'test_the_complexes_managers_get_a_dashboard_notification_once', '۹',
             ],
@@ -1353,6 +1368,8 @@ class PhaseRegressionMapTest extends TestCase
             'messengerModeration' => ['۱۰/۱۰', 'عضو ناظر تعیین نمی‌کند'],
             // مرحلهٔ ۱۰ · فاز ۱۱: چندگزینه‌ای، «مجاز نیستید»، نظرسنجی فقط در گروه
             'pollRules' => ['۱۰/۱۱', 'شما مجاز به رأی دادن در این نظرسنجی نیستید.'],
+            // مرحلهٔ ۱۰ · فاز ۱۲: نگه دار و رها کن، لغو با کشیدن، سقفِ سرور پیش از آپلود
+            'messengerMedia' => ['۱۰/۱۲', 'کشیدن به کنار لغو است و چیزی نمی‌فرستد'],
         ];
 
         // 🔴 مثلِ ردیف‌های PHP، این فهرست هم فقط بزرگ می‌شود (خرابکاریِ فاز ۸)

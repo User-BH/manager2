@@ -83,7 +83,12 @@ export interface ChatMessage {
   isMine: boolean
   isHidden: boolean
   sentAt: string
-  attachment?: { name: string; kind: 'image' | 'file' | 'audio'; url: string } | null
+  /** ۱۰/۱۲: ویدیو و پیامِ ویدیویی هم */
+  attachment?: {
+    name: string
+    kind: 'image' | 'file' | 'audio' | 'video' | 'video_message'
+    url: string
+  } | null
   poll?: MessagePoll | null
   /** شمارِ خواننده‌ها — فقط برای مدیر. */
   readCount?: number | null
@@ -144,6 +149,7 @@ export interface MessagesResponse {
   /** ۱۰/۱۰: چند سنجاق، تازه‌ترین اول */
   pins?: ChatMessage[]
   rights?: { isModerator: boolean; canPin: boolean; canDeleteOthers: boolean }
+  uploads?: UploadRules
   conversation: ConversationSummary
   canSend: boolean
   isAdmin: boolean
@@ -167,4 +173,10 @@ export interface ReportItem {
   reportCount: number
   reasons: string[]
   reportedAt: string
+}
+
+/** سقفِ پیوست‌ها به کیلوبایت و پسوندهای پذیرفته — از سرور (۱۰/۱۲؛ بندِ ۴۶) */
+export interface UploadRules {
+  limitsKb: Record<'image' | 'file' | 'audio' | 'video' | 'voice' | 'video_message', number>
+  extensions: string[]
 }

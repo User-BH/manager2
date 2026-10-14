@@ -492,8 +492,8 @@ class MessengerEnrichmentTest extends TestCase
             'attachment' => UploadedFile::fake()->image('p.jpg'),
         ])->assertStatus(422);
 
-        // «voice» فقط از فیلدِ خودش: پیوستِ عادی هرگز `audio` نمی‌شود
-        $post(['attachment' => UploadedFile::fake()->create('a.pdf', 5, 'application/pdf')])->assertCreated();
+        // «voice» فقط از فیلدِ خودش: پیوستِ عادی هرگز `audio` نمی‌شود. از ۱۰/۱۲ محتوا باید با پسوند بخواند — PDF ِ واقعی
+        $post(['attachment' => UploadedFile::fake()->createWithContent('a.pdf', "%PDF-1.4\n%\xE2\xE3\xCF\xD3\n1 0 obj<<>>endobj\ntrailer<<>>\n%%EOF\n")])->assertCreated();
         $this->assertSame('file', Message::latest('id')->first()->attachment_kind);
     }
 

@@ -200,7 +200,7 @@ class MessageSender
                 'unit_id' => $unitId,
                 'attachment_path' => $path,
                 'attachment_name' => $attachment ? Uploads::safeOriginalName($attachment) : null,
-                'attachment_kind' => $attachment ? $this->attachmentKind($attachment, (bool) ($data['is_voice'] ?? false)) : null,
+                'attachment_kind' => $attachment ? $this->attachmentKind($attachment, $data) : null,
                 'author_name' => $user->name,
                 'author_role' => $user->role->value,
                 'unit_label' => $this->unitLabel($user),
@@ -225,7 +225,10 @@ class MessageSender
 
         return DB::transaction(
             fn () => $attachment
-                ? Uploads::keepIf($attachment, 'messages/'.$complex->id, $create)
+                // پیوستِ عادی با پسوندِ سنجیده‌اش؛ ضبط‌شده‌ها با حدسِ محتوا، مثلِ پیش
+                ? Uploads::keepIf($attachment, 'messages/'.$complex->id, $create, null, ($data['is_voice'] ?? false) || ($data['is_video_message'] ?? false)
+                    ? null
+                    : strtolower($attachment->getClientOriginalExtension()))
                 : $create(null),
             attempts: 3,
         );
@@ -270,12 +273,14 @@ class MessageSender
      * بقیه دانلود می‌شوند. نوعِ صوتی فقط از فیلدِ `voice` می‌آید که قاعده‌ی خودش را
      * دارد — نه از حدسِ نوعِ فایلی که به‌عنوانِ پیوستِ عادی آمده.
      */
-    private function attachmentKind(UploadedFile $file, bool $isVoice): string
+    /** @param  array<string, mixed>  $data */
+    private function attachmentKind(UploadedFile $file, array $data): string
     {
         return match (true) {
-            $isVoice => 'audio',
-            str_starts_with((string) $file->getMimeType(), 'image/') => 'image',
-            default => 'file',
+            (bool) ($data['is_voice'] ?? false) => 'audio',
+            // پیامِ ویدیوییِ ضبط‌شده (بندِ ۴۵)
+            (bool) ($data['is_video_message'] ?? false) => 'video_message',
+            default => AttachmentPolicy::kindOf($file) ?? 'file',
         };
     }
 

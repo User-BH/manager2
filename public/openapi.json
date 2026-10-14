@@ -4348,6 +4348,9 @@
                                     "voice": {
                                         "type": "string"
                                     },
+                                    "video_message": {
+                                        "type": "string"
+                                    },
                                     "poll_question": {
                                         "type": "string"
                                     },

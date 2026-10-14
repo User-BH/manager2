@@ -6,6 +6,9 @@ use Closure;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
+use Symfony\Component\HttpFoundation\BinaryFileResponse;
+use Symfony\Component\HttpFoundation\HeaderUtils;
+use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 use Throwable;
 
@@ -24,6 +27,13 @@ class Uploads
      * به `application/octet-stream` می‌افتد، یعنی مرورگر دانلودش می‌کند و
      * هرگز اجرا/رندرش نمی‌کند.
      */
+    /** ویدیو جدا: WebM و MP4 ِ پیامِ صوتی صوت‌اند، همان پسوندها در پیوستِ ویدیویی ویدیو (۱۰/۱۲) */
+    private const VIDEO = [
+        'mp4' => 'video/mp4',
+        'webm' => 'video/webm',
+        'mov' => 'video/quicktime',
+    ];
+
     private const SERVABLE = [
         'jpg' => 'image/jpeg',
         'jpeg' => 'image/jpeg',
@@ -38,6 +48,18 @@ class Uploads
         'opus' => 'audio/ogg',
         'm4a' => 'audio/mp4',
         'mp4' => 'audio/mp4',
+        // پیوست‌های ۱۰/۱۲: تصویر، صدا و سند
+        'gif' => 'image/gif',
+        'mp3' => 'audio/mpeg',
+        'wav' => 'audio/wav',
+        'aac' => 'audio/aac',
+        'txt' => 'text/plain; charset=utf-8',
+        'csv' => 'text/csv; charset=utf-8',
+        'docx' => 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+        'xlsx' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        'pptx' => 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+        'doc' => 'application/msword',
+        'xls' => 'application/vnd.ms-excel',
     ];
 
     /**
@@ -58,11 +80,17 @@ class Uploads
      * @param  Closure(string): T  $then  کاری که باید موفق شود تا فایل بماند
      * @return T
      */
-    public static function keepIf(UploadedFile $file, string $directory, Closure $then, ?string $disk = null): mixed
+    public static function keepIf(UploadedFile $file, string $directory, Closure $then, ?string $disk = null, ?string $extension = null): mixed
     {
         $disk ??= PrivateFiles::name();
 
-        $path = $file->store($directory, $disk);
+        /*
+         * `$extension`: پسوندی که از پیش با فهرست و محتوا سنجیده شده (`AttachmentPolicy`، ۱۰/۱۲) — نه حدسِ دوباره که
+         * docx را zip می‌خواند. نام همیشه تصادفی است؛ نامِ کاربر هرگز به مسیر نمی‌رسد.
+         */
+        $path = $extension !== null
+            ? $file->storeAs($directory, Str::random(40).'.'.$extension, $disk)
+            : $file->store($directory, $disk);
 
         try {
             return $then($path);
@@ -108,6 +136,37 @@ class Uploads
      * همراه با `X-Content-Type-Options: nosniff` (R16) این یعنی فایلی که
      * کاربر آپلود کرده، هر چه باشد، در مرورگر به‌عنوان HTML اجرا نمی‌شود.
      */
+    /**
+     * پیوستِ پیام (مرحلهٔ ۱۰ · فاز ۱۲؛ بندهای ۴۸ و ۴۹).
+     *
+     * - نوعِ پاسخ از فهرستِ سرور و نوعِ پیوست، نه از حدسِ مرورگر (`nosniff` سراسری است).
+     * - تصویر، صدا، ویدیو و PDF درون‌خطی؛ **بقیه دانلود** با نامِ تمیزشده — سندی که HTML یا اسکریپت هم باشد (polyglot)
+     *   در صفحه اجرا نمی‌شود.
+     * - دیسکِ محلی: `BinaryFileResponse` — از روی دیسک جریان می‌یابد (فایل به حافظه نمی‌آید) و درخواستِ `Range` را
+     *   می‌پذیرد، که پخش و جلوزدنِ ویدیوی بزرگ (و Safari) به آن نیاز دارند. دیسکِ دیگر (S3): جریانِ `Storage`.
+     */
+    public static function serveAttachment(string $path, string $kind, ?string $name = null, ?string $disk = null): Response
+    {
+        $disk ??= PrivateFiles::name();
+        $extension = Str::lower(pathinfo($path, PATHINFO_EXTENSION));
+        $video = in_array($kind, ['video', 'video_message'], true);
+        $type = ($video ? self::VIDEO[$extension] ?? null : null) ?? self::SERVABLE[$extension] ?? 'application/octet-stream';
+        $inline = in_array($kind, ['image', 'audio', 'video', 'video_message'], true) || $type === 'application/pdf';
+
+        $fallback = preg_replace('/[^A-Za-z0-9._-]+/', '_', (string) $name) ?: 'file';
+        $disposition = $inline ? 'inline' : HeaderUtils::makeDisposition('attachment', $name ?: 'file', $fallback);
+        $headers = ['Content-Type' => $type, 'Content-Disposition' => $disposition, 'X-Content-Type-Options' => 'nosniff'];
+
+        if (config('filesystems.disks.'.$disk.'.driver') === 'local') {
+            $response = new BinaryFileResponse(Storage::disk($disk)->path($path), 200, $headers, true, null, false, false);
+            $response->headers->set('Content-Type', $type);
+
+            return $response;
+        }
+
+        return Storage::disk($disk)->response($path, null, $headers);
+    }
+
     public static function serve(string $path, array $headers = [], ?string $disk = null): StreamedResponse
     {
         $extension = Str::lower(pathinfo($path, PATHINFO_EXTENSION));

@@ -24,7 +24,7 @@ use App\Support\Uploads;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Symfony\Component\HttpFoundation\StreamedResponse;
+use Symfony\Component\HttpFoundation\Response;
 
 /**
  * پیام‌رسان داخلی مجتمع.
@@ -264,7 +264,7 @@ class MessengerController extends Controller
     }
 
     /** سروِ پیوستِ پیام از دیسکِ خصوصی. */
-    public function attachment(Message $message): StreamedResponse
+    public function attachment(Message $message): Response
     {
         $user = Auth::user();
 
@@ -279,7 +279,8 @@ class MessengerController extends Controller
 
         abort_unless($visible && $message->hasAttachment(), 404);
 
-        return Uploads::serve($message->attachment_path);
+        // نوع، درون‌خطی یا دانلود، و Range از نوعِ پیوست (۱۰/۱۲)
+        return Uploads::serveAttachment($message->attachment_path, (string) $message->attachment_kind, $message->attachment_name);
     }
 
     /** مخفی/آشکار کردن پیام توسط مدیر. */

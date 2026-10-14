@@ -19,6 +19,7 @@ use App\Models\Unit;
 use App\Models\User;
 use App\Services\Account\ComplexMembers;
 use App\Services\Account\ProfilePhoto;
+use App\Services\Messenger\AttachmentPolicy;
 use App\Services\Messenger\ConversationDirectory;
 use App\Services\Messenger\ConversationParticipants;
 use App\Services\Messenger\ConversationRights;
@@ -100,6 +101,8 @@ class ConversationController extends Controller
                 : [],
             // اعضای فعال، برای گفت‌وگوی خصوصی با یک نفر (۱۰/۹)
             'members' => $user->role->isAdmin() ? $this->members($complex) : [],
+            // سقفِ پیوست‌ها و پسوندهای پذیرفته (۱۰/۱۲) — فقط برای پیش‌آگهیِ کلاینت؛ سرور خودش می‌سنجد
+            'uploads' => ['limitsKb' => AttachmentPolicy::limits(), 'extensions' => AttachmentPolicy::extensions()],
         ]);
     }
 
@@ -189,6 +192,8 @@ class ConversationController extends Controller
             'serverTime' => now()->getTimestamp(),
             'canSend' => $this->canSend($conversation, $user),
             'isAdmin' => $user->isAdmin(),
+            // سقف و پسوندهای پیوست برای کادرِ نوشتن (۱۰/۱۲)؛ سرور خودش دوباره می‌سنجد
+            'uploads' => ['limitsKb' => AttachmentPolicy::limits(), 'extensions' => AttachmentPolicy::extensions()],
         ]);
     }
 
@@ -199,13 +204,14 @@ class ConversationController extends Controller
 
         // پیامِ صوتی همان پیوست است با نوعِ `audio` (فاز ۱۴)؛ قاعده‌ی فایلش جداست
         $voice = $request->file('voice');
+        $videoMessage = $request->file('video_message');
 
         [$message, $created] = $sender->send(
             $this->requireComplex(),
             $conversation,
             $user,
-            [...$request->validated(), 'is_voice' => $voice !== null],
-            $voice ?? $request->file('attachment'),
+            [...$request->validated(), 'is_voice' => $voice !== null, 'is_video_message' => $videoMessage !== null],
+            $voice ?? $videoMessage ?? $request->file('attachment'),
         );
 
         // تکراری ۲۰۰ است نه ۲۰۱: کلاینت می‌فهمد این همان پیامِ قبلی است

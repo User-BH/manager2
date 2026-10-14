@@ -177,7 +177,29 @@ export function MessageBubble({
           <>
             {message.body && <p className="whitespace-pre-line leading-6">{message.body}</p>}
 
-            {message.attachment?.kind === 'audio' ? (
+            {message.attachment?.kind === 'video' ||
+            message.attachment?.kind === 'video_message' ? (
+              // ۱۰/۱۲: پخش از همان مسیرِ مجاز با Range؛ پیامِ ویدیویی گرد، مثلِ پیام‌رسان‌های آشنا.
+              // ⚠️ ویدیوی کاربر زیرنویس ندارد؛ `<track>`ِ خالی فقط قاعده را ساکت می‌کرد — همان کمبودِ ثبت‌شده‌ی پیامِ صوتی.
+              // eslint-disable-next-line jsx-a11y/media-has-caption -- کمبودِ ثبت‌شده در CANONICAL_INVENTORY (۱۰/۱۲)
+              <video
+                controls
+                playsInline
+                preload="metadata"
+                src={message.attachment.url}
+                aria-label={
+                  message.attachment.kind === 'video_message'
+                    ? 'پیامِ ویدیویی'
+                    : message.attachment.name
+                }
+                className={cn(
+                  'mt-1 max-w-full',
+                  message.attachment.kind === 'video_message'
+                    ? 'h-48 w-48 rounded-full object-cover'
+                    : 'max-h-72 rounded-lg',
+                )}
+              />
+            ) : message.attachment?.kind === 'audio' ? (
               // ⚠️ پیامِ صوتیِ ساکن متنِ پیاده‌شده ندارد؛ `<track>`ِ خالی فقط قاعده را ساکت می‌کرد.
               // eslint-disable-next-line jsx-a11y/media-has-caption -- کمبودِ ثبت‌شده در CANONICAL_INVENTORY (فاز ۱۴)
               <audio

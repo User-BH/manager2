@@ -6,12 +6,54 @@ import { z } from 'zod'
 import { alertError } from '@/shared/lib/alert'
 import { EmojiPicker } from './EmojiPicker'
 import { PollComposer, emptyPoll, type PollDraft } from './PollComposer'
-import { VoiceRecorder, isVoiceSupported } from './VoiceRecorder'
-import type { ChatMessage } from './types'
+import { HoldRecorder, isRecordingSupported } from './HoldRecorder'
+import type { ChatMessage, UploadRules } from './types'
 
-/** همان قیدِ سرور؛ اینجا فقط تا کاربر پیش از آپلود بفهمد. */
-const MAX_ATTACHMENT_BYTES = 4 * 1024 * 1024
-const ACCEPTED_TYPES = '.jpg,.jpeg,.png,.webp,.pdf'
+/**
+ * پیش‌آگهیِ سقف و نوع (۱۰/۱۲) — همان قاعده‌ی سرور (`AttachmentPolicy`)، فقط تا کاربر پیش از آپلودِ طولانی بفهمد.
+ * سرور خودش با محتوای فایل دوباره می‌سنجد. بی پاسخِ سرور، همان پیش‌فرض‌های `config/messenger.php`.
+ */
+const DEFAULT_UPLOADS: UploadRules = {
+  limitsKb: {
+    image: 20480,
+    file: 102400,
+    audio: 51200,
+    video: 512000,
+    voice: 1024,
+    video_message: 20480,
+  },
+  extensions: [
+    'jpg',
+    'jpeg',
+    'png',
+    'webp',
+    'gif',
+    'mp4',
+    'webm',
+    'mov',
+    'mp3',
+    'm4a',
+    'ogg',
+    'wav',
+    'aac',
+    'pdf',
+    'txt',
+    'csv',
+    'docx',
+    'xlsx',
+    'pptx',
+    'doc',
+    'xls',
+  ],
+}
+
+function kindOf(name: string): 'image' | 'video' | 'audio' | 'file' {
+  const extension = name.split('.').pop()?.toLowerCase() ?? ''
+  if (['jpg', 'jpeg', 'png', 'webp', 'gif'].includes(extension)) return 'image'
+  if (['mp4', 'webm', 'mov'].includes(extension)) return 'video'
+  if (['mp3', 'm4a', 'ogg', 'wav', 'aac'].includes(extension)) return 'audio'
+  return 'file'
+}
 
 const messageSchema = z.object({ body: z.string().max(1000, 'پیام بیش از حد طولانی است') })
 type MessageFormValues = z.infer<typeof messageSchema>
@@ -22,6 +64,8 @@ export interface OutgoingDraft {
   attachment: File | null
   /** پیوست پیامِ صوتی است (فیلدِ `voice`، نه `attachment`). */
   voice: boolean
+  /** پیوست پیامِ ویدیوییِ ضبط‌شده است (فیلدِ `video_message`، ۱۰/۱۲). */
+  videoMessage?: boolean
   poll: PollDraft | null
   replyTo: ChatMessage | null
 }
@@ -41,6 +85,7 @@ export type ComposeTarget = { mode: 'reply' | 'edit'; message: ChatMessage } | n
 export function Composer({
   isAdmin,
   canPoll = isAdmin,
+  uploads = DEFAULT_UPLOADS,
   target,
   onCancelTarget,
   onSend,
@@ -50,6 +95,8 @@ export function Composer({
   isAdmin: boolean
   /** نظرسنجی فقط در گروه (۱۰/۱۱؛ بندِ ۶۱) — گفت‌وگوی خصوصی دکمه‌اش را ندارد */
   canPoll?: boolean
+  /** سقف و پسوندهای سرور (۱۰/۱۲) */
+  uploads?: UploadRules
   target: ComposeTarget
   onCancelTarget: () => void
   onSend: (draft: OutgoingDraft) => Promise<void>
@@ -95,13 +142,42 @@ export function Composer({
     })
   }
 
-  function pickAttachment(file: File | null, voice = false) {
-    if (file && file.size > MAX_ATTACHMENT_BYTES) {
-      onNotice('حجم فایل باید کمتر از ۴ مگابایت باشد.')
+  function pickAttachment(file: File | null) {
+    if (file) {
+      const extension = file.name.split('.').pop()?.toLowerCase() ?? ''
+      if (!uploads.extensions.includes(extension)) {
+        onNotice('این نوع فایل پذیرفته نیست.')
+        return
+      }
+      const limitKb = uploads.limitsKb[kindOf(file.name)]
+      if (file.size > limitKb * 1024) {
+        onNotice(`حجمِ فایل از سقفِ ${Math.round(limitKb / 1024)} مگابایت بیشتر است.`)
+        return
+      }
+    }
+    onNotice(null)
+    setAttachment(file ? { file, voice: false } : null)
+  }
+
+  /**
+   * پیامِ صوتی یا ویدیوییِ ضبط‌شده همان لحظه‌ی رها کردن فرستاده می‌شود (بندهای ۴۴ و ۴۵) — نه پیوستی که باید دوباره
+   * «ارسال» شود. پاسخ به پیام اگر انتخاب شده، همراهش می‌رود.
+   */
+  async function sendRecorded(file: File, kind: 'voice' | 'video_message') {
+    const limitKb = uploads.limitsKb[kind]
+    if (file.size > limitKb * 1024) {
+      onNotice(`ضبط از سقفِ ${Math.round(limitKb / 1024) || 1} مگابایت بیشتر شد.`)
       return
     }
     onNotice(null)
-    setAttachment(file ? { file, voice } : null)
+    await onSend({
+      body: '',
+      attachment: file,
+      voice: kind === 'voice',
+      videoMessage: kind === 'video_message',
+      poll: null,
+      replyTo: target?.mode === 'reply' ? target.message : null,
+    })
   }
 
   async function onSubmit(values: MessageFormValues) {
@@ -231,18 +307,26 @@ export function Composer({
                 <input
                   ref={fileInputRef}
                   type="file"
-                  accept={ACCEPTED_TYPES}
+                  accept={uploads.extensions.map((extension) => `.${extension}`).join(',')}
                   className="hidden"
                   onChange={(event) => {
                     pickAttachment(event.target.files?.[0] ?? null)
                     event.target.value = ''
                   }}
                 />
-                {isVoiceSupported() && (
-                  <VoiceRecorder
-                    onRecorded={(file) => pickAttachment(file, true)}
-                    onError={onNotice}
-                  />
+                {isRecordingSupported() && (
+                  <>
+                    <HoldRecorder
+                      mode="voice"
+                      onRecorded={(file) => void sendRecorded(file, 'voice')}
+                      onError={onNotice}
+                    />
+                    <HoldRecorder
+                      mode="video"
+                      onRecorded={(file) => void sendRecorded(file, 'video_message')}
+                      onError={onNotice}
+                    />
+                  </>
                 )}
                 {canPoll && (
                   <button
