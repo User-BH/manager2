@@ -251,10 +251,15 @@ export function ConversationThread({ conversationId }: { conversationId: number 
     if (outgoing.poll && info.isAdmin) {
       const poll = outgoing.poll
       payload.poll_question = poll.question.trim()
-      payload.poll_options = poll.options.map((o) => o.text.trim()).filter(Boolean)
+      const options = poll.options.map((o) => o.text.trim()).filter(Boolean)
+      payload.poll_options = options
       payload.poll_voter_scope = poll.voterScope
       payload.poll_weight_mode = poll.weightMode
       payload.poll_allow_change = poll.allowChange ? '1' : '0'
+      // چندگزینه‌ای (۱۰/۱۱)؛ سقف از شمارِ گزینه‌ها نمی‌گذرد — سرور هم می‌سنجد
+      payload.poll_max_selections = String(
+        Math.min(Number(poll.maxSelections) || 1, options.length),
+      )
       if (poll.quorumPercent) payload.poll_quorum_percent = poll.quorumPercent
       if (poll.closesAt) payload.poll_closes_at = new Date(poll.closesAt).toISOString()
     }
@@ -551,7 +556,12 @@ export function ConversationThread({ conversationId }: { conversationId: number 
 
       {info.canSend ? (
         <Composer
+          // نظرسنجی فقط در گروه (بندِ ۶۱) — دکمه‌اش هم فقط همان‌جا
           isAdmin={info.isAdmin}
+          canPoll={
+            info.isAdmin &&
+            (info.conversation?.type === 'channel' || info.conversation?.type === 'group')
+          }
           target={compose}
           onCancelTarget={() => setCompose(null)}
           onSend={send}

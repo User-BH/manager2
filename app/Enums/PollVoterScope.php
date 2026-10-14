@@ -15,11 +15,15 @@ enum PollVoterScope: string
     case Residents = 'residents';
     case Owners = 'owners';
 
+    /** فقط مستأجران (مرحلهٔ ۱۰ · فاز ۱۱؛ بندِ ۶۵) */
+    case Tenants = 'tenants';
+
     public function label(): string
     {
         return match ($this) {
             self::Residents => 'همه‌ی ساکنین',
             self::Owners => 'فقط مالکان',
+            self::Tenants => 'فقط مستأجران',
         };
     }
 }

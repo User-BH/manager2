@@ -37,6 +37,12 @@ class SendConversationMessageRequest extends BaseFormRequest
             'poll_weight_mode' => ['nullable', Rule::enum(PollWeightMode::class)],
             'poll_quorum_percent' => ['nullable', 'integer', 'min:1', 'max:100'],
             'poll_allow_change' => ['nullable', 'boolean'],
+            // چندگزینه‌ای (۱۰/۱۱): ۱ تک‌گزینه‌ای؛ سقف از شمارِ گزینه‌ها نمی‌گذرد
+            'poll_max_selections' => ['nullable', 'integer', 'min:1', 'max:10', function (string $attribute, mixed $value, \Closure $fail): void {
+                if ((int) $value > count((array) $this->input('poll_options', []))) {
+                    $fail('سقفِ انتخاب از شمارِ گزینه‌ها بیشتر است.');
+                }
+            }],
             'poll_closes_at' => ['nullable', 'date', 'after:now'],
         ];
     }

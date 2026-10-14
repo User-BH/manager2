@@ -321,8 +321,9 @@ class MessengerEnrichmentTest extends TestCase
         $this->as($this->admin)->deleteJson($this->url($thread, "/messages/{$alices}"))
             ->assertForbidden()->assertJsonPath('code', 'messenger.not_yours');
 
-        $poll = $this->say($this->admin, $thread, ['poll_question' => 'رنگِ لابی؟', 'poll_options' => ['سفید', 'کرم']]);
-        $this->as($this->admin)->deleteJson($this->url($thread, "/messages/{$poll}"))
+        // ۱۰/۱۱ (بندِ ۶۱): نظرسنجی فقط در گروه — پس در گروهِ مجتمع
+        $poll = $this->say($this->admin, $this->channel(), ['poll_question' => 'رنگِ لابی؟', 'poll_options' => ['سفید', 'کرم']]);
+        $this->as($this->admin)->deleteJson($this->url($this->channel(), "/messages/{$poll}"))
             ->assertStatus(409)->assertJsonPath('code', 'messenger.poll_message');
 
         Message::whereKey($alices)->update(['is_hidden' => true]);

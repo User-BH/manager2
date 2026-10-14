@@ -211,9 +211,14 @@ class MessengerController extends Controller
 
         abort_unless($visible, 404);
 
-        $option = PollOption::whereKey($request->integer('option_id'))->first();
+        // یک گزینه (`option_id`، کلاینتِ پیشین) یا چند (`option_ids`، چندگزینه‌ای — ۱۰/۱۱)
+        $requested = $request->has('option_ids')
+            ? array_map('intval', array_filter((array) $request->input('option_ids'), 'is_numeric'))
+            : [$request->integer('option_id')];
+        $options = PollOption::whereKey($requested)->get()->all();
 
-        if (! $option) {
+        // گزینه‌ی تکراری خطاست، نه یکی‌شده: کلاینتی که دو بار یک گزینه می‌فرستد چیزی را اشتباه فهمیده
+        if ($requested === [] || count(array_unique($requested)) !== count($requested) || count($options) !== count($requested)) {
             throw DomainException::invalid('گزینه‌ی انتخابی معتبر نیست.', 'poll.invalid_option');
         }
 
@@ -222,7 +227,7 @@ class MessengerController extends Controller
          * همان منطق را کارتِ داشبورد و `MessageResource` هم مصرف می‌کنند و
          * نباید سه نسخه‌ی جدا داشته باشد.
          */
-        $this->polls->castVote($poll, $user, $option);
+        $this->polls->castVote($poll, $user, $options);
 
         return response()->json([
             'message' => 'رأی شما ثبت شد.',

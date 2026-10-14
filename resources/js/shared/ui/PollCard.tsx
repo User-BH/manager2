@@ -20,7 +20,7 @@ export interface MessagePoll {
   question: string
   isClosed: boolean
   closesAt: string | null
-  voterScope: 'residents' | 'owners'
+  voterScope: 'residents' | 'owners' | 'tenants'
   voterScopeLabel: string
   weightMode: 'per_person' | 'per_unit' | 'by_area'
   weightModeLabel: string
@@ -31,8 +31,13 @@ export interface MessagePoll {
   options: MessagePollOption[]
   totalVotes: number
   myOptionId: number | null
+  /** ۱۰/۱۱: همه‌ی گزینه‌های بیننده (چندگزینه‌ای) و سقفِ انتخاب؛ ۱ یعنی تک‌گزینه‌ای */
+  myOptionIds?: number[]
+  maxSelections?: number
   /** چرا این کاربر نمی‌تواند رأی بدهد؛ `null` یعنی می‌تواند. */
   blockReason: string | null
+  /** بندِ ۶۶: می‌بیند ولی حقِ رأی ندارد — جدا از «بسته است» */
+  eligible?: boolean
 
   eligibleWeight: number
   castWeight: number
@@ -68,6 +73,10 @@ export function PollCard({
 }) {
   const [pendingId, setPendingId] = useState<number | null>(null)
   const [isClosing, setIsClosing] = useState(false)
+  // چندگزینه‌ای (بندِ ۶۴): انتخاب‌ها پیش از «ثبتِ رأی» جمع می‌شوند؛ سقف را سرور هم می‌سنجد
+  const maxSelections = poll.maxSelections ?? 1
+  const multiple = maxSelections > 1
+  const [picked, setPicked] = useState<number[]>(() => poll.myOptionIds ?? [])
 
   const muted = isMine ? 'rgba(255,255,255,0.75)' : 'var(--text-tertiary)'
   const track = isMine ? 'rgba(255,255,255,0.18)' : 'var(--surface-base)'
@@ -120,6 +129,33 @@ export function PollCard({
     }
   }
 
+  async function submitMany() {
+    if (!canVote || pendingId !== null || picked.length === 0) return
+
+    setPendingId(-1)
+    try {
+      const { poll: fresh } = await api<{ poll: MessagePoll }>(`/messenger/polls/${poll.id}/vote`, {
+        method: 'POST',
+        body: { option_ids: picked },
+      })
+      onVoted(fresh)
+    } catch (err) {
+      alertError(err, 'ثبت رأی ممکن نشد.')
+    } finally {
+      setPendingId(null)
+    }
+  }
+
+  function toggle(optionId: number) {
+    setPicked((current) =>
+      current.includes(optionId)
+        ? current.filter((id) => id !== optionId)
+        : current.length < maxSelections
+          ? [...current, optionId]
+          : current,
+    )
+  }
+
   async function close() {
     setIsClosing(true)
 
@@ -158,6 +194,12 @@ export function PollCard({
         </span>
         <span>·</span>
         <span>{poll.weightModeLabel}</span>
+        {multiple && (
+          <>
+            <span>·</span>
+            <span>تا {maxSelections} گزینه</span>
+          </>
+        )}
         {!poll.allowChange && (
           <>
             <span>·</span>
@@ -171,16 +213,19 @@ export function PollCard({
 
       <ul className="flex flex-col gap-1.5">
         {poll.options.map((option) => {
-          const isMyVote = poll.myOptionId === option.id
+          const isMyVote = multiple
+            ? (poll.myOptionIds ?? []).includes(option.id)
+            : poll.myOptionId === option.id
+          const isPicked = picked.includes(option.id)
           const isLeader = poll.leaderId === option.id
 
           return (
             <li key={option.id}>
               <button
                 type="button"
-                onClick={() => void vote(option.id)}
+                onClick={() => (multiple ? toggle(option.id) : void vote(option.id))}
                 disabled={!canVote || pendingId !== null}
-                aria-pressed={isMyVote}
+                aria-pressed={multiple ? isPicked : isMyVote}
                 className="relative w-full overflow-hidden rounded-lg px-2.5 py-1.5 text-right text-[12px] disabled:cursor-default"
                 style={{ backgroundColor: track }}
               >
@@ -195,7 +240,7 @@ export function PollCard({
                     {pendingId === option.id ? (
                       <Loader2 size={11} className="animate-spin" />
                     ) : (
-                      isMyVote && <Check size={11} />
+                      (multiple ? isPicked : isMyVote) && <Check size={11} />
                     )}
                     {isLeader && <Trophy size={11} />}
                     {option.label}
@@ -209,6 +254,18 @@ export function PollCard({
           )
         })}
       </ul>
+
+      {multiple && canVote && (
+        <button
+          type="button"
+          onClick={() => void submitMany()}
+          disabled={pendingId !== null || picked.length === 0}
+          className="mt-2 w-full rounded-lg py-1.5 text-small font-semibold disabled:opacity-60"
+          style={{ backgroundColor: track }}
+        >
+          {pendingId !== null ? 'در حال ثبت…' : 'ثبتِ رأی'}
+        </button>
+      )}
 
       {/* ── آمار ─────────────────────────────────────────────────────────── */}
       <div className="mt-2 flex flex-col gap-0.5 text-[10.5px]" style={{ color: muted }}>
@@ -235,6 +292,10 @@ export function PollCard({
           </p>
         )}
 
+        {/* بندِ ۶۶: «می‌بیند ولی مجاز نیست» روشن گفته می‌شود؛ دلیلِ دقیقش کنارش */}
+        {poll.eligible === false && !isAdmin && !poll.isClosed && (
+          <p className="font-semibold">شما مجاز به رأی دادن در این نظرسنجی نیستید.</p>
+        )}
         {poll.blockReason && <p>{poll.blockReason}</p>}
       </div>
 

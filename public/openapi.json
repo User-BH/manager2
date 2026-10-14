@@ -3896,6 +3896,9 @@
                                     "poll_allow_change": {
                                         "type": "boolean"
                                     },
+                                    "poll_max_selections": {
+                                        "type": "number"
+                                    },
                                     "poll_closes_at": {
                                         "type": "string"
                                     },
@@ -4365,6 +4368,9 @@
                                     },
                                     "poll_allow_change": {
                                         "type": "boolean"
+                                    },
+                                    "poll_max_selections": {
+                                        "type": "number"
                                     },
                                     "poll_closes_at": {
                                         "type": "string"

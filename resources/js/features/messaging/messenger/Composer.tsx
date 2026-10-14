@@ -40,6 +40,7 @@ export type ComposeTarget = { mode: 'reply' | 'edit'; message: ChatMessage } | n
  */
 export function Composer({
   isAdmin,
+  canPoll = isAdmin,
   target,
   onCancelTarget,
   onSend,
@@ -47,6 +48,8 @@ export function Composer({
   onNotice,
 }: {
   isAdmin: boolean
+  /** نظرسنجی فقط در گروه (۱۰/۱۱؛ بندِ ۶۱) — گفت‌وگوی خصوصی دکمه‌اش را ندارد */
+  canPoll?: boolean
   target: ComposeTarget
   onCancelTarget: () => void
   onSend: (draft: OutgoingDraft) => Promise<void>
@@ -171,7 +174,7 @@ export function Composer({
         </div>
       )}
 
-      {pollDraft && isAdmin && !editing && (
+      {pollDraft && canPoll && !editing && (
         <PollComposer
           draft={pollDraft}
           onChange={setPollDraft}
@@ -241,7 +244,7 @@ export function Composer({
                     onError={onNotice}
                   />
                 )}
-                {isAdmin && (
+                {canPoll && (
                   <button
                     type="button"
                     onClick={() => setPollDraft((draft) => (draft ? null : emptyPoll()))}

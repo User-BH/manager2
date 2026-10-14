@@ -30,12 +30,14 @@ export interface PollDraft {
   question: string
   options: PollOptionDraft[]
   /** چه کسانی حقِ رأی دارند (R24). */
-  voterScope: 'residents' | 'owners'
+  voterScope: 'residents' | 'owners' | 'tenants'
   /** رأی چطور شمرده می‌شود (R24). */
   weightMode: 'per_person' | 'per_unit' | 'by_area'
   /** حد نصابِ مشارکت به درصد؛ رشته‌ی خالی یعنی بدونِ حد نصاب. */
   quorumPercent: string
   allowChange: boolean
+  /** چندگزینه‌ای (۱۰/۱۱): بیشترینِ انتخاب؛ «1» یعنی تک‌گزینه‌ای */
+  maxSelections: string
   /** مهلتِ رأی‌گیری به شکلِ `datetime-local`؛ خالی یعنی بی‌مهلت. */
   closesAt: string
 }
@@ -55,6 +57,7 @@ export function emptyPoll(): PollDraft {
     weightMode: 'per_person',
     quorumPercent: '',
     allowChange: true,
+    maxSelections: '1',
     closesAt: '',
   }
 }
@@ -66,6 +69,7 @@ const MAX_OPTIONS = 10
 const SCOPES: Array<{ value: PollDraft['voterScope']; label: string }> = [
   { value: 'residents', label: 'همه‌ی ساکنین' },
   { value: 'owners', label: 'فقط مالکان' },
+  { value: 'tenants', label: 'فقط مستأجران' },
 ]
 
 const WEIGHTS: Array<{ value: PollDraft['weightMode']; label: string; hint: string }> = [
@@ -283,6 +287,25 @@ export function PollComposer({
               onChange={(event) => onChange({ ...draft, allowChange: !event.target.checked })}
             />
             رأی پس از ثبت قابل تغییر نباشد
+          </label>
+
+          <label
+            className="flex items-center gap-2 text-tiny"
+            style={{ color: 'var(--text-secondary)' }}
+          >
+            حداکثر گزینه‌ی قابلِ انتخاب
+            <select
+              value={draft.maxSelections}
+              onChange={(event) => onChange({ ...draft, maxSelections: event.target.value })}
+              aria-label="حداکثر گزینه‌ی قابلِ انتخاب"
+              className="field rounded-lg px-2 py-1 text-small"
+            >
+              {draft.options.map((_, index) => (
+                <option key={index} value={String(index + 1)}>
+                  {index === 0 ? 'یک (تک‌گزینه‌ای)' : String(index + 1)}
+                </option>
+              ))}
+            </select>
           </label>
         </div>
       )}

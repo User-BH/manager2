@@ -29,7 +29,7 @@ class MessagePoll extends Model
 {
     protected $fillable = [
         'message_id', 'question', 'closes_at',
-        'voter_scope', 'weight_mode', 'quorum_percent', 'allow_change',
+        'voter_scope', 'weight_mode', 'quorum_percent', 'allow_change', 'max_selections',
     ];
 
     protected function casts(): array
@@ -39,6 +39,7 @@ class MessagePoll extends Model
             'voter_scope' => PollVoterScope::class,
             'weight_mode' => PollWeightMode::class,
             'allow_change' => 'boolean',
+            'max_selections' => 'integer',
         ];
     }
 

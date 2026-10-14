@@ -1161,6 +1161,18 @@ class PhaseRegressionMapTest extends TestCase
             '۱۰/۱۰: چند سنجاق و سقفش' => [
                 'GroupModerationTest', 'test_pins_are_many_and_follow_the_matrix', '۱۰',
             ],
+            '🔴 ۱۰/۱۱: سرور رأیِ غیرمجاز را رد می‌کند، نه فقط رابط' => [
+                'PollRulesTest', 'test_eligibility_is_separate_from_visibility_and_enforced_by_the_server', '۱۰',
+            ],
+            '🔴 ۱۰/۱۱: پس از پایانِ عضویت رأیِ تازه نه' => [
+                'PollRulesTest', 'test_no_new_vote_after_membership_ends_but_history_stays', '۱۰',
+            ],
+            '۱۰/۱۱: نظرسنجی فقط در گروه' => [
+                'PollRulesTest', 'test_polls_live_only_in_groups', '۱۰',
+            ],
+            '۱۰/۱۱: سقفِ چندگزینه‌ای و گزینه‌ی تکراری' => [
+                'PollRulesTest', 'test_multiple_choice_respects_its_cap', '۱۰',
+            ],
             'مدیر از درخواستِ عضویت با اعلانِ داشبورد باخبر می‌شود' => [
                 'JoinRequestTest', 'test_the_complexes_managers_get_a_dashboard_notification_once', '۹',
             ],
@@ -1339,6 +1351,8 @@ class PhaseRegressionMapTest extends TestCase
             'messengerStructure' => ['۱۰/۹', 'خصوصی با یک عضو است، نه با واحد'],
             // مرحلهٔ ۱۰ · فاز ۱۰: منوی پیام، هدایت و ناظرِ گروه
             'messengerModeration' => ['۱۰/۱۰', 'عضو ناظر تعیین نمی‌کند'],
+            // مرحلهٔ ۱۰ · فاز ۱۱: چندگزینه‌ای، «مجاز نیستید»، نظرسنجی فقط در گروه
+            'pollRules' => ['۱۰/۱۱', 'شما مجاز به رأی دادن در این نظرسنجی نیستید.'],
         ];
 
         // 🔴 مثلِ ردیف‌های PHP، این فهرست هم فقط بزرگ می‌شود (خرابکاریِ فاز ۸)

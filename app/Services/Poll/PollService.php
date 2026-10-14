@@ -6,12 +6,14 @@ use App\Enums\MessageAudience;
 use App\Enums\PollVoterScope;
 use App\Enums\PollWeightMode;
 use App\Enums\ResidentRelation;
+use App\Enums\UserRole;
 use App\Exceptions\DomainException;
 use App\Models\MessagePoll;
 use App\Models\PollOption;
 use App\Models\PollVote;
 use App\Models\Unit;
 use App\Models\User;
+use App\Services\Account\ComplexMembers;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\DB;
 
@@ -88,8 +90,8 @@ class PollService
             ->whereHas('units', function ($query) use ($unitIds, $poll) {
                 $query->whereIn('units.id', $unitIds)->where('unit_user.is_current', true);
 
-                if ($poll->voter_scope === PollVoterScope::Owners) {
-                    $query->where('unit_user.relation', ResidentRelation::Owner->value);
+                if ($relation = $this->relationFor($poll)) {
+                    $query->where('unit_user.relation', $relation->value);
                 }
             })
             ->get();
@@ -109,11 +111,21 @@ class PollService
 
         $query = $user->units()->whereIn('units.id', $eligible)->wherePivot('is_current', true);
 
-        if ($poll->voter_scope === PollVoterScope::Owners) {
-            $query->wherePivot('relation', ResidentRelation::Owner->value);
+        if ($relation = $this->relationFor($poll)) {
+            $query->wherePivot('relation', $relation->value);
         }
 
         return $query->first();
+    }
+
+    /** «فقط مالکان» و «فقط مستأجران» (بندِ ۶۵)؛ «همه‌ی ساکنین» هر دو. */
+    private function relationFor(MessagePoll $poll): ?ResidentRelation
+    {
+        return match ($poll->voter_scope) {
+            PollVoterScope::Owners => ResidentRelation::Owner,
+            PollVoterScope::Tenants => ResidentRelation::Tenant,
+            PollVoterScope::Residents => null,
+        };
     }
 
     /**
@@ -133,12 +145,22 @@ class PollService
             return 'برگزارکننده در نظرسنجی رأی نمی‌دهد.';
         }
 
+        /*
+         * بندِ ۶۹ (مرحلهٔ ۱۰ · فاز ۱۱): رأیِ تازه فقط با عضویتِ **فعال** در همان مجتمع. عضوِ رفته یا معلق — حتی اگر
+         * ردیفِ دوره‌اش به اشتباه جاری مانده باشد — رأی نمی‌دهد؛ رأی‌هایی که پیش‌تر داده سرِ جایشان می‌مانند.
+         */
+        if (! ComplexMembers::has($user, (int) $poll->message->complex_id, [UserRole::Owner, UserRole::Tenant])) {
+            return 'عضویتِ شما در این مجتمع فعال نیست.';
+        }
+
         $unit = $this->unitFor($poll, $user);
 
         if (! $unit) {
-            return $poll->voter_scope === PollVoterScope::Owners
-                ? 'این نظرسنجی فقط برای مالکان است.'
-                : 'واحدی برای شما ثبت نشده است.';
+            return match ($poll->voter_scope) {
+                PollVoterScope::Owners => 'این نظرسنجی فقط برای مالکان است.',
+                PollVoterScope::Tenants => 'این نظرسنجی فقط برای مستأجران است.',
+                PollVoterScope::Residents => 'واحدی برای شما ثبت نشده است.',
+            };
         }
 
         if ($poll->weight_mode->isUnitBound()) {
@@ -168,13 +190,36 @@ class PollService
      * قیدِ یکتای دیتابیس هم این را نمی‌گرفت، چون برای حالتِ `per_person`
      * باید چند کاربر از یک واحد مجاز بمانند.
      */
-    public function castVote(MessagePoll $poll, User $user, PollOption $option): PollVote
+    /**
+     * رأیِ یک نفر — یک گزینه، یا در چندگزینه‌ای تا `max_selections` گزینه (بندِ ۶۴).
+     *
+     * رأیِ دوباره جایگزینِ همه‌ی گزینه‌های قبلیِ همان شخص است، نه افزوده بر آن‌ها. هر گزینه باید مالِ **همین**
+     * نظرسنجی باشد و تکراری نباشد؛ شمار از سقف نگذرد.
+     *
+     * @param  list<PollOption>  $options
+     */
+    public function castVote(MessagePoll $poll, User $user, array $options): void
     {
-        if ($option->message_poll_id !== $poll->id) {
+        $ids = array_map(fn (PollOption $o) => $o->id, $options);
+
+        if ($options === [] || count(array_unique($ids)) !== count($ids)) {
             throw DomainException::invalid('گزینه‌ی انتخابی معتبر نیست.', 'poll.invalid_option');
         }
 
-        return DB::transaction(function () use ($poll, $user, $option) {
+        foreach ($options as $option) {
+            if ($option->message_poll_id !== $poll->id) {
+                throw DomainException::invalid('گزینه‌ی انتخابی معتبر نیست.', 'poll.invalid_option');
+            }
+        }
+
+        if (count($ids) > max(1, (int) $poll->max_selections)) {
+            throw DomainException::invalid(
+                $poll->max_selections > 1 ? 'حداکثر '.$poll->max_selections.' گزینه را می‌توانید انتخاب کنید.' : 'در این نظرسنجی فقط یک گزینه انتخاب می‌شود.',
+                'poll.too_many_options',
+            );
+        }
+
+        DB::transaction(function () use ($poll, $user, $ids) {
             $poll->votes()->lockForUpdate()->get();
 
             if ($reason = $this->blockReason($poll, $user)) {
@@ -182,15 +227,16 @@ class PollService
             }
 
             $unit = $this->unitFor($poll, $user);
+            $weight = $this->weightFor($poll, $unit);
 
-            return PollVote::updateOrCreate(
-                ['message_poll_id' => $poll->id, 'user_id' => $user->id],
-                [
-                    'poll_option_id' => $option->id,
-                    'unit_id' => $unit?->id,
-                    'weight' => $this->weightFor($poll, $unit),
-                ],
-            );
+            $poll->votes()->where('user_id', $user->id)->delete();
+
+            foreach ($ids as $optionId) {
+                PollVote::create([
+                    'message_poll_id' => $poll->id, 'user_id' => $user->id, 'poll_option_id' => $optionId,
+                    'unit_id' => $unit?->id, 'weight' => $weight,
+                ]);
+            }
         }, attempts: 3);
     }
 
@@ -229,7 +275,13 @@ class PollService
     {
         $votes = $poll->relationLoaded('votes') ? $poll->votes : $poll->votes()->get();
 
-        $castWeight = (float) $votes->sum('weight');
+        /*
+         * چندگزینه‌ای (بندِ ۶۴): هر رأی‌دهنده چند ردیف دارد. وزنِ ریخته‌شده و مشارکت از رأی‌دهندگانِ **یکتا** است، نه از
+         * ردیف‌ها — وگرنه کسی که سه گزینه زده سه بار شمرده می‌شد. سهمِ هر گزینه از همان وزنِ رأی‌دهندگان است، پس در
+         * چندگزینه‌ای جمعِ سهم‌ها می‌تواند از ۱۰۰ بگذرد (مثلِ هر رأی‌گیریِ تأییدی).
+         */
+        $voters = $votes->unique('user_id');
+        $castWeight = (float) $voters->sum('weight');
         $totalWeight = $this->totalWeight($poll);
         $turnout = $totalWeight > 0 ? (int) round(($castWeight / $totalWeight) * 100) : 0;
 
@@ -264,9 +316,19 @@ class PollService
             'allowChange' => (bool) $poll->allow_change,
 
             'options' => $options->all(),
-            'totalVotes' => $votes->count(),
+            'totalVotes' => $voters->count(),
             'myOptionId' => $votes->firstWhere('user_id', $viewer->id)?->poll_option_id,
+            // همه‌ی گزینه‌های بیننده و سقف (۱۰/۱۱)
+            'myOptionIds' => $votes->where('user_id', $viewer->id)->pluck('poll_option_id')->values()->all(),
+            'maxSelections' => max(1, (int) $poll->max_selections),
             'blockReason' => $this->blockReason($poll, $viewer),
+            /*
+             * بندِ ۶۶: «می‌بیند ولی مجاز نیست» جدا از «بسته است» یا «رأیش قابل تغییر نیست» — رابط با همین می‌گوید «شما
+             * مجاز به رأی دادن در این نظرسنجی نیستید». سرور به‌هرحال رأیِ غیرمجاز را خودش رد می‌کند.
+             */
+            'eligible' => ! $viewer->role->isAdmin()
+                && ComplexMembers::has($viewer, (int) $poll->message->complex_id, [UserRole::Owner, UserRole::Tenant])
+                && $this->unitFor($poll, $viewer) !== null,
 
             // ── آمار ──────────────────────────────────────────────────────
             'eligibleWeight' => round($totalWeight, 2),

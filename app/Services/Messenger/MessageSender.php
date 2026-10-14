@@ -53,6 +53,15 @@ class MessageSender
             throw new DomainException($conversation->readOnlyReason(), 'messenger.read_only', 403);
         }
 
+        /*
+         * بندِ ۶۱ (مرحلهٔ ۱۰ · فاز ۱۱): نظرسنجی فقط در گروه — گروهِ مجتمع یا گروهِ مدیر — نه در گفت‌وگوی خصوصی، و نه
+         * بی‌صدا به پیامِ ساده تبدیل‌شده. (فیلدهای نظرسنجی از غیرِ مدیر همچنان نادیده‌اند: ساختن کارِ مدیر است.)
+         */
+        if (! empty($data['poll_question']) && $user->role->isAdmin()
+            && ! in_array($conversation->type, [Conversation::CHANNEL, Conversation::GROUP], true)) {
+            throw DomainException::invalid('نظرسنجی فقط در گروه ساخته می‌شود.', 'messenger.poll_only_in_groups');
+        }
+
         $clientId = $data['client_id'] ?? null;
 
         if ($clientId !== null && ($existing = $this->existing($user, $clientId, $conversation))) {
@@ -247,6 +256,8 @@ class MessageSender
             'quorum_percent' => $data['poll_quorum_percent'] ?? null,
             'allow_change' => (bool) ($data['poll_allow_change'] ?? true),
             'closes_at' => $data['poll_closes_at'] ?? null,
+            // چندگزینه‌ای (بندِ ۶۴): سقف از شمارِ گزینه‌ها نمی‌گذرد
+            'max_selections' => min(max(1, (int) ($data['poll_max_selections'] ?? 1)), count($data['poll_options'] ?? [])),
         ]);
 
         foreach (array_values($data['poll_options'] ?? []) as $index => $label) {
