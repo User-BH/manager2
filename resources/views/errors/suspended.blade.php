@@ -5,6 +5,9 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>دسترسی تعلیق شده</title>
+    {{-- نامِ برنامه‌ی نصب‌شده از هر صفحه‌ای که نصب شود («چند نکته»): iOS بی این عنوانِ صفحه را می‌گذاشت --}}
+    <meta name="apple-mobile-web-app-title" content="ساکنا">
+    <meta name="application-name" content="ساکنا">
     <style>
         body { font-family: Tahoma, sans-serif; background: #f8fafc; color: #1e293b;
                display: flex; align-items: center; justify-content: center; min-height: 100vh; margin: 0; }

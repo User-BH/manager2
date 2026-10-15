@@ -1,6 +1,6 @@
 {
   "id": "/?source=pwa",
-  "name": "ساکنا — پنل مدیریت مجتمع‌های مسکونی و تجاری",
+  "name": "ساکنا",
   "short_name": "ساکنا",
   "description": "مدیریت شارژ، هزینه و پرداخت مجتمع‌های مسکونی و تجاری",
   "lang": "fa",
@@ -15,7 +15,6 @@
   "categories": ["business", "finance", "productivity"],
   "prefer_related_applications": false,
   "icons": [
-    { "src": "/favicon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" },
     { "src": "/icons/icon-72.png", "sizes": "72x72", "type": "image/png", "purpose": "any" },
     { "src": "/icons/icon-96.png", "sizes": "96x96", "type": "image/png", "purpose": "any" },
     { "src": "/icons/icon-128.png", "sizes": "128x128", "type": "image/png", "purpose": "any" },
@@ -38,9 +37,9 @@
       "purpose": "maskable"
     },
     {
-      "src": "/icons/monochrome.svg",
-      "sizes": "any",
-      "type": "image/svg+xml",
+      "src": "/icons/monochrome-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
       "purpose": "monochrome"
     }
   ],

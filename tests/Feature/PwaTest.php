@@ -261,6 +261,111 @@ class PwaTest extends TestCase
     }
 
     /**
+     * 🔴 «چند نکته»: برنامه‌ی نصب‌شده از هر راه و در هر سیستم‌عامل «ساکنا» نامیده می‌شود.
+     *
+     * رومیزی (Chrome و Edge روی ویندوز، مک و لینوکس) و پنجره‌ی نصب و فهرستِ برنامه‌های اندروید `name` را نشان می‌دهند؛
+     * `name` جمله‌ی بلندِ «ساکنا — پنل مدیریت مجتمع‌های مسکونی و تجاری» بود. iOS عنوان را از
+     * `apple-mobile-web-app-title` می‌گیرد و بی آن از `<title>` ِ همان صفحه — پس هر صفحه‌ای که شاید از آن نصب شود.
+     */
+    public function test_the_installed_app_is_named_sakena_from_every_page(): void
+    {
+        $manifest = $this->manifest();
+        $this->assertSame('ساکنا', $manifest['name']);
+        $this->assertSame('ساکنا', $manifest['short_name']);
+        $this->assertSame('ساکنا', config('brand.name'));
+
+        // خانه، ورود، آفلاین و پوسته‌ی SPA (هر نشانیِ داشبوردی، حتی ناشناخته، همان پوسته است) و صفحه‌ی ۴۰۴ ِ Blade
+        $pages = [
+            '/' => $this->get('/')->assertOk()->getContent(),
+            '/auth' => $this->get('/auth')->assertOk()->getContent(),
+            '/offline' => $this->get('/offline')->assertOk()->getContent(),
+            'SPA' => $this->get('/no-such-page-anywhere')->assertOk()->getContent(),
+            'errors.404' => view('errors.404')->render(),
+        ];
+        foreach ($pages as $page => $html) {
+            $this->assertStringContainsString('<meta name="apple-mobile-web-app-title" content="ساکنا">', (string) $html, $page);
+            $this->assertStringContainsString('<meta name="application-name" content="ساکنا">', (string) $html, $page);
+        }
+
+        // صفحه‌های جدای خطا که در آزمون رندر نمی‌شوند (۵۰۰، ۵۰۳، تعلیق)
+        foreach (['500', '503', 'suspended'] as $view) {
+            $source = (string) file_get_contents(resource_path("views/errors/{$view}.blade.php"));
+            $this->assertStringContainsString('<meta name="apple-mobile-web-app-title" content="ساکنا">', $source, $view);
+        }
+    }
+
+    /**
+     * 🔴 «چند نکته»، بندِ ۲: پشتِ آیکونِ نصب صفحه‌ی سفید نیست.
+     *
+     * همه‌ی آیکون‌های نصب مربعِ سفیدِ مات بودند. حالا آیکون‌های `any` (رومیزی) زمینه‌ی شفاف دارند؛ maskable (اندروید)
+     * و apple-touch-icon (iOS، که شفافیت نمی‌پذیرد) زمینه‌ی مات به رنگِ برند، و نشانِ maskable کاملاً داخلِ ناحیه‌ی
+     * امنِ دایره‌ای به قطرِ ۸۰٪ است تا بریدنِ سیستم‌عامل چیزی از نشان نبُرد. فایل‌ها از
+     * `scripts/generate-pwa-icons.py` می‌آیند. شکلِ نهایی روی هر سیستم‌عامل را خودِ سیستم‌عامل تعیین می‌کند.
+     */
+    public function test_install_icons_have_no_white_plate(): void
+    {
+        $brand = [15, 110, 86];
+        $icons = collect($this->manifest()['icons']);
+
+        $this->assertSame([], $icons->filter(fn ($i) => str_ends_with($i['src'], '.svg') && $i['purpose'] === 'any')->all(), 'آیکونِ SVG ِ any (سپرِ favicon) جای نشانِ برنامه را می‌گرفت.');
+
+        foreach ($icons->where('purpose', 'any') as $icon) {
+            foreach ($this->corners(public_path(ltrim($icon['src'], '/'))) as [$r, $g, $b, $alpha]) {
+                $this->assertSame(127, $alpha, "گوشه‌ی {$icon['src']} شفاف نیست.");
+            }
+        }
+
+        $opaque = [...$icons->where('purpose', 'maskable')->pluck('src')->all(), '/apple-touch-icon.png'];
+        foreach ($opaque as $src) {
+            foreach ($this->corners(public_path(ltrim($src, '/'))) as [$r, $g, $b, $alpha]) {
+                $this->assertSame(0, $alpha, "{$src} باید مات باشد (iOS شفافیت را سیاه می‌کند).");
+                $this->assertEqualsWithDelta($brand, [$r, $g, $b], 3, "زمینه‌ی {$src} رنگِ برند نیست.");
+            }
+        }
+
+        foreach ($icons->where('purpose', 'maskable') as $icon) {
+            $image = imagecreatefrompng(public_path(ltrim($icon['src'], '/')));
+            $size = imagesx($image);
+            $centre = ($size - 1) / 2;
+            $outside = 0;
+            for ($y = 0; $y < $size; $y += 2) {
+                for ($x = 0; $x < $size; $x += 2) {
+                    $c = imagecolorat($image, $x, $y);
+                    $differs = abs((($c >> 16) & 0xFF) - $brand[0]) + abs((($c >> 8) & 0xFF) - $brand[1]) + abs(($c & 0xFF) - $brand[2]) > 24;
+                    if ($differs && hypot($x - $centre, $y - $centre) > 0.4 * $size) {
+                        $outside++;
+                    }
+                }
+            }
+            $this->assertSame(0, $outside, "نشانِ {$icon['src']} از ناحیه‌ی امنِ maskable بیرون می‌زند.");
+        }
+
+        // تک‌رنگ: فقط شکل — زمینه شفاف، هر پیکسلِ دیده‌شده سفید
+        $mono = $icons->firstWhere('purpose', 'monochrome');
+        $this->assertNotNull($mono);
+        foreach ($this->corners(public_path(ltrim($mono['src'], '/'))) as [, , , $alpha]) {
+            $this->assertSame(127, $alpha);
+        }
+    }
+
+    /** @return list<array{0: int, 1: int, 2: int, 3: int}> رنگ و آلفای GD (۰ مات، ۱۲۷ شفاف) در چهار گوشه */
+    private function corners(string $path): array
+    {
+        $image = imagecreatefrompng($path);
+        $this->assertNotFalse($image, $path);
+        imagesavealpha($image, true);
+        $w = imagesx($image) - 1;
+        $h = imagesy($image) - 1;
+
+        return array_map(function (array $point) use ($image): array {
+            $c = imagecolorat($image, $point[0], $point[1]);
+            $alpha = imageistruecolor($image) ? ($c >> 24) & 0x7F : imagecolorsforindex($image, $c)['alpha'];
+
+            return [($c >> 16) & 0xFF, ($c >> 8) & 0xFF, $c & 0xFF, $alpha];
+        }, [[0, 0], [$w, 0], [0, $h], [$w, $h]]);
+    }
+
+    /**
      * رنگِ splash باید با `background_color`ِ manifest یکی باشد.
      *
      * وگرنه لحظه‌ی گذار از splash به برنامه یک پرشِ رنگی دیده می‌شود.

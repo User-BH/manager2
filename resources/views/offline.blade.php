@@ -16,6 +16,9 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>اتصال اینترنت برقرار نیست | ساکنا</title>
+    {{-- نامِ برنامه‌ی نصب‌شده از هر صفحه‌ای که نصب شود («چند نکته»): iOS بی این عنوانِ صفحه را می‌گذاشت --}}
+    <meta name="apple-mobile-web-app-title" content="ساکنا">
+    <meta name="application-name" content="ساکنا">
     <meta name="theme-color" content="#0f6e56">
     <link rel="icon" href="/favicon.svg" type="image/svg+xml">
     @include('partials.theme-init')

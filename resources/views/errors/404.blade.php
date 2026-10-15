@@ -22,6 +22,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="robots" content="noindex">
     <title>صفحه پیدا نشد — ساکنا</title>
+    {{-- نامِ برنامه‌ی نصب‌شده از هر صفحه‌ای که نصب شود («چند نکته»): iOS بی این عنوانِ صفحه را می‌گذاشت --}}
+    <meta name="apple-mobile-web-app-title" content="ساکنا">
+    <meta name="application-name" content="ساکنا">
     @include('partials.theme-init')
     <style>
         :root { color-scheme: light; }
