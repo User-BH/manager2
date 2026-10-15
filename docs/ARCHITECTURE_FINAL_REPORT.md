@@ -14,8 +14,8 @@
 | IMPLEMENTATION READY — ENVIRONMENT VERIFICATION REQUIRED | ۲    |
 
 دو حوزه‌ی محیطی همان دو بندِ محیطیِ نقشه‌اند: آپلودِ ۵۰۰ مگابایتی از nginx و PHP ِ سرور (بندِ ۴۸) و سنجشِ بار روی
-سرورِ واقعی (بندِ ۱۲۵). هیچ‌کدام بی سرورِ واقعی بسته نمی‌شود و این‌جا هم بسته اعلام نمی‌شود. **Production Ready اعلام
-نمی‌شود** — آن تصمیمِ بندِ ۱۴۴ و فاز ۱۰/۱۶ است.
+سرورِ واقعی (بندِ ۱۲۵). هیچ‌کدام بی سرورِ واقعی بسته نمی‌شود و این‌جا هم بسته اعلام نمی‌شود. **Production Ready اعلام نمی‌شود:** دروازه‌ی بندِ ۱۴۴ (۱۰/۱۶) حکم را `CODE READY — ENVIRONMENT VERIFICATION REQUIRED` داد —
+[`FINAL_PRE_PRODUCTION_AUDIT.md`](FINAL_PRE_PRODUCTION_AUDIT.md)، مرجعِ نهایی.
 
 ## سنجش‌های پایانِ مرحله (تا ۱۰/۱۴)
 
@@ -84,10 +84,10 @@
 - **بندها:** ۱۴، ۱۵، ۱۸، ۱۹، ۸۹، ۹۰، ۹۱، ۹۲، ۹۳
 - **Final Status:** VERIFIED
 - **Evidence:** مسیریابی از وضعیتِ واقعیِ سرور و زمینه‌ی فعال؛ دعوتِ مستقیم پس از ثبت‌نام به داشبوردِ واحد؛ نقش با زمینه عوض می‌شود و مدیرِ یک مجتمع در دیگری هیچ ندارد.
-- **Tests:** `AuthorizationChainTest::test_switching_context_switches_the_role_with_it`، `DirectInvitationRoutingTest::test_registering_from_the_link_makes_a_member_without_the_initial_dashboard`، `AuthorizationChainTest::test_being_a_manager_in_one_complex_grants_nothing_in_another`، `tests/js/accountContext.test.tsx`، `tests/e2e/context-switch.spec.ts`
+- **Tests:** `AuthorizationChainTest::test_switching_context_switches_the_role_with_it`، `DirectInvitationRoutingTest::test_registering_from_the_link_makes_a_member_without_the_initial_dashboard`، `AuthorizationChainTest::test_being_a_manager_in_one_complex_grants_nothing_in_another`، `tests/js/accountContext.test.tsx`، `tests/e2e/context-switch.spec.ts`، `tests/js/dashboardRouters.test.tsx`
 - **Known Limitations:** —
 - **Environment Dependency:** —
-- **Definition of Done:** Code: `SetCurrentComplex`، `ProtectedRoute` · Database: `users.complex_id` فقط اشاره به زمینه، عضویت منبع · Authorization: زنجیره‌ی ۱۰/۳ · API: `/me`، `account/context` · Tests: بالا · Adversarial: `BolaSweepTest::test_an_invalid_context_never_falls_back_to_another_complex` · Regression: ردیف‌های ۱۰/۳ تا ۱۰/۵ · Documentation: `BACKEND_STRUCTURE.md`
+- **Definition of Done:** Code: `SetCurrentComplex`، سه روترِ جدا (`dashboardRoutes.tsx`، ۱۰/۱۶) · Database: `users.complex_id` فقط اشاره به زمینه، عضویت منبع · Authorization: زنجیره‌ی ۱۰/۳ · API: `/me`، `account/context` · Tests: بالا · Adversarial: `BolaSweepTest::test_an_invalid_context_never_falls_back_to_another_complex` · Regression: ردیف‌های ۱۰/۳ تا ۱۰/۵ · Documentation: `BACKEND_STRUCTURE.md`
 
 ### Multi-Community Isolation
 

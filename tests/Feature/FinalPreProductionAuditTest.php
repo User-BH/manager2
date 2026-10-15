@@ -25,11 +25,23 @@ class FinalPreProductionAuditTest extends TestCase
 
     private const DOC = 'docs/FINAL_PRE_PRODUCTION_AUDIT.md';
 
-    /** ⚠️ هر سه حکمِ مجاز، و بس. هیچ عبارتِ سومی «تقریباً آماده» نیست. */
+    /**
+     * ⚠️ هر سه حکمِ مجاز، و بس. هیچ عبارتِ سومی «تقریباً آماده» نیست.
+     *
+     * مرحلهٔ ۱۰ · فاز ۱۶ (بندِ ۱۴۴ ِ فایلِ معماری): حکمِ میانی «PRODUCTION READY — INFRASTRUCTURE VERIFICATION
+     * REQUIRED» بود که خودِ «PRODUCTION READY» را در خود داشت؛ بندِ ۱۴۴ می‌خواهد CODE READY از ENVIRONMENT VERIFIED
+     * و PRODUCTION READY جدا بماند. قاعده عمداً عوض شد، نه سست‌تر: همچنان فقط با محیطِ تأییدشده بی‌قید.
+     */
     private const VERDICTS = [
-        'PRODUCTION READY — INFRASTRUCTURE VERIFICATION REQUIRED',
-        'NOT PRODUCTION READY',
+        'CODE READY — ENVIRONMENT VERIFICATION REQUIRED',
+        'NOT CODE READY',
         'PRODUCTION READY',
+    ];
+
+    /** گزارش‌هایی که بندِ ۱۴۳ فقط مدرک و تاریخچه می‌داند */
+    private const HISTORICAL = [
+        'STAGE4_FINAL_CONSOLIDATED_AUDIT', 'FINAL_AUDIT', 'FINAL_SECURITY_REPORT', 'FINAL_TEST_REPORT',
+        'FINAL_PERFORMANCE_REPORT', 'NOT_VERIFIED', 'STAGE2_AUDIT_MAP', 'PROJECT_MEMORY',
     ];
 
     /**
@@ -152,10 +164,11 @@ class FinalPreProductionAuditTest extends TestCase
 
         preg_match_all('/^### (E-\d+) · (.+)$/mu', $doc, $headings, PREG_SET_ORDER);
 
-        $this->assertCount(7, $headings, '⚠️ هفت موردِ محیطی انتظار می‌رفت.');
+        // هفتِ مرحلهٔ چهارم و E-08 (آپلودِ بزرگ) و E-09 (ناوردایی‌های مالی) ِ مرحلهٔ ۱۰
+        $this->assertCount(9, $headings, '⚠️ نُه موردِ محیطی انتظار می‌رفت.');
 
         $blocks = preg_split('/^### E-\d+ · /mu', $doc) ?: [];
-        $blocks = array_slice($blocks, 1, 7);
+        $blocks = array_slice($blocks, 1, 9);
 
         foreach ($headings as $index => [, $code, $title]) {
             $body = $blocks[$index] ?? '';
@@ -273,6 +286,47 @@ class FinalPreProductionAuditTest extends TestCase
             "🔴 حکمِ بی‌قیدِ «PRODUCTION READY» در حالی که جدول می‌گوید محیط تأیید نشده.\n"
             .'⚠️ همان قاطی‌کردنِ CODE READY با PRODUCTION READY که این مرحله برای بستنش بود.',
         );
+    }
+
+    /**
+     * 🔴 بندِ ۱۴۴: «Critical/High fixable repository issues = 0» از فهرستِ canonical سنجیده می‌شود، نه از جمله‌ی سند.
+     *
+     * هر ردیفِ OPEN باید شدتش را صریح بگوید (Low، یا Medium که تنظیمِ محیط است نه نقصِ مخزن) و هیچ‌کدام Critical یا
+     * High نیست؛ و هیچ ردیفِ بازی هنوز منتظرِ فازی از مرحلهٔ ۱۰ نیست — مرحله تمام شده و ردیفِ کهنه دروغِ آرام است
+     * (۱۰/۱۵ و ۱۰/۱۶ هر کدام چند ردیفِ کهنه‌ی «OPEN · ۱۰/x» پیدا کردند).
+     */
+    public function test_no_open_inventory_row_is_critical_or_high_or_left_behind_by_stage_ten(): void
+    {
+        $inventory = $this->readDoc('docs/CANONICAL_INVENTORY.md');
+        $open = [];
+
+        foreach (explode("\n", $inventory) as $line) {
+            $cells = array_map('trim', explode('|', $line));
+            if (count($cells) < 4 || ! str_starts_with($cells[2] ?? '', 'OPEN')) {
+                continue;
+            }
+            $open[$cells[1]] = $cells[2];
+        }
+
+        $this->assertNotEmpty($open, 'هیچ ردیفِ OPEN خوانده نشد؛ محافظ پوچ می‌شود.');
+        foreach ($open as $item => $status) {
+            $this->assertMatchesRegularExpression('/^OPEN · (Low|Medium)\b/u', $status, "شدتِ ردیفِ «{$item}» صریح نیست.");
+            $this->assertDoesNotMatchRegularExpression('/Critical|High/u', $status, "ردیفِ «{$item}» Critical/High است.");
+            $this->assertDoesNotMatchRegularExpression('/۱۰\/[۰-۹]/u', $status, "ردیفِ «{$item}» هنوز منتظرِ فازی از مرحلهٔ ۱۰ است.");
+        }
+    }
+
+    /** 🔴 بندِ ۱۴۳: هر گزارشِ پیشین در همان آغاز می‌گوید مدرک است و مرجع کجاست. */
+    public function test_every_historical_report_points_to_the_source_of_truth(): void
+    {
+        foreach (self::HISTORICAL as $name) {
+            $head = implode("\n", array_slice(explode("\n", $this->readDoc("docs/{$name}.md")), 0, 4));
+
+            $this->assertStringContainsString('فقط مدرک و تاریخچه', $head, "{$name} خودش را مرجع می‌داند.");
+            $this->assertStringContainsString('(FINAL_PRE_PRODUCTION_AUDIT.md)', $head, "{$name} به مرجع پیوند نمی‌دهد.");
+        }
+
+        $this->assertStringContainsString('**این سند Source of Truth ِ نهایی است**', $this->readDoc(self::DOC));
     }
 
     /**

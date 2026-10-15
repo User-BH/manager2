@@ -1221,6 +1221,15 @@ class PhaseRegressionMapTest extends TestCase
             '۱۰/۱۵: هر معیارِ پذیرش و هر اصل روی بندهای VERIFIED' => [
                 'ArchitectureFinalReportTest', 'test_every_acceptance_criterion_and_principle_rests_on_verified_items', '۱۰',
             ],
+            '🔴 ۱۰/۱۶: CODE READY از PRODUCTION READY جداست' => [
+                'FinalPreProductionAuditTest', 'test_the_verdict_matches_the_three_level_table', '۱۰',
+            ],
+            '🔴 ۱۰/۱۶: هیچ ردیفِ OPEN ِ Critical/High یا منتظرِ مرحلهٔ ۱۰' => [
+                'FinalPreProductionAuditTest', 'test_no_open_inventory_row_is_critical_or_high_or_left_behind_by_stage_ten', '۱۰',
+            ],
+            '۱۰/۱۶: هر گزارشِ پیشین به مرجعِ نهایی پیوند می‌دهد' => [
+                'FinalPreProductionAuditTest', 'test_every_historical_report_points_to_the_source_of_truth', '۱۰',
+            ],
             'مدیر از درخواستِ عضویت با اعلانِ داشبورد باخبر می‌شود' => [
                 'JoinRequestTest', 'test_the_complexes_managers_get_a_dashboard_notification_once', '۹',
             ],
@@ -1403,6 +1412,8 @@ class PhaseRegressionMapTest extends TestCase
             'pollRules' => ['۱۰/۱۱', 'شما مجاز به رأی دادن در این نظرسنجی نیستید.'],
             // مرحلهٔ ۱۰ · فاز ۱۲: نگه دار و رها کن، لغو با کشیدن، سقفِ سرور پیش از آپلود
             'messengerMedia' => ['۱۰/۱۲', 'کشیدن به کنار لغو است و چیزی نمی‌فرستد'],
+            // مرحلهٔ ۱۰ · فاز ۱۶: سه روترِ جدا؛ منوی هر نقش فقط از روترِ خودش
+            'dashboardRouters' => ['۱۰/۱۶', 'منوی هر نقش فقط مسیرهای روترِ همان داشبورد را دارد'],
         ];
 
         // 🔴 مثلِ ردیف‌های PHP، این فهرست هم فقط بزرگ می‌شود (خرابکاریِ فاز ۸)
