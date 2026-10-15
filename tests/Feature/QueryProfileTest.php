@@ -200,6 +200,13 @@ class QueryProfileTest extends TestCase
             'complex_id' => $this->complex->id,
             'is_active' => true,
         ]);
+        /*
+         * حالتِ پایدار: حسابی که در ۳۰ ثانیه‌ی اخیر دیده شده ضربانِ حضور نمی‌نویسد («چند نکته»، بندِ ۳). سقف‌های این‌جا
+         * کارِ خودِ مسیرند و همان تنگی را نگه می‌دارند؛ هزینه‌ی ضربان — دقیقاً یک UPDATE در هر ۳۰ ثانیه برای حساب — را
+         * `PresenceTest::test_the_heartbeat_writes_at_most_once_per_throttle_window` جدا می‌سنجد.
+         */
+        $this->admin->last_seen_at = now();
+        $this->admin->syncOriginalAttribute('last_seen_at');
 
         $building = Building::create([
             'complex_id' => $this->complex->id,

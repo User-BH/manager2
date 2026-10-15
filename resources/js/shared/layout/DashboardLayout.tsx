@@ -1,10 +1,11 @@
-import { Suspense } from 'react'
+import { Suspense, useEffect } from 'react'
 import { Outlet, useLocation } from 'react-router-dom'
 import { Sidebar } from './Sidebar'
 import { Header } from './Header'
 import { ErrorBoundary } from '@/shared/ui/ErrorBoundary'
 import { reportError } from '@/shared/lib/observability'
 import { InlineSpinner } from '@/shared/ui/PageState'
+import { registerPresenceBeacon } from '@/shared/lib/presenceBeacon'
 
 /**
  * پوسته‌ی ثابت داشبورد.
@@ -16,6 +17,8 @@ import { InlineSpinner } from '@/shared/ui/PageState'
  */
 export function DashboardLayout() {
   const { pathname } = useLocation()
+  // بستنِ داشبورد همان لحظه «آفلاین» است، نه ۹۰ ثانیه بعد («چند نکته»، بندِ ۳)
+  useEffect(() => registerPresenceBeacon(), [])
 
   return (
     <div

@@ -316,9 +316,13 @@ class PerformanceBaselineTest extends TestCase
          * ⚠️ مرحلهٔ ۵ · فاز ۹: یک خواندنِ ثابت اضافه شد — پرچمِ حالتِ تعمیر
          * روی **هر** درخواست. با کشِ دیتابیسیِ محصول یک جست‌وجوی کلیدِ
          * اصلی است و با شمارِ ردیف رشد نمی‌کند. سقف دقیقاً یکی بالا رفت.
+         *
+         * ⚠️ «چند نکته»، بندِ ۳: ضربانِ حضور. همین پرسش هر ۶۰ ثانیه است و `Presence::THROTTLE` ۳۰ ثانیه، پس هر بار
+         * **واقعاً** یک UPDATE ِ کلیدِ اصلیِ `users` دارد — نه فقط در آزمون. ثابت است و با شمارِ ردیف رشد نمی‌کند؛
+         * سقف دقیقاً یکی بالا رفت (بارش: `FINAL_PERFORMANCE_REPORT.md`، «حضورِ آنلاین»).
          */
         $this->assertLessThanOrEqual(
-            10,
+            11,
             $profile['count'],
             "GET /notifications: {$profile['count']} کوئری.\n  ".implode("\n  ", $profile['queries']),
         );

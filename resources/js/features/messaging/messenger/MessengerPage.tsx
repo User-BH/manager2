@@ -12,6 +12,10 @@ import { NewConversationDialog } from './NewConversationDialog'
 import { ReportsPanel } from './ReportsPanel'
 import { messageActions } from './messageActions'
 import type { ConversationSummary, ConversationsResponse, ConversationType } from './types'
+import { OnlineDot, clockOffset } from './presence'
+
+/** پرسشِ دوره‌ایِ فهرست؛ در جدولِ بارِ `FINAL_PERFORMANCE_REPORT` (`DocumentedNumbersTest`) */
+const LIST_POLL_MS = 15_000
 
 const ICONS: Record<ConversationType, typeof Hash> = {
   channel: Hash,
@@ -65,6 +69,7 @@ export function MessengerPage() {
     queryFn: async ({ signal }) => {
       const read: ConversationsResponse[] = []
       let cursor: string | null = null
+      let clockOffsetMs = 0
 
       do {
         const params = new URLSearchParams()
@@ -74,16 +79,23 @@ export function MessengerPage() {
           `/messenger/conversations?${params.toString()}`,
           { signal },
         )
+        // اختلافِ ساعت همان لحظه‌ی رسیدنِ صفحه‌ی اول، برای «آنلاین تا» («چند نکته»، بندِ ۳)
+        if (read.length === 0) clockOffsetMs = clockOffset(page.serverTime)
         read.push(page)
         cursor = page.nextCursor
       } while (cursor && read.length < pages)
 
-      return { ...read[0], data: read.flatMap((page) => page.data), nextCursor: cursor }
+      return {
+        ...read[0],
+        data: read.flatMap((page) => page.data),
+        nextCursor: cursor,
+        clockOffsetMs,
+      }
     },
     // نوشتن در کادرِ جست‌وجو یا «بیشتر» فهرست را به چرخنده تبدیل نمی‌کند
     placeholderData: keepPreviousData,
     // شمارِ نخوانده‌ی گفت‌وگوهای دیگر؛ فقط وقتی تب دیده می‌شود
-    refetchInterval: 15_000,
+    refetchInterval: LIST_POLL_MS,
     refetchIntervalInBackground: false,
   })
   const first = data
@@ -205,11 +217,17 @@ export function MessengerPage() {
                       />
                       <span className="min-w-0 flex-1">
                         <span className="flex items-center justify-between gap-2">
-                          <span
-                            className="truncate text-small font-semibold"
-                            style={{ color: 'var(--text-primary)' }}
-                          >
-                            {conversation.title}
+                          <span className="flex min-w-0 items-center gap-1.5">
+                            <span
+                              className="truncate text-small font-semibold"
+                              style={{ color: 'var(--text-primary)' }}
+                            >
+                              {conversation.title}
+                            </span>
+                            <OnlineDot
+                              until={conversation.peerOnlineUntil}
+                              offsetMs={data?.clockOffsetMs ?? 0}
+                            />
                           </span>
                           {conversation.unreadCount > 0 && (
                             <span

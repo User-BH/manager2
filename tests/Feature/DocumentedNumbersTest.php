@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Models\Expense;
 use App\Models\Income;
 use App\Models\Unit;
+use App\Services\Messenger\Presence;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Tests\TestCase;
 
@@ -87,6 +88,8 @@ class DocumentedNumbersTest extends TestCase
     {
         yield 'زنگولهٔ اعلان' => ['resources/js/shared/stores/notificationStore.ts', 'POLL_MS', 60_000];
         yield 'پیام‌رسان' => ['resources/js/features/messaging/messenger/ConversationThread.tsx', 'POLL_INTERVAL', 8_000];
+        yield 'فهرستِ گفت‌وگوها' => ['resources/js/features/messaging/messenger/MessengerPage.tsx', 'LIST_POLL_MS', 15_000];
+        yield 'پنلِ اعضای گروه (حضور)' => ['resources/js/features/messaging/messenger/GroupInfoPanel.tsx', 'INFO_REFRESH_MS', 30_000];
     }
 
     public function test_the_polling_intervals_match_the_code(): void
@@ -141,6 +144,42 @@ class DocumentedNumbersTest extends TestCase
                 $report,
                 "گزارشِ کارایی عددِ «{$needle}» را ندارد؛ حساب و نوشته از هم جدا افتاده‌اند.",
             );
+        }
+    }
+
+    /**
+     * 🔴 بارِ حضورِ آنلاین («چند نکته»، بندِ ۳) از ثابت‌های کد، نه از حدس — و همان عدد در گزارش.
+     *
+     * ضربان درخواستِ تازه نیست؛ بیشترین فاصله‌ی دو درخواستِ تبِ دیده (اعلان، ۶۰ ثانیه) باید درونِ پنجره بماند،
+     * وگرنه کاربرِ واقعاً حاضر میانِ دو پرسش «آفلاین» دیده می‌شد.
+     */
+    public function test_the_presence_load_arithmetic_holds(): void
+    {
+        $perHour = fn (int $intervalMs): int => (int) round(3_600_000 / $intervalMs);
+        $slowestHeartbeat = 60_000;
+
+        $this->assertLessThan(Presence::WINDOW * 1000, $slowestHeartbeat, 'پنجره از کندترین ضربان کوتاه‌تر است.');
+        $this->assertSame(90, Presence::WINDOW);
+        $this->assertSame(30, Presence::THROTTLE);
+
+        $writeCap = intdiv(3600, Presence::THROTTLE);
+        $dashboardOnly = min($perHour($slowestHeartbeat), $writeCap);
+        $messenger = min($perHour(8_000), $writeCap);
+        $this->assertSame([120, 60, 120], [$writeCap, $dashboardOnly, $messenger]);
+
+        $writes = 15 * $dashboardOnly + 5 * $messenger;
+        $this->assertSame(1_500, $writes);
+        $this->assertSame(0.42, round($writes / 3600, 2));
+
+        // فهرستِ گفت‌وگوها که در جدولِ اول جا افتاده بود
+        $withList = 3_490 + 5 * $perHour(15_000);
+        $this->assertSame(4_690, $withList);
+        $this->assertSame(1.30, round($withList / 3600, 2));
+        $this->assertSame(120, $perHour(30_000), 'پنلِ اعضا');
+
+        $report = $this->read(self::PERF);
+        foreach (['۱۵۰۰', '۰٫۴۲', '۴۶۹۰', '۱٫۳۰', '≤ ۱۲۰', '۱۲۰ برای هر پنلِ باز', '۲۴۰'] as $needle) {
+            $this->assertStringContainsString($needle, $report, "گزارشِ کارایی «{$needle}» را ندارد.");
         }
     }
 

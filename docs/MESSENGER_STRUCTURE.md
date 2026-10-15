@@ -149,9 +149,32 @@
 باشند (و `max_execution_time` / `client_body_timeout` برای شبکه‌ی کند). تا آن روز سقفِ عملی همان کوچک‌ترِ این‌هاست و
 فایلِ بزرگ‌تر پیش از رسیدن به Laravel رد می‌شود. بندِ ۴۸ برای همین «ENVIRONMENT VERIFICATION REQUIRED» است.
 
+## حضورِ آنلاین — «چند نکته»، بندِ ۳
+
+- **تعریف:** حساب «آنلاین» است اگر در ۹۰ ثانیه‌ی اخیر (`Presence::WINDOW`) از داشبوردِ باز درخواستِ واردشده
+  فرستاده باشد. «آفلاین» یعنی هر چیزِ دیگر — نه «آخرین بازدید»، که ساخته نشد.
+- **ضربان:** همان pollingهای موجود (اعلان ۶۰، فهرست ۱۵، رشته‌ی باز ۸ ثانیه، همه فقط در تبِ دیده) در میدل‌ورِ
+  `presence` روی گروهِ `auth` ِ API. هیچ WebSocket یا SSE و هیچ درخواستِ ضربانِ جدا نیست. نوشتن در
+  `users.last_seen_at` حداکثر یکی در هر ۳۰ ثانیه برای هر حساب (`Presence::THROTTLE`)؛ درونِ آن هیچ کوئری‌ای.
+  بار: `FINAL_PERFORMANCE_REPORT.md`، «حضورِ آنلاین».
+- **پایان:** خروج (`AuthController::logout`) و ترکِ صفحه (`pagehide` ← `POST /api/v1/presence/offline` با fetch ِ
+  keepalive، از پوسته‌ی داشبورد) همان لحظه؛ قطعِ شبکه، خوابِ دستگاه، بستنِ اپ روی موبایل و پایانِ نشست بی‌درخواست‌اند
+  و پس از حداکثر ۹۰ ثانیه. رابط «آنلاین تا» را با ساعتِ سرور می‌سنجد و همان لحظه خاموش می‌کند، پس پاسخِ کهنه هرگز
+  آنلاینِ کهنه نشان نمی‌دهد.
+- **مرز:** ذخیره روی حساب، دیدن فقط از راهِ عضویتِ فعالِ همان مجتمع (`ComplexMembers::query`): عضوِ معلق، رفته و
+  مجتمعِ دیگر هرگز آنلاین دیده نمی‌شوند؛ حسابِ بی‌عضویت و ادمینِ کل ضربان نمی‌زنند. حضور فقط در گفت‌وگویی که بیننده
+  همین حالا می‌بیند می‌آید: اعضای گروه و شمارِ آنلاینش (`counts.online`، `onlineCount`)، و طرفِ گفت‌وگوی یک‌به‌یک
+  (`peerOnlineUntil`) — «مالک ↔ مستأجر» برای هر دو، گفت‌وگوی خصوصیِ عضو با مدیریت فقط برای مدیر (ساکن «مدیریتِ ساختمان»
+  می‌بیند که یک نقش است، نه یک نفر). `last_seen_at` در `$hidden` ِ حساب است. هیچ policy و میدل‌وری حضور را نمی‌خواند.
+- **قرارداد (افزودنی، بی‌شکستن):** `GET messenger/conversations` → `data[].peerOnlineUntil`، `serverTime`؛
+  `GET …/{id}/messages` → `conversation.peerOnlineUntil`، `onlineCount`؛ `GET …/{id}/info` → `counts.online`،
+  `members[].onlineUntil`، `serverTime`؛ `POST presence/offline` → `{"online": false}`. «تا» ثانیه‌ی یونیکس ِ سرور است.
+- **محدودیت:** با دو تبِ باز، بستنِ یکی تا پرسشِ بعدیِ دیگری (حداکثر ۶۰ ثانیه) «آفلاین» نشان می‌دهد. پنهان کردنِ حضور
+  به خواستِ کاربر ساخته نشد (خواسته نشده بود).
+
 ## آزمون
 
 `MessengerStructureTest`، `GroupInfoTest`، `MembershipMessagingTest`، `GroupModerationTest`، `PollRulesTest`،
 `MessengerFilesTest`، `tests/js/messengerStructure.test.tsx`، `tests/js/messengerModeration.test.tsx`،
-`tests/js/pollRules.test.tsx`، `tests/js/messengerMedia.test.tsx`،
-`tests/e2e/messenger-structure.spec.ts`؛ آزمون‌های قبلیِ پیام‌رسان روی گفت‌وگوی هر عضو.
+`tests/js/pollRules.test.tsx`، `tests/js/messengerMedia.test.tsx`، `PresenceTest`، `tests/js/messengerPresence.test.tsx`،
+`tests/e2e/messenger-structure.spec.ts`، `tests/e2e/presence.spec.ts`؛ آزمون‌های قبلیِ پیام‌رسان روی گفت‌وگوی هر عضو.

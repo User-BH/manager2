@@ -67,15 +67,16 @@ class GroupInfoTest extends TestCase
 
     public function test_the_counts_come_from_active_memberships_and_follow_them(): void
     {
-        $this->assertSame(['members' => 4, 'owners' => 2, 'tenants' => 1, 'managers' => 1], $this->info($this->owner)->json('counts'));
+        // `online` («چند نکته»، بندِ ۳): فقط خودِ بیننده که همین حالا پرسید — بقیه هیچ درخواستی نزده‌اند
+        $this->assertSame(['members' => 4, 'owners' => 2, 'tenants' => 1, 'managers' => 1, 'online' => 1], $this->info($this->owner)->json('counts'));
 
         // معلق شمرده نمی‌شود؛ برگشتش دوباره شمرده می‌شود
         app(MembershipLedger::class)->suspend($this->otherOwner, $this->complex->id, $this->manager);
-        $this->assertSame(['members' => 3, 'owners' => 1, 'tenants' => 1, 'managers' => 1], $this->info($this->owner)->json('counts'));
+        $this->assertSame(['members' => 3, 'owners' => 1, 'tenants' => 1, 'managers' => 1, 'online' => 1], $this->info($this->owner)->json('counts'));
 
         // رفته هم نه
         app(Membership::class)->end($this->tenant, $this->manager, $this->complex->id);
-        $this->assertSame(['members' => 2, 'owners' => 1, 'tenants' => 0, 'managers' => 1], $this->info($this->owner)->json('counts'));
+        $this->assertSame(['members' => 2, 'owners' => 1, 'tenants' => 0, 'managers' => 1, 'online' => 1], $this->info($this->owner)->json('counts'));
     }
 
     public function test_the_member_list_shows_photo_name_role_and_unit_but_no_contact_details(): void
@@ -84,7 +85,8 @@ class GroupInfoTest extends TestCase
 
         $this->assertSame('گروهِ مجتمع آفتاب', $response->json('conversation.title'));
         $row = collect($response->json('members'))->firstWhere('id', $this->tenant->id);
-        $this->assertSame(['id', 'name', 'avatarUrl', 'role', 'roleLabel', 'unit', 'isModerator'], array_keys($row));
+        // `onlineUntil` («چند نکته»، بندِ ۳): زمان، نه «آخرین بازدید» و نه هیچ راهِ تماس
+        $this->assertSame(['id', 'name', 'avatarUrl', 'role', 'roleLabel', 'unit', 'isModerator', 'onlineUntil'], array_keys($row));
         $this->assertSame(['مستأجر ده', 'tenant', 'واحد 10', false], [$row['name'], $row['role'], $row['unit'], $row['isModerator']]);
         $this->assertSame('complex_admin', collect($response->json('members'))->firstWhere('id', $this->manager->id)['role']);
 
@@ -100,7 +102,7 @@ class GroupInfoTest extends TestCase
         app(TenantContext::class)->set(null);
         $board = app(ConversationDirectory::class)->createGroup($this->complex, 'طبقه‌ی اول', [$this->unit->id], true, $this->manager);
 
-        $this->assertSame(['members' => 3, 'owners' => 1, 'tenants' => 1, 'managers' => 1], $this->info($this->owner, $board)->json('counts'));
+        $this->assertSame(['members' => 3, 'owners' => 1, 'tenants' => 1, 'managers' => 1, 'online' => 1], $this->info($this->owner, $board)->json('counts'));
         $this->info($this->otherOwner, $board)->assertNotFound();
     }
 

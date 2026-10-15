@@ -1260,6 +1260,46 @@ class PhaseRegressionMapTest extends TestCase
             '🔴 منبعِ کیفِ پول برچسبِ فارسی دارد' => [
                 'WalletLedgerTest', 'test_every_wallet_source_has_a_persian_label', '۷',
             ],
+            // «چند نکته» (پس از مرحلهٔ ۱۰) — بندهای ۲ تا ۷؛ گزارش: docs/FEW_POINTS_VERIFICATION.md
+            '«چند نکته» ۲: آیکونِ نصب بی صفحه‌ی سفید، maskable داخلِ ناحیه‌ی امن' => [
+                'PwaTest', 'test_install_icons_have_no_white_plate', '۱۰',
+            ],
+            '«چند نکته» ۷: برنامه‌ی نصب‌شده از هر صفحه «ساکنا» نامیده می‌شود' => [
+                'PwaTest', 'test_the_installed_app_is_named_sakena_from_every_page', '۱۰',
+            ],
+            '«چند نکته» ۴: هر قاعده‌ی اعتبارسنجی پیامِ فارسی دارد' => [
+                'PersianValidationTest', 'test_every_rule_used_by_a_form_request_has_a_persian_message', '۱۰',
+            ],
+            '«چند نکته» ۴: هر فیلدِ پیام‌رسان نامِ فارسی دارد' => [
+                'PersianValidationTest', 'test_every_messenger_field_has_a_persian_name', '۱۰',
+            ],
+            '🔴 «چند نکته» ۴: خطای واقعیِ پیام‌رسان بی کلیدِ خام و بی حرفِ لاتین' => [
+                'PersianValidationTest', 'test_real_messenger_errors_are_persian_end_to_end', '۱۰',
+            ],
+            '«چند نکته» ۳: آنلاین یعنی درخواست در پنجره، و خودش منقضی می‌شود' => [
+                'PresenceTest', 'test_online_means_a_request_inside_the_window_and_expires_on_its_own', '۱۰',
+            ],
+            '«چند نکته» ۳: ضربان حداکثر یک نوشتن در هر ۳۰ ثانیه' => [
+                'PresenceTest', 'test_the_heartbeat_writes_at_most_once_per_throttle_window', '۱۰',
+            ],
+            '🔴 «چند نکته» ۳: خروج و بستنِ صفحه همان لحظه آفلاین' => [
+                'PresenceTest', 'test_logout_and_page_close_end_presence_at_once', '۱۰',
+            ],
+            '🔴 «چند نکته» ۳: شمارِ آنلاین فقط اعضای فعالِ همان گروه' => [
+                'PresenceTest', 'test_the_group_count_holds_only_active_members_of_that_group', '۱۰',
+            ],
+            '🔴 «چند نکته» ۳: حضور فقط به طرفِ گفت‌وگوی یک‌به‌یک و عضوِ فعال' => [
+                'PresenceTest', 'test_presence_reaches_only_the_other_side_of_a_one_to_one_chat', '۱۰',
+            ],
+            '🔴 «چند نکته» ۳: حضور دسترسی نمی‌دهد' => [
+                'PresenceTest', 'test_presence_grants_no_access_and_ended_members_send_no_heartbeat', '۱۰',
+            ],
+            '«چند نکته» ۳: حسابِ بی عضویتِ فعال ضربان نمی‌زند' => [
+                'PresenceTest', 'test_accounts_without_an_active_membership_write_no_presence', '۱۰',
+            ],
+            '«چند نکته» ۳: بارِ حضور از ثابت‌های کد و همان عدد در گزارش' => [
+                'DocumentedNumbersTest', 'test_the_presence_load_arithmetic_holds', '۱۰',
+            ],
         ];
     }
 
@@ -1414,6 +1454,11 @@ class PhaseRegressionMapTest extends TestCase
             'messengerMedia' => ['۱۰/۱۲', 'کشیدن به کنار لغو است و چیزی نمی‌فرستد'],
             // مرحلهٔ ۱۰ · فاز ۱۶: سه روترِ جدا؛ منوی هر نقش فقط از روترِ خودش
             'dashboardRouters' => ['۱۰/۱۶', 'منوی هر نقش فقط مسیرهای روترِ همان داشبورد را دارد'],
+            // «چند نکته»: ماشین‌حساب فقط با «=»/Enter، لایه‌ی باکسِ اعلان، متنِ فارسیِ پیام‌رسان، حضورِ آنلاین
+            'calculatorCompute' => ['چند نکته ۶', 'هنگامِ تایپ هیچ محاسبه‌ای اجرا و هیچ نتیجه‌ای نشان داده نمی‌شود'],
+            'overlayLayers' => ['چند نکته ۵', 'هیچ عنصرِ جای‌گرفته‌ای در صفحه‌های داشبورد به لایه‌ی سربرگ نمی‌رسد'],
+            'messengerPersian' => ['چند نکته ۴', 'هیچ متنِ قابلِ دیدنی واژه‌ی لاتین ندارد'],
+            'messengerPresence' => ['چند نکته ۳', 'سرِ «آنلاین تا» بی درخواستِ تازه خاموش می‌شود'],
         ];
 
         // 🔴 مثلِ ردیف‌های PHP، این فهرست هم فقط بزرگ می‌شود (خرابکاریِ فاز ۸)
@@ -1444,7 +1489,7 @@ class PhaseRegressionMapTest extends TestCase
     public function test_the_map_never_shrinks(): void
     {
         $this->assertGreaterThanOrEqual(
-            148,
+            161,
             count(self::fixes()),
             'ردیفی از نقشهٔ رگرسیون حذف شده؛ یعنی اصلاحی محافظش را از دست داده.',
         );

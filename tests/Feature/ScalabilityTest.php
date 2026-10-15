@@ -88,6 +88,14 @@ class ScalabilityTest extends TestCase
     /** تعدادِ کوئریِ یک درخواست. */
     private function queryCount(User $as, string $url): int
     {
+        /*
+         * حالتِ پایدار: حسابی که در ۳۰ ثانیه‌ی اخیر دیده شده ضربانِ حضور نمی‌نویسد («چند نکته»، بندِ ۳). این سقف‌ها
+         * کارِ خودِ مسیرند و همان تنگی را نگه می‌دارند؛ هزینه‌ی ضربان — دقیقاً یک UPDATE در هر ۳۰ ثانیه برای حساب — را
+         * `PresenceTest::test_the_heartbeat_writes_at_most_once_per_throttle_window` جدا می‌سنجد.
+         */
+        $as->last_seen_at = now();
+        $as->syncOriginalAttribute('last_seen_at');
+
         DB::flushQueryLog();
         DB::enableQueryLog();
 

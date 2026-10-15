@@ -17,6 +17,7 @@ use App\Http\Middleware\RecordSlowRequests;
 use App\Http\Middleware\RequirePasswordConfirmation;
 use App\Http\Middleware\SecurityHeaders;
 use App\Http\Middleware\SetCurrentComplex;
+use App\Http\Middleware\TouchPresence;
 use App\Services\Auth\TrustedDeviceService;
 use App\Services\ErrorRecorder;
 use Illuminate\Contracts\Auth\Middleware\AuthenticatesRequests;
@@ -270,6 +271,8 @@ return Application::configure(basePath: dirname(__DIR__))
             'feature' => EnsureFeatureEnabled::class,
             // عملیاتِ حساس: تأییدِ تازه‌ی رمز (مرحلهٔ ۵ · فاز ۱۰)
             'reauth' => RequirePasswordConfirmation::class,
+            // ضربانِ حضور در پیام‌رسان («چند نکته»، بندِ ۳)
+            'presence' => TouchPresence::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

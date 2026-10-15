@@ -8,7 +8,13 @@ import { expect, test, type Browser, type Page } from '@playwright/test'
  * z-20 بود و نمایشگرِ ماشین‌حساب هم z-20 و بعدتر در DOM، پس روی باکس می‌نشست.
  */
 
-const MANAGER = '09120000000'
+// یک حساب برای هر موتور (`E2eSeeder::LAYER_MEMBERS`): ورودِ مدیرِ نمایشی سقفِ پنج ورود در دقیقه را با سفرهای دیگر
+// پر می‌کرد و `registrant-journey` در CI ِ `edd7c9a` ۴۲۹ گرفت
+const MEMBERS: Record<string, string> = {
+  chromium: '09120000097',
+  firefox: '09120000098',
+  webkit: '09120000099',
+}
 
 async function signedIn(browser: Browser, phone: string): Promise<Page> {
   const page = await (await browser.newContext()).newPage()
@@ -86,9 +92,13 @@ async function openAndCheck(page: Page) {
 }
 
 // یک ورود برای هر دو اندازه: سقفِ نرخِ ورود برای یک شماره (۴۲۹) در اجرای کامل
-test('باکسِ اعلان روی ماشین‌حساب است، نه زیرِ آن — دسکتاپ و موبایل', async ({ browser }) => {
+test('باکسِ اعلان روی ماشین‌حساب است، نه زیرِ آن — دسکتاپ و موبایل', async ({
+  browser,
+}, testInfo) => {
   test.setTimeout(90_000)
-  const page = await signedIn(browser, MANAGER)
+  const phone = MEMBERS[testInfo.project.name]
+  test.skip(phone === undefined, 'حسابِ لایه فقط برای سه موتورِ دسکتاپ ساخته شده است.')
+  const page = await signedIn(browser, phone)
 
   await openAndCheck(page)
 

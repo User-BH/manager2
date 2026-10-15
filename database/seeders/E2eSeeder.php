@@ -73,6 +73,20 @@ class E2eSeeder extends Seeder
 
     public const QR_COMPLEX = 'مجتمع QR سرتاسری';
 
+    /**
+     * حضورِ آنلاین («چند نکته»، بندِ ۳) — برای هر موتور یک «دیده‌شونده» و یک «بیننده»، هر دو مستأجرِ آفتاب.
+     * حضور روی حساب است؛ حسابِ مشترک با سفرِ دیگری که هم‌زمان درخواست می‌زند «آفلاین» را می‌شکست.
+     */
+    public const PRESENCE_SUBJECTS = ['09120000091', '09120000092', '09120000093'];
+
+    public const PRESENCE_VIEWERS = ['09120000094', '09120000095', '09120000096'];
+
+    /**
+     * لایه‌ی باکسِ اعلان روی ماشین‌حساب («چند نکته»، بندِ ۵) — یکی برای هر موتور. پیش‌تر مدیرِ نمایشی بود و سه ورودِ
+     * دیگر روی همان شماره، کنارِ پنج سفرِ دیگر، از سقفِ پنج ورود در دقیقه گذشت (۴۲۹ در CI ِ `edd7c9a`).
+     */
+    public const LAYER_MEMBERS = ['09120000097', '09120000098', '09120000099'];
+
     /** بیش از هر قبضِ نمایشی، تا کیف قبض را کامل بپردازد نه بخشی از آن. */
     public const CREDIT = 5_000_000;
 
@@ -119,6 +133,7 @@ class E2eSeeder extends Seeder
          */
         $this->multiMembers();
         $this->qrComplexes();
+        $this->perEngineMembers();
 
         $importer->import();
     }
@@ -207,6 +222,33 @@ class E2eSeeder extends Seeder
                 app(TenureService::class)->endAllFor($joiner, null, $complex->id);
             }
             $this->freshRegistrant(self::QR_JOINERS[$i]);
+        }
+    }
+
+    /** حساب‌های تک‌موتوری (حضور و لایه): مستأجرِ آفتاب بی واحد (عضوِ گروهِ مجتمع)، آفلاین در آغاز */
+    private function perEngineMembers(): void
+    {
+        $aftab = Complex::where('slug', 'aftab')->firstOrFail();
+        $ledger = app(MembershipLedger::class);
+        $names = ['حاضر', 'بیننده', 'لایه'];
+
+        foreach ([...self::PRESENCE_SUBJECTS, ...self::PRESENCE_VIEWERS, ...self::LAYER_MEMBERS] as $i => $phone) {
+            $user = User::withoutGlobalScopes()->firstOrNew(['phone' => $phone]);
+            while ($user->exists && $user->complex_id !== null) {
+                $ledger->end($user, ComplexMembership::END_REMOVED);
+            }
+            $user->fill([
+                'complex_id' => null,
+                'first_name' => $names[intdiv($i, 3)],
+                'last_name' => 'سرتاسری '.($i % 3 + 1),
+                'password' => Hash::make('password'),
+                'role' => UserRole::Owner,
+                'is_active' => true,
+                'terms_accepted_at' => now(),
+            ])->save();
+            $user->forceFill(['last_seen_at' => null])->save();
+
+            $ledger->start($user, $aftab, UserRole::Tenant, ComplexMembership::SOURCE_DIRECT);
         }
     }
 

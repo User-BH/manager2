@@ -26,6 +26,7 @@ use App\Services\Messenger\ConversationRights;
 use App\Services\Messenger\GroupModeration;
 use App\Services\Messenger\MessageSender;
 use App\Services\Messenger\MessagingAccess;
+use App\Services\Messenger\Presence;
 use App\Support\Audit;
 use App\Support\CursorPage;
 use App\Support\Notifications;
@@ -103,6 +104,8 @@ class ConversationController extends Controller
             'members' => $user->role->isAdmin() ? $this->members($complex) : [],
             // سقفِ پیوست‌ها و پسوندهای پذیرفته (۱۰/۱۲) — فقط برای پیش‌آگهیِ کلاینت؛ سرور خودش می‌سنجد
             'uploads' => ['limitsKb' => AttachmentPolicy::limits(), 'extensions' => AttachmentPolicy::extensions()],
+            // ساعتِ سرور برای سنجیدنِ `peerOnlineUntil` («چند نکته»، بندِ ۳)
+            'serverTime' => now()->getTimestamp(),
         ]);
     }
 
@@ -190,6 +193,10 @@ class ConversationController extends Controller
              */
             'changed' => $this->changed($conversation, $user, $since, $request->integer('changed_after'), $rights),
             'serverTime' => now()->getTimestamp(),
+            // شمارِ اعضای آنلاینِ گروه با همین پرسشِ ۸ ثانیه‌ای، نه پرسشِ تازه («چند نکته»، بندِ ۳)
+            'onlineCount' => in_array($conversation->type, [Conversation::CHANNEL, Conversation::GROUP], true)
+                ? Presence::onlineCount($conversation)
+                : null,
             'canSend' => $this->canSend($conversation, $user),
             'isAdmin' => $user->isAdmin(),
             // سقف و پسوندهای پیوست برای کادرِ نوشتن (۱۰/۱۲)؛ سرور خودش دوباره می‌سنجد
@@ -295,7 +302,9 @@ class ConversationController extends Controller
                 'membersCanPost' => $conversation->members_can_post,
                 'canManage' => $user->role->isAdmin(),
             ],
-            'counts' => ConversationParticipants::counts($conversation),
+            // `online`: همان اعضای فعال در پنجره‌ی حضور («چند نکته»، بندِ ۳)
+            'counts' => [...ConversationParticipants::counts($conversation), 'online' => Presence::onlineCount($conversation)],
+            'serverTime' => now()->getTimestamp(),
             'members' => $rows->take(self::MEMBER_PAGE)->map(function (User $member) use ($moderators) {
                 /** @var Unit|null $unit */
                 $unit = $member->currentUnits->first();
@@ -309,6 +318,7 @@ class ConversationController extends Controller
                     'roleLabel' => $role->label(),
                     'unit' => $unit ? 'واحد '.$unit->unit_number : null,
                     'isModerator' => in_array($member->id, $moderators, true),
+                    'onlineUntil' => Presence::until($member->last_seen_at),
                 ];
             })->values(),
             'page' => $page,

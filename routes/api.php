@@ -32,6 +32,7 @@ use App\Http\Controllers\Api\NotificationController;
 use App\Http\Controllers\Api\PaymentController;
 use App\Http\Controllers\Api\PaymentReviewController;
 use App\Http\Controllers\Api\PhoneChangeController;
+use App\Http\Controllers\Api\PresenceController;
 use App\Http\Controllers\Api\ProfileController;
 use App\Http\Controllers\Api\ResidentController;
 use App\Http\Controllers\Api\SearchController;
@@ -199,8 +200,12 @@ Route::middleware(['throttle:blog', 'feature:blog'])->group(function () {
 });
 
 // --- واردشده ---
-Route::middleware('auth')->group(function () {
+// `presence`: ضربانِ «آنلاین» روی همین درخواست‌ها، بی درخواستِ تازه («چند نکته»، بندِ ۳؛ `Presence`)
+Route::middleware(['auth', 'presence'])->group(function () {
     Route::post('logout', [AuthController::class, 'logout'])->name('logout');
+    // بستنِ صفحه: همان لحظه آفلاین (`pagehide` + keepalive)
+    Route::post('presence/offline', [PresenceController::class, 'offline'])
+        ->middleware('throttle:messenger')->name('presence.offline');
     // ⚠️ ۲۳ کوئری در هر فراخوانی (اندازه‌گیریِ R65)؛ دلیلِ سقف در AppServiceProvider
     Route::get('dashboard', [DashboardController::class, 'index'])
         ->middleware('throttle:dashboard')->name('dashboard');

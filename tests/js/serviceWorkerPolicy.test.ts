@@ -221,6 +221,17 @@ describe('نسخه‌ی کش', () => {
     expect(Number(match?.[1])).toBeGreaterThan(3)
   })
 
+  /**
+   * «چند نکته»، بندهای ۲ و ۷: آیکون‌ها و manifest با همان نشانی عوض شدند و تصویر `cacheFirst` است؛ فقط پاک‌شدنِ
+   * سطل‌های v4 آیکونِ قدیمِ زمینه‌سفید را از مرورگرهایی که سایت را دیده‌اند بیرون می‌برد.
+   */
+  it('نسخه از v4 جلوتر رفته تا آیکونِ قدیمیِ نصب از کش برود', () => {
+    const source = readFileSync(resolve(process.cwd(), 'public/sw.js'), 'utf8')
+    const match = source.match(/const VERSION = 'v(\d+)'/)
+
+    expect(Number(match?.[1])).toBeGreaterThan(4)
+  })
+
   it('سطلِ API از سطلِ صفحه‌ها جداست', () => {
     const source = readFileSync(resolve(process.cwd(), 'public/sw.js'), 'utf8')
 

@@ -18,6 +18,11 @@ export interface ConversationSummary {
   readOnlyReason: string | null
   membersCanPost: boolean
   unreadCount: number
+  /**
+   * «آنلاین تا» ِ طرفِ گفت‌وگوی یک‌به‌یک (ثانیه‌ی یونیکس، ساعتِ سرور) — فقط «مالک ↔ مستأجر» و، برای مدیر،
+   * گفت‌وگوی خصوصیِ عضو؛ بقیه null («چند نکته»، بندِ ۳).
+   */
+  peerOnlineUntil?: number | null
   lastMessage: {
     /** پیامِ پنهان‌شده برای ساکن پیش‌نمایش ندارد. */
     preview: string | null
@@ -39,6 +44,8 @@ export interface ConversationsResponse {
   units: { id: number; label: string }[]
   /** فقط برای مدیر: اعضای فعال، برای گفت‌وگوی خصوصی با یک نفر (۱۰/۹). */
   members: { id: number; label: string }[]
+  /** ساعتِ سرور (ثانیه) برای `peerOnlineUntil` */
+  serverTime?: number
 }
 
 /** اطلاعاتِ گروه (۱۰/۹) — همه از عضویتِ فعال، سمتِ سرور. */
@@ -50,7 +57,9 @@ export interface GroupInfo {
     membersCanPost: boolean
     canManage: boolean
   }
-  counts: { members: number; owners: number; tenants: number; managers: number }
+  /** `online`: اعضای فعالِ آنلاین («چند نکته»، بندِ ۳) */
+  counts: { members: number; owners: number; tenants: number; managers: number; online?: number }
+  serverTime?: number
   members: {
     id: number
     name: string
@@ -59,6 +68,8 @@ export interface GroupInfo {
     roleLabel: string
     unit: string | null
     isModerator: boolean
+    /** «آنلاین تا» (ثانیه‌ی یونیکس، ساعتِ سرور) یا null */
+    onlineUntil?: number | null
   }[]
   page: number
   hasMore: boolean
@@ -151,6 +162,8 @@ export interface MessagesResponse {
   rights?: { isModerator: boolean; canPin: boolean; canDeleteOthers: boolean }
   uploads?: UploadRules
   conversation: ConversationSummary
+  /** شمارِ اعضای آنلاینِ گروه؛ گفت‌وگوی یک‌به‌یک null («چند نکته»، بندِ ۳) */
+  onlineCount?: number | null
   canSend: boolean
   isAdmin: boolean
 }

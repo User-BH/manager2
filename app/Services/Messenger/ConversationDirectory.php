@@ -194,9 +194,11 @@ class ConversationDirectory
         $unread = $this->unreadCounts($viewer, $page->pluck('id')->all());
         // پیش‌نمایش هم همان قاعده‌ی دید: آخرین پیامِ ساکنِ قبلی پیش‌نمایشِ ساکنِ تازه نیست (F4)
         $last = Message::query()->visibleTo($viewer)->whereIn('id', $page->pluck('last_message_id')->filter()->all())->get()->keyBy('id');
+        // حضورِ طرفِ گفت‌وگوهای یک‌به‌یک، یک کوئری برای کلِ صفحه («چند نکته»، بندِ ۳)
+        $peers = Presence::peers($page, $viewer);
 
         return [
-            'data' => $page->map(fn (Conversation $c) => $this->present($c, $viewer, $unread[$c->id] ?? 0, $last->get($c->last_message_id)))->values()->all(),
+            'data' => $page->map(fn (Conversation $c) => $this->present($c, $viewer, $unread[$c->id] ?? 0, $last->get($c->last_message_id), $peers))->values()->all(),
             'hasMore' => $hasMore,
             'nextCursor' => $hasMore ? $page->last()->last_message_id.':'.$page->last()->id : null,
         ];
@@ -299,8 +301,11 @@ class ConversationDirectory
             ->all();
     }
 
-    /** @return array<string, mixed> */
-    public function present(Conversation $conversation, User $viewer, int $unread = 0, ?Message $last = null): array
+    /**
+     * @param  array<int, int|null>|null  $peers  «آنلاین تا» ِ طرفِ گفت‌وگو از `Presence::peers` — null یعنی همین‌جا بخوان
+     * @return array<string, mixed>
+     */
+    public function present(Conversation $conversation, User $viewer, int $unread = 0, ?Message $last = null, ?array $peers = null): array
     {
         $hiddenForViewer = $last && $last->is_hidden && ! $viewer->isAdmin();
 
@@ -313,6 +318,8 @@ class ConversationDirectory
             'readOnlyReason' => $canPost ? null : $conversation->readOnlyReason(),
             'membersCanPost' => $conversation->members_can_post,
             'unreadCount' => $unread,
+            // فقط یک‌به‌یک و فقط عضوِ فعالِ همین مجتمع (`Presence::peerOf`)؛ ثانیه‌ی یونیکس، کلاینت با `serverTime` می‌سنجد
+            'peerOnlineUntil' => ($peers ?? Presence::peers([$conversation], $viewer))[$conversation->id] ?? null,
             'lastMessage' => $last ? [
                 'preview' => match (true) {
                     $hiddenForViewer => null,

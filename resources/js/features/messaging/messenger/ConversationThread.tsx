@@ -13,6 +13,7 @@ import { messageActions } from './messageActions'
 import { ThreadSearch } from './ThreadSearch'
 import { GroupInfoPanel } from './GroupInfoPanel'
 import { ForwardDialog } from './ForwardDialog'
+import { OnlineCount, OnlineLabel, clockOffset } from './presence'
 import { copyText } from '@/shared/lib/clipboard'
 import { formatNumber } from '@/shared/lib/format'
 import {
@@ -37,6 +38,10 @@ interface ThreadInfo {
   isAdmin: boolean
   /** ۱۰/۱۰: چند سنجاق، تازه‌ترین اول */
   pins: ChatMessage[]
+  /** حضور («چند نکته»، بندِ ۳): شمارِ آنلاینِ گروه، ساعتِ سرور و اختلافش با این دستگاه */
+  onlineCount: number | null
+  serverTime: number | undefined
+  clockOffsetMs: number
 }
 
 /**
@@ -71,6 +76,9 @@ export function ConversationThread({ conversationId }: { conversationId: number 
     canSend: false,
     isAdmin: false,
     pins: [],
+    onlineCount: null,
+    serverTime: undefined,
+    clockOffsetMs: 0,
   })
   const [older, setOlder] = useState<{ has: boolean; cursor: number | null; loading: boolean }>({
     has: false,
@@ -113,6 +121,9 @@ export function ConversationThread({ conversationId }: { conversationId: number 
       canSend: data.canSend,
       isAdmin: data.isAdmin,
       pins: data.pins ?? (data.pinned ? [data.pinned] : []),
+      onlineCount: data.onlineCount ?? null,
+      serverTime: data.serverTime,
+      clockOffsetMs: clockOffset(data.serverTime),
     })
     if (data.uploads) setUploads(data.uploads)
     setMessages((current) =>
@@ -440,19 +451,29 @@ export function ConversationThread({ conversationId }: { conversationId: number 
       <header className="flex items-center justify-between gap-2">
         {/* بندِ ۳۵: کلیک روی نامِ گروه اطلاعاتِ گروه را باز می‌کند */}
         {conversation?.type === 'channel' || conversation?.type === 'group' ? (
-          <button
-            type="button"
-            onClick={() => setShowInfo(true)}
-            className="text-right text-body font-bold"
-            style={{ color: 'var(--text-primary)' }}
-            aria-label={`اطلاعاتِ ${conversation.title}`}
-          >
-            {conversation.title}
-          </button>
+          <div className="flex min-w-0 flex-col">
+            <button
+              type="button"
+              onClick={() => setShowInfo(true)}
+              className="text-right text-body font-bold"
+              style={{ color: 'var(--text-primary)' }}
+              aria-label={`اطلاعاتِ ${conversation.title}`}
+            >
+              {conversation.title}
+            </button>
+            <OnlineCount
+              count={info.onlineCount}
+              serverTime={info.serverTime}
+              offsetMs={info.clockOffsetMs}
+            />
+          </div>
         ) : (
-          <h2 className="text-body font-bold" style={{ color: 'var(--text-primary)' }}>
-            {conversation?.title}
-          </h2>
+          <div className="flex min-w-0 flex-col">
+            <h2 className="text-body font-bold" style={{ color: 'var(--text-primary)' }}>
+              {conversation?.title}
+            </h2>
+            <OnlineLabel until={conversation?.peerOnlineUntil} offsetMs={info.clockOffsetMs} />
+          </div>
         )}
         <div className="flex items-center gap-3">
           {conversation && ['unit', 'user', 'pair', 'saved'].includes(conversation.type) ? (

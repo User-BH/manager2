@@ -26,6 +26,7 @@ use App\Services\Auth\OtpService;
 use App\Services\Auth\PasswordConfirmation;
 use App\Services\Auth\SessionRegistry;
 use App\Services\Auth\TrustedDeviceService;
+use App\Services\Messenger\Presence;
 use App\Support\Audit;
 use App\Support\PersianName;
 use App\Support\Phone;
@@ -518,6 +519,10 @@ class AuthController extends Controller
         // دستگاهِ مورداعتمادِ همین مرورگر باطل می‌شود تا خروج واقعاً خروج باشد؛
         // دفعه‌ی بعد باید دوباره با رمز و کد وارد شود.
         $this->devices->forget($request);
+        // خروج یعنی همین حالا آفلاین، نه ۹۰ ثانیه‌ی دیگر («چند نکته»، بندِ ۳)
+        if ($request->user() instanceof User) {
+            Presence::forget($request->user());
+        }
 
         Auth::logout();
         $request->session()->invalidate();

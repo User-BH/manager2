@@ -12,6 +12,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Illuminate\Support\Carbon;
 use LogicException;
 
 /**
@@ -23,6 +24,7 @@ use LogicException;
  * @property UserRole $role
  * @property int|null $complex_id
  * @property bool $is_active
+ * @property Carbon|null $last_seen_at آخرین درخواستِ داشبورد — فقط `Presence` می‌نویسد و می‌خواند
  */
 class User extends Authenticatable
 {
@@ -35,7 +37,8 @@ class User extends Authenticatable
         'role', 'password', 'is_active', 'can_message', 'terms_accepted_at',
     ];
 
-    protected $hidden = ['password', 'remember_token'];
+    /** `last_seen_at`: حضور فقط از راهِ `Presence` و فقط به هم‌گروهِ فعال می‌رسد، نه با سریال‌شدنِ حساب */
+    protected $hidden = ['password', 'remember_token', 'last_seen_at'];
 
     protected function casts(): array
     {
@@ -47,6 +50,7 @@ class User extends Authenticatable
             'is_active' => 'boolean',
             'can_message' => 'boolean',
             'terms_accepted_at' => 'datetime',
+            'last_seen_at' => 'datetime',
         ];
     }
 

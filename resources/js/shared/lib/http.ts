@@ -24,6 +24,11 @@ export function setCsrfToken(token: string | undefined | null): void {
   if (token) csrfToken = token
 }
 
+/** برای درخواستی که از axios نمی‌گذرد — `fetch` ِ keepalive ِ «آفلاین شدم» (`presenceBeacon`) */
+export function currentCsrfToken(): string {
+  return csrfToken
+}
+
 /**
  * سقفِ زمانیِ هر درخواست.
  *

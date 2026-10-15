@@ -9,6 +9,10 @@ import { formatNumber } from '@/shared/lib/format'
 import { queryKeys } from '@/shared/lib/queryKeys'
 import { messageActions } from './messageActions'
 import type { GroupInfo } from './types'
+import { OnlineCount, OnlineDot, clockOffset } from './presence'
+
+/** تازه‌شدنِ پنلِ بازِ اعضا برای حضور؛ در جدولِ بارِ `FINAL_PERFORMANCE_REPORT` (`DocumentedNumbersTest`) */
+const INFO_REFRESH_MS = 30_000
 
 /**
  * اطلاعاتِ گروه (مرحلهٔ ۱۰ · فاز ۹؛ بندهای ۳۵، ۳۶ و ۷۰ ِ فایلِ معماری).
@@ -40,9 +44,17 @@ export function GroupInfoPanel({
         )
       } while (read[read.length - 1]?.hasMore && read.length < pages)
 
-      return { ...read[read.length - 1], members: read.flatMap((page) => page.members) }
+      const last = read[read.length - 1]
+      return {
+        ...last,
+        members: read.flatMap((page) => page.members),
+        clockOffsetMs: clockOffset(last?.serverTime),
+      }
     },
     placeholderData: keepPreviousData,
+    // حضورِ اعضا تا وقتی پنل باز و تب دیده می‌شود تازه می‌ماند («چند نکته»، بندِ ۳)
+    refetchInterval: INFO_REFRESH_MS,
+    refetchIntervalInBackground: false,
   })
 
   // ناظرِ گروه (۱۰/۱۰): فقط مدیر، فقط برای مالک و مستأجر
@@ -80,8 +92,16 @@ export function GroupInfoPanel({
               <p className="truncate text-body font-bold" style={{ color: 'var(--text-primary)' }}>
                 {data.conversation.title}
               </p>
-              <p className="text-small" style={{ color: 'var(--text-tertiary)' }}>
+              <p
+                className="flex items-center gap-2 text-small"
+                style={{ color: 'var(--text-tertiary)' }}
+              >
                 {formatNumber(data.counts.members)} عضو
+                <OnlineCount
+                  count={data.counts.online}
+                  serverTime={data.serverTime}
+                  offsetMs={data.clockOffsetMs}
+                />
               </p>
             </div>
           </div>
@@ -126,11 +146,14 @@ export function GroupInfoPanel({
               <li key={member.id} className="flex items-center gap-3 rounded-xl px-2 py-1.5">
                 <UserAvatar name={member.name} url={member.avatarUrl} size={36} />
                 <span className="min-w-0 flex-1">
-                  <span
-                    className="block truncate text-small font-semibold"
-                    style={{ color: 'var(--text-primary)' }}
-                  >
-                    {member.name}
+                  <span className="flex min-w-0 items-center gap-1.5">
+                    <span
+                      className="truncate text-small font-semibold"
+                      style={{ color: 'var(--text-primary)' }}
+                    >
+                      {member.name}
+                    </span>
+                    <OnlineDot until={member.onlineUntil} offsetMs={data.clockOffsetMs} />
                   </span>
                   <span className="block text-tiny" style={{ color: 'var(--text-tertiary)' }}>
                     {[member.roleLabel, member.unit].filter(Boolean).join(' · ')}
