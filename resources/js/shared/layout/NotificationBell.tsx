@@ -112,6 +112,7 @@ export function NotificationBell() {
               یک پنلِ fixed با حاشیه‌ی کوچک از دو طرف است تا همیشه کامل داخل
               صفحه بماند. از sm به بعد همان دراپ‌داونِ چسبیده به زنگوله است.
             */
+            data-layer="notifications"
             className="fixed inset-x-3 top-16 z-40 origin-top overflow-hidden rounded-2xl border shadow-xl sm:absolute sm:inset-x-auto sm:left-0 sm:top-[calc(100%+10px)] sm:w-[19rem]"
             style={{
               backgroundColor: 'var(--surface-raised)',

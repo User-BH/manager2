@@ -29,7 +29,11 @@ class StoreMessageRequest extends BaseFormRequest
              * می‌سازد و هر تماسی با `hasFile()` آنجا کرش می‌کند. قاعده‌ی
              * اعلانی هم برای اسپک خوانا می‌ماند.
              */
-            'body' => ['required_without_all:attachment,poll_question', 'nullable', 'string', 'max:1000'],
+            /*
+             * نظرسنجی فقط کارِ مدیر است و فیلدهایش از دیگران نادیده‌اند؛ پس پرسشِ نظرسنجیِ غیرِمدیر جای متن را نمی‌گیرد —
+             * وگرنه پیامِ خالی ثبت می‌شد (یافته‌ی «چند نکته»، بندِ ۴: آزمونِ خطای فارسی ۲۰۱ گرفت، نه ۴۲۲).
+             */
+            'body' => ['required_without_all:'.($this->user()?->role->isAdmin() ? 'attachment,poll_question' : 'attachment'), 'nullable', 'string', 'max:1000'],
 
             /*
              * مخاطب (R23) — فقط مدیر می‌تواند تعیینش کند و خودِ کنترلر این را

@@ -11,8 +11,19 @@ export function Header() {
   const { setMobileOpen } = useSidebar()
 
   return (
+    /*
+     * لایه‌ی سربرگ: z-45 («چند نکته»، بندِ ۵).
+     *
+     * `sticky` + `z-index` و `backdrop-blur` هر کدام سربرگ را یک stacking context می‌کنند؛ پس `z-40` ِ باکسِ اعلان و
+     * منوی کاربر فقط **درونِ** سربرگ معنا دارد و از بیرون همه با z ِ خودِ سربرگ سنجیده می‌شوند. سربرگ z-20 بود و
+     * نمایشگرِ چسبانِ ماشین‌حساب هم z-20 و بعدتر در DOM — برابری با ترتیب شکسته می‌شد و ماشین‌حساب روی باکس می‌نشست.
+     * (`backdrop-filter` حتی `fixed` ِ موبایلِ باکس را هم به سربرگ می‌بندد.)
+     *
+     * ترتیبِ لایه‌ها: محتوای صفحه ≤ z-30 · کارتِ نصب (پایینِ صفحه) z-40 · سربرگ و باکس‌هایش z-45 · پوشش‌های مسدودکننده
+     * (Modal، کشوی موبایل، نوارِ اتصال) z-50. `overlayLayers.test.ts` نمی‌گذارد محتوای صفحه به لایه‌ی سربرگ برسد.
+     */
     <header
-      className="sticky top-0 z-20 flex h-16 items-center gap-3 border-b px-4 backdrop-blur sm:px-6"
+      className="sticky top-0 z-45 flex h-16 items-center gap-3 border-b px-4 backdrop-blur sm:px-6"
       style={{
         backgroundColor: 'color-mix(in srgb, var(--surface-base) 92%, transparent)',
         borderColor: 'var(--border-subtle)',

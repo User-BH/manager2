@@ -57,7 +57,10 @@ export function Keypad({
       </div>
 
       <button
+        type="button"
         onClick={onEquals}
+        aria-label="محاسبه"
+        title="محاسبه (Enter)"
         className="mt-1 rounded-xl py-3.5 text-[17px] font-extrabold text-white transition-transform hover:scale-[1.01] active:scale-[0.99]"
         style={{ backgroundColor: 'var(--color-brand-500)' }}
       >

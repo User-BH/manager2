@@ -20,8 +20,14 @@ class SendConversationMessageRequest extends BaseFormRequest
     /** @return array<string, mixed> */
     public function rules(): array
     {
+        $instead = $this->user()?->role->isAdmin() ? 'attachment,poll_question,voice,video_message' : 'attachment,voice,video_message';
+
         return [
-            'body' => ['required_without_all:attachment,poll_question,voice,video_message', 'nullable', 'string', 'max:1000'],
+            /*
+             * نظرسنجی فقط کارِ مدیر است و فیلدهایش از دیگران نادیده‌اند؛ پس پرسشِ نظرسنجیِ غیرِمدیر جای متن را نمی‌گیرد —
+             * وگرنه پیامِ خالی ثبت می‌شد (یافته‌ی «چند نکته»، بندِ ۴: آزمونِ خطای فارسی ۲۰۱ گرفت، نه ۴۲۲).
+             */
+            'body' => ['required_without_all:'.$instead, 'nullable', 'string', 'max:1000'],
             'client_id' => ['nullable', 'string', 'max:40', 'regex:/^[A-Za-z0-9-]+$/'],
             'reply_to_id' => ['nullable', 'integer', 'min:1'],
             /*
@@ -73,6 +79,9 @@ class SendConversationMessageRequest extends BaseFormRequest
             'body.required_without_all' => 'متن پیام را وارد کنید.',
             'voice.mimetypes' => 'قالبِ پیامِ صوتی پشتیبانی نمی‌شود.',
             'voice.max' => 'پیامِ صوتی بیش از حد طولانی است.',
+            // فهرستِ MIME به کاربر نمی‌رسد («چند نکته»، بندِ ۴)
+            'video_message.mimetypes' => 'قالبِ پیامِ ویدیویی پشتیبانی نمی‌شود.',
+            'video_message.max' => 'پیامِ ویدیویی بیش از حد طولانی است.',
             'body.max' => 'پیام بیش از حد طولانی است.',
         ];
     }

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { Calculator as CalculatorIcon } from 'lucide-react'
 import { Card } from '@/shared/ui/Card'
 import { useDocumentTitle, useLocalStorage } from '@/shared/hooks'
@@ -33,24 +33,16 @@ export function CalculatorPage() {
   useDocumentTitle('ماشین حساب')
 
   /*
-   * پیش‌نمایش زنده: با هر تغییر عبارت، نتیجه‌ی موقت زیر آن نشان داده می‌شود
-   * ولی در تاریخچه ثبت نمی‌شود. عبارت‌های نیمه‌تمام خطا می‌دهند که اینجا
-   * بی‌صدا نادیده گرفته می‌شود — خطا فقط هنگام زدن «=» به کاربر گفته می‌شود.
+   * محاسبه فقط با فرمانِ کاربر — «=» یا Enter («چند نکته»، بندِ ۶).
+   *
+   * پیش‌تر یک «پیش‌نمایشِ زنده» با هر تغییرِ عبارت `evaluate` را اجرا می‌کرد و نتیجه را زیرِ عبارت نشان می‌داد؛ یعنی
+   * محاسبه واقعاً انجام می‌شد، نه فقط پنهان نبود. آن پیش‌نمایش برداشته شد: تا فرمان نیاید هیچ محاسبه‌ای اجرا نمی‌شود.
    */
-  const preview = useMemo(() => {
-    const trimmed = expression.trim()
-    if (!trimmed) return ''
-
-    try {
-      return formatResult(evaluate(trimmed, angleMode))
-    } catch {
-      return ''
-    }
-  }, [expression, angleMode])
-
   const compute = useCallback(() => {
     const trimmed = expression.trim()
     if (!trimmed) return
+    // همان عبارت که همین حالا حساب شده: تکرارِ ناخواسته (دو بار Enter، کلیک و Enter) ردیفِ تکراری نمی‌سازد
+    if (result && resultExpr === trimmed) return
 
     try {
       const value = evaluate(trimmed, angleMode)
@@ -76,7 +68,28 @@ export function CalculatorPage() {
       setResult('')
       setError(err instanceof CalculationError ? err.message : 'محاسبه ممکن نشد.')
     }
-  }, [expression, angleMode, setHistory])
+  }, [expression, angleMode, result, resultExpr, setHistory])
+
+  /**
+   * مقدار برای دکمه‌های حافظه: نتیجه‌ی حساب‌شده، یا — اگر هنوز نیست — همان لحظه به فرمانِ خودِ کاربر حساب می‌شود
+   * (بی ثبت در تاریخچه). عبارتِ نامعتبر خطا می‌دهد و حافظه دست نمی‌خورد.
+   */
+  function valueForMemory(): number | null {
+    if (result) return Number(result)
+    const trimmed = expression.trim()
+    if (!trimmed) return 0
+    try {
+      return evaluate(trimmed, angleMode)
+    } catch (err) {
+      setError(err instanceof CalculationError ? err.message : 'محاسبه ممکن نشد.')
+      return null
+    }
+  }
+
+  function updateMemory(apply: (value: number) => void) {
+    const value = valueForMemory()
+    if (value !== null) apply(value)
+  }
 
   /*
    * محل مکان‌نمای «هدف» بعد از درج.
@@ -176,6 +189,9 @@ export function CalculatorPage() {
       if (target && target !== inputRef.current && /^(INPUT|TEXTAREA)$/.test(target.tagName)) return
 
       if (event.key === 'Enter' || event.key === '=') {
+        // Enter روی دکمه‌ی متمرکز کارِ همان دکمه است (درج، حذف از تاریخچه، «=»)، نه یک محاسبه‌ی اضافه.
+        // نگه داشتنِ Enter و Enter ِ دوباره را خودِ `compute` بی‌اثر می‌کند (همان عبارتِ حساب‌شده).
+        if (event.key === 'Enter' && target && /^(BUTTON|A)$/.test(target.tagName)) return
         event.preventDefault()
         compute()
         return
@@ -211,7 +227,7 @@ export function CalculatorPage() {
   }
 
   function copyResult() {
-    const value = result || preview
+    const value = result
     if (!value) return
 
     void copyText(value).then((copied) =>
@@ -270,7 +286,6 @@ export function CalculatorPage() {
             inputRef={inputRef}
             result={result}
             resultExpr={resultExpr}
-            preview={preview}
             error={error}
             memory={memory}
             angleMode={angleMode}
@@ -282,9 +297,9 @@ export function CalculatorPage() {
             memory={memory}
             onRecall={() => insert(String(memory))}
             onClear={() => setMemory(0)}
-            onAdd={() => setMemory((prev) => prev + Number(preview || result || 0))}
-            onSubtract={() => setMemory((prev) => prev - Number(preview || result || 0))}
-            onStore={() => setMemory(Number(preview || result || 0))}
+            onAdd={() => updateMemory((value) => setMemory((prev) => prev + value))}
+            onSubtract={() => updateMemory((value) => setMemory((prev) => prev - value))}
+            onStore={() => updateMemory((value) => setMemory(value))}
           />
 
           <Keypad
@@ -302,8 +317,11 @@ export function CalculatorPage() {
           query={historyQuery}
           onQueryChange={setHistoryQuery}
           onReuse={(entry) => {
+            // نتیجه‌ی ذخیره‌شده با همان حالتِ زاویه‌ای که با آن حساب شد — نه نتیجه‌ی درجه زیرِ حالتِ رادیان
+            setAngleMode(entry.angleMode)
             setExpression(entry.expression)
             setResult(entry.result)
+            setResultExpr(entry.expression)
             setError(null)
             inputRef.current?.focus()
           }}

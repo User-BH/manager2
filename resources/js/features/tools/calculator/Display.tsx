@@ -11,14 +11,13 @@ import { Copy } from 'lucide-react'
 import { toPersianDigits } from '@/shared/lib/format'
 import { formatResult, normalizeDigits, type AngleMode } from '@/shared/lib/calculator'
 
+/** خطا مقدم بر نتیجه. پیش‌نمایشِ زنده نیست: نتیجه فقط پس از «=» یا Enter («چند نکته»، بندِ ۶). */
 export function displayStatus(
   error: string | null,
   result: string,
-  preview: string,
-): { kind: 'error' | 'result' | 'preview'; text: string } | null {
+): { kind: 'error' | 'result'; text: string } | null {
   if (error) return { kind: 'error', text: error }
   if (result) return { kind: 'result', text: result }
-  if (preview) return { kind: 'preview', text: preview }
 
   return null
 }
@@ -48,7 +47,6 @@ export function Display({
   inputRef,
   result,
   resultExpr,
-  preview,
   error,
   memory,
   angleMode,
@@ -60,14 +58,13 @@ export function Display({
   inputRef: React.RefObject<HTMLInputElement | null>
   result: string
   resultExpr: string
-  preview: string
   error: string | null
   memory: number
   angleMode: AngleMode
   onCopy: () => void
   onInsert: (text: string) => void
 }) {
-  const status = displayStatus(error, result, preview)
+  const status = displayStatus(error, result)
 
   return (
     /*
@@ -115,7 +112,7 @@ export function Display({
 
           <button
             onClick={onCopy}
-            disabled={!result && !preview}
+            disabled={!result}
             className="mr-auto flex items-center gap-1 rounded px-1.5 py-0.5 transition-colors enabled:hover:bg-(--surface-base) disabled:opacity-40"
             title="کپی نتیجه"
           >
@@ -177,17 +174,10 @@ export function Display({
               className={
                 status.kind === 'error'
                   ? 'text-[12.5px] font-semibold'
-                  : status.kind === 'result'
-                    ? 'font-mono text-[22px] font-extrabold'
-                    : 'font-mono text-[15px]'
+                  : 'font-mono text-[22px] font-extrabold'
               }
               style={{
-                color:
-                  status.kind === 'error'
-                    ? 'var(--color-danger)'
-                    : status.kind === 'result'
-                      ? 'var(--color-brand-600)'
-                      : 'var(--text-tertiary)',
+                color: status.kind === 'error' ? 'var(--color-danger)' : 'var(--color-brand-600)',
               }}
             >
               {status.kind === 'error' ? status.text : `= ${toPersianDigits(status.text)}`}
