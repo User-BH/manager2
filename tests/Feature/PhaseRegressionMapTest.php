@@ -1209,6 +1209,18 @@ class PhaseRegressionMapTest extends TestCase
             '۱۰/۱۴: Eloquent صاحبِ تاریخچه را حذفِ سخت نمی‌کند' => [
                 'DeleteSemanticsTest', 'test_eloquent_never_hard_deletes_an_owner_of_history', '۱۰',
             ],
+            '🔴 ۱۰/۱۵: گفت‌وگوی فقط‌خواندنی سنجاق نمی‌گیرد (شکافِ یافته با خرابکاری)' => [
+                'GroupModerationTest', 'test_a_read_only_conversation_takes_no_pin', '۱۰',
+            ],
+            '🔴 ۱۰/۱۵: خودِ سرویسِ نظرسنجی گزینه‌ی تکراری را رد می‌کند (شکافِ یافته با خرابکاری)' => [
+                'PollRulesTest', 'test_the_service_itself_refuses_a_repeated_option', '۱۰',
+            ],
+            '🔴 ۱۰/۱۵: وضعیتِ هر حوزه از بندهایش در نقشه، نه دستی' => [
+                'ArchitectureFinalReportTest', 'test_each_area_status_is_the_weakest_of_its_items_in_the_map', '۱۰',
+            ],
+            '۱۰/۱۵: هر معیارِ پذیرش و هر اصل روی بندهای VERIFIED' => [
+                'ArchitectureFinalReportTest', 'test_every_acceptance_criterion_and_principle_rests_on_verified_items', '۱۰',
+            ],
             'مدیر از درخواستِ عضویت با اعلانِ داشبورد باخبر می‌شود' => [
                 'JoinRequestTest', 'test_the_complexes_managers_get_a_dashboard_notification_once', '۹',
             ],

@@ -4,9 +4,11 @@ namespace Tests\Feature;
 
 use App\Enums\ResidentRelation;
 use App\Enums\UserRole;
+use App\Exceptions\DomainException;
 use App\Models\Complex;
 use App\Models\Conversation;
 use App\Models\MessagePoll;
+use App\Models\PollOption;
 use App\Models\Unit;
 use App\Models\User;
 use App\Services\Account\Membership;
@@ -118,6 +120,24 @@ class PollRulesTest extends TestCase
         // سقفِ بیشتر از شمارِ گزینه‌ها ساخته نمی‌شود
         $this->create($this->group, ['poll_options' => ['الف', 'ب'], 'poll_max_selections' => 3])
             ->assertUnprocessable()->assertJsonValidationErrors('poll_max_selections');
+    }
+
+    /**
+     * لایه‌ی دوم: خودِ سرویس هم گزینه‌ی تکراری را رد می‌کند، نه فقط مسیرِ HTTP — هر فراخواننده‌ی دیگری (کارتِ داشبورد،
+     * فرمانِ هم‌زمانی) همان قاعده را می‌گیرد. (خرابکاریِ ۱۰/۱۵: حذفِ این بررسی هیچ آزمونی را قرمز نمی‌کرد.)
+     */
+    public function test_the_service_itself_refuses_a_repeated_option(): void
+    {
+        $poll = MessagePoll::query()->findOrFail($this->pollFor(['poll_options' => ['الف', 'ب', 'پ'], 'poll_max_selections' => 2]));
+        $option = PollOption::query()->findOrFail($this->optionsOf($poll->id)[0]);
+
+        try {
+            app(PollService::class)->castVote($poll, $this->owner, [$option, $option]);
+            $this->fail('سرویس گزینه‌ی تکراری را پذیرفت.');
+        } catch (DomainException $e) {
+            $this->assertSame('poll.invalid_option', $e->errorCode);
+        }
+        $this->assertSame(0, DB::table('poll_votes')->where('user_id', $this->owner->id)->count());
     }
 
     /** بندِ ۱۱۹: گزینه‌ی نظرسنجیِ دیگر و شناسه‌ی نظرسنجیِ مجتمعِ دیگر. */

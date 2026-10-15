@@ -1,6 +1,6 @@
 import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs'
 import { join, relative } from 'node:path'
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 
 /**
  * حریمِ خصوصی، اسکریپتِ بیرونی و پیکربندیِ باندل (مرحلهٔ ۵ · فاز ۷ · بندهای ۵۷–۶۳).
@@ -258,6 +258,23 @@ describe('چه چیزی به باندلِ مرورگر می‌رود', () => {
    */
   const ALLOWED_META = new Set(['DEV', 'PROD', 'MODE', 'SSR', 'BASE_URL'])
 
+  /*
+   * خروجیِ بیلد یک بار و با بودجه‌ی زمانیِ خودش خوانده می‌شود. خواندنِ ۱۱۷ فایلِ JS در بدنه‌ی آزمون معمولاً ۱۰ میلی‌ثانیه
+   * است، ولی یک بار در هوکِ پیش از کامیت از ۵ ثانیه گذشت (هشت اجرای کاملِ دیگر: زیرِ ۱۰۰ میلی‌ثانیه) — هزینه‌ی I/O ِ
+   * محیط، نه رفتارِ بیلد. همان ادعاها، فقط زمانِ خواندن بیرون از زمانِ آزمون.
+   */
+  const buildDir = join(ROOT, 'public/build/assets')
+  let buildFiles: string[] | null = null
+  let pointingToMaps: string[] = []
+
+  beforeAll(() => {
+    if (!existsSync(buildDir)) return
+    buildFiles = readdirSync(buildDir)
+    pointingToMaps = buildFiles
+      .filter((name) => name.endsWith('.js'))
+      .filter((name) => readFileSync(join(buildDir, name), 'utf8').includes('sourceMappingURL='))
+  }, 30_000)
+
   it('کد فقط پرچم‌های داخلیِ Vite را از import.meta.env می‌خواند', () => {
     const used = new Set(
       SOURCES.flatMap((f) => [...code(f).matchAll(/import\.meta\.env\.(\w+)/g)].map((m) => m[1])),
@@ -300,16 +317,10 @@ describe('چه چیزی به باندلِ مرورگر می‌رود', () => {
     const config = readFileSync(join(ROOT, 'vite.config.js'), 'utf8')
     expect(config).not.toMatch(/sourcemap\s*:\s*(true|['"](hidden|inline)['"])/)
 
-    const buildDir = join(ROOT, 'public/build/assets')
-    if (!existsSync(buildDir)) return // بیلد نشده؛ قاعده‌ی پیکربندی بالا همچنان سنجیده شد
+    if (buildFiles === null) return // بیلد نشده؛ قاعده‌ی پیکربندی بالا همچنان سنجیده شد
 
-    const files = readdirSync(buildDir)
-    expect(files.length).toBeGreaterThan(10)
-    expect(files.filter((name) => name.endsWith('.map'))).toEqual([])
-
-    const pointing = files
-      .filter((name) => name.endsWith('.js'))
-      .filter((name) => readFileSync(join(buildDir, name), 'utf8').includes('sourceMappingURL='))
-    expect(pointing).toEqual([])
+    expect(buildFiles.length).toBeGreaterThan(10)
+    expect(buildFiles.filter((name) => name.endsWith('.map'))).toEqual([])
+    expect(pointingToMaps).toEqual([])
   })
 })

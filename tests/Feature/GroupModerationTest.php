@@ -8,6 +8,7 @@ use App\Models\Complex;
 use App\Models\Conversation;
 use App\Models\Message;
 use App\Models\Unit;
+use App\Models\UnitTenure;
 use App\Models\User;
 use App\Services\Account\Membership;
 use App\Services\Account\MembershipLedger;
@@ -221,6 +222,34 @@ class GroupModerationTest extends TestCase
         $this->pin($this->owner, $pair, $this->say($this->tenant, $pair, 'رمز'))->assertOk()->assertJsonCount(2, 'pins');
         $this->pin($this->owner, $chat, $this->say($this->manager, $chat, 'پاسخِ مدیر'))->assertOk();
         $this->pin($this->manager, $chat, $this->say($this->owner, $chat, 'پرسشِ مالک'))->assertOk();
+    }
+
+    /**
+     * 🔴 سنجاق فقط جایی که نوشتن هست (بندِ ۵۹): بایگانیِ واحد برای هیچ‌کس، حتی مدیر؛ و گفت‌وگوی مالک ↔ مستأجر پس از
+     * رفتنِ یکی، فقط‌خواندنی و بی سنجاق. (خرابکاریِ ۱۰/۱۵ نشان داد این دو حالت آزمون نداشتند.)
+     */
+    public function test_a_read_only_conversation_takes_no_pin(): void
+    {
+        app(TenantContext::class)->set(null);
+        $archive = app(ConversationDirectory::class)->unitThread($this->complex, $this->unit);
+        $old = DB::table('messages')->insertGetId([
+            'complex_id' => $this->complex->id, 'conversation_id' => $archive->id, 'user_id' => $this->owner->id,
+            'body' => 'پیامِ پیش از ۱۰/۹', 'audience' => 'management', 'unit_id' => $this->unit->id,
+            'author_name' => 'مالک', 'is_hidden' => false, 'created_at' => now()->subMonth(), 'updated_at' => now()->subMonth(),
+        ]);
+        foreach ([$this->manager, $this->owner] as $user) {
+            $this->pin($user, $archive, $old)->assertForbidden()->assertJsonPath('code', 'messenger.pin_forbidden');
+        }
+
+        $this->as($this->owner)->getJson('/api/v1/messenger/conversations');
+        $pair = Conversation::withoutGlobalScopes()->where('type', Conversation::PAIR)->sole();
+        $said = $this->say($this->owner, $pair, 'کلیدِ انباری');
+        app(TenureService::class)->close(
+            UnitTenure::query()->where('user_id', $this->tenant->id)->where('unit_id', $this->unit->id)->firstOrFail(),
+        );
+        $this->pin($this->owner, $pair, $said)->assertForbidden()->assertJsonPath('code', 'messenger.pin_forbidden');
+
+        $this->assertSame(0, DB::table('conversation_pins')->whereIn('conversation_id', [$archive->id, $pair->id])->count());
     }
 
     /* ── بندهای ۵۲ و ۵۳: هدایت ────────────────────────────────────────── */
