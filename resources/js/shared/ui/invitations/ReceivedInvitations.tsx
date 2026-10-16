@@ -2,7 +2,6 @@ import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { Building2, Check, X } from 'lucide-react'
 import { api } from '@/shared/lib/api'
-import { enterNewContext } from '@/shared/lib/accountContext'
 import { queryKeys } from '@/shared/lib/queryKeys'
 import { useAction } from '@/shared/hooks/useAction'
 import type { Invitation } from '@/shared/types'
@@ -33,30 +32,23 @@ export function ReceivedInvitations() {
   })
 
   /*
-   * «پیوستن» اول کدِ تازه به شماره‌ی خودِ کاربر می‌فرستد (مرحلهٔ ۹ · فاز ۶).
-   * فقط وقتی ادمینِ کل OTP را برای کلِ سامانه خاموش کرده باشد (پیش از آماده‌شدنِ
-   * پیامک) مستقیم پذیرفته می‌شود — همان قاعده‌ی گامِ دومِ ورود.
+   * «پیوستن» اول کدِ تازه به شماره‌ی خودِ کاربر می‌فرستد (مرحلهٔ ۹ · فاز ۶) و پذیرش در
+   * `AcceptInvitationForm` با همان کد است. از ۱۲/۳ (بندِ ۱۵) همیشه — کلیدِ `otp_disabled` ِ
+   * ادمینِ کل فقط گامِ دومِ ورود را برمی‌دارد، نه کدِ پذیرش را.
    */
   const accept = (id: number) =>
     run(
       async () => {
-        const step = await api<{ otpRequired: boolean; message?: string; devCode?: string | null }>(
+        const step = await api<{ message?: string; devCode?: string | null }>(
           `/invitations/${id}/code`,
           { method: 'POST' },
         )
 
-        if (step.otpRequired) {
-          setCodeStep({
-            id,
-            message: step.message ?? 'کدِ تأیید فرستاده شد.',
-            devCode: step.devCode ?? null,
-          })
-          return
-        }
-
-        await api(`/invitations/${id}/accept`, { method: 'POST' })
-        // پذیرش به زمینه‌ی مجتمعِ تازه می‌برد؛ هیچ دادهٔ زمینه‌ی قبلی نباید بماند (۱۰/۴)
-        await enterNewContext()
+        setCodeStep({
+          id,
+          message: step.message ?? 'کدِ تأیید فرستاده شد.',
+          devCode: step.devCode ?? null,
+        })
       },
       { key: id },
     )

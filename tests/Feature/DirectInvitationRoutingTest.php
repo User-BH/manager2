@@ -162,8 +162,8 @@ class DirectInvitationRoutingTest extends TestCase
     public function test_the_platform_otp_switch_does_not_let_registration_skip_its_code(): void
     {
         /*
-         * پذیرشِ دعوت با `otp_disabled` بی کد است؛ پذیرش در ثبت‌نام فقط چون ثبت‌نام **همیشه** کدِ پیامکیِ
-         * همان شماره را می‌خواهد هم‌ارزِ آن است. اگر روزی ثبت‌نام هم بی کد شود، این آزمون باید بشکند.
+         * پذیرشِ دعوت همیشه کدِ پیامکی می‌خواهد (از ۱۲/۳ حتی با `otp_disabled`)؛ پذیرش در ثبت‌نام فقط چون ثبت‌نام
+         * **همیشه** کدِ پیامکیِ همان شماره را می‌خواهد هم‌ارزِ آن است. اگر روزی ثبت‌نام بی کد شود، این آزمون باید بشکند.
          */
         SystemSettings::set('otp_disabled', true);
         [$invitation, $token] = $this->invite(UserRole::Tenant);

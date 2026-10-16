@@ -137,9 +137,13 @@ class ComplexInvitation extends Model
         ], fn ($value, $key) => $value !== null || $key === 'live_key', ARRAY_FILTER_USE_BOTH))->save();
     }
 
+    /**
+     * 🔴 بی انقضا یعنی منقضی (۱۲/۳، بندِ ۱۵). ردیفِ پیش از ۹/۶ نه توکن داشت نه انقضا و تا پیش از این برای همیشه
+     * «زنده» شمرده می‌شد؛ قاعده‌ی خودِ مهاجرت («دعوتِ بی‌انقضا پذیرفته نیست»، F7) حالا در کد هم هست.
+     */
     public function isExpired(): bool
     {
-        return $this->expires_at !== null && $this->expires_at->isPast();
+        return $this->expires_at === null || $this->expires_at->isPast();
     }
 
     /** در انتظار و منقضی‌نشده. */
@@ -151,8 +155,8 @@ class ComplexInvitation extends Model
     /** @param  Builder<ComplexInvitation>  $query */
     public function scopeLive(Builder $query): void
     {
-        $query->where('status', self::PENDING)
-            ->where(fn (Builder $q) => $q->whereNull('expires_at')->orWhere('expires_at', '>', now()));
+        // همان `isExpired`: بی انقضا زنده نیست — `NULL > now` در SQL درست نیست (پیش از ۱۲/۳ شاخه‌ی `orWhereNull` بود)
+        $query->where('status', self::PENDING)->where('expires_at', '>', now());
     }
 
     /** @param  Builder<ComplexInvitation>  $query */

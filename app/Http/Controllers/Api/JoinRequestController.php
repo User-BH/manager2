@@ -6,6 +6,7 @@ use App\Enums\UserRole;
 use App\Exceptions\DomainException;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\ApproveJoinRequestRequest;
+use App\Models\Complex;
 use App\Models\ComplexInvitation;
 use App\Models\ComplexMembership;
 use App\Models\Unit;
@@ -17,6 +18,7 @@ use App\Services\Account\PublicJoinLink;
 use App\Support\Audit;
 use App\Support\ComplexResolver;
 use App\Support\Phone;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -53,11 +55,13 @@ class JoinRequestController extends Controller
     public function lookup(Request $request): JsonResponse
     {
         $phone = $request->query('phone');
-        $manager = is_string($phone) ? $this->managerByPhone($phone) : null;
+        $complexes = is_string($phone) ? $this->managedByPhone($phone) : collect();
 
         return response()->json([
-            'found' => $manager !== null,
-            'complexName' => $manager?->complex?->name,
+            'found' => $complexes->isNotEmpty(),
+            // یک مجتمع: همان نام. چند مجتمع: کاربر از `complexes` برمی‌گزیند (۱۲/۳)
+            'complexName' => $complexes->count() === 1 ? $complexes->first()?->name : null,
+            'complexes' => $complexes->map(fn (Complex $c) => ['id' => $c->id, 'name' => $c->name])->values(),
         ]);
     }
 
@@ -83,15 +87,8 @@ class JoinRequestController extends Controller
             }
         } else {
             $phone = $request->input('phone');
-            $complex = is_string($phone) ? $this->managerByPhone($phone)?->complex : null;
+            $complex = $this->chosenComplex(is_string($phone) ? $this->managedByPhone($phone) : collect(), $request->input('complex_id'));
             $channel = 'manager_phone';
-
-            if ($complex === null) {
-                throw DomainException::invalid(
-                    'این شماره متعلق به هیچ مدیر مجتمعی نیست.',
-                    'join_request.manager_not_found',
-                );
-            }
         }
 
         // از ۱۰/۴ عضوِ مجتمعِ دیگر هم درخواست می‌دهد؛ عضوِ همین مجتمع نه
@@ -199,7 +196,11 @@ class JoinRequestController extends Controller
     {
         $this->authorizeManagerOf($invitation);
 
-        $invitation->close(ComplexInvitation::DECLINED);
+        $this->membership->rejectRequest($invitation);
+
+        Audit::log('join_request.rejected', 'رد درخواست پیوستن', $invitation, [
+            'complex_id' => $invitation->complex_id,
+        ]);
 
         return response()->json(['message' => 'درخواست رد شد.']);
     }
@@ -207,33 +208,61 @@ class JoinRequestController extends Controller
     /* ── کمکی ──────────────────────────────────────────────────────────── */
 
     /**
-     * مدیرِ فعالِ یک مجتمع بر پایه‌ی شماره — یا null.
+     * مجتمع‌هایی که صاحبِ این شماره **اکنون** مدیرشان است — از عضویت، نه ردیفِ حساب.
      *
-     * ⚠️ «مدیرِ مجتمع» یعنی نقشِ `complex_admin` + حسابِ فعال + وصل بودن به
-     * یک مجتمع. عمداً **اشتراکِ فعال شرط نشد**: مدیرهایی که ادمینِ کل ساخته
-     * و مجتمع‌های پلنِ رایگان هم مدیرِ واقعی‌اند و شرطِ اشتراک آن‌ها را از
-     * دسترسِ ساکنانشان خارج می‌کرد.
+     * 🔴 ۱۲/۳: پیش از این از `users.role` و `users.complex_id` خوانده می‌شد. از ۱۲/۱ آن ستون‌ها فقط «پیش‌فرض» اند:
+     * مدیری که زمینه‌ی پیش‌فرضش مجتمعی است که در آن ساکن است پیدا نمی‌شد، مدیرِ دو مجتمع فقط یکی را داشت، و
+     * مجتمعِ تعلیق‌شده (که QR ِ آن ۴۰۴ است، `PublicJoinLink::resolve`) درخواست می‌گرفت.
+     *
+     * «مدیر» یعنی عضویتِ **فعالِ** `complex_admin` (نه معلق، نه پایان‌یافته) + حسابِ فعال + مجتمعِ فعال. عمداً
+     * **اشتراکِ فعال شرط نیست**: مدیرهایی که ادمینِ کل ساخته و مجتمع‌های پلنِ رایگان هم مدیرِ واقعی‌اند.
+     *
+     * @return Collection<int, Complex>
      */
-    private function managerByPhone(string $phone): ?User
+    private function managedByPhone(string $phone): Collection
     {
-        if (! preg_match('/^09\d{9}$/', Phone::normalize($phone))) {
-            return null;
+        $phone = Phone::normalize($phone);
+
+        if (! preg_match('/^09\d{9}$/', $phone)) {
+            return new Collection;
         }
 
-        return User::withoutGlobalScopes()
-            ->where('phone', Phone::normalize($phone))
-            ->where('role', UserRole::ComplexAdmin->value)
-            ->where('is_active', true)
-            ->whereNotNull('complex_id')
-            ->with('complex:id,name')
-            ->first();
+        return Complex::query()
+            ->join('complex_memberships as cm', 'cm.complex_id', '=', 'complexes.id')
+            ->join('users', 'users.id', '=', 'cm.user_id')
+            ->where('users.phone', $phone)
+            ->where('users.is_active', true)
+            ->where('cm.role', UserRole::ComplexAdmin->value)
+            ->where('cm.status', ComplexMembership::ACTIVE)
+            ->where('complexes.is_active', true)
+            ->orderBy('complexes.id')
+            ->get(['complexes.id', 'complexes.name']);
     }
 
     /**
-     * فقط مدیرِ همان مجتمع می‌تواند پاسخ بدهد.
+     * مجتمعِ مقصد از میانِ مجتمع‌های همان مدیر. مدیرِ چند مجتمع: متقاضی باید یکی را برگزیند — درخواست به مجتمعِ
+     * حدسی نمی‌رود، چون نام و شماره‌ی او به مدیرانِ همان مجتمع می‌رسد. شناسه‌ای بیرون از این فهرست همان پاسخِ
+     * «مدیر نیست» را دارد: پاسخ نمی‌گوید آن مجتمع وجود دارد یا نه.
      *
-     * ۴۰۴ و نه ۴۰۳: وجودِ یک درخواست هم اطلاعات است.
+     * @param  Collection<int, Complex>  $candidates
      */
+    private function chosenComplex(Collection $candidates, mixed $chosen): Complex
+    {
+        $notFound = DomainException::invalid('این شماره متعلق به هیچ مدیر مجتمعی نیست.', 'join_request.manager_not_found');
+
+        if ($chosen !== null) {
+            $id = is_int($chosen) || (is_string($chosen) && ctype_digit($chosen)) ? (int) $chosen : null;
+
+            return ($id === null ? null : $candidates->firstWhere('id', $id)) ?? throw $notFound;
+        }
+
+        if ($candidates->count() > 1) {
+            throw DomainException::invalid('این شماره مدیرِ چند مجتمع است؛ مجتمعِ خودتان را انتخاب کنید.', 'join_request.choose_complex');
+        }
+
+        return $candidates->first() ?? throw $notFound;
+    }
+
     /**
      * فقط مدیرِ همان مجتمع می‌تواند به این درخواست دست بزند.
      *

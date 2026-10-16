@@ -64,6 +64,24 @@ async function signIn(page: Page, phone: string, password: string) {
   expect(status, `ورودِ ${phone}`).toBe(200)
 }
 
+/**
+ * «پیوستن» ← کدِ پیامکی ← «تأیید و پیوستن». پذیرشِ دعوت از ۱۲/۳ (بندِ ۱۵) همیشه کد می‌خواهد، حتی وقتی
+ * `otp_disabled` گامِ دومِ ورود را برداشته؛ کد از پاسخِ همان درخواست است (`devCode`، فقط محیطِ محلی با درایورِ log).
+ */
+async function acceptWithCode(page: Page) {
+  const sent = page.waitForResponse(
+    (r) =>
+      /\/invitations\/\d+\/code$/.test(new URL(r.url()).pathname) &&
+      r.request().method() === 'POST',
+  )
+  await page.getByRole('button', { name: 'پیوستن' }).click()
+  const step = (await (await sent).json()) as { otpRequired?: boolean; devCode?: string | null }
+  expect(step.otpRequired).toBe(true)
+  expect(step.devCode, 'کدِ آزمایشی در این محیط برنگشت').toMatch(/^\d{6}$/)
+  await page.getByLabel('کدِ تأیید').fill(step.devCode!)
+  await page.getByRole('button', { name: 'تأیید و پیوستن' }).click()
+}
+
 test.describe.configure({ mode: 'serial' })
 
 test.describe('ثبت‌نام‌کننده‌ی اولیه', () => {
@@ -179,7 +197,7 @@ test.describe('ثبت‌نام‌کننده‌ی اولیه', () => {
     const before = await identity()
     expect(before[4]).toBe(phone)
 
-    await page.getByRole('button', { name: 'پیوستن' }).click()
+    await acceptWithCode(page)
 
     // حالا عضو است: پوسته‌ی واحد با سایدبار، و صفحه‌های ساکن باز
     await expect(page.locator('aside').first()).toBeAttached({ timeout: 15_000 })

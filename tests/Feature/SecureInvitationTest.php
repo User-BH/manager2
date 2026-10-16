@@ -238,15 +238,22 @@ class SecureInvitationTest extends TestCase
         $this->assertFalse(app(OtpService::class)->verify(self::TARGET, (string) $code));
     }
 
-    /** همان تنظیمِ ادمینِ کل که مرحله‌ی دومِ ورود را برمی‌دارد (پیش از آماده‌شدنِ پیامک). */
-    public function test_the_platform_wide_otp_switch_is_honoured(): void
+    /**
+     * 🔴 ۱۲/۳ (بندِ ۱۵): کلیدِ `otp_disabled` فقط گامِ دومِ ورود را برمی‌دارد، نه کدِ پذیرشِ دعوت. تا پیش از این
+     * پذیرش با آن کلید بی کد بود؛ ثبت‌نام از پیوندِ دعوت هیچ‌وقت نبود (`DirectInvitationRoutingTest`).
+     */
+    public function test_the_platform_otp_switch_does_not_let_acceptance_skip_its_code(): void
     {
         SystemSettings::set('otp_disabled', true);
         [$id] = $this->inviteViaApi();
         $recipient = $this->registrant();
 
-        $this->as($recipient)->postJson("/api/v1/invitations/{$id}/code")->assertOk()->assertJsonPath('otpRequired', false);
-        $this->as($recipient)->postJson("/api/v1/invitations/{$id}/accept")->assertOk();
+        $this->as($recipient)->postJson("/api/v1/invitations/{$id}/accept")->assertUnprocessable()->assertJsonValidationErrors('code');
+        $this->as($recipient)->postJson("/api/v1/invitations/{$id}/accept", ['code' => '000000'])->assertUnprocessable();
+        $this->assertSame(ComplexInvitation::PENDING, ComplexInvitation::find($id)->status);
+
+        $code = $this->as($recipient)->postJson("/api/v1/invitations/{$id}/code")->assertOk()->assertJsonPath('otpRequired', true)->json('devCode');
+        $this->as($recipient)->postJson("/api/v1/invitations/{$id}/accept", ['code' => $code])->assertOk();
     }
 
     /**

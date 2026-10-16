@@ -86,6 +86,25 @@ async function postFromPage(page: Page, path: string, body: unknown): Promise<nu
 }
 
 // ⚠️ ترتیب مهم است: مجتمعِ گامِ دوم، مدیرِ گامِ سوم را می‌سازد
+
+/**
+ * «پیوستن» ← کدِ پیامکی ← «تأیید و پیوستن». پذیرشِ دعوت از ۱۲/۳ (بندِ ۱۵) همیشه کد می‌خواهد، حتی وقتی
+ * `otp_disabled` گامِ دومِ ورود را برداشته؛ کد از پاسخِ همان درخواست است (`devCode`، فقط محیطِ محلی با درایورِ log).
+ */
+async function acceptWithCode(page: Page) {
+  const sent = page.waitForResponse(
+    (r) =>
+      /\/invitations\/\d+\/code$/.test(new URL(r.url()).pathname) &&
+      r.request().method() === 'POST',
+  )
+  await page.getByRole('button', { name: 'پیوستن' }).click()
+  const step = (await (await sent).json()) as { otpRequired?: boolean; devCode?: string | null }
+  expect(step.otpRequired).toBe(true)
+  expect(step.devCode, 'کدِ آزمایشی در این محیط برنگشت').toMatch(/^\d{6}$/)
+  await page.getByLabel('کدِ تأیید').fill(step.devCode!)
+  await page.getByRole('button', { name: 'تأیید و پیوستن' }).click()
+}
+
 test.describe.configure({ mode: 'serial' })
 
 /**
@@ -189,11 +208,12 @@ test.describe('سفرِ مدیریت', () => {
     await expect(page).toHaveURL(/\/auth\?tab=register$/)
     await expect(visible(page.getByPlaceholder('مثلاً علی'))).toBeVisible()
 
-    // ── ورود با حسابی که صاحبِ شماره خودش ساخت؛ دعوت منتظر است (OTP در این محیط خاموش است) ──
+    // ── ورود با حسابی که صاحبِ شماره خودش ساخت؛ دعوت منتظر است (OTP ِ ورود در این محیط خاموش است) ──
     expect(await signIn(page, managerPhone, PASSWORD)).toBe(200)
     await page.goto('/dashboard')
     await expect(page.getByText(name)).toBeVisible()
-    await page.getByRole('button', { name: 'پیوستن' }).click()
+    // پذیرش ولی همیشه کدِ پیامکی می‌خواهد (۱۲/۳، بندِ ۱۵)
+    await acceptWithCode(page)
 
     // حالا مدیرِ همان مجتمع است: پوسته‌ی داشبورد با سایدبار
     await expect(page.locator('aside').first()).toBeAttached({ timeout: 15_000 })

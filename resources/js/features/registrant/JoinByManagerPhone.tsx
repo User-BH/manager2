@@ -7,6 +7,8 @@ import { toAsciiDigits } from '@/shared/lib/inputFilters'
 interface LookupResult {
   found: boolean
   complexName: string | null
+  /** مجتمع‌هایی که این شماره اکنون مدیرشان است (۱۲/۳) — مدیرِ چند مجتمع بیش از یکی دارد */
+  complexes?: { id: number; name: string }[]
 }
 
 /** پاسخِ سرور، همراهِ شماره‌ای که برایش پرسیده شده. */
@@ -25,10 +27,14 @@ const PHONE_PATTERN = /^09\d{9}$/
  * از فعال‌شدنِ دکمه، سرور تایید می‌کند که شماره واقعاً مالِ مدیرِ یک مجتمع
  * است و **نامِ همان مجتمع** زیرِ اینپوت نوشته می‌شود تا کاربر خودش تشخیص
  * بدهد درست است یا نه.
+ *
+ * مدیرِ چند مجتمع (۱۲/۳): نامِ همه‌ی مجتمع‌هایش نشان داده می‌شود و کاربر خودش یکی را برمی‌گزیند؛ درخواست به
+ * مجتمعِ حدسی نمی‌رود و سرور بی انتخاب ردش می‌کند (`join_request.choose_complex`).
  */
 export function JoinByManagerPhone() {
   const [phone, setPhone] = useState('')
   const [answer, setAnswer] = useState<Answer | null>(null)
+  const [choice, setChoice] = useState<{ phone: string; id: number } | null>(null)
   const [sent, setSent] = useState(false)
   const { run, pendingKey } = useAction()
 
@@ -44,6 +50,11 @@ export function JoinByManagerPhone() {
    */
   const current = answer?.phone === phone ? answer : null
   const checking = complete && current === null
+  const options = current?.found ? (current.complexes ?? []) : []
+  const several = options.length > 1
+  // انتخاب هم مثلِ پاسخ به شماره بسته است: با عوض شدنِ شماره انتخابِ قبلی معنا ندارد
+  const chosen = several && choice?.phone === phone ? choice.id : null
+  const ready = current?.found === true && (!several || chosen !== null)
 
   useEffect(() => {
     if (!complete) return
@@ -58,7 +69,7 @@ export function JoinByManagerPhone() {
     const timer = setTimeout(() => {
       api<LookupResult>(`/join-requests/lookup?phone=${asked}`, { signal: controller.signal })
         .then((data) => setAnswer({ ...data, phone: asked }))
-        .catch(() => setAnswer({ found: false, complexName: null, phone: asked }))
+        .catch(() => setAnswer({ found: false, complexName: null, complexes: [], phone: asked }))
     }, 400)
 
     return () => {
@@ -126,6 +137,10 @@ export function JoinByManagerPhone() {
               <Loader2 size={12} className="animate-spin" />
               در حال بررسی…
             </span>
+          ) : current?.found && several ? (
+            <span style={{ color: 'var(--text-secondary)' }}>
+              این شماره مدیر چند مجتمع است؛ مجتمع خودتان را انتخاب کنید.
+            </span>
           ) : current?.found ? (
             <span
               className="inline-flex items-center gap-1.5 font-semibold"
@@ -144,17 +159,48 @@ export function JoinByManagerPhone() {
             </span>
           ) : null}
         </p>
+
+        {several ? (
+          <fieldset className="flex flex-col gap-1.5">
+            <legend className="sr-only">مجتمع مقصد</legend>
+            {options.map((option) => (
+              <label
+                key={option.id}
+                className="flex cursor-pointer items-center gap-2 rounded-xl border px-3 py-2 text-[13px] font-semibold"
+                style={{
+                  borderColor:
+                    chosen === option.id ? 'var(--color-brand-500)' : 'var(--border-default)',
+                  color: 'var(--text-primary)',
+                }}
+              >
+                <input
+                  type="radio"
+                  name="join-complex"
+                  value={option.id}
+                  checked={chosen === option.id}
+                  onChange={() => setChoice({ phone, id: option.id })}
+                />
+                <Building2 size={12} style={{ color: 'var(--color-brand-600)' }} />
+                {option.name}
+              </label>
+            ))}
+          </fieldset>
+        ) : null}
       </div>
 
       <button
         type="button"
-        // دکمه فقط وقتی باز می‌شود که سرور مجتمع را تایید کرده باشد
-        disabled={!current?.found || pendingKey !== null}
+        // دکمه فقط وقتی باز می‌شود که سرور مجتمع را تایید کرده — و اگر چند مجتمع است، کاربر یکی را برگزیده — باشد
+        disabled={!ready || pendingKey !== null}
         onClick={() =>
-          void run(() => api('/join-requests', { method: 'POST', body: { phone } }), {
-            key: 'join',
-            onDone: () => setSent(true),
-          })
+          void run(
+            () =>
+              api('/join-requests', {
+                method: 'POST',
+                body: chosen === null ? { phone } : { phone, complex_id: chosen },
+              }),
+            { key: 'join', onDone: () => setSent(true) },
+          )
         }
         className="self-start rounded-xl px-4 py-2 text-xs font-bold text-white transition-opacity disabled:cursor-not-allowed disabled:opacity-45"
         style={{ backgroundColor: 'var(--color-brand-500)' }}

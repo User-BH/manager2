@@ -189,6 +189,25 @@ class Membership
     }
 
     /**
+     * ردِ درخواستِ پیوستن — زیرِ قفل و فقط وقتی هنوز در انتظار است.
+     *
+     * 🔴 ۱۲/۳: کنترلر پیش از این بی قفل و بی سنجش `close` می‌زد؛ ردِ درخواستِ پذیرفته‌شده سابقه‌اش را «ردشده»
+     * می‌کرد در حالی که عضویت فعال بود، و رد هم‌زمان با تأیید نتیجه‌ی تأیید را می‌پوشاند.
+     */
+    public function rejectRequest(ComplexInvitation $request): void
+    {
+        DB::transaction(function () use ($request): void {
+            $fresh = ComplexInvitation::lockForUpdate()->find($request->id);
+
+            if (! $fresh || $fresh->direction !== ComplexInvitation::REQUEST || $fresh->status !== ComplexInvitation::PENDING) {
+                throw DomainException::invalid('این درخواست دیگر معتبر نیست.', 'invitation.not_pending');
+            }
+
+            $fresh->close(ComplexInvitation::DECLINED);
+        }, attempts: 3);
+    }
+
+    /**
      * پایانِ عضویت (F4) — به‌جای حذفِ حساب.
      *
      * دوره‌های جاری بسته می‌شوند (`end_date` امروز)، حساب به حالتِ اولیه

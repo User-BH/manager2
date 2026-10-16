@@ -1367,6 +1367,27 @@ class PhaseRegressionMapTest extends TestCase
             '🔴 ۱۲/۲: کارِ شبانه پرداختِ رسیده به درگاه را رها نمی‌کند' => [
                 'ReconcilePaymentsTest', 'test_the_nightly_job_only_abandons_payments_that_never_reached_the_gateway', '۱۲',
             ],
+            '🔴 ۱۲/۳: ردِ درخواستِ پذیرفته‌شده سابقه و عضویت را عوض نمی‌کند' => [
+                'MembershipPathsTest', 'test_rejecting_an_approved_request_is_refused_and_changes_nothing', '۱۲',
+            ],
+            '۱۲/۳: به درخواست یک بار پاسخ داده می‌شود' => [
+                'MembershipPathsTest', 'test_a_request_is_answered_once', '۱۲',
+            ],
+            '🔴 ۱۲/۳: مدیری که پیش‌فرضش مجتمعِ دیگری است با شماره‌اش پیدا می‌شود' => [
+                'MembershipPathsTest', 'test_a_manager_whose_default_is_another_community_is_still_found', '۱۲',
+            ],
+            '🔴 ۱۲/۳: مدیرِ دو مجتمع — متقاضی مجتمع را برمی‌گزیند' => [
+                'MembershipPathsTest', 'test_a_manager_of_two_communities_lets_the_applicant_choose', '۱۲',
+            ],
+            '۱۲/۳: مجتمعِ تعلیق‌شده با شماره‌ی مدیر درخواست نمی‌گیرد' => [
+                'MembershipPathsTest', 'test_a_suspended_community_takes_no_request_by_its_managers_phone', '۱۲',
+            ],
+            '🔴 ۱۲/۳: دعوتِ بی انقضا زنده نیست' => [
+                'MembershipPathsTest', 'test_an_invitation_without_an_expiry_is_never_live', '۱۲',
+            ],
+            '🔴 ۱۲/۳: پذیرشِ دعوت با otp_disabled هم کد می‌خواهد' => [
+                'SecureInvitationTest', 'test_the_platform_otp_switch_does_not_let_acceptance_skip_its_code', '۱۲',
+            ],
         ];
     }
 
@@ -1558,7 +1579,7 @@ class PhaseRegressionMapTest extends TestCase
     public function test_the_map_never_shrinks(): void
     {
         $this->assertGreaterThanOrEqual(
-            183,
+            190,
             count(self::fixes()),
             'ردیفی از نقشهٔ رگرسیون حذف شده؛ یعنی اصلاحی محافظش را از دست داده.',
         );

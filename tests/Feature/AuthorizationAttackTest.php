@@ -631,7 +631,7 @@ class AuthorizationAttackTest extends TestCase
         // ── پیش از آنکه کاربر عضوِ مجتمعی باشد ──
         // یکی کمتر از پیش: بررسیِ «قبلاً ثبت شده» در گامِ اولِ ثبت‌نام برداشته شد (شمارشِ حساب)
         'app/Http/Controllers/Api/AuthController.php' => [1, 'یکتاییِ شماره در کلِ پلتفرم سنجیده می‌شود — فقط پس از تأییدِ کد'],
-        'app/Http/Controllers/Api/JoinRequestController.php' => [1, 'یافتنِ مدیر با شماره؛ متقاضی هنوز عضوِ هیچ مجتمعی نیست (اعلانِ مدیران از ۱۰/۳ از `ComplexMembers`)'],
+        // `JoinRequestController` از ۱۲/۳ دیگر نیست: یافتنِ مدیر با شماره از عضویتِ فعال است (پیوندِ صریحِ `complex_memberships`)، نه حسابِ بی‌دامنه
         'app/Http/Controllers/Api/InvitationController.php' => [3, 'گیرنده‌ی دعوت هنوز عضو نیست؛ واحد و دعوت‌کننده‌ی همان دعوتِ خودش (مرحلهٔ ۹ · فاز ۶)'],
         'app/Services/Account/Membership.php' => [5, 'پیوستن و پایانِ عضویت: حسابِ بی‌مجتمع، و واحدِ دعوت زیرِ قفل (مرحلهٔ ۹ · فاز ۶)'],
         'app/Services/Account/ComplexUpgrader.php' => [1, 'کاربر در همین لحظه صاحبِ مجتمع می‌شود'],

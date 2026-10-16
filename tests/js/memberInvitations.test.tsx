@@ -128,7 +128,7 @@ describe('دعوت‌های دریافتیِ عضو', () => {
       if (path === '/profile') return Promise.resolve(PROFILE)
       if (path === '/invitations') return Promise.resolve({ data: [INVITATION] })
       if (path === `/invitations/${INVITATION.id}/code`)
-        return Promise.resolve({ otpRequired: false })
+        return Promise.resolve({ otpRequired: true, message: 'کد فرستاده شد.', devCode: '123456' })
       return Promise.resolve({ data: [], supported: false, sessions: [], devices: [] })
     })
   })
@@ -151,7 +151,18 @@ describe('دعوت‌های دریافتیِ عضو', () => {
 
     fireEvent.click(screen.getByRole('button', { name: /پیوستن/ }))
 
+    // ۱۲/۳ (بندِ ۱۵): پذیرش همیشه با کدِ پیامکیِ همان شماره است — بی کد چیزی فرستاده نمی‌شود
+    const code = await screen.findByLabelText('کدِ تأیید')
+    expect(apiMock.mock.calls.map(([path]) => path)).not.toContain(
+      `/invitations/${INVITATION.id}/accept`,
+    )
+    fireEvent.change(code, { target: { value: '123456' } })
+    fireEvent.click(screen.getByRole('button', { name: /تأیید و پیوستن/ }))
+
     await waitFor(() => expect(entered).toHaveBeenCalledTimes(1))
-    expect(apiMock).toHaveBeenCalledWith(`/invitations/${INVITATION.id}/accept`, { method: 'POST' })
+    expect(apiMock).toHaveBeenCalledWith(`/invitations/${INVITATION.id}/accept`, {
+      method: 'POST',
+      body: { code: '123456' },
+    })
   })
 })

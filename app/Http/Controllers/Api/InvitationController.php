@@ -9,7 +9,6 @@ use App\Models\User;
 use App\Services\Account\Membership;
 use App\Services\Auth\OtpService;
 use App\Support\Audit;
-use App\Support\SystemSettings;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -26,6 +25,10 @@ use Illuminate\Validation\ValidationException;
  * پذیرش سه چیز می‌خواهد: حسابِ واردشده با **همان شماره**، **کدِ OTP ِ تازه** به
  * همان شماره (تصمیمِ کارفرما؛ دستگاهِ مورداعتماد این گام را دور نمی‌زند)، و
  * دعوتِ زنده (در انتظار، منقضی‌نشده، باطل‌نشده). پیوند فقط پیش‌نمایش است.
+ *
+ * 🔴 ۱۲/۳ (بندِ ۱۵ ِ سندِ هسته، «OTP verification»): کلیدِ `otp_disabled` ِ ادمینِ کل فقط گامِ دومِ **ورود** را
+ * برمی‌دارد، نه کدِ پذیرش — همان‌طور که ثبت‌نام از پیوندِ دعوت هم هرگز بی کد نیست
+ * (`DirectInvitationRoutingTest`). پیش از این پذیرش با آن کلید بی کد بود.
  */
 class InvitationController extends Controller
 {
@@ -78,10 +81,6 @@ class InvitationController extends Controller
     {
         $this->authorizeRecipient($invitation);
 
-        if ($this->otpDisabled()) {
-            return response()->json(['otpRequired' => false]);
-        }
-
         $phone = $this->user()->phone;
         $result = $otp->request($phone);
 
@@ -102,13 +101,12 @@ class InvitationController extends Controller
 
         $user = $this->user();
 
-        if (! $this->otpDisabled()) {
-            $code = $request->input('code');
-            $code = is_string($code) ? $code : '';
+        // همیشه، حتی با `otp_disabled` — بالا را ببینید
+        $code = $request->input('code');
+        $code = is_string($code) ? $code : '';
 
-            if (! preg_match('/^\d{6}$/', $code) || ! $otp->verify($user->phone, $code)) {
-                throw ValidationException::withMessages(['code' => 'کدِ تأیید نادرست یا منقضی است.']);
-            }
+        if (! preg_match('/^\d{6}$/', $code) || ! $otp->verify($user->phone, $code)) {
+            throw ValidationException::withMessages(['code' => 'کدِ تأیید نادرست یا منقضی است.']);
         }
 
         $this->membership->accept($invitation, $user);
@@ -155,11 +153,5 @@ class InvitationController extends Controller
     {
         /** @var User */
         return Auth::user();
-    }
-
-    /** همان تنظیمِ ادمینِ کل که مرحله‌ی دومِ ورود را برمی‌دارد (`AuthController::login`). */
-    private function otpDisabled(): bool
-    {
-        return (bool) SystemSettings::get('otp_disabled', false);
     }
 }
