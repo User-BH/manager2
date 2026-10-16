@@ -20,6 +20,7 @@ use App\Support\Jalali;
 use App\Support\SessionContext;
 use App\Support\TenantContext;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Testing\TestResponse;
 use Tests\TestCase;
 
 /**
@@ -63,12 +64,12 @@ class SessionContextTest extends TestCase
     {
         $phone = $this->device($this->sara, null)->getJson('/api/v1/me')->assertOk();
         $this->assertSame($this->a->id, $phone->json('user.complex.id'));
-        $phoneSession = $this->sessionPin();
-        $this->assertSame(['user' => $this->sara->id, 'complex' => $this->a->id], $phoneSession, 'نشستِ تازه به پیش‌فرض سنجاق می‌شود.');
+        $phoneSession = $this->pinOf($phone);
+        $this->assertSame(['user' => $this->sara->id, 'complex' => $this->a->id], $phoneSession, 'مرورگرِ تازه به پیش‌فرض سنجاق می‌شود.');
 
         // لپ‌تاپ به «ب» می‌رود
-        $this->device($this->sara, null)->postJson('/api/v1/account/context', ['complex_id' => $this->b->id])->assertOk();
-        $this->assertSame($this->b->id, $this->sessionPin()['complex']);
+        $laptop = $this->device($this->sara, null)->postJson('/api/v1/account/context', ['complex_id' => $this->b->id])->assertOk();
+        $this->assertSame($this->b->id, $this->pinOf($laptop)['complex']);
         $this->assertSame($this->b->id, User::find($this->sara->id)->complex_id, 'پیش‌فرضِ حساب همان انتخابِ آخر است.');
 
         // گوشی هنوز در «الف» و هنوز مدیر
@@ -106,7 +107,7 @@ class SessionContextTest extends TestCase
         $response = $this->device($this->sara, $inB)->getJson('/api/v1/me')->assertOk();
         $this->assertSame($this->a->id, $response->json('user.complex.id'));
         $response->assertHeader(SetCurrentComplex::CONTEXT_HEADER, $this->a->id.':complex_admin');
-        $this->assertSame($this->a->id, $this->sessionPin()['complex'], 'نشست دوباره به پیش‌فرض سنجاق شد.');
+        $this->assertSame($this->a->id, $this->pinOf($response)['complex'], 'مرورگر دوباره به پیش‌فرض سنجاق شد.');
 
         // و هیچ داده‌ی «ب» به او نمی‌رسد
         $bill = Bill::factory()->create(['complex_id' => $this->b->id, 'unit_id' => $this->unitB->id, 'period' => Jalali::currentPeriod()]);
@@ -226,21 +227,44 @@ class SessionContextTest extends TestCase
         $this->device($this->sara, null)->getJson('/api/v1/me')->assertJsonPath('user.dashboard', 'manager');
     }
 
-    /** نشستی که داده‌ی سنجاق دارد؛ حساب هر بار تازه — مثلِ درخواستِ واقعی */
+    /**
+     * «دستگاه»: مرورگری با کوکیِ سنجاقِ خودش (رمزنگاری‌شده، مثلِ مرورگرِ واقعی)؛ حساب هر بار تازه — مثلِ درخواستِ
+     * واقعی. کوکی‌های پیش‌فرضِ آزمون بینِ درخواست‌ها پاک می‌شوند تا دو دستگاه قاطی نشوند.
+     *
+     * @param  array{user: int, complex: int}|null  $pin
+     */
     private function device(User $user, ?array $pin): static
     {
         app(TenantContext::class)->set(null);
         $this->flushSession();
+        $this->defaultCookies = [];
+        // درخواستِ JSON ِ آزمون بی این کوکی نمی‌فرستد — مرورگرِ واقعی همیشه می‌فرستد (`credentials: include`)
+        $this->withCredentials();
         if ($pin !== null) {
-            $this->withSession([SessionContext::KEY => $pin]);
+            $this->withCookie(SessionContext::COOKIE, $pin['user'].':'.$pin['complex']);
         }
 
         return $this->actingAs(User::withoutGlobalScopes()->findOrFail($user->id));
     }
 
-    /** @return array{user: int, complex: int}|null */
-    private function sessionPin(): ?array
+    /** @return array{user: int, complex: int}|null سنجاقی که همین پاسخ گذاشت */
+    private function pinOf(TestResponse $response): ?array
     {
-        return $this->app['session.store']->get(SessionContext::KEY);
+        $value = $response->getCookie(SessionContext::COOKIE)?->getValue();
+
+        return is_string($value) && preg_match('/^(\d+):(\d+)$/', $value, $m) === 1 ? ['user' => (int) $m[1], 'complex' => (int) $m[2]] : null;
+    }
+
+    /** 🔴 درخواستی که سنجاق را عوض نمی‌کند کوکیِ سنجاق نمی‌فرستد — پاسخِ دیرِ درخواستِ قدیمی سنجاقِ تازه را نمی‌پوشاند. */
+    public function test_a_request_that_does_not_change_the_pin_sends_no_pin_cookie(): void
+    {
+        $pinned = ['user' => $this->sara->id, 'complex' => $this->a->id];
+
+        $this->device($this->sara, $pinned)->getJson('/api/v1/me')->assertOk()->assertCookieMissing(SessionContext::COOKIE);
+        $this->device($this->sara, $pinned)->getJson('/api/v1/notifications')->assertOk()->assertCookieMissing(SessionContext::COOKIE);
+
+        // و تعویض همان لحظه سنجاقِ تازه را می‌فرستد
+        $switch = $this->device($this->sara, $pinned)->postJson('/api/v1/account/context', ['complex_id' => $this->b->id])->assertOk();
+        $this->assertSame($this->b->id, $this->pinOf($switch)['complex']);
     }
 }

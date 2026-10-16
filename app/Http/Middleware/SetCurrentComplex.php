@@ -141,6 +141,8 @@ class SetCurrentComplex
         $complex->offsetUnset('membership_role');
         $complex->syncOriginal();
 
+        // فقط وقتی سنجاق عوض می‌شود: درخواستی که آن را عوض نکرده کوکیِ سنجاق نمی‌فرستد، پس پاسخِ دیرِ درخواستِ قدیمی
+        // سنجاقِ تازه را نمی‌پوشاند (`SessionContext`)
         if ($pinned !== $complex->id) {
             SessionContext::pin($user, $complex->id);
         }

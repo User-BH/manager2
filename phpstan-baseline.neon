@@ -103,12 +103,6 @@ parameters:
 			path: app/Http/Controllers/Api/System/AuditLogController.php
 
 		-
-			message: '#^Cannot access property \$value on string\.$#'
-			identifier: property.nonObject
-			count: 2
-			path: app/Http/Controllers/Api/System/SubscriptionReviewController.php
-
-		-
 			message: '#^Offset ''fields'' on \*NEVER\* on left side of \?\? always exists and is not nullable\.$#'
 			identifier: nullCoalesce.offset
 			count: 1
