@@ -1322,6 +1322,51 @@ class PhaseRegressionMapTest extends TestCase
             '۱۲/۱: داشبورد را سرور اعلام می‌کند' => [
                 'SessionContextTest', 'test_the_server_declares_the_dashboard', '۱۲',
             ],
+            '🔴 ۱۲/۲: ادمینِ کل اشتراکِ آنلاینِ پرداخت‌نشده را فعال نمی‌کند' => [
+                'SubscriptionActivationTest', 'test_the_super_admin_cannot_activate_an_unpaid_online_renewal', '۱۲',
+            ],
+            '🔴 ۱۲/۲: مدل هر فعال‌سازی بیرون از مسیرِ پرداختِ تأییدشده را رد می‌کند' => [
+                'SubscriptionActivationTest', 'test_the_model_refuses_every_activation_outside_the_verified_path', '۱۲',
+            ],
+            '۱۲/۲: هر مسیرِ نوشتنیِ اشتراک از روتر شناخته است' => [
+                'SubscriptionActivationTest', 'test_every_write_route_that_touches_subscriptions_is_known', '۱۲',
+            ],
+            '۱۲/۲: هیچ کدی با query builder اشتراکی را فعال نمی‌کند' => [
+                'SubscriptionActivationTest', 'test_no_code_activates_a_subscription_behind_the_models_back', '۱۲',
+            ],
+            '۱۲/۲: اهدای پلن ردیفِ آنلاینِ پرداخت‌نشده را فعال نمی‌کند' => [
+                'SubscriptionActivationTest', 'test_granting_a_plan_never_activates_the_unpaid_online_row', '۱۲',
+            ],
+            '🔴 ۱۲/۲: تمدید — replay چیزی را عوض نمی‌کند' => [
+                'SubscriptionRenewalTest', 'test_a_repeated_callback_changes_nothing', '۱۲',
+            ],
+            '🔴 ۱۲/۲: تمدید — idempotent و یک رهگیری یک پرداخت' => [
+                'SubscriptionRenewalTest', 'test_completion_is_idempotent_and_one_tracking_code_is_one_payment', '۱۲',
+            ],
+            '۱۲/۲: تمدید — مبلغ و مدت از پلنِ سرور' => [
+                'SubscriptionRenewalTest', 'test_the_amount_and_period_come_from_the_server_plan', '۱۲',
+            ],
+            '🔴 ۱۲/۲: تمدیدِ زودهنگام زمانِ خریده‌شده را نمی‌سوزاند' => [
+                'PolishTest', 'test_a_renewal_on_an_active_subscription_extends_it_instead_of_overwriting', '۱۲',
+            ],
+            '🔴 ۱۲/۲: پرداختِ بی بازگشت با بازبینی فعال می‌شود' => [
+                'ReconcilePaymentsTest', 'test_a_paid_renewal_whose_return_never_arrived_is_activated', '۱۲',
+            ],
+            '🔴 ۱۲/۲: خریدِ بی بازگشت مجتمع را یک بار می‌سازد' => [
+                'ReconcilePaymentsTest', 'test_a_paid_purchase_whose_return_never_arrived_creates_the_complex_once', '۱۲',
+            ],
+            '🔴 ۱۲/۲: قصدِ رسیده به درگاه لغو نمی‌شود' => [
+                'ReconcilePaymentsTest', 'test_a_new_purchase_does_not_cancel_an_intent_that_reached_the_gateway', '۱۲',
+            ],
+            '🔴 ۱۲/۲: «پرداخت‌شده، ساخته‌نشده» بی پرداختِ دوباره کامل می‌شود' => [
+                'ReconcilePaymentsTest', 'test_a_paid_but_unfulfilled_purchase_is_completed_once_the_account_can', '۱۲',
+            ],
+            '🔴 ۱۲/۲: بازپرداخت یک بار و پس از آن هیچ مجتمعی' => [
+                'ReconcilePaymentsTest', 'test_a_refund_is_recorded_once_and_the_payment_never_becomes_a_complex', '۱۲',
+            ],
+            '🔴 ۱۲/۲: کارِ شبانه پرداختِ رسیده به درگاه را رها نمی‌کند' => [
+                'ReconcilePaymentsTest', 'test_the_nightly_job_only_abandons_payments_that_never_reached_the_gateway', '۱۲',
+            ],
         ];
     }
 
@@ -1513,7 +1558,7 @@ class PhaseRegressionMapTest extends TestCase
     public function test_the_map_never_shrinks(): void
     {
         $this->assertGreaterThanOrEqual(
-            168,
+            183,
             count(self::fixes()),
             'ردیفی از نقشهٔ رگرسیون حذف شده؛ یعنی اصلاحی محافظش را از دست داده.',
         );

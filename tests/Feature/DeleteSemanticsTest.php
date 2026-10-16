@@ -69,6 +69,8 @@ class DeleteSemanticsTest extends TestCase
         'subscriptions.plan_id' => ['plans', 'SET NULL'],
         'subscriptions.reviewed_by' => ['users', 'SET NULL'],
         'checkout_intents.complex_id' => ['complexes', 'RESTRICT'],
+        // ۱۲/۲: ادمینی که بازپرداخت را ثبت کرد — حذفِ حسابش سابقه‌ی بازپرداخت را نمی‌برد
+        'checkout_intents.refunded_by' => ['users', 'SET NULL'],
         'checkout_intents.subscription_id' => ['subscriptions', 'RESTRICT'],
         'checkout_intents.plan_id' => ['plans', 'SET NULL'],
         'checkout_intents.user_id' => ['users', 'SET NULL'],

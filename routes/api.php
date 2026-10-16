@@ -35,6 +35,7 @@ use App\Http\Controllers\Api\PhoneChangeController;
 use App\Http\Controllers\Api\PresenceController;
 use App\Http\Controllers\Api\ProfileController;
 use App\Http\Controllers\Api\ResidentController;
+use App\Http\Controllers\Api\RetiredEndpointController;
 use App\Http\Controllers\Api\SearchController;
 use App\Http\Controllers\Api\SecurityController;
 use App\Http\Controllers\Api\SentInvitationController;
@@ -446,9 +447,9 @@ Route::middleware(['auth', 'presence'])->group(function () {
     });
 
     Route::get('subscription', [SubscriptionController::class, 'show'])->name('subscription.show');
-    // خرید با واریز و آپلود رسید — تنها راه خرید تا وقتی درگاه اشتراک فعال نشده
-    Route::post('subscription/receipt', [SubscriptionController::class, 'uploadReceipt'])
-        ->middleware('throttle:receipt-upload')->name('subscription.receipt');
+    // ۱۲/۲: خرید و تمدید فقط آنلاین — رسیدِ اشتراک یک چرخه‌ی استقرار ۴۱۰ می‌دهد، بعد برداشته می‌شود
+    Route::post('subscription/receipt', [RetiredEndpointController::class, 'onlineOnly'])
+        ->name('subscription.receipt');
     Route::post('subscription/{subscription}/cancel', [SubscriptionController::class, 'cancel'])
         ->name('subscription.cancel');
 
@@ -662,10 +663,14 @@ Route::middleware(['auth', 'presence'])->group(function () {
             ->name('subscriptions.index');
         Route::get('subscriptions/{subscription}/receipt', [SubscriptionReviewController::class, 'receipt'])
             ->name('subscriptions.receipt');
-        Route::post('subscriptions/{subscription}/approve', [SubscriptionReviewController::class, 'approve'])
-            ->name('subscriptions.approve');
-        Route::post('subscriptions/{subscription}/reject', [SubscriptionReviewController::class, 'reject'])
-            ->name('subscriptions.reject');
+        // ۱۲/۲: تأیید و ردِ دستی برداشته شد — هیچ اشتراکی جز با تأییدِ درگاه فعال نمی‌شود؛ یک چرخه ۴۱۰
+        Route::post('subscriptions/{subscription}/approve', [RetiredEndpointController::class, 'onlineOnly'])
+            ->whereNumber('subscription')->name('subscriptions.approve');
+        Route::post('subscriptions/{subscription}/reject', [RetiredEndpointController::class, 'onlineOnly'])
+            ->whereNumber('subscription')->name('subscriptions.reject');
+        // ۱۲/۲: «پرداخت شد ولی مجتمع ساخته نشد» ← ثبتِ بازپرداختِ بانکی، با تأییدِ تازه‌ی رمز؛ فعال‌سازی نیست
+        Route::post('checkouts/{intent}/refund', [SubscriptionReviewController::class, 'refund'])
+            ->middleware('reauth')->name('checkouts.refund');
 
         // تبلیغات صفحه‌ی فرود سطح پلتفرم‌اند (نه متعلق به یک مجتمع)
         Route::get('ads', [SystemAdvertisementController::class, 'index'])->name('ads.index');

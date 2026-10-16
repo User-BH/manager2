@@ -291,10 +291,11 @@ class CheckoutIntentTest extends TestCase
     public function test_a_tracking_code_already_used_elsewhere_creates_nothing(): void
     {
         $other = Complex::factory()->create();
-        Subscription::create([
+        // اشتراکِ آنلاینِ پیشتر تأییدشده (سابقه) — فعال‌سازیِ آنلاین فقط درونِ `activating` (۱۲/۲)
+        Subscription::activating(fn () => Subscription::create([
             'complex_id' => $other->id, 'plan' => 'pro', 'status' => 'active', 'method' => 'online',
             'amount' => 1000, 'months' => 1, 'tracking_code' => '987654321',
-        ]);
+        ]));
         $this->fakeZarinpal();
         $user = $this->initial();
         $this->start($user);
@@ -392,7 +393,12 @@ class CheckoutIntentTest extends TestCase
         Http::assertNothingSent();
     }
 
-    public function test_a_new_start_supersedes_the_previous_pending_intent(): void
+    /**
+     * ۱۲/۲: قصدی که به درگاه رسیده (مرجع گرفته) دیگر با شروعِ تازه لغو نمی‌شود — شاید همین حالا پرداخت شده باشد و
+     * لغوش پول را بی‌صاحب می‌کرد. تکلیفش را بازگشتِ بانک یا `payments:reconcile` روشن می‌کند. قصدِ بی‌مرجع همچنان
+     * لغو می‌شود (`ReconcilePaymentsTest::test_a_new_purchase_does_not_cancel_an_intent_that_reached_the_gateway`).
+     */
+    public function test_a_new_start_never_cancels_an_intent_that_reached_the_gateway(): void
     {
         // هر درخواست مرجعِ تازه‌ی خودش را می‌گیرد — مثلِ درگاهِ واقعی
         Http::fake([self::REQUEST_URL => Http::sequence()
@@ -402,7 +408,7 @@ class CheckoutIntentTest extends TestCase
         $this->start($user);
         $this->start($user);
 
-        $this->assertSame([CheckoutIntent::CANCELLED, CheckoutIntent::PENDING], CheckoutIntent::orderBy('id')->pluck('status')->all());
+        $this->assertSame([CheckoutIntent::PENDING, CheckoutIntent::PENDING], CheckoutIntent::orderBy('id')->pluck('status')->all());
     }
 
     /** قیدِ پایگاه‌داده: یک مرجعِ درگاه، یک قصد — حتی اگر درگاه مرجعِ تکراری بدهد */
@@ -413,7 +419,8 @@ class CheckoutIntentTest extends TestCase
         $this->start($user);
         $this->start($user)->assertRedirect('/account?checkout=error&message='.urlencode('اتصال به درگاه زرین‌پال ناموفق بود.'));
 
-        $this->assertSame([CheckoutIntent::CANCELLED, CheckoutIntent::FAILED], CheckoutIntent::orderBy('id')->pluck('status')->all());
+        // اولی به درگاه رسیده و `pending` می‌ماند (۱۲/۲)؛ دومی با مرجعِ تکراری شکست خورد
+        $this->assertSame([CheckoutIntent::PENDING, CheckoutIntent::FAILED], CheckoutIntent::orderBy('id')->pluck('status')->all());
         $this->assertSame(1, CheckoutIntent::where('authority', self::AUTHORITY)->count());
     }
 

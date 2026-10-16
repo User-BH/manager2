@@ -11,8 +11,8 @@ use App\Models\Subscription;
 use App\Models\Unit;
 use App\Models\User;
 use App\Services\ReportService;
+use App\Services\Subscription\PlanGate;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
@@ -186,46 +186,40 @@ class PolishTest extends TestCase
             ->assertOk();
     }
 
-    /* ------------------ ۲۳) رسید روی اشتراک فعال ------------------ */
+    /* ------------------ ۲۳) خرید روی اشتراکِ فعال ------------------ */
 
-    public function test_a_complex_with_an_active_subscription_cannot_send_a_new_receipt(): void
+    /*
+     * محافظِ قبلی (رسید) جلوی خریدِ دوباره روی اشتراکِ فعال را می‌گرفت، چون تأییدش دوره را بازنویسی می‌کرد نه
+     * تمدید و مشتری زمان از دست می‌داد. از ۱۲/۲ خرید و تمدید فقط آنلاین‌اند و تمدید از **پایانِ** دوره‌ی جاری شروع
+     * می‌شود — همان حقِ مشتری، این بار بی‌آنکه راهِ خرید بسته شود.
+     */
+    public function test_a_renewal_on_an_active_subscription_extends_it_instead_of_overwriting(): void
     {
-        Storage::fake('local');
-
-        Subscription::create([
+        $current = Subscription::create([
             'complex_id' => $this->complex->id, 'user_id' => $this->admin->id,
             'plan' => SubscriptionPlan::Pro, 'status' => 'active', 'method' => 'receipt',
             'amount' => 100, 'months' => 1,
-            'starts_at' => now(), 'ends_at' => now()->addMonth(),
+            'starts_at' => now()->subDays(10), 'ends_at' => now()->addDays(20),
         ]);
 
-        /*
-         * محافظ قبلی فقط جلوی درخواست دومِ «در انتظار» را می‌گرفت، پس مشتری
-         * می‌توانست روی اشتراک فعال دوباره پول بفرستد و تاییدش دوره را
-         * بازنویسی می‌کرد نه تمدید.
-         */
-        $this->actingAs($this->admin)->post('/api/subscription/receipt', [
-            'plan' => 'pro',
-            'receipt' => UploadedFile::fake()->image('r.jpg'),
-        ], ['Accept' => 'application/json'])->assertStatus(422);
+        $renewal = $this->renewOnline();
 
-        $this->assertSame(1, Subscription::count());
+        $this->assertSame('active', $renewal->status);
+        $this->assertEquals($current->ends_at->getTimestamp(), $renewal->starts_at->getTimestamp(), 'دوره‌ی تازه روی دوره‌ی جاری نوشته شد.');
+        $this->assertSame('active', $current->fresh()->status);
+        $this->assertSame($current->id, app(PlanGate::class)->activeSubscription($this->complex)?->id, 'تا پایانِ دوره‌ی جاری همان می‌شمارد.');
     }
 
-    public function test_a_complex_without_a_subscription_can_still_send_a_receipt(): void
+    public function test_a_complex_without_a_subscription_can_renew_online(): void
     {
-        Storage::fake('local');
+        $renewal = $this->renewOnline();
 
-        $this->actingAs($this->admin)->post('/api/subscription/receipt', [
-            'plan' => 'pro',
-            'receipt' => UploadedFile::fake()->image('r.jpg'),
-        ], ['Accept' => 'application/json'])->assertStatus(201);
+        $this->assertSame('active', $renewal->status);
+        $this->assertEqualsWithDelta(now()->getTimestamp(), $renewal->starts_at->getTimestamp(), 5);
     }
 
     public function test_an_expired_subscription_does_not_block_renewal(): void
     {
-        Storage::fake('local');
-
         Subscription::create([
             'complex_id' => $this->complex->id, 'user_id' => $this->admin->id,
             'plan' => SubscriptionPlan::Pro, 'status' => 'active', 'method' => 'receipt',
@@ -233,10 +227,19 @@ class PolishTest extends TestCase
             'starts_at' => now()->subMonths(2), 'ends_at' => now()->subDay(),
         ]);
 
-        // دوره تمام شده، پس تمدید باید ممکن باشد
-        $this->actingAs($this->admin)->post('/api/subscription/receipt', [
-            'plan' => 'pro',
-            'receipt' => UploadedFile::fake()->image('r.jpg'),
-        ], ['Accept' => 'application/json'])->assertStatus(201);
+        $renewal = $this->renewOnline();
+
+        $this->assertSame('active', $renewal->status);
+        $this->assertEqualsWithDelta(now()->getTimestamp(), $renewal->starts_at->getTimestamp(), 5, 'دوره‌ی تمام‌شده نباید شروعِ تازه را عقب بیندازد.');
+    }
+
+    private function renewOnline(): Subscription
+    {
+        config(['subscription.gateway' => 'sandbox']);
+        $this->actingAs($this->admin)->post('/subscription/checkout', ['plan' => 'pro'])->assertRedirect();
+        $pending = Subscription::where('method', 'online')->latest('id')->firstOrFail();
+        $this->get("/subscription/callback/{$pending->id}?ref={$pending->ref_id}")->assertRedirectContains('checkout=success');
+
+        return $pending->fresh();
     }
 }

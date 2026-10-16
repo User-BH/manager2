@@ -68,6 +68,13 @@
 [`MIGRATIONS.md`](MIGRATIONS.md) آمده — به همان دلیل، و با همان
 استدلال.
 
+### نمونه: بازنشستگیِ رسیدِ اشتراک (مرحلهٔ ۱۲ · فاز ۲)
+
+- `POST subscription/receipt`، `POST system/subscriptions/{id}/approve` و `.../reject` یک چرخه‌ی استقرار ۴۱۰ با کدِ
+  `subscription.online_only` می‌دهند (هیچ کاری نمی‌کنند)، سپس برداشته می‌شوند.
+- `bankInfo` در `GET subscription` همان شکل را با مقدارِ خالی دارد و در چرخه‌ی بعد برداشته می‌شود
+  (`ResponseShapeTest` حذفِ بی‌خبرش را می‌گیرد).
+
 ### دروازه‌ای که در CI می‌ایستد
 
 `FrontendApiContractTest` هر فراخوانیِ `api(...)` را از **متنِ منبعِ

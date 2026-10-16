@@ -9,6 +9,7 @@ use App\Support\PrivateFiles;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use LogicException;
 
 /**
  * یک خرید اشتراک. عمداً از BelongsToComplex استفاده نمی‌کند چون ادمین کل
@@ -109,9 +110,60 @@ class Subscription extends Model implements GatewayOrder
         $this->update(['gateway' => $gateway, 'ref_id' => $refId]);
     }
 
-    /** با حذف اشتراک، فایل رسیدش هم از دیسک پاک می‌شود. */
+    /** آیا فعال‌سازیِ همین لحظه از مسیرِ پرداختِ تأییدشده است؟ (`activating`) */
+    private static int $activating = 0;
+
+    /**
+     * فعال‌سازیِ اشتراکِ **آنلاین** فقط از مسیرِ پرداختِ تأییدشده (مرحلهٔ ۱۲ · فاز ۲؛ تصمیمِ قطعیِ کارفرما).
+     *
+     * `SubscriptionRenewal::complete` (تمدید) و `ComplexPurchase::complete` (خریدِ اولیه) — هر دو پس از تأییدِ مستقلِ
+     * درگاه در سرور و زیرِ قفل — کارشان را درونِ همین می‌کنند. هر مسیرِ دیگری — دکمه‌ی «تأیید»، کدِ رهگیریِ دستی،
+     * تغییرِ وضعیت از پنل یا endpoint ِ فردا — به `saving` ِ پایین می‌خورد و رد می‌شود.
+     *
+     * @template T
+     *
+     * @param  \Closure(): T  $work
+     * @return T
+     */
+    public static function activating(\Closure $work): mixed
+    {
+        self::$activating++;
+
+        try {
+            return $work();
+        } finally {
+            self::$activating--;
+        }
+    }
+
     protected static function booted(): void
     {
+        /*
+         * 🔴 نگهبانِ مدل: ادمینِ کل (یا هر کدِ دیگری) اشتراکِ آنلاینِ پرداخت‌نشده را فعال نمی‌کند.
+         *
+         * - اشتراکِ `online` فقط درونِ `activating` فعال ساخته یا فعال می‌شود؛
+         * - ردیفِ موجود با تغییرِ وضعیت فعال نمی‌شود — جز «اهدای پلن» (`manual`، ابزارِ جدای سکو)؛
+         * - روشِ پرداختِ ردیف پس از ساخت عوض نمی‌شود (دورزدنِ دو قاعده‌ی بالا با `manual` کردن).
+         *
+         * به‌روزرسانیِ مستقیمِ query builder از این‌جا رد نمی‌شود؛ `SubscriptionActivationTest` می‌سنجد که هیچ کدی
+         * با آن اشتراکی را فعال نمی‌کند.
+         */
+        static::saving(function (Subscription $subscription): void {
+            if ($subscription->exists && $subscription->isDirty('method')) {
+                throw new LogicException('روشِ پرداختِ اشتراک پس از ساخت عوض نمی‌شود.');
+            }
+
+            $becomesActive = $subscription->status === 'active' && (! $subscription->exists || $subscription->isDirty('status'));
+            if (! $becomesActive || self::$activating > 0) {
+                return;
+            }
+
+            if ($subscription->method === 'online' || ($subscription->exists && $subscription->method !== 'manual')) {
+                throw new LogicException('اشتراک فقط با پرداختِ آنلاینِ تأییدشده فعال می‌شود.');
+            }
+        });
+
+        /** با حذف اشتراک، فایل رسیدش هم از دیسک پاک می‌شود. */
         static::deleting(function (Subscription $subscription) {
             if ($subscription->receipt_path) {
                 PrivateFiles::disk()->delete($subscription->receipt_path);

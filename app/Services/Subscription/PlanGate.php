@@ -31,6 +31,8 @@ class PlanGate
 
         return Subscription::where('complex_id', $complex->id)
             ->where('status', 'active')
+            // تمدیدِ پیش از پایانِ دوره از پایانِ دوره‌ی قبلی شروع می‌شود (۱۲/۲)؛ تا آن روز دوره‌ی جاری است که می‌شمارد
+            ->where('starts_at', '<=', now())
             ->where('ends_at', '>', now())
             ->orderByDesc('ends_at')
             ->first();

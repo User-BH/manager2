@@ -16,8 +16,8 @@ use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
 
 /**
- * چرخه‌ی کامل اشتراک: خرید با رسید، بررسی توسط ادمین کل، و اعمال واقعی
- * محدودیت‌های پلن.
+ * چرخه‌ی کامل اشتراک: خرید و تمدیدِ آنلاین و اعمالِ واقعیِ محدودیت‌های پلن. از ۱۲/۲ رسید و تأییدِ دستیِ ادمینِ کل
+ * نیست (تصمیمِ قطعیِ کارفرما)؛ ردیف‌های `method = receipt` ِ این‌جا سابقه‌ی پیش از آن‌اند.
  */
 class SubscriptionFlowTest extends TestCase
 {
@@ -159,156 +159,41 @@ class SubscriptionFlowTest extends TestCase
             ->assertOk();
     }
 
-    /* --------------------- خرید با آپلود رسید --------------------- */
+    /* -------------- رسید و تأییدِ دستی بازنشسته‌اند (۱۲/۲) -------------- */
 
-    public function test_admin_can_upload_a_subscription_receipt(): void
+    /**
+     * 🔴 تصمیمِ قطعیِ کارفرما (۱۲/۲): خرید و تمدید فقط آنلاین. مسیرهای قدیمیِ رسید، تأیید و رد یک چرخه‌ی استقرار
+     * ۴۱۰ ِ روشن می‌دهند و هیچ ردیفی نمی‌سازند و هیچ اشتراکی را فعال نمی‌کنند — برای مدیر، ساکن و ادمینِ کل.
+     * نگهبانِ مدل و تمدیدِ آنلاین: `SubscriptionActivationTest`، `SubscriptionRenewalTest`.
+     */
+    public function test_the_retired_receipt_route_creates_nothing_for_anyone(): void
     {
         Storage::fake('local');
 
-        $this->actingAs($this->admin)->postJson('/api/subscription/receipt', [
-            'plan' => 'pro',
-            'paid_on' => now()->toDateString(),
-            'receipt' => UploadedFile::fake()->image('receipt.jpg'),
-        ])->assertStatus(201)
-            ->assertJsonPath('subscription.status', 'pending')
-            ->assertJsonPath('subscription.hasReceipt', true);
+        foreach ([$this->admin, $this->resident] as $user) {
+            $this->actingAs($user)->postJson('/api/subscription/receipt', [
+                'plan' => 'pro', 'receipt' => UploadedFile::fake()->image('r.jpg'),
+            ])->assertStatus(410)->assertJsonPath('code', 'subscription.online_only');
+        }
 
-        $subscription = Subscription::firstOrFail();
-        $this->assertSame('receipt', $subscription->method);
-        // مبلغ باید از enum بیاید نه از درخواست
-        $this->assertEquals(SubscriptionPlan::Pro->price(), (float) $subscription->amount);
-        Storage::disk('local')->assertExists($subscription->receipt_path);
-    }
+        $this->assertSame(0, Subscription::count());
+        $this->assertSame([], Storage::disk('local')->allFiles());
 
-    public function test_receipt_upload_rejects_bad_files_and_future_dates(): void
-    {
-        Storage::fake('local');
-
-        // فایل اجرایی نباید پذیرفته شود
-        $this->actingAs($this->admin)->postJson('/api/subscription/receipt', [
-            'plan' => 'pro',
-            'receipt' => UploadedFile::fake()->create('hack.php', 40, 'application/x-php'),
-        ])->assertStatus(422)->assertJsonValidationErrors('receipt');
-
-        // تاریخ واریز در آینده بی‌معنی است
-        $this->actingAs($this->admin)->postJson('/api/subscription/receipt', [
-            'plan' => 'pro',
-            'paid_on' => now()->addWeek()->toDateString(),
-            'receipt' => UploadedFile::fake()->image('r.jpg'),
-        ])->assertStatus(422)->assertJsonValidationErrors('paid_on');
-    }
-
-    public function test_residents_cannot_buy_a_subscription(): void
-    {
-        Storage::fake('local');
-
-        $this->actingAs($this->resident)->postJson('/api/subscription/receipt', [
-            'plan' => 'pro',
-            'receipt' => UploadedFile::fake()->image('r.jpg'),
-        ])->assertStatus(403);
-
+        // و ساکن خریدِ آنلاین هم نمی‌تواند
         $this->actingAs($this->resident)
             ->post('/subscription/checkout', ['plan' => 'pro'])
             ->assertStatus(403);
     }
 
-    public function test_only_one_pending_receipt_request_at_a_time(): void
-    {
-        Storage::fake('local');
-
-        $this->actingAs($this->admin)->postJson('/api/subscription/receipt', [
-            'plan' => 'pro', 'receipt' => UploadedFile::fake()->image('a.jpg'),
-        ])->assertStatus(201);
-
-        $this->actingAs($this->admin)->postJson('/api/subscription/receipt', [
-            'plan' => 'pro', 'receipt' => UploadedFile::fake()->image('b.jpg'),
-        ])->assertStatus(422);
-
-        $this->assertSame(1, Subscription::count());
-    }
-
-    /* ------------------ بررسی توسط ادمین کل ------------------ */
-
-    public function test_super_admin_approves_a_receipt_and_the_plan_becomes_active(): void
-    {
-        Storage::fake('local');
-        $this->makeUnits(20);
-
-        $this->actingAs($this->admin)->postJson('/api/subscription/receipt', [
-            'plan' => 'pro', 'receipt' => UploadedFile::fake()->image('r.jpg'),
-        ])->assertStatus(201);
-
-        $subscription = Subscription::firstOrFail();
-
-        // پیش از تایید، محدودیت رایگان هنوز برقرار است
-        $this->actingAs($this->admin)->postJson('/api/units', [
-            'unit_number' => '21', 'floor' => 2, 'area' => 100,
-            'residents_count' => 2, 'coefficient' => 1, 'occupancy_status' => 'owner_occupied',
-        ])->assertStatus(402);
-
-        $this->actingAs($this->superAdmin)
-            ->postJson("/api/system/subscriptions/{$subscription->id}/approve")
-            ->assertOk();
-
-        $subscription->refresh();
-        $this->assertSame('active', $subscription->status);
-        $this->assertNotNull($subscription->ends_at);
-        $this->assertSame($this->superAdmin->id, $subscription->reviewed_by);
-
-        // و حالا محدودیت برداشته شده است
-        $this->actingAs($this->admin)->postJson('/api/units', [
-            'unit_number' => '21', 'floor' => 2, 'area' => 100,
-            'residents_count' => 2, 'coefficient' => 1, 'occupancy_status' => 'owner_occupied',
-        ])->assertStatus(201);
-    }
-
-    public function test_super_admin_can_reject_a_receipt(): void
-    {
-        Storage::fake('local');
-
-        $this->actingAs($this->admin)->postJson('/api/subscription/receipt', [
-            'plan' => 'pro', 'receipt' => UploadedFile::fake()->image('r.jpg'),
-        ]);
-        $subscription = Subscription::firstOrFail();
-
-        $this->actingAs($this->superAdmin)
-            ->postJson("/api/system/subscriptions/{$subscription->id}/reject", ['note' => 'مبلغ نمی‌خواند'])
-            ->assertOk();
-
-        $subscription->refresh();
-        $this->assertSame('failed', $subscription->status);
-        $this->assertSame('مبلغ نمی‌خواند', $subscription->review_note);
-    }
-
-    public function test_a_request_cannot_be_reviewed_twice(): void
-    {
-        Storage::fake('local');
-
-        $this->actingAs($this->admin)->postJson('/api/subscription/receipt', [
-            'plan' => 'pro', 'receipt' => UploadedFile::fake()->image('r.jpg'),
-        ]);
-        $subscription = Subscription::firstOrFail();
-
-        $this->actingAs($this->superAdmin)->postJson("/api/system/subscriptions/{$subscription->id}/approve")->assertOk();
-        $this->actingAs($this->superAdmin)->postJson("/api/system/subscriptions/{$subscription->id}/approve")->assertStatus(422);
-    }
-
-    /** مدیر مجتمع نباید بتواند رسید خودش را تایید کند. */
+    /** مدیرِ مجتمع حتی به نسخه‌ی بازنشسته‌ی مسیرهای ادمینِ کل نمی‌رسد. */
     public function test_complex_admin_cannot_reach_the_review_endpoints(): void
     {
-        Storage::fake('local');
-
-        $this->actingAs($this->admin)->postJson('/api/subscription/receipt', [
-            'plan' => 'pro', 'receipt' => UploadedFile::fake()->image('r.jpg'),
-        ]);
-        $subscription = Subscription::firstOrFail();
+        $subscription = $this->activatePro();
 
         $this->actingAs($this->admin)->getJson('/api/system/subscriptions')->assertStatus(403);
         $this->actingAs($this->admin)
             ->postJson("/api/system/subscriptions/{$subscription->id}/approve")
             ->assertStatus(403);
-
-        $this->assertSame('pending', $subscription->fresh()->status);
     }
 
     /* ---------------- خرید آنلاین از راه درایور مشترک ---------------- */

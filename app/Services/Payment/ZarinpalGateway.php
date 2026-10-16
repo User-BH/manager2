@@ -20,7 +20,7 @@ use Illuminate\Support\Facades\Log;
  *  • نرسیدن به درگاه «نه» نیست، «نامعلوم» است (`GatewayUnreachable`).
  *  • ناهمخوانیِ مبلغ هم نامعلوم است: پولی شاید کسر شده و باید پیدا شود.
  */
-class ZarinpalGateway implements PaymentGateway
+class ZarinpalGateway implements PaymentGateway, Reverifiable
 {
     /*
      * ⚠️ نشانی‌ها کامل و ثابت‌اند، نه «پایه + مسیر»: مقصدِ هر تماس باید ثابتِ کلاس
@@ -145,6 +145,22 @@ class ZarinpalGateway implements PaymentGateway
         Log::warning('[Zarinpal] verify refused', ['code' => $code]);
 
         return null;
+    }
+
+    /**
+     * همان تأیید، بی بازگشتِ مرورگر — با مرجع و مبلغِ **خودمان** (مرحلهٔ ۱۲ · فاز ۲).
+     *
+     * زرین‌پال تأییدِ دوباره را می‌پذیرد: پرداختِ تأییدشده ۱۰۱ و همان کدِ رهگیری را برمی‌گرداند، پرداختِ تأییدنشده
+     * همین حالا تأیید می‌شود، و پرداختی که انجام نشده یا بانک برگردانده «نه» است. مبلغِ ناهم‌خوان و پاسخِ ناقص
+     * همچنان «نامعلوم».
+     */
+    public function reverify(GatewayOrder $order): ?string
+    {
+        if ((string) $order->gatewayRefId() === '') {
+            return null;
+        }
+
+        return $this->verify($order, ['Status' => 'OK', 'Authority' => (string) $order->gatewayRefId()]);
     }
 
     private function sandbox(): bool

@@ -174,9 +174,14 @@ class BusinessRulesTest extends TestCase
                 'اشتراک', PlanGate::class,
                 SubscriptionFlowTest::class, 'test_free_plan_blocks_connecting_a_real_bank_gateway',
             ],
-            'تعرفهٔ پکیج به نوعِ مجتمع گره خورده و از هر سه مسیرِ خرید اعمال می‌شود' => [
+            // ۱۲/۲: رسید بازنشسته است؛ دو مسیرِ خرید (تمدیدِ آنلاین و مجتمعِ تازه) ماندند
+            'تعرفهٔ پکیج به نوعِ مجتمع گره خورده و در هر مسیرِ خرید اعمال می‌شود' => [
                 'اشتراک', Plan::class,
-                ComplexTypeTest::class, 'test_a_commercial_complex_cannot_buy_a_residential_tariff_by_receipt',
+                ComplexTypeTest::class, 'test_a_commercial_complex_cannot_buy_a_residential_tariff_online',
+            ],
+            '🔴 خرید و تمدید فقط آنلاین؛ ادمینِ کل اشتراکِ پرداخت‌نشده را فعال نمی‌کند (۱۲/۲)' => [
+                'اشتراک', Subscription::class,
+                SubscriptionActivationTest::class, 'test_the_model_refuses_every_activation_outside_the_verified_path',
             ],
 
             // ── اعلان ───────────────────────────────────────────────────

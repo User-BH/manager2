@@ -1,6 +1,5 @@
-import { useState } from 'react'
 import { motion } from 'framer-motion'
-import { BadgeCheck, Check, Crown, FileText, Hourglass, Loader2, X } from 'lucide-react'
+import { BadgeCheck, Crown, FileText, Hourglass } from 'lucide-react'
 import { Card } from '@/shared/ui/Card'
 import { StatCard } from '@/shared/ui/StatCard'
 import { EmptyState, ErrorState } from '@/shared/ui/PageState'
@@ -9,8 +8,8 @@ import { useQuery } from '@tanstack/react-query'
 import { queryKeys } from '@/shared/lib/queryKeys'
 import { useDocumentTitle } from '@/shared/hooks'
 import { api } from '@/shared/lib/api'
-import { alertError, confirmAction, promptText, toastSuccess } from '@/shared/lib/alert'
 import { formatMoney, formatNumber } from '@/shared/lib/format'
+import { alertError, promptText, toastSuccess } from '@/shared/lib/alert'
 
 interface SubscriptionRequest {
   id: number
@@ -34,11 +33,27 @@ interface SubscriptionRequest {
   createdAt: string
 }
 
+/** خریدِ مجتمعِ تازه که به آدم نیاز دارد (۱۲/۲) */
+interface CheckoutAttention {
+  id: string
+  status: 'paid' | 'pending'
+  statusLabel: string
+  buyerName: string | null
+  buyerPhone: string | null
+  complexName: string
+  planName: string
+  amountLabel: string
+  trackingCode: string | null
+  reason: string | null
+  createdAt: string
+}
+
 interface Response {
   pending: SubscriptionRequest[]
   recent: SubscriptionRequest[]
   pendingTotal: number
   activeCount: number
+  checkouts?: CheckoutAttention[]
 }
 
 const STATUS_COLOR: Record<string, string> = {
@@ -49,15 +64,13 @@ const STATUS_COLOR: Record<string, string> = {
 }
 
 /**
- * بررسی رسیدهای اشتراک — فقط ادمین کل.
+ * اشتراک‌های مجتمع‌ها — فقط دیدن، فقط ادمینِ کل (مرحلهٔ ۱۲ · فاز ۲).
  *
- * پول اشتراک به حساب سرویس‌دهنده می‌رود و پرداخت‌کننده خودِ مدیر مجتمع
- * است؛ پس تاییدش نمی‌تواند کار همان مدیر باشد. (این با «بررسی پرداخت‌ها»ی
- * شارژ فرق دارد که آنجا ساکن می‌پردازد و مدیر تایید می‌کند.)
+ * خرید و تمدید فقط آنلاین‌اند و فقط تأییدِ مستقلِ درگاه در سرور فعالشان می‌کند؛ این صفحه هیچ دکمه‌ی «تأیید» یا
+ * «رد» ندارد. ردیفِ در انتظار یعنی «در انتظارِ نتیجه‌ی درگاه» و بازبینیِ خودکار با پرسیدن از درگاه تکلیفش را روشن
+ * می‌کند. رسیدهای پیش از ۱۲/۲ برای سابقه دیده می‌شوند.
  */
 export function SubscriptionsPage() {
-  const [busyId, setBusyId] = useState<number | null>(null)
-
   useDocumentTitle('اشتراک‌ها')
 
   const { data, error, isLoading, refetch } = useQuery({
@@ -65,44 +78,25 @@ export function SubscriptionsPage() {
     queryFn: ({ signal }) => api<Response>('/system/subscriptions', { signal }),
   })
 
-  async function approve(request: SubscriptionRequest) {
-    const ok = await confirmAction({
-      title: `اشتراک ${request.complexName} تایید شود؟`,
-      text: `${request.planLabel} — ${formatMoney(request.amount)} تومان. اشتراک از همین لحظه به مدت ${formatNumber(request.months)} ماه فعال می‌شود.`,
-      confirmLabel: 'تایید و فعال‌سازی',
+  /*
+   * ثبتِ بازپرداختِ «پرداخت شد ولی مجتمع ساخته نشد» — پس از برگرداندنِ پول در بانک (۱۲/۲). فقط ثبت است؛ هیچ چیزی
+   * فعال نمی‌شود. سرور تأییدِ تازه‌ی رمز می‌خواهد.
+   */
+  async function recordRefund(checkout: CheckoutAttention) {
+    const reference = await promptText({
+      title: `بازپرداختِ ${checkout.amountLabel} تومان به ${checkout.buyerName ?? 'خریدار'}`,
+      text: 'پس از برگرداندنِ پول در بانک، مرجعِ بازپرداخت را وارد کنید. این کار فقط ثبت است و برگشت‌پذیر نیست.',
+      defaultValue: '',
+      confirmLabel: 'ثبتِ بازپرداخت',
     })
-    if (!ok) return
+    if (!reference) return
 
-    setBusyId(request.id)
     try {
-      await api(`/system/subscriptions/${request.id}/approve`, { method: 'POST' })
-      toastSuccess('اشتراک فعال شد.')
+      await api(`/system/checkouts/${checkout.id}/refund`, { method: 'POST', body: { reference } })
+      toastSuccess('بازپرداخت ثبت شد.')
       void refetch()
     } catch (err) {
-      alertError(err, 'تایید اشتراک ممکن نشد.')
-    } finally {
-      setBusyId(null)
-    }
-  }
-
-  async function reject(request: SubscriptionRequest) {
-    const note = await promptText({
-      title: 'رد درخواست اشتراک',
-      text: 'دلیل رد برای مدیر مجتمع نمایش داده می‌شود.',
-      defaultValue: 'رسید تایید نشد',
-      confirmLabel: 'رد کن',
-    })
-    if (note === null) return
-
-    setBusyId(request.id)
-    try {
-      await api(`/system/subscriptions/${request.id}/reject`, { method: 'POST', body: { note } })
-      toastSuccess('درخواست رد شد.')
-      void refetch()
-    } catch (err) {
-      alertError(err, 'رد درخواست ممکن نشد.')
-    } finally {
-      setBusyId(null)
+      alertError(err, 'ثبتِ بازپرداخت ممکن نشد.')
     }
   }
 
@@ -117,7 +111,7 @@ export function SubscriptionsPage() {
           اشتراک‌ها
         </h1>
         <p className="mt-1 text-[13px]" style={{ color: 'var(--text-tertiary)' }}>
-          بررسی رسیدهای واریز و فعال‌سازی اشتراک مجتمع‌ها
+          پایشِ اشتراکِ مجتمع‌ها — فعال‌سازی فقط با تأییدِ درگاهِ آنلاین
         </p>
       </header>
 
@@ -128,7 +122,7 @@ export function SubscriptionsPage() {
         <>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
             <StatCard
-              label="در انتظار بررسی"
+              label="در انتظارِ درگاه"
               value={formatNumber(data.pending.length)}
               icon={Hourglass}
               tone="info"
@@ -150,11 +144,11 @@ export function SubscriptionsPage() {
             />
           </div>
 
-          <Card title="در انتظار بررسی" delay={0.15}>
+          <Card title="در انتظارِ نتیجه‌ی درگاه" delay={0.15}>
             {data.pending.length === 0 ? (
               <EmptyState
-                message="درخواست بررسی‌نشده‌ای نیست."
-                hint="رسیدهای تازه‌ی مدیران مجتمع اینجا نمایش داده می‌شوند."
+                message="پرداختِ در انتظاری نیست."
+                hint="پرداخت‌های آنلاینی که نتیجه‌شان هنوز از درگاه نیامده این‌جا دیده می‌شوند؛ بازبینیِ خودکار تکلیفشان را روشن می‌کند."
               />
             ) : (
               <div className="flex flex-col gap-3">
@@ -226,35 +220,6 @@ export function SubscriptionsPage() {
                           مشاهده رسید
                         </a>
                       )}
-
-                      <span className="flex-1" />
-
-                      <button
-                        onClick={() => void reject(request)}
-                        disabled={busyId === request.id}
-                        className="flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-semibold disabled:opacity-60"
-                        style={{
-                          borderColor: 'var(--border-default)',
-                          color: 'var(--color-danger)',
-                        }}
-                      >
-                        <X size={13} />
-                        رد
-                      </button>
-
-                      <button
-                        onClick={() => void approve(request)}
-                        disabled={busyId === request.id}
-                        className="flex items-center gap-1.5 rounded-lg px-4 py-1.5 text-xs font-bold text-white disabled:opacity-60"
-                        style={{ backgroundColor: 'var(--color-brand-500)' }}
-                      >
-                        {busyId === request.id ? (
-                          <Loader2 size={13} className="animate-spin" />
-                        ) : (
-                          <Check size={13} />
-                        )}
-                        تایید و فعال‌سازی
-                      </button>
                     </div>
                   </motion.article>
                 ))}
@@ -262,9 +227,63 @@ export function SubscriptionsPage() {
             )}
           </Card>
 
-          <Card title="بررسی‌شده‌های اخیر" delay={0.2}>
+          <Card title="خریدهای نیازمندِ رسیدگی" delay={0.18}>
+            {(data.checkouts ?? []).length === 0 ? (
+              <EmptyState
+                message="خریدی منتظرِ رسیدگی نیست."
+                hint="پرداختی که تأیید شد ولی مجتمعش ساخته نشد، یا پرداختی که بازبینیِ خودکار هنوز تکلیفش را نمی‌داند، این‌جا می‌آید."
+              />
+            ) : (
+              <ul className="flex flex-col gap-2">
+                {(data.checkouts ?? []).map((checkout) => (
+                  <li
+                    key={checkout.id}
+                    className="flex flex-wrap items-center gap-3 rounded-2xl border p-3"
+                    style={{ borderColor: 'var(--border-subtle)' }}
+                  >
+                    <div className="min-w-0 flex-1">
+                      <p
+                        className="text-[13.5px] font-bold"
+                        style={{ color: 'var(--text-primary)' }}
+                      >
+                        {checkout.complexName} · {checkout.planName} · {checkout.amountLabel} تومان
+                      </p>
+                      <p className="mt-0.5 text-[11.5px]" style={{ color: 'var(--text-tertiary)' }}>
+                        {checkout.statusLabel} · {checkout.buyerName ?? '—'}
+                        {checkout.buyerPhone && ` (${checkout.buyerPhone})`} · {checkout.createdAt}
+                        {checkout.trackingCode && ` · رهگیری ${checkout.trackingCode}`}
+                      </p>
+                      {checkout.reason && (
+                        <p
+                          className="mt-0.5 text-[11.5px]"
+                          style={{ color: 'var(--text-secondary)' }}
+                        >
+                          {checkout.reason}
+                        </p>
+                      )}
+                    </div>
+                    {checkout.status === 'paid' && (
+                      <button
+                        type="button"
+                        onClick={() => void recordRefund(checkout)}
+                        className="rounded-lg border px-3 py-1.5 text-xs font-semibold"
+                        style={{
+                          borderColor: 'var(--border-default)',
+                          color: 'var(--text-secondary)',
+                        }}
+                      >
+                        ثبتِ بازپرداخت
+                      </button>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            )}
+          </Card>
+
+          <Card title="اخیر" delay={0.2}>
             {data.recent.length === 0 ? (
-              <EmptyState message="هنوز درخواستی بررسی نشده است." />
+              <EmptyState message="هنوز اشتراکی ثبت نشده است." />
             ) : (
               <div className="overflow-x-auto">
                 <table className="w-full min-w-[760px] text-right text-[13px]">

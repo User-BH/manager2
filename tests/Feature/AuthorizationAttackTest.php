@@ -641,7 +641,7 @@ class AuthorizationAttackTest extends TestCase
         'app/Services/Account/PhoneChange.php' => [3, 'قفلِ حسابِ خود و یکتاییِ شماره در همه‌ی مجتمع‌ها؛ حسابِ اولیه هم مجتمع ندارد'],
         'app/Services/Account/AccountRecovery.php' => [3, 'حسابِ منطبق با شماره‌ی قبلی در هر مجتمعی، قفلِ آن و یکتاییِ شماره‌ی تازه در کلِ سکو'],
         // مرحلهٔ ۹ · فاز ۴: قفلِ خریدار — حسابِ اولیه هنوز مجتمعی ندارد
-        'app/Services/Subscription/ComplexPurchase.php' => [2, 'خریدار هنوز عضوِ هیچ مجتمعی نیست؛ قفل و بازخوانیِ همان کاربرِ خودش'],
+        'app/Services/Subscription/ComplexPurchase.php' => [3, 'خریدار هنوز عضوِ هیچ مجتمعی نیست؛ قفل و بازخوانیِ همان کاربرِ خودش (۱۲/۲: تکمیلِ دوباره‌ی قصدِ پرداخت‌شده هم)'],
         'app/Http/Middleware/EnsureComplexActive.php' => [1, 'خودِ مجتمع را می‌خواند تا زمینه ساخته شود'],
         'app/Http/Middleware/SetCurrentComplex.php' => [1, 'مجتمعِ جاری به‌همراهِ سنجشِ عضویتِ فعال — پیش از ساختنِ زمینه (مرحلهٔ ۱۰ · فاز ۳)'],
 

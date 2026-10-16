@@ -41,9 +41,10 @@ class SubscriptionGatewayManager
             'saman' => new SamanGateway($config, 'toman'),
             // درگاهِ سکو به انتخابِ کارفرما (مرحلهٔ ۹ · فاز ۴)
             'zarinpal' => new ZarinpalGateway($config, 'toman'),
+            // ۱۲/۲: راهِ دیگری (رسید) نیست؛ خرید و تمدید فقط آنلاین
             default => throw new RuntimeException(
-                'درگاه پرداخت اشتراک هنوز فعال نشده است. می‌توانید با «واریز و آپلود رسید» '
-                .'خرید کنید یا با پشتیبانی '.config('subscription.support_phone').' تماس بگیرید.'
+                'پرداختِ آنلاینِ اشتراک فعلاً در دسترس نیست. در صورتِ نیاز با پشتیبانی '
+                .config('subscription.support_phone').' تماس بگیرید.'
             ),
         };
     }

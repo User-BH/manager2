@@ -58,9 +58,14 @@ class CheckoutIntent extends Model implements GatewayOrder
 
     public const CANCELLED = 'cancelled';
 
+    /** پولِ قصدِ `paid` با مرجعِ بانکی برگشت (مرحلهٔ ۱۲ · فاز ۲) — پایانی */
+    public const REFUNDED = 'refunded';
+
     /** @var array<string, list<string>> */
     private const TRANSITIONS = [
         self::PENDING => [self::COMPLETED, self::PAID, self::FAILED, self::CANCELLED],
+        // پول گرفته شد و مجتمع نشد: یا بعداً ساخته می‌شود (حساب دوباره واجدِ شرایط) یا پول برمی‌گردد (۱۲/۲)
+        self::PAID => [self::COMPLETED, self::REFUNDED],
     ];
 
     /*
@@ -80,6 +85,7 @@ class CheckoutIntent extends Model implements GatewayOrder
             'complex_type' => ComplexType::class,
             'paid_at' => 'datetime',
             'completed_at' => 'datetime',
+            'refunded_at' => 'datetime',
         ];
     }
 

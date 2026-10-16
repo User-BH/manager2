@@ -2,28 +2,27 @@
 
 namespace App\Http\Controllers\Api\System;
 
-use App\Exceptions\DomainException;
 use App\Http\Controllers\Controller;
-use App\Http\Requests\RejectSubscriptionRequest;
+use App\Http\Requests\RefundCheckoutRequest;
 use App\Http\Resources\SubscriptionReviewResource;
+use App\Models\CheckoutIntent;
 use App\Models\Subscription;
-use App\Support\Audit;
+use App\Services\Subscription\ComplexPurchase;
+use App\Support\Jalali;
 use App\Support\PrivateFiles;
 use App\Support\Uploads;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Str;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 /**
- * بررسی رسیدهای اشتراک توسط ادمین کل.
+ * اشتراک‌های مجتمع‌ها از دیدِ ادمینِ کل — **فقط دیدن** (مرحلهٔ ۱۲ · فاز ۲؛ تصمیمِ قطعیِ کارفرما).
  *
- * چرا ادمین کل و نه مدیر مجتمع: پول اشتراک به حساب سرویس‌دهنده واریز
- * می‌شود، و پرداخت‌کننده خودِ مدیر مجتمع است. اگر مدیر مجتمع رسید خودش را
- * تایید می‌کرد، عملاً می‌توانست بدون پرداخت، اشتراک را فعال کند.
- *
- * (این با «بررسی پرداخت‌ها»ی شارژ فرق دارد: آنجا ساکن پرداخت می‌کند و مدیر
- * مجتمع بررسی می‌کند، که درست است.)
+ * تا ۱۲/۲ این‌جا رسیدِ واریز تأیید یا رد می‌شد و دکمه‌ی «تأیید» هر اشتراکِ `pending` را — حتی تمدیدِ **آنلاینِ**
+ * پرداخت‌نشده — با کدِ رهگیریِ ساختگی فعال می‌کرد (۱۲/۰ بازتولیدش کرد). حالا خرید و تمدید فقط آنلاین‌اند و فقط
+ * تأییدِ مستقلِ درگاه در سرور فعالشان می‌کند (`SubscriptionRenewal`، `ComplexPurchase`). ردیفِ `pending` یعنی
+ * «در انتظارِ درگاه» و تکلیفش را `payments:reconcile` با پرسیدن از خودِ درگاه روشن می‌کند، نه ادمین. مسیرهای
+ * قدیمیِ تأیید و رد یک چرخه‌ی استقرار ۴۱۰ می‌دهند (`RetiredEndpointController`). رسیدهای پیشین برای سابقه دیده
+ * می‌شوند.
  *
  * مسیرها زیر گروه role:super_admin ثبت شده‌اند.
  */
@@ -48,10 +47,44 @@ class SubscriptionReviewController extends Controller
             'pendingTotal' => (float) $pending->sum('amount'),
             'activeCount' => Subscription::where('status', 'active')
                 ->where('ends_at', '>', now())->count(),
+            /*
+             * خریدِ مجتمعِ تازه که به آدم نیاز دارد (۱۲/۲): پرداخت‌شده‌ای که مجتمعش ساخته نشد (ثبتِ بازپرداخت) و
+             * قصدی که بازبینیِ خودکار هنوز نتوانسته تکلیفش را روشن کند.
+             */
+            'checkouts' => CheckoutIntent::with('user:id,name,phone')
+                ->where(fn ($q) => $q->where('status', CheckoutIntent::PAID)
+                    ->orWhere(fn ($p) => $p->where('status', CheckoutIntent::PENDING)->whereNotNull('authority')
+                        ->where('created_at', '<', now()->subMinutes(30))))
+                ->orderBy('id')
+                ->get()
+                ->map(fn (CheckoutIntent $i) => [
+                    'id' => $i->public_id,
+                    'status' => $i->status,
+                    'statusLabel' => $i->status === CheckoutIntent::PAID ? 'پرداخت‌شده، ساخته‌نشده' : 'در انتظارِ درگاه',
+                    'buyerName' => $i->user?->name,
+                    'buyerPhone' => $i->user?->phone,
+                    'complexName' => $i->complex_name,
+                    'planName' => $i->plan_name,
+                    'amountLabel' => Jalali::money($i->amount),
+                    'trackingCode' => $i->tracking_code,
+                    'reason' => $i->failure_reason,
+                    'createdAt' => Jalali::dateTime($i->created_at),
+                ])->values(),
         ]);
     }
 
-    /** فایل رسید روی دیسک خصوصی است و فقط از این مسیر سرو می‌شود. */
+    /**
+     * ثبتِ بازپرداختِ «پرداخت شد ولی مجتمع ساخته نشد» — پس از برگرداندنِ پول در بانک (۱۲/۲). فقط ثبت است: هیچ چیزی
+     * فعال یا ساخته نمی‌شود و پس از آن همان پرداخت هرگز مجتمع نمی‌شود. با تأییدِ تازه‌ی رمز.
+     */
+    public function refund(RefundCheckoutRequest $request, CheckoutIntent $intent, ComplexPurchase $purchase): JsonResponse
+    {
+        $done = $purchase->refund($intent, $request->user(), $request->validated('reference'));
+
+        return response()->json(['message' => 'بازپرداخت ثبت شد.', 'status' => $done->status]);
+    }
+
+    /** رسیدِ اشتراک‌های پیش از ۱۲/۲ (سابقه) روی دیسکِ خصوصی است و فقط از این مسیر سرو می‌شود. */
     public function receipt(Subscription $subscription): StreamedResponse
     {
         abort_if(
@@ -62,67 +95,6 @@ class SubscriptionReviewController extends Controller
 
         // نوعِ محتوا صریح فرستاده می‌شود، نه حدسِ لحظه‌ی سرو (R19)
         return Uploads::serve($subscription->receipt_path);
-    }
-
-    /**
-     * تایید رسید: اشتراک از همین لحظه فعال و به اندازه‌ی ماه‌های پلن تمدید
-     * می‌شود.
-     */
-    public function approve(Subscription $subscription): JsonResponse
-    {
-        if ($subscription->status !== 'pending') {
-            throw DomainException::invalid(
-                'این درخواست قبلاً بررسی شده است.',
-                'subscription.already_reviewed',
-            );
-        }
-
-        $subscription->update([
-            'status' => 'active',
-            'starts_at' => now(),
-            'ends_at' => now()->addMonths($subscription->months),
-            'paid_at' => now(),
-            'tracking_code' => $subscription->tracking_code ?: 'MAN-'.Str::upper(Str::random(10)),
-            'reviewed_by' => Auth::id(),
-            'reviewed_at' => now(),
-        ]);
-
-        Audit::log('subscription.approved', 'تایید و فعال‌سازی اشتراک', $subscription, [
-            'plan' => $subscription->plan->value,
-            'amount' => (float) $subscription->amount,
-            'months' => $subscription->months,
-        ], $subscription->complex_id);
-
-        return response()->json([
-            'message' => 'اشتراک تایید و فعال شد.',
-            'subscription' => $this->present($subscription->fresh(['complex', 'user'])),
-        ]);
-    }
-
-    public function reject(RejectSubscriptionRequest $request, Subscription $subscription): JsonResponse
-    {
-        if ($subscription->status !== 'pending') {
-            throw DomainException::invalid(
-                'این درخواست قبلاً بررسی شده است.',
-                'subscription.already_reviewed',
-            );
-        }
-
-        $data = $request->validated();
-
-        $subscription->update([
-            'status' => 'failed',
-            'review_note' => $data['note'] ?? 'رسید تایید نشد.',
-            'reviewed_by' => Auth::id(),
-            'reviewed_at' => now(),
-        ]);
-
-        Audit::log('subscription.rejected', 'رد درخواست اشتراک', $subscription, [
-            'plan' => $subscription->plan->value,
-            'note' => $data['note'] ?? null,
-        ], $subscription->complex_id);
-
-        return response()->json(['message' => 'درخواست اشتراک رد شد.']);
     }
 
     /**

@@ -481,6 +481,7 @@ class DashboardToolsTest extends TestCase
             ->post('/subscription/checkout', ['plan' => 'pro'])
             ->assertRedirectContains('checkout=error');
 
-        $this->assertSame('failed', Subscription::where('user_id', $this->admin->id)->first()->status);
+        // ۱۲/۲: درگاهِ خاموش پیش از ساختنِ هر ردیفی گفته می‌شود — نه ردیفِ «ناموفق»، نه راهِ دیگر
+        $this->assertSame(0, Subscription::where('user_id', $this->admin->id)->count());
     }
 }

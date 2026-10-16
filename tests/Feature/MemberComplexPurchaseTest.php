@@ -228,15 +228,20 @@ class MemberComplexPurchaseTest extends TestCase
         $this->assertSame(0, CheckoutIntent::count());
     }
 
-    public function test_one_open_intent_per_account_for_members_too(): void
+    /**
+     * ۱۲/۲: برای عضو هم همان قاعده — قصدِ بی‌مرجع با شروعِ تازه لغو می‌شود، قصدی که به درگاه رسیده نه (شاید پرداخت
+     * شده باشد؛ تکلیفش با بازگشتِ بانک یا `payments:reconcile`).
+     */
+    public function test_a_new_start_cancels_only_an_unsent_intent_for_members_too(): void
     {
         $this->fakeZarinpal();
+        $draft = app(ComplexPurchase::class)->begin($this->member->fresh(), Plan::where('slug', 'res-test')->firstOrFail(), 'پیش‌نویس', ComplexType::Residential, null);
 
         $this->start();
         $this->start(['complex_name' => 'مجتمع د']);
 
-        $this->assertSame(1, CheckoutIntent::where('status', CheckoutIntent::PENDING)->count());
-        $this->assertSame(CheckoutIntent::CANCELLED, CheckoutIntent::orderBy('id')->first()->status);
+        $this->assertSame(CheckoutIntent::CANCELLED, $draft->fresh()->status);
+        $this->assertSame(2, CheckoutIntent::where('status', CheckoutIntent::PENDING)->whereNotNull('authority')->count());
     }
 
     public function test_renewal_is_still_the_current_complexes_managers_alone(): void

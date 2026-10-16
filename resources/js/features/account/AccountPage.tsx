@@ -11,12 +11,10 @@ import {
   Headphones,
   Hourglass,
   Loader2,
-  Receipt,
   Sparkles,
   UserRound,
 } from 'lucide-react'
 import { Card } from '@/shared/ui/Card'
-import { Modal } from '@/shared/ui/Modal'
 import { ErrorState } from '@/shared/ui/PageState'
 import { CardListSkeleton } from '@/shared/ui/Skeleton'
 import { useQuery } from '@tanstack/react-query'
@@ -31,7 +29,6 @@ import {
   toastSuccess,
 } from '@/shared/lib/alert'
 import { formatMoney, formatNumber } from '@/shared/lib/format'
-import { ReceiptUploadForm } from './ReceiptUploadForm'
 import type { SubscriptionPlanOption, SubscriptionResponse, SubscriptionRow } from './types'
 
 const STATUS_COLOR: Record<string, string> = {
@@ -51,7 +48,6 @@ const STATUS_COLOR: Record<string, string> = {
 export function AccountPage() {
   const [params, setParams] = useSearchParams()
   const [busyPlan, setBusyPlan] = useState<string | null>(null)
-  const [receiptOpen, setReceiptOpen] = useState(false)
   const formRef = useRef<HTMLFormElement>(null)
 
   useDocumentTitle('تنظیمات حساب')
@@ -93,7 +89,10 @@ export function AccountPage() {
       )
     } else if (checkout === 'review') {
       // خریدِ مجتمعِ تازه توسطِ عضو (۱۰/۵): پول گرفته شد ولی مجتمع ساخته نشد — با ادمینِ کل
-      void alertInfo('پرداخت تأیید شد ولی مجتمع ساخته نشد.', 'پشتیبانی آن را بررسی می‌کند.')
+      void alertInfo(
+        'پرداخت تأیید شد ولی مجتمع ساخته نشد.',
+        'دوباره پرداخت نکنید: اگر حساب‌تان دوباره فعال شود مجتمع خودکار ساخته می‌شود، وگرنه مبلغ بازگردانده می‌شود.',
+      )
     } else if (checkout === 'error') {
       void alertInfo('اتصال به درگاه ممکن نشد.', params.get('message') ?? undefined)
     }
@@ -205,7 +204,6 @@ export function AccountPage() {
             disabled={busyPlan !== null || pendingRequest !== null}
             checkoutEnabled={data.checkoutEnabled}
             onBuyOnline={() => void startCheckout(plan)}
-            onBuyReceipt={() => setReceiptOpen(true)}
           />
         ))}
       </div>
@@ -220,11 +218,8 @@ export function AccountPage() {
           }}
         >
           <Headphones size={16} style={{ color: 'var(--state-info)' }} />
-          درگاه پرداخت آنلاین روی این نصب فعال نیست؛ خرید از راه{' '}
-          <span className="font-bold" style={{ color: 'var(--text-primary)' }}>
-            واریز و آپلود رسید
-          </span>{' '}
-          انجام می‌شود. در صورت نیاز با پشتیبانی{' '}
+          پرداختِ آنلاین روی این نصب فعال نیست؛ خرید و تمدیدِ اشتراک فقط آنلاین است و تا فعال شدنِ
+          درگاه ممکن نیست. در صورتِ نیاز با پشتیبانی{' '}
           <span className="font-bold" style={{ color: 'var(--text-primary)' }}>
             {data.supportPhone}
           </span>{' '}
@@ -233,17 +228,6 @@ export function AccountPage() {
       )}
 
       <HistoryCard history={data.history} />
-
-      <Modal open={receiptOpen} title="خرید اشتراک با واریز" onClose={() => setReceiptOpen(false)}>
-        <ReceiptUploadForm
-          plans={data.plans}
-          bank={data.bankInfo}
-          onDone={() => {
-            setReceiptOpen(false)
-            void refetch()
-          }}
-        />
-      </Modal>
     </div>
   )
 }
@@ -267,10 +251,11 @@ function PendingBanner({ request }: { request: SubscriptionRow }) {
       <Hourglass size={18} style={{ color: 'var(--state-info)' }} />
       <div className="min-w-0 flex-1">
         <p className="text-[13.5px] font-bold" style={{ color: 'var(--text-primary)' }}>
-          درخواست «{request.planLabel}» در انتظار بررسی است
+          پرداختِ «{request.planLabel}» در انتظارِ نتیجه‌ی درگاه است
         </p>
         <p className="mt-0.5 text-[12px]" style={{ color: 'var(--text-tertiary)' }}>
-          {request.methodLabel} · ثبت‌شده در {request.createdAt} · مبلغ {request.amountLabel} تومان
+          ثبت‌شده در {request.createdAt} · مبلغ {request.amountLabel} تومان — تا روشن شدنِ نتیجه
+          دوباره پرداخت نکنید؛ اگر مبلغی کسر شده باشد خودکار پیگیری می‌شود.
         </p>
       </div>
     </motion.div>
@@ -474,7 +459,6 @@ function PlanCard({
   disabled,
   checkoutEnabled,
   onBuyOnline,
-  onBuyReceipt,
 }: {
   plan: SubscriptionPlanOption
   delay: number
@@ -482,7 +466,6 @@ function PlanCard({
   disabled: boolean
   checkoutEnabled: boolean
   onBuyOnline: () => void
-  onBuyReceipt: () => void
 }) {
   const highlighted = plan.savingPercent > 0
 
@@ -529,23 +512,6 @@ function PlanCard({
             {busy ? 'در حال انتقال به درگاه…' : 'پرداخت آنلاین'}
           </button>
         )}
-
-        <button
-          onClick={onBuyReceipt}
-          disabled={disabled}
-          className={
-            'flex items-center justify-center gap-1.5 rounded-xl py-3 text-[13px] font-bold transition-transform hover:scale-[1.02] disabled:opacity-60 ' +
-            (checkoutEnabled ? 'border' : 'text-white')
-          }
-          style={
-            checkoutEnabled
-              ? { borderColor: 'var(--border-default)', color: 'var(--text-primary)' }
-              : { backgroundColor: 'var(--color-brand-500)' }
-          }
-        >
-          <Receipt size={15} />
-          واریز و آپلود رسید
-        </button>
       </div>
     </Card>
   )

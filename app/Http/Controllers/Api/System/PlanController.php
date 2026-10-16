@@ -12,6 +12,7 @@ use App\Models\Complex;
 use App\Models\Plan;
 use App\Models\Subscription;
 use App\Services\Subscription\PlanGate;
+use App\Support\Audit;
 use App\Support\Jalali;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Auth;
@@ -107,6 +108,16 @@ class PlanController extends Controller
             'reviewed_at' => now(),
             'review_note' => 'فعال‌سازی دستی توسط ادمین کل',
         ]);
+
+        /*
+         * «اهدای پلن» ابزارِ جدای سکوست، نه خرید یا تمدید (۱۲/۲): مبلغِ صفر و روشِ `manual`، با نامِ ادمین در ممیزی.
+         * هیچ اشتراکِ آنلاینِ `pending` را فعال نمی‌کند — نگهبانِ `Subscription` فقط ساختِ ردیفِ تازه‌ی `manual` را
+         * بی پرداخت می‌پذیرد.
+         */
+        Audit::log('subscription.granted', 'اهدای پلن توسطِ ادمینِ کل', $subscription, [
+            'plan_id' => $plan->id,
+            'months' => $months,
+        ], $complex->id);
 
         return response()->json([
             'message' => 'پلن «'.$plan->name.'» برای مجتمع «'.$complex->name.'» تا '

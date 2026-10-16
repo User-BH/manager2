@@ -60,8 +60,15 @@ class MaintainSubscriptions extends Command
             ->pluck('subject_id')
             ->unique();
 
+        /*
+         * 🔴 مرحلهٔ ۱۲ · فاز ۲: فقط ردیفی که **هرگز به درگاه نرسید** (`ref_id` ندارد) قطعاً بی‌پول است. ردیفی که مرجعِ
+         * درگاه گرفته شاید پرداخت شده باشد و بازگشتش فقط نرسیده (مرورگر بسته شد) — «ناموفق» کردنش بی پرسیدن از درگاه
+         * پولِ کاربر را گم می‌کرد. تکلیفِ آن‌ها را `payments:reconcile` از خودِ درگاه می‌پرسد و `payments:stale` به
+         * آدم نشان می‌دهد.
+         */
         $abandoned = Subscription::where('status', 'pending')
             ->where('method', 'online')
+            ->whereNull('ref_id')
             ->where('created_at', '<', now()->subHours(self::ABANDONED_AFTER_HOURS))
             ->whereNotIn('id', $indeterminate)
             ->update([

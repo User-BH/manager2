@@ -135,16 +135,17 @@ class ComplexTypeTest extends TestCase
      * مجتمعِ تجاری می‌تواند slugِ ارزانِ مسکونی را مستقیم بفرستد، بی‌آنکه
      * هرگز آن پکیج را در صفحه‌اش دیده باشد.
      */
-    public function test_a_commercial_complex_cannot_buy_a_residential_tariff_by_receipt(): void
+    public function test_a_commercial_complex_cannot_buy_a_residential_tariff_by_the_retired_receipt_route(): void
     {
         $this->plan('res', ComplexType::Residential, 100000);
 
+        // ۱۲/۲: رسید بازنشسته است — هیچ پکیجی از این راه، نه نوعِ دیگر و نه نوعِ خودش
         $this->actingAs($this->admin(ComplexType::Commercial))
             ->postJson('/api/v1/subscription/receipt', [
                 'plan' => 'res',
                 'receipt' => UploadedFile::fake()->image('r.jpg'),
             ])
-            ->assertStatus(422);
+            ->assertStatus(410);
 
         $this->assertSame(0, Subscription::count(), 'اشتراکی با تعرفه‌ی نوعِ دیگر ساخته شد.');
     }
@@ -172,15 +173,14 @@ class ComplexTypeTest extends TestCase
     public function test_the_matching_tariff_is_still_purchasable(): void
     {
         $this->plan('com', ComplexType::Commercial, 300000);
+        config(['subscription.gateway' => 'sandbox']);
 
         $this->actingAs($this->admin(ComplexType::Commercial))
-            ->postJson('/api/v1/subscription/receipt', [
-                'plan' => 'com',
-                'receipt' => UploadedFile::fake()->image('r.jpg'),
-            ])
-            ->assertCreated();
+            ->post('/subscription/checkout', ['plan' => 'com'])
+            ->assertRedirect();
 
-        $this->assertSame(300000, (int) Subscription::first()->amount);
+        $subscription = Subscription::firstOrFail();
+        $this->assertSame([300000, 'online', 'pending'], [(int) $subscription->amount, $subscription->method, $subscription->status]);
     }
 
     /**
@@ -194,15 +194,13 @@ class ComplexTypeTest extends TestCase
     public function test_an_untyped_plan_stays_purchasable_by_everyone(ComplexType $type): void
     {
         $this->plan('both', null, 200000);
+        config(['subscription.gateway' => 'sandbox']);
 
         $this->actingAs($this->admin($type))
-            ->postJson('/api/v1/subscription/receipt', [
-                'plan' => 'both',
-                'receipt' => UploadedFile::fake()->image('r.jpg'),
-            ])
-            ->assertCreated();
+            ->post('/subscription/checkout', ['plan' => 'both'])
+            ->assertRedirect();
 
-        $this->assertSame(1, Subscription::count());
+        $this->assertSame(1, Subscription::where('method', 'online')->where('amount', 200000)->count());
     }
 
     /** @return array<string, array{ComplexType}> */

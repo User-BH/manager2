@@ -28,13 +28,6 @@ export interface SubscriptionRow {
   createdAt: string
 }
 
-export interface BankInfo {
-  holder: string
-  bank_name: string
-  card: string
-  iban: string
-}
-
 export interface SubscriptionResponse {
   complexName: string | null
   currentPlan: string
@@ -47,6 +40,5 @@ export interface SubscriptionResponse {
   checkoutEnabled: boolean
   checkoutAction: string
   supportPhone: string
-  bankInfo: BankInfo
   history: SubscriptionRow[]
 }

@@ -3,18 +3,17 @@
 namespace App\Http\Controllers;
 
 use App\Enums\ComplexType;
-use App\Enums\SubscriptionPlan;
 use App\Exceptions\DomainException;
 use App\Http\Middleware\SecurityHeaders;
 use App\Http\Requests\StartCheckoutRequest;
 use App\Models\AuditLog;
 use App\Models\CheckoutIntent;
-use App\Models\Plan;
 use App\Models\Subscription;
 use App\Services\Payment\GatewayUnreachable;
 use App\Services\Payment\TrackingCodes;
 use App\Services\Subscription\ComplexPurchase;
 use App\Services\Subscription\SubscriptionGatewayManager;
+use App\Services\Subscription\SubscriptionRenewal;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
@@ -30,6 +29,7 @@ class SubscriptionCheckoutController extends Controller
     public function __construct(
         protected SubscriptionGatewayManager $gateways,
         protected ComplexPurchase $purchase,
+        protected SubscriptionRenewal $renewal,
     ) {}
 
     public function start(StartCheckoutRequest $request)
@@ -54,59 +54,22 @@ class SubscriptionCheckoutController extends Controller
 
         $complex = $this->requireComplex();
 
-        // پکیجِ دیتابیسیِ فعال مقدم است، وگرنه enumِ قابلِ‌خریدِ قدیمی. مبلغ و
-        // مدت سمت سرور تعیین می‌شود، نه از درخواست.
-        $slug = $request->string('plan')->value();
-
-        /*
-         * 🔴 `forComplexType` — همان محافظی که در مسیرِ رسیدی هم هست (R67).
-         *
-         * تعرفه‌ی پکیج‌های تجاری و مسکونی متفاوت است. بدونِ این فیلتر،
-         * فرستادنِ slugِ پکیجِ نوعِ دیگر مستقیم به این مسیر، تعرفه‌ی آن را
-         * می‌گرفت — و چون مبلغ سمت سرور از همین ردیف خوانده می‌شود، هیچ
-         * لایه‌ی دیگری جلویش را نمی‌گرفت.
-         */
-        $dbPlan = Plan::where('slug', $slug)
-            ->where('is_active', true)
-            ->forComplexType($complex->type)
-            ->first();
-
-        if ($dbPlan) {
-            $shadow = SubscriptionPlan::Pro->value;
-            $planId = $dbPlan->id;
-            $amount = $dbPlan->price;
-            $months = $dbPlan->months;
-        } else {
-            $legacy = SubscriptionPlan::tryFrom($slug);
-
-            // قاعده‌ی کسب‌وکار است، نه نبودِ دسترسی
-            if (! $legacy || ! in_array($legacy, SubscriptionPlan::purchasable(), true)) {
-                throw DomainException::invalid(
-                    'پکیجِ انتخاب‌شده معتبر نیست.',
-                    'subscription.invalid_plan',
-                );
-            }
-            $shadow = $legacy->value;
-            $planId = null;
-            $amount = $legacy->price();
-            $months = $legacy->months();
+        // درگاهِ خاموش پیش از ساختنِ ردیف گفته می‌شود — راهِ دیگری (رسید) دیگر نیست (۱۲/۲)
+        if (! $this->gateways->isEnabled()) {
+            return redirect('/account?checkout=error&message='.urlencode('پرداختِ آنلاینِ اشتراک فعلاً در دسترس نیست.'));
         }
 
-        $subscription = Subscription::create([
-            'complex_id' => $complex->id,
-            'user_id' => $user->id,
-            'plan' => $shadow,
-            'plan_id' => $planId,
-            'status' => 'pending',
-            'method' => 'online',
-            'amount' => $amount,
-            'months' => $months,
-        ]);
+        // مبلغ و مدت سمتِ سرور، از پلن (`SubscriptionRenewal::resolvePlan`)
+        try {
+            $subscription = $this->renewal->begin($complex, $user, $request->string('plan')->value());
+        } catch (DomainException $e) {
+            return redirect('/account?checkout=error&message='.urlencode($e->getMessage()));
+        }
 
         try {
             $redirect = $this->gateways->driver()->request($subscription);
         } catch (\Throwable $e) {
-            $subscription->update(['status' => 'failed']);
+            $this->renewal->fail($subscription, 'درخواستِ درگاه ناموفق بود');
 
             return redirect('/account?checkout=error&message='.urlencode($e->getMessage()));
         }
@@ -167,35 +130,18 @@ class SubscriptionCheckoutController extends Controller
         }
 
         if (! $tracking) {
-            $subscription->update(['status' => 'failed']);
+            $this->renewal->fail($subscription, 'درگاه پرداخت را تأیید نکرد');
 
             return redirect('/account?checkout=failed');
         }
 
         /*
-         * 🔴 یک کدِ رهگیری، یک پرداخت (مرحلهٔ ۵ · فاز ۹) — همان قاعده‌ی
-         * `GatewayController`. بدونِ آن، رهگیریِ یک خریدِ ثبت‌شده اشتراکِ
-         * دیگری را هم فعال می‌کرد.
+         * 🔴 فعال‌سازی فقط در `SubscriptionRenewal::complete`: زیرِ قفلِ کدِ رهگیری و ردیف، فقط `pending` ← `active`،
+         * و «یک کدِ رهگیری، یک پرداخت» (مرحلهٔ ۵ · فاز ۹). همان که بازبینیِ دوره‌ای هم صدا می‌زند (۱۲/۲).
          */
-        $activated = TrackingCodes::exclusively($tracking, function () use ($subscription, $tracking): bool {
-            if (TrackingCodes::claimedElsewhere($tracking, $subscription)) {
-                $subscription->update(['status' => 'failed']);
+        $result = $this->renewal->complete($subscription, $tracking);
 
-                return false;
-            }
-
-            $subscription->update([
-                'status' => 'active',
-                'tracking_code' => $tracking,
-                'paid_at' => now(),
-                'starts_at' => now(),
-                'ends_at' => now()->addMonths($subscription->months),
-            ]);
-
-            return true;
-        });
-
-        if (! $activated) {
+        if ($result->status !== 'active') {
             Log::warning('[subscription] tracking code already used elsewhere', [
                 'subscription' => $subscription->id,
                 'tracking' => $tracking,

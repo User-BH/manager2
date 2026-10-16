@@ -9418,37 +9418,6 @@
                             }
                         }
                     }
-                },
-                "requestBody": {
-                    "required": true,
-                    "content": {
-                        "application/json": {
-                            "schema": {
-                                "type": "object",
-                                "properties": {
-                                    "plan": {
-                                        "type": "string",
-                                        "description": "پلن"
-                                    },
-                                    "paid_on": {
-                                        "type": "string",
-                                        "description": "تاریخ واریز"
-                                    },
-                                    "note": {
-                                        "type": "string"
-                                    },
-                                    "receipt": {
-                                        "type": "string",
-                                        "description": "فایل رسید"
-                                    }
-                                },
-                                "required": [
-                                    "plan",
-                                    "receipt"
-                                ]
-                            }
-                        }
-                    }
                 }
             }
         },
@@ -11103,6 +11072,89 @@
                     }
                 },
                 "description": "فقط برای نقشِ: super_admin"
+            }
+        },
+        "/api/v1/system/checkouts/{intent}/refund": {
+            "post": {
+                "summary": "api.system.checkouts.refund",
+                "tags": [
+                    "system"
+                ],
+                "parameters": [
+                    {
+                        "name": "intent",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "موفق"
+                    },
+                    "422": {
+                        "description": "خطای اعتبارسنجی",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    },
+                    "429": {
+                        "description": "عبور از محدودیتِ نرخ",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "وارد نشده‌اید",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "دسترسی ندارید",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    }
+                },
+                "description": "فقط برای نقشِ: super_admin",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "reference": {
+                                        "type": "string",
+                                        "description": "مرجعِ بازپرداخت"
+                                    }
+                                },
+                                "required": [
+                                    "reference"
+                                ]
+                            }
+                        }
+                    }
+                }
             }
         },
         "/api/v1/system/complexes": {
@@ -13706,23 +13758,7 @@
                         }
                     }
                 },
-                "description": "فقط برای نقشِ: super_admin",
-                "requestBody": {
-                    "required": false,
-                    "content": {
-                        "application/json": {
-                            "schema": {
-                                "type": "object",
-                                "properties": {
-                                    "note": {
-                                        "type": "string",
-                                        "description": "دلیل رد"
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
+                "description": "فقط برای نقشِ: super_admin"
             }
         },
         "/api/v1/units": {

@@ -380,8 +380,9 @@ class InitialAccountTest extends TestCase
                     'complex_type' => 'residential',
                     'receipt' => UploadedFile::fake()->image('r.jpg', 30, 30),
                 ])
-                ->assertForbidden()
-                ->assertJsonPath('message', 'ساختنِ مجتمع فقط با پرداختِ آنلاین است؛ رسید برای اشتراکِ مجتمعی است که از قبل دارید.');
+                // ۱۲/۲: رسید برای هیچ‌کس نیست — نه ساختنِ مجتمع، نه تمدید
+                ->assertStatus(410)
+                ->assertJsonPath('code', 'subscription.online_only');
         }
 
         $fresh = $this->fresh->fresh();

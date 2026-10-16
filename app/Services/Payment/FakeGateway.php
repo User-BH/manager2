@@ -9,7 +9,7 @@ use Illuminate\Support\Str;
  * bank round-trip so the whole online-payment flow is exercisable end to end
  * without external network. Swap for Mellat/Saman drivers in production.
  */
-class FakeGateway implements PaymentGateway
+class FakeGateway implements PaymentGateway, Reverifiable
 {
     public function request(GatewayOrder $order): array
     {
@@ -20,6 +20,15 @@ class FakeGateway implements PaymentGateway
             'redirect_url' => $order->gatewayCallbackUrl().'?ref='.$refId,
             'ref_id' => $refId,
         ];
+    }
+
+    /**
+     * سندباکس پولی نگه نمی‌دارد: پرداختی که بازگشتش نرسید هرگز انجام نشده است (مرحلهٔ ۱۲ · فاز ۲). کدِ رهگیری
+     * ساخته نمی‌شود — بازبینی پرداختی جعل نمی‌کند.
+     */
+    public function reverify(GatewayOrder $order): ?string
+    {
+        return null;
     }
 
     public function verify(GatewayOrder $order, array $callback): ?string

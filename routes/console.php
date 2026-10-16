@@ -35,6 +35,13 @@ Schedule::command('subscriptions:maintain')->dailyAt('02:00');
 */
 Schedule::command('payments:stale')->dailyAt('08:30');
 
+/*
+| بازبینیِ دوره‌ایِ خرید و تمدیدِ اشتراک (مرحلهٔ ۱۲ · فاز ۲): پرداختی که بازگشتش نرسید از خودِ درگاه دوباره
+| پرسیده می‌شود و از همان مسیرِ قفل‌دار کامل یا ناموفق می‌شود — کاربر دوباره نمی‌پردازد. هر ده دقیقه، تا
+| «نامعلوم» حداکثر حدودِ نیم ساعت بماند؛ `payments:stale` ِ روزانه بقیه را به آدم نشان می‌دهد.
+*/
+Schedule::command('payments:reconcile')->everyTenMinutes()->withoutOverlapping();
+
 // فایل‌های رسیدی که رکوردشان حذف شده (مثلاً با حذف آبشاریِ واحد) جمع می‌شوند
 Schedule::command('receipts:prune')->weeklyOn(5, '03:00');
 
