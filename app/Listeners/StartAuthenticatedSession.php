@@ -6,6 +6,7 @@ use App\Http\Middleware\EnforceSessionLifetime;
 use App\Models\LoginEvent;
 use App\Models\User;
 use App\Services\Auth\LoginRecorder;
+use App\Support\SessionContext;
 use Illuminate\Auth\Events\Login;
 
 /**
@@ -32,6 +33,13 @@ class StartAuthenticatedSession
         }
 
         if ($event->user instanceof User) {
+            /*
+             * مرورگری که همین حالا وارد شد به پیش‌فرضِ حساب سنجاق می‌شود (مرحلهٔ ۱۲ · فاز ۱). این‌جا و نه در اولین
+             * درخواستِ دلخواه: درخواستِ ورود تنهاست و پاسخش پیش از هر درخواستِ دیگری می‌رسد؛ سنجاق از درخواست‌های
+             * هم‌زمان (CI ِ `69a7d21`) پاسخِ دیرِ یکی را روی تعویضِ بعدی می‌نشاند.
+             */
+            SessionContext::pin($event->user, $event->user->isSuperAdmin() ? null : $event->user->complex_id);
+
             $this->recorder->success(
                 $event->user,
                 $request,
