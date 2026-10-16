@@ -1300,6 +1300,28 @@ class PhaseRegressionMapTest extends TestCase
             '«چند نکته» ۳: بارِ حضور از ثابت‌های کد و همان عدد در گزارش' => [
                 'DocumentedNumbersTest', 'test_the_presence_load_arithmetic_holds', '۱۰',
             ],
+            // مرحلهٔ ۱۲ · فاز ۱ — زمینه مالِ نشست، نقش مالِ عضویت (docs/STAGE12_ROADMAP.md)
+            '🔴 ۱۲/۱: تعویض روی یک دستگاه دستگاهِ دیگر را جابه‌جا نمی‌کند' => [
+                'SessionContextTest', 'test_switching_on_one_device_leaves_the_other_device_where_it_was', '۱۲',
+            ],
+            '🔴 ۱۲/۱: نقش از عضویتِ مجتمعِ نشست است، نه از حساب' => [
+                'SessionContextTest', 'test_the_role_comes_from_the_membership_of_the_sessions_community', '۱۲',
+            ],
+            '۱۲/۱: نشستِ عضویتِ پایان‌یافته به پیش‌فرض برمی‌گردد' => [
+                'SessionContextTest', 'test_a_session_whose_membership_ended_falls_back_to_the_default', '۱۲',
+            ],
+            '🔴 ۱۲/۱: سنجاق یا شناسه‌ی مجتمعِ دست‌کاری‌شده اختیاری نمی‌سازد' => [
+                'SessionContextTest', 'test_a_forged_pin_or_community_parameter_grants_nothing', '۱۲',
+            ],
+            '🔴 ۱۲/۱: یک حساب در ده مجتمع با نقش‌های گوناگون' => [
+                'SessionContextTest', 'test_one_account_in_ten_communities_with_different_roles', '۱۲',
+            ],
+            '🔴 ۱۲/۱: حساب و هویت در گذارِ اولیه ← واحد ← مدیر همان می‌مانند' => [
+                'SessionContextTest', 'test_the_same_account_and_profile_survive_both_transitions', '۱۲',
+            ],
+            '۱۲/۱: داشبورد را سرور اعلام می‌کند' => [
+                'SessionContextTest', 'test_the_server_declares_the_dashboard', '۱۲',
+            ],
         ];
     }
 
@@ -1343,7 +1365,7 @@ class PhaseRegressionMapTest extends TestCase
         usort($phases, fn (string $a, string $b) => $latin($a) <=> $latin($b));
 
         $this->assertSame(
-            ['۰', '۱', '۲', '۳', '۴', '۵', '۶', '۷', '۸', '۹', '۱۰'],
+            ['۰', '۱', '۲', '۳', '۴', '۵', '۶', '۷', '۸', '۹', '۱۰', '۱۲'],
             $phases,
             '⚠️ فازی از نقشهٔ رگرسیون افتاده است.',
         );
@@ -1459,6 +1481,8 @@ class PhaseRegressionMapTest extends TestCase
             'overlayLayers' => ['چند نکته ۵', 'هیچ عنصرِ جای‌گرفته‌ای در صفحه‌های داشبورد به لایه‌ی سربرگ نمی‌رسد'],
             'messengerPersian' => ['چند نکته ۴', 'هیچ متنِ قابلِ دیدنی واژه‌ی لاتین ندارد'],
             'messengerPresence' => ['چند نکته ۳', 'سرِ «آنلاین تا» بی درخواستِ تازه خاموش می‌شود'],
+            // مرحلهٔ ۱۲ · فاز ۱: سربرگِ زمینه‌ی نشست و ورودِ کامل به زمینه‌ی تازه
+            'sessionContext' => ['۱۲/۱', 'سربرگ از پاسخِ موفق و پاسخِ خطا هر دو خوانده می‌شود'],
         ];
 
         // 🔴 مثلِ ردیف‌های PHP، این فهرست هم فقط بزرگ می‌شود (خرابکاریِ فاز ۸)
@@ -1489,7 +1513,7 @@ class PhaseRegressionMapTest extends TestCase
     public function test_the_map_never_shrinks(): void
     {
         $this->assertGreaterThanOrEqual(
-            161,
+            168,
             count(self::fixes()),
             'ردیفی از نقشهٔ رگرسیون حذف شده؛ یعنی اصلاحی محافظش را از دست داده.',
         );

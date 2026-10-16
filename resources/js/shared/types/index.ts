@@ -62,6 +62,11 @@ export interface CurrentUser {
    * داشبوردش فقط‌خواندنی است و سرور هم همین را جداگانه اعمال می‌کند.
    */
   accountState: AccountState
+  /**
+   * داشبوردِ همین نشست (مرحلهٔ ۱۲ · فاز ۱) — سرور از حالتِ حساب و نقشِ عضویتِ زمینه‌ی نشست می‌گوید.
+   * اختیاری فقط برای پاسخِ سرورِ پیش از ۱۲/۱.
+   */
+  dashboard?: 'initial' | 'manager' | 'unit' | 'platform'
   canWrite: boolean
   pendingInvitations: number
 

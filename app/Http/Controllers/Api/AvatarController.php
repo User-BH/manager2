@@ -8,6 +8,7 @@ use App\Http\Resources\ProfileResource;
 use App\Models\User;
 use App\Services\Account\ProfilePhoto;
 use App\Support\Audit;
+use App\Support\SessionContext;
 use App\Support\Uploads;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Auth;
@@ -38,7 +39,7 @@ class AvatarController extends Controller
         Audit::log('profile.avatar_removed', 'برداشتنِ تصویرِ پروفایل', $user);
 
         return response()->json([
-            'profile' => (new ProfileResource($user->fresh()))->toArray(request()),
+            'profile' => (new ProfileResource(SessionContext::fresh($user)))->toArray(request()),
             'message' => 'تصویرِ پروفایل برداشته شد.',
         ]);
     }

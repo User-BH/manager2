@@ -18,6 +18,7 @@ use App\Services\Auth\TrustedDeviceService;
 use App\Services\Finance\ResidentDebt;
 use App\Support\Jalali;
 use App\Support\Phone;
+use App\Support\SessionContext;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
@@ -66,7 +67,7 @@ class ProfileController extends Controller
         $user->update($data);
 
         return response()->json([
-            'profile' => $this->present($user->fresh()),
+            'profile' => $this->present(SessionContext::fresh($user)),
             'message' => 'اطلاعات پروفایل ذخیره شد.',
         ]);
     }

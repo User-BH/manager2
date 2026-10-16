@@ -5,6 +5,9 @@ import { QueryClientProvider } from '@tanstack/react-query'
 import { MotionConfig } from 'framer-motion'
 
 import { onMaintenance, onReauthRequired, onSessionEnded } from '@/shared/lib/api'
+import { http } from '@/shared/lib/http'
+import { watchServerContext } from '@/shared/lib/serverContext'
+import { contextMismatch, enterNewContext } from '@/shared/lib/accountContext'
 import { listenForAuthChanges } from '@/shared/lib/authChannel'
 import { leaveToAuth } from '@/shared/lib/leaveToAuth'
 import { initObservability, reportError } from '@/shared/lib/observability'
@@ -57,6 +60,10 @@ onMaintenance(() => window.location.reload())
  *   تبِ دیگر، این تب را از نو بار می‌کند تا داده‌ی نفرِ قبلی نماند.
  */
 onSessionEnded((reason) => void useAuthStore.getState().expire(reason))
+// زمینه‌ی نشست را سرور جابه‌جا کرد (پایان یا تعلیقِ عضویت، تأییدِ درخواست): ورودِ کامل، نه دادهٔ قاطی (۱۲/۱)
+watchServerContext(http, (context) => {
+  if (contextMismatch(context, useAuthStore.getState().user)) void enterNewContext()
+})
 onReauthRequired(requestReauth)
 listenForAuthChanges((message) => {
   if (message.type === 'logout') {

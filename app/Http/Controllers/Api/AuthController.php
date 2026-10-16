@@ -605,6 +605,16 @@ class AuthController extends Controller
              * ناهماهنگ شود.
              */
             'accountState' => AccountState::of($user)->value,
+            /*
+             * کدام داشبورد (مرحلهٔ ۱۲ · فاز ۱؛ بندِ ۳۴): سرور می‌گوید، از حالتِ حساب و نقشِ عضویتِ **زمینه‌ی همین
+             * نشست** — نه پرچمی روی رابط. «چند عضویت» همان `memberships` است.
+             */
+            'dashboard' => match (true) {
+                AccountState::of($user) === AccountState::Platform => 'platform',
+                AccountState::of($user) === AccountState::Initial => 'initial',
+                $user->role === UserRole::ComplexAdmin => 'manager',
+                default => 'unit',
+            },
             'canWrite' => AccountState::of($user)->canWrite(),
             // از ۱۰/۴ عضو هم دعوت می‌گیرد؛ ادمینِ کل نه
             'pendingInvitations' => $user->isSuperAdmin()

@@ -221,7 +221,12 @@ export const DASHBOARD_ROUTES: Record<Dashboard, DashboardRoute[]> = {
 }
 
 /** داشبوردِ هر نقش — نقشِ زمینه‌ی فعال، نه نقشِ ذخیره در حساب (۱۰/۳). */
-export function dashboardFor(role: UserRole | undefined): Dashboard {
+export function dashboardFor(
+  role: UserRole | undefined,
+  declared?: 'initial' | Dashboard,
+): Dashboard {
+  // ۱۲/۱: داشبورد را سرور اعلام می‌کند؛ نقش فقط برای پاسخِ سرورِ قدیمی‌تر
+  if (declared && declared !== 'initial') return declared
   if (role === 'super_admin') return 'platform'
   if (role === 'complex_admin') return 'manager'
   return 'unit'

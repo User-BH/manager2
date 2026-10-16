@@ -18,7 +18,12 @@ import { clearApiCache } from '@/shared/pwa/registerServiceWorker'
  * ناوبریِ کامل عمدی است، نه تنبلی: پاک‌کردنِ دستیِ تک‌تکِ stateها یعنی فهرستی که با هر
  * قابلیتِ تازه کهنه می‌شود. همان الگوی خروج از حساب (`leaveToAuth`).
  */
+let entering = false
+
 export async function enterNewContext(path = '/dashboard'): Promise<void> {
+  // یک بار: چند پاسخِ هم‌زمان با زمینه‌ی تازه چند ناوبری نمی‌سازند
+  if (entering) return
+  entering = true
   await clearApiCache()
   announceAuth({ type: 'context' })
   window.location.replace(path)
@@ -31,4 +36,16 @@ export async function enterNewContext(path = '/dashboard'): Promise<void> {
 export async function switchContext(complexId: number, path = '/dashboard'): Promise<void> {
   await api('/account/context', { method: 'POST', body: { complex_id: complexId } })
   await enterNewContext(path)
+}
+
+/**
+ * زمینه‌ای که سرور اعلام کرد با آن‌چه رابط نشان می‌دهد نمی‌خواند (مرحلهٔ ۱۲ · فاز ۱) — ورودِ کامل به زمینه‌ی
+ * تازه، همان راهِ تعویضِ مجتمع. ادمینِ کل و مهمان زمینه‌ی عضویتی ندارند.
+ */
+export function contextMismatch(
+  declared: string,
+  user: { isSuperAdmin: boolean; role: string; complex: { id: number } | null } | null,
+): boolean {
+  if (!user || user.isSuperAdmin) return false
+  return declared !== `${user.complex?.id ?? 0}:${user.role}`
 }

@@ -60,6 +60,12 @@ class E2eSeeder extends Seeder
      */
     public const MULTI = ['09120000061', '09120000062', '09120000063'];
 
+    /**
+     * دو دستگاهِ یک حساب (مرحلهٔ ۱۲ · فاز ۱) — مثلِ `MULTI`، ولی جدا: سفرِ `context-switch` پیش‌فرضِ همان حساب‌ها را
+     * جابه‌جا می‌کند و آزمونِ «تعویض روی یک دستگاه دیگری را جابه‌جا نمی‌کند» با آن قاطی می‌شد.
+     */
+    public const TWO_DEVICES = ['09120000065', '09120000066', '09120000067'];
+
     /** مجتمعِ دومِ آزمون — فقط برای حساب‌های چندمجتمعی */
     public const SECOND_COMPLEX = 'مجتمع دوم سرتاسری';
 
@@ -168,6 +174,25 @@ class E2eSeeder extends Seeder
             $user->fill([
                 'complex_id' => null,
                 'first_name' => 'چندمجتمعی',
+                'last_name' => 'سرتاسری '.($i + 1),
+                'password' => Hash::make('password'),
+                'role' => UserRole::Owner,
+                'is_active' => true,
+                'terms_accepted_at' => now(),
+            ])->save();
+
+            $ledger->start($user, $second, UserRole::ComplexAdmin, ComplexMembership::SOURCE_DIRECT);
+            $ledger->start($user, $aftab, UserRole::Tenant, ComplexMembership::SOURCE_DIRECT);
+        }
+
+        foreach (self::TWO_DEVICES as $i => $phone) {
+            $user = User::withoutGlobalScopes()->firstOrNew(['phone' => $phone]);
+            while ($user->exists && $user->complex_id !== null) {
+                $ledger->end($user, ComplexMembership::END_REMOVED);
+            }
+            $user->fill([
+                'complex_id' => null,
+                'first_name' => 'دودستگاهی',
                 'last_name' => 'سرتاسری '.($i + 1),
                 'password' => Hash::make('password'),
                 'role' => UserRole::Owner,

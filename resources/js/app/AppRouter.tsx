@@ -65,7 +65,7 @@ export function AppRouter() {
    * وصل نیست اصلاً مسیرهای داشبوردها را ندارد، و هر داشبورد فقط مسیرهای خودش را. حالت و نقش از سرور می‌آیند
    * (`accountState`، و نقشِ زمینه‌ی فعال) و قفلِ نوشتن هم همان‌جاست.
    */
-  if (user?.accountState === 'initial') {
+  if (user?.dashboard === 'initial' || user?.accountState === 'initial') {
     return (
       <Suspense fallback={<RouteFallback />}>
         <ScrollToTop />
@@ -79,7 +79,7 @@ export function AppRouter() {
     <Suspense fallback={<RouteFallback />}>
       <ScrollToTop />
       <TrackPageViews />
-      <DashboardRouter dashboard={dashboardFor(user?.role)} />
+      <DashboardRouter dashboard={dashboardFor(user?.role, user?.dashboard)} />
     </Suspense>
   )
 }
