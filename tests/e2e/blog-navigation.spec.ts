@@ -189,7 +189,17 @@ test.describe('بلاگ: صفحه‌بندی، جست‌وجو و مقاله ب�
     await expect(page.getByRole('alert')).toContainText('دریافتِ مقالات با مشکل مواجه شد')
 
     await page.unroute('**/api/blog?page=2')
-    await page.getByRole('button', { name: 'تلاش مجدد' }).click()
+    /*
+     * فوکوس روی «تلاش مجدد» می‌رود (`showError`) و همان‌جا با Enter زده می‌شود — مسیرِ کاربرِ صفحه‌کلید.
+     *
+     * ⚠️ چرا نه `click()`: CI ِ `6324100` (WebKit): فرمانِ «اسکرول به دید» ِ درایور برای همین دکمه ۲۴ ثانیه برنگشت
+     * تا مهلتِ آزمون. ردِ Playwright: صفحه کامل رندر شده و ساکن بود (آخرین فریم خطا و دکمه را نشان می‌دهد) و هیچ
+     * کدی در صفحه کار نمی‌کرد؛ گیر در خودِ فرمانِ درایور بود، نه در برنامه. محلی ۲۰ از ۲۰ موفق. Enter همان رفتار را
+     * می‌سنجد و فوکوس را هم.
+     */
+    const retry = page.getByRole('button', { name: 'تلاش مجدد' })
+    await expect(retry).toBeFocused()
+    await page.keyboard.press('Enter')
     await expect(cards(page)).toHaveCount(second)
     expect(await sameDocument(page)).toBe(true)
   })
