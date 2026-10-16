@@ -178,6 +178,9 @@ export const useSearchStore = create<SearchState>((set, get) => {
 useAuthStore.subscribe((state, previous) => {
   if (recentKey(state.user) === recentKey(previous.user)) return
 
+  // عبارتی که هنوز در debounce است مالِ حسابِ قبلی است؛ نباید با نشستِ تازه برود
+  if (debounceTimer) clearTimeout(debounceTimer)
+  debounceTimer = null
   controller?.abort()
   useSearchStore.setState({
     recent: readRecent(),

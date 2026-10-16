@@ -92,8 +92,12 @@ function group(id: string, items: number, extra: Partial<SearchGroup> = {}): Sea
 }
 
 beforeEach(() => {
-  // زمان‌سنجِ debounce ِ آزمونِ قبلی را با عبارتِ کوتاه (بی درخواست) جایگزین می‌کند
-  useSearchStore.getState().setQuery('')
+  /*
+   * هر آزمون با خروج و ورودِ تازه آغاز می‌شود؛ همان مسیری که debounce ِ معلقِ آزمونِ قبلی را لغو می‌کند.
+   * ⚠️ پیش‌تر `setQuery('')` بود: زمان‌سنجِ تازه‌ای می‌ساخت که ۴۵۰ میلی‌ثانیه بعد `results` را تهی می‌کرد —
+   * زیرِ بارِ موازی وسطِ آزمونِ نخست، که نتیجه‌اش را خودش در store گذاشته بود.
+   */
+  useAuthStore.setState({ user: null })
   apiMock.mockReset()
   window.localStorage.clear()
   useAuthStore.setState({ user: user(1, 10), isLoading: false })
@@ -158,8 +162,12 @@ describe('جست‌وجوی سراسری: گروهِ بریده‌شده', () =>
     expect(screen.queryByRole('link', { name: 'صفحه‌ی بعد' })).toBeNull()
     expect(screen.getByRole('link', { name: 'صفحه‌ی قبل' })).toBeInTheDocument()
 
-    const urls = apiMock.mock.calls.map((call) => String(call[0]))
-    expect(urls[0]).toContain('group=residents')
+    // عبارتِ نشانی به جعبه‌ی سربرگ هم می‌رود و جست‌وجوی کلیِ آن پس از debounce، پیش یا پس از کلیک، جدا
+    // فرستاده می‌شود؛ ترتیبِ صفحه‌ها در درخواست‌های خودِ گروه سنجیده می‌شود، نه با جایگاه در همه‌ی فراخوانی‌ها
+    const urls = apiMock.mock.calls
+      .map((call) => String(call[0]))
+      .filter((u) => new URL(u, 'http://x').searchParams.get('group') === 'residents')
+    expect(urls).toHaveLength(2)
     expect(urls[0]).toContain('page=1')
     expect(urls[1]).toContain('page=2')
   })
@@ -197,6 +205,23 @@ describe('تاریخچه‌ی جست‌وجو', () => {
 
     expect(useSearchStore.getState().results).toBeNull()
     expect(useSearchStore.getState().query).toBe('')
+  })
+
+  it('عبارتِ نوشته‌شده پیش از خروج پس از خروج فرستاده نمی‌شود', () => {
+    // debounce ِ معلق مالِ حسابِ قبلی است: نه درخواستی با نشستِ تازه، نه نتیجه‌ای در store ِ حسابِ تازه
+    apiMock.mockResolvedValue({ query: 'سارا', total: 1, groups: [] })
+    vi.useFakeTimers()
+    try {
+      useSearchStore.getState().setQuery('سارا')
+      useAuthStore.setState({ user: user(2, 10) })
+      vi.advanceTimersByTime(1000)
+    } finally {
+      vi.useRealTimers()
+    }
+
+    expect(apiMock).not.toHaveBeenCalled()
+    expect(useSearchStore.getState().isSearching).toBe(false)
+    expect(useSearchStore.getState().debouncedQuery).toBe('')
   })
 })
 
