@@ -154,7 +154,16 @@ class SetCurrentComplex
         app(TenantContext::class)->set($complex->id);
 
         $response = $next($request);
-        $response->headers->set(self::CONTEXT_HEADER, $complex->id.':'.$role->value);
+
+        /*
+         * 🔴 CI ِ `0a427cb` (Chromium، `context-switch`؛ ردِ Playwright): پاسخِ مسیرهای عمومی (`pwa.public_api`)
+         * `Cache-Control: public` می‌گیرد و `sw.js` نگهش می‌دارد. سربرگِ زمینه همراهِ نسخه‌ی کش‌شده می‌ماند؛ پس از
+         * تعویض، `features` ِ کش‌شده هنوز زمینه‌ی قبلی را اعلام می‌کرد و رابط دوباره به زمینه‌ی کهنه بار می‌شد.
+         * پاسخِ همگانی مالِ هیچ زمینه‌ای نیست، پس سربرگ هم نمی‌گیرد.
+         */
+        if (! ApiCacheHeaders::isPublic($request)) {
+            $response->headers->set(self::CONTEXT_HEADER, $complex->id.':'.$role->value);
+        }
 
         return $response;
     }

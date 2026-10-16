@@ -93,7 +93,7 @@ class ApiCacheHeaders
      * هر دو پیشوند سنجیده می‌شوند چون نامِ مستعارِ بدونِ نسخه هنوز زنده است
      * و فراموش‌کردنش یعنی نیمی از مسیرها هدرِ اشتباه بگیرند.
      */
-    private static function isPublic(Request $request): bool
+    public static function isPublic(Request $request): bool
     {
         foreach ((array) config('pwa.public_api', []) as $path) {
             if ($request->is('api/'.$path, 'api/v1/'.$path)) {

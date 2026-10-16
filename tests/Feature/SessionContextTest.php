@@ -257,7 +257,6 @@ class SessionContextTest extends TestCase
         return is_string($value) && preg_match('/^(\d+):(\d+)$/', $value, $m) === 1 ? ['user' => (int) $m[1], 'complex' => (int) $m[2]] : null;
     }
 
-    /** 🔴 درخواستی که سنجاق را عوض نمی‌کند کوکیِ سنجاق نمی‌فرستد — پاسخِ دیرِ درخواستِ قدیمی سنجاقِ تازه را نمی‌پوشاند. */
     /**
      * 🔴 هیچ درخواستِ عادی‌ای کوکیِ سنجاق نمی‌فرستد — نه با سنجاق، نه بی سنجاق، نه با سنجاقِ نامعتبر. CI ِ `69a7d21`:
      * `Set-Cookie` ِ پاسخِ دیرِ درخواستی که پیش از تعویض شروع شده بود سنجاقِ تعویض را می‌پوشاند.
@@ -287,5 +286,25 @@ class SessionContextTest extends TestCase
         $login = $this->postJson('/api/v1/login', ['phone' => $this->sara->phone, 'password' => 'password'])->assertOk();
 
         $this->assertSame(['user' => $this->sara->id, 'complex' => $this->a->id], $this->pinOf($login));
+    }
+
+    /**
+     * 🔴 پاسخِ همگانی (`pwa.public_api`) سربرگِ زمینه نمی‌گیرد. CI ِ `0a427cb` (ردِ Playwright): `sw.js` این پاسخ‌ها را
+     * کش می‌کند و `features` ِ کش‌شده پس از تعویض هنوز زمینه‌ی قبلی را اعلام می‌کرد؛ رابط دوباره به زمینه‌ی کهنه بار می‌شد.
+     */
+    public function test_public_cacheable_responses_never_carry_the_context(): void
+    {
+        $pinned = ['user' => $this->sara->id, 'complex' => $this->a->id];
+
+        foreach ((array) config('pwa.public_api') as $path) {
+            foreach (['/api/v1/', '/api/'] as $prefix) {
+                $response = $this->device($this->sara, $pinned)->getJson($prefix.$path)->assertOk();
+                $this->assertStringContainsString('public', (string) $response->headers->get('Cache-Control'), $prefix.$path);
+                $response->assertHeaderMissing(SetCurrentComplex::CONTEXT_HEADER);
+            }
+        }
+
+        // پاسخِ شخصیِ همان مرورگر همچنان زمینه را می‌گوید
+        $this->device($this->sara, $pinned)->getJson('/api/v1/me')->assertHeader(SetCurrentComplex::CONTEXT_HEADER, $this->a->id.':complex_admin');
     }
 }

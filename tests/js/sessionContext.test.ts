@@ -57,4 +57,27 @@ describe('زمینه‌ی نشست', () => {
     // پاسخِ بی سربرگ (مهمان، ادمینِ کل) چیزی نمی‌گوید
     expect(seen.mock.calls).toEqual([['7:owner'], ['9:tenant']])
   })
+
+  it('پاسخِ همگانیِ کش‌پذیر زمینه نمی‌گوید، حتی اگر نسخه‌ی کهنه‌ی کش سربرگ داشته باشد', async () => {
+    const seen = vi.fn()
+    const http = axios.create()
+    watchServerContext(http, seen)
+
+    const cached =
+      (cacheControl: string): AxiosAdapter =>
+      (config) =>
+        Promise.resolve({
+          data: {},
+          status: 200,
+          statusText: '',
+          headers: { 'x-sakena-context': '1:tenant', 'cache-control': cacheControl },
+          config,
+        })
+
+    // CI ِ `0a427cb`: `features` ِ کش‌شده در `sw.js` پس از تعویض هنوز «1:tenant» می‌گفت
+    await http.get('/api/v1/features', { adapter: cached('public, max-age=300') })
+    await http.get('/api/v1/me', { adapter: cached('no-store, private') })
+
+    expect(seen.mock.calls).toEqual([['1:tenant']])
+  })
 })

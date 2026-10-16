@@ -15,7 +15,12 @@ export function watchServerContext(
   onContext: (context: string) => void,
 ): void {
   const read = (headers: unknown) => {
-    const context = (headers as Record<string, unknown> | undefined)?.['x-sakena-context']
+    const record = headers as Record<string, unknown> | undefined
+    // 🔴 پاسخِ همگانی را `sw.js` کش می‌کند و سربرگش کهنه است (CI ِ `0a427cb`). سرور دیگر رویش زمینه نمی‌گذارد،
+    // ولی نسخه‌ای که پیش از این اصلاح در کشِ مرورگری نشسته هنوز دارد.
+    const cache = record?.['cache-control']
+    if (typeof cache === 'string' && /(^|[\s,])public(\s|,|$)/i.test(cache)) return
+    const context = record?.['x-sakena-context']
     if (typeof context === 'string' && context !== '') onContext(context)
   }
 
