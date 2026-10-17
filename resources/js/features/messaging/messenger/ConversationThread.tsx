@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
-import { Loader2, Lock, Pin, Search } from 'lucide-react'
+import { ArrowRight, Building2, Loader2, Lock, Pin, Search, Users } from 'lucide-react'
 import { ErrorState, InlineSpinner } from '@/shared/ui/PageState'
 import { api, ApiError } from '@/shared/lib/api'
 import { alertError, confirmAction, promptText, toastSuccess } from '@/shared/lib/alert'
@@ -16,6 +16,8 @@ import { ForwardDialog } from './ForwardDialog'
 import { OnlineCount, OnlineLabel, clockOffset } from './presence'
 import { copyText } from '@/shared/lib/clipboard'
 import { formatNumber } from '@/shared/lib/format'
+import { UserAvatar } from '@/shared/ui/UserAvatar'
+import { firstUnreadId, layoutRows } from './messageLayout'
 import {
   applyReadUpTo,
   markFailed,
@@ -62,7 +64,14 @@ interface ThreadInfo {
  * «دوباره» همان شناسه را می‌فرستد — اگر اولی در واقع رسیده بود، سرور همان را
  * برمی‌گرداند و پیامِ دوم ساخته نمی‌شود.
  */
-export function ConversationThread({ conversationId }: { conversationId: number }) {
+export function ConversationThread({
+  conversationId,
+  onBack,
+}: {
+  conversationId: number
+  /** موبایل (۱۲/۷): برگشت به فهرست از سربرگِ خودِ گفت‌وگو، نه پیوندِ جدا بالای صفحه */
+  onBack?: () => void
+}) {
   const { user } = useAuth()
   const queryClient = useQueryClient()
 
@@ -90,6 +99,8 @@ export function ConversationThread({ conversationId }: { conversationId: number 
     error: null,
   })
   const [notice, setNotice] = useState<string | null>(null)
+  // مرزِ «پیام‌های خوانده‌نشده» — فقط همان لحظه‌ی باز کردن (۱۲/۷)
+  const [firstUnread, setFirstUnread] = useState<number | null>(null)
   const [compose, setCompose] = useState<ComposeTarget>(null)
   // یک منوی باز در هر لحظه، و جعبه‌ی جست‌وجو
   const [ui, setUi] = useState<{ menu: number | null; search: boolean }>({
@@ -152,6 +163,7 @@ export function ConversationThread({ conversationId }: { conversationId: number 
       .then((data) => {
         if (cancelled) return
         apply(data)
+        setFirstUnread(firstUnreadId(data.messages, data.conversation?.unreadCount ?? 0))
         setOlder({ has: data.hasOlder, cursor: data.nextCursor, loading: false })
         setLoad({ loading: false, error: null })
         scrollToBottom(true)
@@ -447,15 +459,45 @@ export function ConversationThread({ conversationId }: { conversationId: number 
   const readOnlyGroup = conversation && !conversation.canPost
 
   return (
-    <div className="flex h-full min-h-0 flex-col gap-3">
-      <header className="flex items-center justify-between gap-2">
-        {/* بندِ ۳۵: کلیک روی نامِ گروه اطلاعاتِ گروه را باز می‌کند */}
+    <div className="flex h-full min-h-0 flex-col">
+      {/*
+       * سربرگِ فشرده (۱۲/۷، بندهای ۴۳ و ۴۵): برگشت (موبایل)، نشانِ گفت‌وگو، نام و حضور، جست‌وجو. کلیک روی نامِ گروه
+       * اطلاعاتِ گروه را باز می‌کند (بندِ ۳۵).
+       */}
+      <header
+        className="chat-head flex items-center gap-2 px-2 py-1.5"
+        style={{ borderColor: 'var(--border-subtle)', backgroundColor: 'var(--surface-base)' }}
+      >
+        {onBack && (
+          <button
+            type="button"
+            onClick={onBack}
+            aria-label="همه‌ی گفت‌وگوها"
+            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl md:hidden"
+            style={{ color: 'var(--text-secondary)' }}
+          >
+            <ArrowRight size={20} />
+          </button>
+        )}
         {conversation?.type === 'channel' || conversation?.type === 'group' ? (
-          <div className="flex min-w-0 flex-col">
+          <span
+            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-white"
+            style={{ backgroundColor: 'var(--color-brand-500)' }}
+            aria-hidden="true"
+          >
+            {conversation.type === 'channel' ? <Building2 size={20} /> : <Users size={20} />}
+          </span>
+        ) : conversation ? (
+          <span className="shrink-0" aria-hidden="true">
+            <UserAvatar name={conversation.title} url={null} size={40} />
+          </span>
+        ) : null}
+        {conversation?.type === 'channel' || conversation?.type === 'group' ? (
+          <div className="flex min-w-0 flex-1 flex-col">
             <button
               type="button"
               onClick={() => setShowInfo(true)}
-              className="text-right text-body font-bold"
+              className="truncate text-right text-body font-bold"
               style={{ color: 'var(--text-primary)' }}
               aria-label={`اطلاعاتِ ${conversation.title}`}
             >
@@ -468,17 +510,17 @@ export function ConversationThread({ conversationId }: { conversationId: number 
             />
           </div>
         ) : (
-          <div className="flex min-w-0 flex-col">
-            <h2 className="text-body font-bold" style={{ color: 'var(--text-primary)' }}>
+          <div className="flex min-w-0 flex-1 flex-col">
+            <h2 className="truncate text-body font-bold" style={{ color: 'var(--text-primary)' }}>
               {conversation?.title}
             </h2>
             <OnlineLabel until={conversation?.peerOnlineUntil} offsetMs={info.clockOffsetMs} />
           </div>
         )}
-        <div className="flex items-center gap-3">
+        <div className="flex shrink-0 items-center gap-1">
           {conversation && ['unit', 'user', 'pair', 'saved'].includes(conversation.type) ? (
             <span
-              className="flex items-center gap-1 text-tiny"
+              className="flex items-center gap-1 px-1 text-tiny"
               style={{ color: 'var(--text-tertiary)' }}
             >
               <Lock size={12} /> خصوصی
@@ -489,9 +531,10 @@ export function ConversationThread({ conversationId }: { conversationId: number 
             onClick={() => setUi((current) => ({ ...current, search: !current.search }))}
             aria-label="جست‌وجو در این گفت‌وگو"
             aria-pressed={ui.search}
-            style={{ color: 'var(--text-tertiary)' }}
+            className="flex h-10 w-10 items-center justify-center rounded-xl"
+            style={{ color: 'var(--text-secondary)' }}
           >
-            <Search size={16} />
+            <Search size={18} />
           </button>
         </div>
       </header>
@@ -530,8 +573,9 @@ export function ConversationThread({ conversationId }: { conversationId: number 
 
       <div
         ref={listRef}
-        className="scrollbar-thin min-h-0 flex-1 overflow-y-auto rounded-2xl border p-4"
-        style={{ borderColor: 'var(--border-subtle)', backgroundColor: 'var(--surface-base)' }}
+        // پس‌زمینه‌ی اختصاصی (۱۲/۷، بندِ ۴۲): `.chat-surface` در `app.css`
+        className="chat-surface chat-list scrollbar-thin min-h-0 flex-1 overflow-y-auto py-3"
+        style={{ borderColor: 'var(--border-subtle)' }}
       >
         {older.has && (
           <div className="mb-3 flex justify-center">
@@ -553,57 +597,110 @@ export function ConversationThread({ conversationId }: { conversationId: number 
             هنوز پیامی رد و بدل نشده است.
           </p>
         ) : (
-          <ul className="flex flex-col gap-3" aria-label="پیام‌ها">
-            {messages.map((message) => (
-              <li
-                key={message.clientId && message.id < 0 ? message.clientId : message.id}
-                data-message-id={message.id > 0 ? message.id : undefined}
-                className={cn(
-                  'chat-row flex',
-                  message.isMine ? 'justify-start' : 'justify-end',
-                  ui.menu === message.id && 'chat-row-active',
-                )}
-              >
-                <MessageBubble
-                  message={message}
-                  isAdmin={info.isAdmin}
-                  isPinned={pins.some((pin) => pin.id === message.id)}
-                  menuOpen={ui.menu === message.id}
-                  onToggleMenu={(open) =>
-                    setUi((current) => ({ ...current, menu: open ? message.id : null }))
-                  }
-                  handlers={handlersFor(message)}
-                />
-              </li>
-            ))}
+          <ul className="flex flex-col" aria-label="پیام‌ها">
+            {(() => {
+              const rows = layoutRows(messages, firstUnread)
+              const showNames = info.conversation?.type !== 'saved'
+
+              return messages.map((message, index) => {
+                const row = rows[index]
+
+                return (
+                  <li
+                    key={message.clientId && message.id < 0 ? message.clientId : message.id}
+                    data-message-id={message.id > 0 ? message.id : undefined}
+                    className={cn(
+                      'chat-row flex flex-col',
+                      row.groupStart ? 'mt-2.5' : 'mt-0.5',
+                      ui.menu === message.id && 'chat-row-active',
+                    )}
+                  >
+                    {row.day && (
+                      <span className="msg-pill mb-2 rounded-full px-3 py-0.5 text-tiny">
+                        {row.day}
+                      </span>
+                    )}
+                    {row.unreadStart && (
+                      <span className="msg-unread mb-2 py-0.5 text-center text-tiny font-semibold">
+                        پیام‌های خوانده‌نشده
+                      </span>
+                    )}
+                    <div
+                      className={cn(
+                        'flex items-end gap-1.5',
+                        message.isMine ? 'justify-start' : 'justify-end',
+                      )}
+                    >
+                      <MessageBubble
+                        message={message}
+                        isAdmin={info.isAdmin}
+                        isPinned={pins.some((pin) => pin.id === message.id)}
+                        menuOpen={ui.menu === message.id}
+                        onToggleMenu={(open) =>
+                          setUi((current) => ({ ...current, menu: open ? message.id : null }))
+                        }
+                        handlers={handlersFor(message)}
+                        showSender={showNames && row.groupStart}
+                        tail={row.groupEnd}
+                      />
+                      {/* آواتارِ دیگران کنارِ آخرینِ دسته؛ بقیه جای خالی تا لبه‌ها هم‌تراز بمانند */}
+                      {!message.isMine && (
+                        <span className="w-7 shrink-0" aria-hidden="true">
+                          {row.groupEnd && (
+                            <UserAvatar
+                              name={message.authorName}
+                              url={message.authorAvatarUrl}
+                              size={28}
+                            />
+                          )}
+                        </span>
+                      )}
+                    </div>
+                  </li>
+                )
+              })
+            })()}
           </ul>
         )}
       </div>
 
       {notice && (
-        <p role="alert" className="text-small" style={{ color: 'var(--color-danger)' }}>
+        <p
+          role="alert"
+          className="chat-side px-3 py-1 text-small"
+          style={{
+            color: 'var(--color-danger)',
+            backgroundColor: 'var(--surface-base)',
+            borderColor: 'var(--border-subtle)',
+          }}
+        >
           {notice}
         </p>
       )}
 
       {info.canSend ? (
-        <Composer
-          // نظرسنجی فقط در گروه (بندِ ۶۱) — دکمه‌اش هم فقط همان‌جا
-          isAdmin={info.isAdmin}
-          uploads={uploads ?? undefined}
-          canPoll={
-            info.isAdmin &&
-            (info.conversation?.type === 'channel' || info.conversation?.type === 'group')
-          }
-          target={compose}
-          onCancelTarget={() => setCompose(null)}
-          onSend={send}
-          onEdit={edit}
-          onNotice={setNotice}
-        />
+        <div
+          className="chat-foot px-2 py-2"
+          style={{ borderColor: 'var(--border-subtle)', backgroundColor: 'var(--surface-base)' }}
+        >
+          <Composer
+            // نظرسنجی فقط در گروه (بندِ ۶۱) — دکمه‌اش هم فقط همان‌جا
+            isAdmin={info.isAdmin}
+            uploads={uploads ?? undefined}
+            canPoll={
+              info.isAdmin &&
+              (info.conversation?.type === 'channel' || info.conversation?.type === 'group')
+            }
+            target={compose}
+            onCancelTarget={() => setCompose(null)}
+            onSend={send}
+            onEdit={edit}
+            onNotice={setNotice}
+          />
+        </div>
       ) : (
         <div
-          className="flex items-center gap-2 rounded-xl px-4 py-3 text-small"
+          className="chat-foot flex items-center gap-2 px-4 py-3 text-small"
           style={{ backgroundColor: 'var(--surface-sunken)', color: 'var(--text-secondary)' }}
         >
           <Lock size={15} />

@@ -172,6 +172,8 @@ describe('کادرِ نوشتن', () => {
   it('پیامِ ویدیویی همان لحظه‌ی رها کردن فرستاده می‌شود', async () => {
     const onSend = vi.fn(() => Promise.resolve())
     render(<Composer {...props} uploads={uploads} onSend={onSend} onNotice={vi.fn()} />)
+    // ۱۲/۷: پیامِ ویدیویی زیرِ «بیشتر» است تا ردیفِ نوشتن یک ردیف بماند
+    fireEvent.click(screen.getByRole('button', { name: /^بیشتر/ }))
     const button = screen.getByRole('button', { name: 'برای ضبطِ پیامِ ویدیویی نگه دارید' })
 
     await press(button)

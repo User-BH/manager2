@@ -165,6 +165,8 @@ describe('فیلدِ فرم', () => {
     const exempt: Record<string, string> = {
       'features/tools/calculator/Display.tsx': 'نمایشگرِ ماشین‌حساب، نه فیلدِ فرم',
       'features/messaging/messenger/ThreadSearch.tsx': 'قاب `.field` دارد (`:focus-within`)',
+      // ۱۲/۷: کادرِ نوشتن در یک ردیف — اموجی، متن و دکمه‌ها درونِ همان قابِ `.field`
+      'features/messaging/messenger/Composer.tsx': 'قاب `.field` دارد (`:focus-within`)',
     }
     const skipTypes = /type="(hidden|checkbox|radio|range|file)"/
 

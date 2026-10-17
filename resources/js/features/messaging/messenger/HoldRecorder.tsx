@@ -46,10 +46,13 @@ export function HoldRecorder({
   mode,
   onRecorded,
   onError,
+  primary = false,
 }: {
   mode: 'voice' | 'video'
   onRecorded: (file: File) => void
   onError: (message: string | null) => void
+  /** دکمه‌ی اصلیِ کادرِ نوشتن (۱۲/۷): گرد و سبز، جای «ارسال» وقتی کادر خالی است */
+  primary?: boolean
 }) {
   const [seconds, setSeconds] = useState<number | null>(null)
   const [cancelArmed, setCancelArmed] = useState(false)
@@ -192,8 +195,16 @@ export function HoldRecorder({
         type="button"
         aria-label={`برای ضبطِ ${label} نگه دارید`}
         aria-pressed={recording}
-        className="flex h-9 w-9 touch-none select-none items-center justify-center rounded-lg"
-        style={{ color: recording ? 'var(--color-danger)' : 'var(--text-tertiary)' }}
+        className={
+          primary
+            ? 'flex h-11 w-11 shrink-0 touch-none select-none items-center justify-center rounded-full text-white'
+            : 'flex h-9 w-9 touch-none select-none items-center justify-center rounded-lg'
+        }
+        style={
+          primary
+            ? { backgroundColor: recording ? 'var(--color-danger)' : 'var(--color-brand-500)' }
+            : { color: recording ? 'var(--color-danger)' : 'var(--text-tertiary)' }
+        }
         onPointerDown={(event) => {
           event.preventDefault()
           originXRef.current = event.clientX
@@ -225,7 +236,7 @@ export function HoldRecorder({
           }
         }}
       >
-        {mode === 'voice' ? <Mic size={16} /> : <CameraIcon />}
+        {mode === 'voice' ? <Mic size={primary ? 20 : 16} /> : <CameraIcon />}
       </button>
     </div>
   )

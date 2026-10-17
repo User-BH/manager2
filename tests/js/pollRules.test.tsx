@@ -148,9 +148,12 @@ describe('سازنده‌ی نظرسنجی', () => {
       onNotice: vi.fn(),
     }
     const { rerender } = render(<Composer isAdmin canPoll={false} {...props} />)
+    // ۱۲/۷: نظرسنجی زیرِ «بیشتر» است؛ بی نظرسنجی (و بی ضبط در jsdom) خودِ «بیشتر» هم نیست
+    expect(screen.queryByRole('button', { name: /^بیشتر/ })).toBeNull()
     expect(screen.queryByRole('button', { name: 'ساخت نظرسنجی' })).toBeNull()
 
     rerender(<Composer isAdmin canPoll {...props} />)
+    fireEvent.click(screen.getByRole('button', { name: /^بیشتر/ }))
     expect(screen.getByRole('button', { name: 'ساخت نظرسنجی' })).toBeInTheDocument()
   })
 })

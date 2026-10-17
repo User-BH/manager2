@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { keepPreviousData, useQuery, useQueryClient } from '@tanstack/react-query'
-import { ArrowRight, Flag, Hash, Lock, MessageSquare, Plus, Users } from 'lucide-react'
+import { Flag, Hash, Lock, MessageSquare, Plus, Users } from 'lucide-react'
 import { ErrorState, InlineSpinner } from '@/shared/ui/PageState'
 import { useDebounce, useDocumentTitle } from '@/shared/hooks'
 import { api } from '@/shared/lib/api'
@@ -13,6 +13,8 @@ import { ReportsPanel } from './ReportsPanel'
 import { messageActions } from './messageActions'
 import type { ConversationSummary, ConversationsResponse, ConversationType } from './types'
 import { OnlineDot, clockOffset } from './presence'
+// ظاهرِ پیام‌رسان (۱۲/۷) فقط همراهِ همین صفحه‌ی تنبل، نه در CSS ِ سراسری
+import './messenger.css'
 
 /** پرسشِ دوره‌ایِ فهرست؛ در جدولِ بارِ `FINAL_PERFORMANCE_REPORT` (`DocumentedNumbersTest`) */
 const LIST_POLL_MS = 15_000
@@ -119,8 +121,22 @@ export function MessengerPage() {
   }
 
   return (
-    <div className="flex h-[calc(100vh-8rem)] flex-col gap-4">
-      <header className="flex items-center justify-between gap-3">
+    /*
+     * موبایل (۱۲/۷، بندِ ۴۵): گفت‌وگوی باز کلِ صفحه را می‌گیرد — سربرگِ صفحه پنهان، لبه‌به‌لبه (بی فاصله‌ی `main`) و
+     * برگشت از سربرگِ خودِ گفت‌وگو. پیش از این سربرگ و دکمه‌های صفحه نیمی از ارتفاع را می‌گرفتند.
+     */
+    <div
+      className={cn(
+        'messenger-page flex flex-col gap-4',
+        selectedId !== null && 'messenger-page-open',
+      )}
+    >
+      <header
+        className={cn(
+          'items-center justify-between gap-3',
+          selectedId !== null ? 'hidden md:flex' : 'flex',
+        )}
+      >
         <div>
           <h1 className="text-xl font-extrabold" style={{ color: 'var(--text-primary)' }}>
             پیام‌رسان
@@ -163,12 +179,15 @@ export function MessengerPage() {
       </header>
 
       {first?.reason && (
-        <p className="text-small" style={{ color: 'var(--text-secondary)' }}>
+        <p
+          className={cn('text-small', selectedId !== null && 'hidden md:block')}
+          style={{ color: 'var(--text-secondary)' }}
+        >
           {first.reason}
         </p>
       )}
 
-      <div className="grid min-h-0 flex-1 grid-cols-1 gap-4 md:grid-cols-[18rem_minmax(0,1fr)]">
+      <div className="messenger-grid grid min-h-0 flex-1 grid-cols-1 md:grid-cols-[18rem_minmax(0,1fr)]">
         <nav
           aria-label="گفت‌وگوها"
           className={cn(
@@ -269,18 +288,12 @@ export function MessengerPage() {
 
         <section className={cn('min-h-0', selectedId === null && 'hidden md:block')}>
           {selectedId !== null ? (
-            <div className="flex h-full min-h-0 flex-col gap-2">
-              <button
-                type="button"
-                onClick={() => void navigate('/messenger')}
-                className="flex items-center gap-1 self-start text-small md:hidden"
-                style={{ color: 'var(--text-secondary)' }}
-              >
-                <ArrowRight size={16} /> همه‌ی گفت‌وگوها
-              </button>
-              <div className="min-h-0 flex-1">
-                <ConversationThread key={selectedId} conversationId={selectedId} />
-              </div>
+            <div className="h-full min-h-0">
+              <ConversationThread
+                key={selectedId}
+                conversationId={selectedId}
+                onBack={() => void navigate('/messenger')}
+              />
             </div>
           ) : (
             <div

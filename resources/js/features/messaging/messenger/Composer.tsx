@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
-import { useForm } from 'react-hook-form'
+import { useForm, useWatch } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { BarChart3, Loader2, Mic, Paperclip, Pencil, Reply, Send, X } from 'lucide-react'
+import { BarChart3, Loader2, Mic, Paperclip, Pencil, Plus, Reply, Send, X } from 'lucide-react'
 import { z } from 'zod'
 import { alertError } from '@/shared/lib/alert'
 import { EmojiPicker } from './EmojiPicker'
@@ -105,6 +105,8 @@ export function Composer({
 }) {
   const [attachment, setAttachment] = useState<{ file: File; voice: boolean } | null>(null)
   const [pollDraft, setPollDraft] = useState<PollDraft | null>(null)
+  // «بیشتر» (۱۲/۷): نظرسنجی و پیامِ ویدیویی، تا ردیفِ نوشتن یک ردیف بماند
+  const [extrasOpen, setExtrasOpen] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const textareaRef = useRef<HTMLTextAreaElement | null>(null)
 
@@ -114,6 +116,7 @@ export function Composer({
     reset,
     setValue,
     setError: setFormError,
+    control,
     formState: { errors, isSubmitting },
   } = useForm<MessageFormValues>({
     resolver: zodResolver(messageSchema),
@@ -223,6 +226,11 @@ export function Composer({
   }
 
   const bodyField = register('body')
+  const body = useWatch({ control, name: 'body' }) ?? ''
+  const recording = isRecordingSupported()
+  const hasExtras = recording || canPoll
+  // دکمه‌ی اصلی: ضبطِ صدا فقط وقتی هیچ چیزِ آماده‌ی ارسالی نیست (و مرورگر ضبط دارد)
+  const showRecorder = recording && !editing && !attachment && !pollDraft && !body.trim()
 
   return (
     <div className="flex flex-col">
@@ -273,16 +281,60 @@ export function Composer({
         </div>
       )}
 
+      {/* «بیشتر»: نظرسنجی و پیامِ ویدیویی — فقط آن‌چه این گفت‌وگو و این مرورگر دارد */}
+      {extrasOpen && !editing && hasExtras && (
+        <div
+          role="group"
+          aria-label="بیشتر"
+          className="mb-2 flex items-center gap-2 rounded-xl px-2 py-1"
+          style={{ backgroundColor: 'var(--surface-sunken)' }}
+        >
+          {recording && (
+            <span
+              className="flex items-center gap-1 text-tiny"
+              style={{ color: 'var(--text-tertiary)' }}
+            >
+              <HoldRecorder
+                mode="video"
+                onRecorded={(file) => void sendRecorded(file, 'video_message')}
+                onError={onNotice}
+              />
+              پیامِ ویدیویی
+            </span>
+          )}
+          {canPoll && (
+            <button
+              type="button"
+              onClick={() => setPollDraft((draft) => (draft ? null : emptyPoll()))}
+              aria-label="ساخت نظرسنجی"
+              aria-pressed={pollDraft !== null}
+              className="flex h-9 items-center gap-1 rounded-lg px-2 text-tiny"
+              style={{ color: pollDraft ? 'var(--color-brand-500)' : 'var(--text-tertiary)' }}
+            >
+              <BarChart3 size={16} /> نظرسنجی
+            </button>
+          )}
+        </div>
+      )}
+
+      {/*
+       * یک ردیف (۱۲/۷، بندهای ۴۴ و ۴۵): اموجی، متن، پیوست و «بیشتر» درونِ کادر؛ کنارش دکمه‌ی اصلی — ضبطِ صدا تا کادر
+       * خالی است و «ارسال» از نخستین نویسه، پیوست یا نظرسنجی. همه‌ی دکمه‌ها دست‌کم ۳۶ پیکسل.
+       */}
       <form
         onSubmit={(event) => void handleSubmit(onSubmit)(event)}
-        className="flex items-start gap-2"
+        className="flex items-end gap-2"
       >
-        <div className="flex-1">
+        <div className="field composer-field flex min-w-0 flex-1 items-end gap-0.5 px-1">
+          <div className="py-1">
+            <EmojiPicker onPick={insertEmoji} />
+          </div>
           <textarea
             rows={1}
             aria-label="متنِ پیام"
-            placeholder="پیام خود را بنویسید…"
-            className="field w-full resize-none rounded-xl px-3.5 py-3 text-body"
+            placeholder="پیام…"
+            className="composer-input min-w-0 flex-1 resize-none bg-transparent px-1 py-2.5 text-body"
+            style={{ color: 'var(--text-primary)' }}
             aria-invalid={Boolean(errors.body) || undefined}
             {...bodyField}
             ref={(element) => {
@@ -290,76 +342,67 @@ export function Composer({
               textareaRef.current = element
             }}
           />
-
-          <div className="mt-1 flex items-center gap-1">
-            <EmojiPicker onPick={insertEmoji} />
-            {!editing && (
-              <>
+          {!editing && (
+            <div className="flex items-center py-1">
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                aria-label="پیوست فایل"
+                className="flex h-9 w-9 items-center justify-center rounded-full"
+                style={{ color: 'var(--text-tertiary)' }}
+              >
+                <Paperclip size={18} />
+              </button>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept={uploads.extensions.map((extension) => `.${extension}`).join(',')}
+                className="hidden"
+                onChange={(event) => {
+                  pickAttachment(event.target.files?.[0] ?? null)
+                  event.target.value = ''
+                }}
+              />
+              {hasExtras && (
                 <button
                   type="button"
-                  onClick={() => fileInputRef.current?.click()}
-                  aria-label="پیوست فایل"
-                  className="flex h-9 w-9 items-center justify-center rounded-lg"
-                  style={{ color: 'var(--text-tertiary)' }}
+                  onClick={() => setExtrasOpen((open) => !open)}
+                  aria-label="بیشتر: نظرسنجی و پیامِ ویدیویی"
+                  aria-expanded={extrasOpen}
+                  className="flex h-9 w-9 items-center justify-center rounded-full"
+                  style={{ color: extrasOpen ? 'var(--color-brand-500)' : 'var(--text-tertiary)' }}
                 >
-                  <Paperclip size={16} />
+                  <Plus size={19} />
                 </button>
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  accept={uploads.extensions.map((extension) => `.${extension}`).join(',')}
-                  className="hidden"
-                  onChange={(event) => {
-                    pickAttachment(event.target.files?.[0] ?? null)
-                    event.target.value = ''
-                  }}
-                />
-                {isRecordingSupported() && (
-                  <>
-                    <HoldRecorder
-                      mode="voice"
-                      onRecorded={(file) => void sendRecorded(file, 'voice')}
-                      onError={onNotice}
-                    />
-                    <HoldRecorder
-                      mode="video"
-                      onRecorded={(file) => void sendRecorded(file, 'video_message')}
-                      onError={onNotice}
-                    />
-                  </>
-                )}
-                {canPoll && (
-                  <button
-                    type="button"
-                    onClick={() => setPollDraft((draft) => (draft ? null : emptyPoll()))}
-                    aria-label="ساخت نظرسنجی"
-                    aria-pressed={pollDraft !== null}
-                    className="flex h-9 w-9 items-center justify-center rounded-lg"
-                    style={{ color: pollDraft ? 'var(--color-brand-500)' : 'var(--text-tertiary)' }}
-                  >
-                    <BarChart3 size={16} />
-                  </button>
-                )}
-              </>
-            )}
-          </div>
-          {errors.body && (
-            <p className="mt-1 text-small" style={{ color: 'var(--color-danger)' }}>
-              {errors.body.message}
-            </p>
+              )}
+            </div>
           )}
         </div>
 
-        <button
-          type="submit"
-          disabled={isSubmitting}
-          aria-label={editing ? 'ذخیره‌ی ویرایش' : 'ارسال پیام'}
-          className="flex h-[46px] w-[46px] shrink-0 items-center justify-center rounded-xl text-white disabled:opacity-60"
-          style={{ backgroundColor: 'var(--color-brand-500)' }}
-        >
-          {isSubmitting ? <Loader2 size={17} className="animate-spin" /> : <Send size={17} />}
-        </button>
+        {showRecorder ? (
+          <HoldRecorder
+            primary
+            mode="voice"
+            onRecorded={(file) => void sendRecorded(file, 'voice')}
+            onError={onNotice}
+          />
+        ) : (
+          <button
+            type="submit"
+            disabled={isSubmitting}
+            aria-label={editing ? 'ذخیره‌ی ویرایش' : 'ارسال پیام'}
+            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-white disabled:opacity-60"
+            style={{ backgroundColor: 'var(--color-brand-500)' }}
+          >
+            {isSubmitting ? <Loader2 size={19} className="animate-spin" /> : <Send size={19} />}
+          </button>
+        )}
       </form>
+      {errors.body && (
+        <p className="mt-1 text-small" style={{ color: 'var(--color-danger)' }}>
+          {errors.body.message}
+        </p>
+      )}
     </div>
   )
 }

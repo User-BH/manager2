@@ -73,6 +73,17 @@ test('ساکن می‌نویسد، مدیر پاسخ می‌دهد، ساکن «
     .filter({ hasText: question })
   await expect(mine.getByText('ارسال شد')).toBeAttached({ timeout: 15_000 })
 
+  /*
+   * ۱۲/۷ (بندهای ۴۱ و ۴۲): ظاهرِ پیام‌رسان از `messenger.css` می‌آید که فقط همراهِ همین صفحه‌ی تنبل بار می‌شود. اگر
+   * بار نشود هیچ آزمونِ jsdom نمی‌فهمد؛ این‌جا در مرورگرِ واقعی: نقشِ پس‌زمینه هست و پیامِ خود حبابِ سبز است.
+   */
+  const look = await resident.evaluate(() => ({
+    pattern: getComputedStyle(document.querySelector('.chat-list')!).backgroundImage,
+    mine: getComputedStyle(document.querySelector('.msg-mine')!).backgroundColor,
+  }))
+  expect(look.pattern).toContain('svg')
+  expect(look.mine).toBe('rgb(15, 110, 86)')
+
   // ── مدیر ──
   const manager = await signedIn(browser, MANAGER)
   await manager.goto('/messenger')

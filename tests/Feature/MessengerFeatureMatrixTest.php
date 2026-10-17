@@ -115,6 +115,24 @@ class MessengerFeatureMatrixTest extends TestCase
             'php:GroupModerationTest::test_in_the_group_only_the_manager_and_the_moderator_delete_others',
             'php:GroupModerationTest::test_moderation_ends_with_the_membership',
         ],
+        // ── ۱۲/۷: ظاهر (بندهای ۴۱ تا ۴۷؛ نمونه‌ی تأییدشده‌ی کارفرما) ──
+        'Bubble grouping and timestamps (41)' => [
+            'js:tests/js/messengerLayout.test.tsx::پیام‌های پشتِ‌سرِهمِ یک نفر یک دسته‌اند: نام روی اولی، دُم روی آخری',
+            'js:tests/js/messengerLayout.test.tsx::«امروز» و «دیروز» از ساعتِ دستگاه، بقیه همان تاریخِ شمسی',
+            'js:tests/js/messengerLayout.test.tsx::مرزِ نخوانده: n پیامِ آخرِ دیگران، نه پیامِ خودم',
+        ],
+        'Background and lazy stylesheet (42, 47)' => [
+            'e2e:tests/e2e/messenger-journey.spec.ts::ساکن می‌نویسد، مدیر پاسخ می‌دهد، ساکن «خوانده شد» می‌بیند',
+        ],
+        'Single-row composer (44, 45)' => [
+            'js:tests/js/messengerLayout.test.tsx::کادرِ خالی: ضبطِ صدا؛ با نخستین نویسه: «ارسال پیام»',
+            'js:tests/js/messengerLayout.test.tsx::مرورگرِ بی ضبط همیشه «ارسال پیام» دارد',
+        ],
+        'Accessibility: contrast and menu placement (46)' => [
+            'js:tests/js/messengerContrast.test.ts::🔴 برچسبِ «مدیریت» و نوارِ «خوانده‌نشده»، در هر دو حالت',
+            'js:tests/js/messengerContrast.test.ts::متن و زمانِ پیامِ خود روی حبابِ سبز، در هر دو حالت',
+            'js:tests/js/messengerLayout.test.tsx::پیامِ بالای قاب رو به پایین باز می‌شود، حتی با جای کمِ پایین',
+        ],
         // ── بندهای ۳۸، ۳۹ و ۴۸ ──
         'Membership-based access (38)' => [
             'php:MembershipMessagingTest::test_a_suspended_member_neither_reads_nor_writes_that_communitys_messenger',
