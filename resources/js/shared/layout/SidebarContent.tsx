@@ -2,7 +2,6 @@ import { visibleSections } from '@/shared/config/navigation'
 import { useAuth } from '@/shared/stores/authStore'
 import { SidebarBrand } from './SidebarBrand'
 import { SidebarSection } from './SidebarSection'
-import { SidebarRecentSearches } from './SidebarRecentSearches'
 
 interface SidebarContentProps {
   collapsed: boolean
@@ -29,7 +28,7 @@ export function SidebarContent({ collapsed, onNavigate }: SidebarContentProps) {
           />
         ))}
 
-        <SidebarRecentSearches collapsed={collapsed} onNavigate={onNavigate} />
+        {/* «جست‌وجوهای اخیر» از ۱۲/۸ در نوارِ بالاست (بندِ ۵۰)، نه پایینِ سایدبار */}
       </nav>
     </div>
   )

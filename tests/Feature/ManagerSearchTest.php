@@ -14,6 +14,7 @@ use App\Services\Search\CommunityLookup;
 use App\Services\Units\TenureService;
 use App\Support\Jalali;
 use App\Support\SearchTerm;
+use App\Support\SessionContext;
 use App\Support\TenantContext;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
@@ -161,6 +162,42 @@ class ManagerSearchTest extends TestCase
         $rowB = $this->rows($this->search($this->managerB, 'مینا'), 'residents');
         $this->assertSame([$this->mina->id], array_column($rowB, 'id'));
         $this->assertSame('واحد 25', $rowB[0]['badge']);
+    }
+
+    /**
+     * 🔴 ۱۲/۸ (بندِ ۵۶ ِ سندِ هسته): **جست‌وجوگرِ** چندمجتمعی. مدیرِ الف که مالکِ واحدی در ب هم هست، در زمینه‌ی الف
+     * هیچ چیزِ ب را نمی‌یابد؛ و در زمینه‌ی ب — که فقط مالک است — دامنه‌ی جست‌وجوی مدیر را ندارد، نه در ب و نه در الف.
+     * زمینه همان سنجاقِ این مرورگر است (۱۲/۱)، نه پارامترِ درخواست.
+     */
+    public function test_one_account_searches_only_from_the_community_of_this_browser(): void
+    {
+        $unitB = Unit::factory()->create(['complex_id' => $this->b->id, 'unit_number' => '30']);
+        app(MembershipLedger::class)->start($this->managerA, $this->b, UserRole::Owner, ComplexMembership::SOURCE_DIRECT, activate: false);
+        app(TenureService::class)->open($unitB, $this->managerA, ResidentRelation::Owner, 100, now()->subMonth());
+
+        $in = function (Complex $complex, string $q): array {
+            app(TenantContext::class)->set(null);
+            $this->flushSession();
+            $this->defaultCookies = [];
+
+            return $this->withCredentials()->withCookie(SessionContext::COOKIE, $this->managerA->id.':'.$complex->id)
+                ->actingAs(User::withoutGlobalScopes()->findOrFail($this->managerA->id))
+                ->getJson('/api/v1/search?q='.urlencode($q).'&complex_id='.$this->b->id)->assertOk()->json('groups');
+        };
+
+        // زمینه‌ی الف: فقط الف — حتی با `complex_id` ِ ب در درخواست
+        $groups = $in($this->a, 'علی احمدی');
+        $this->assertSame([$this->ali->id], array_column($this->rows($groups, 'residents'), 'id'));
+        $units = $in($this->a, '10');
+        $this->assertNotContains($this->unitsB['10']->id, array_column($this->rows($units, 'units'), 'id'));
+
+        // زمینه‌ی ب: مالک است، نه مدیر — گروه‌های مدیر نیست
+        foreach (['علی احمدی', '10', '30'] as $q) {
+            $ids = array_column($in($this->b, $q), 'id');
+            $this->assertNotContains('residents', $ids, $q);
+            $this->assertNotContains('units', $ids, $q);
+            $this->assertNotContains('bills', $ids, $q);
+        }
     }
 
     public function test_a_resident_cannot_reach_units_or_residents_through_any_parameter(): void

@@ -1,6 +1,7 @@
 import { NavLink } from 'react-router-dom'
 import { Calculator, Menu } from 'lucide-react'
 import { SearchBox } from './SearchBox'
+import { RecentSearchesButton } from './RecentSearchesButton'
 import { NotificationBell } from './NotificationBell'
 import { ThemeToggle } from './ThemeToggle'
 import { UserMenu } from './UserMenu'
@@ -38,8 +39,10 @@ export function Header() {
         <Menu size={20} />
       </button>
 
-      <div className="flex-1">
+      {/* جست‌وجو و «جست‌وجوهای اخیر» کنارِ هم (۱۲/۸، بندِ ۵۱)؛ هر دو نتیجه را در ناحیه‌ی محتوا نشان می‌دهند */}
+      <div className="flex min-w-0 flex-1 items-center gap-2">
         <SearchBox />
+        <RecentSearchesButton />
       </div>
 
       <div className="flex items-center gap-2">

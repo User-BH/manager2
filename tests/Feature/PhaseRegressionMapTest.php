@@ -1430,6 +1430,9 @@ class PhaseRegressionMapTest extends TestCase
             '🔴 ۱۲/۶: ماتریسِ قابلیت‌های پیام‌رسان' => [
                 'MessengerFeatureMatrixTest', 'test_every_feature_of_the_document_has_guards', '۱۲',
             ],
+            '۱۲/۸: جست‌وجوگرِ چندمجتمعی فقط از زمینه‌ی همین مرورگر' => [
+                'ManagerSearchTest', 'test_one_account_searches_only_from_the_community_of_this_browser', '۱۲',
+            ],
         ];
     }
 
@@ -1621,7 +1624,7 @@ class PhaseRegressionMapTest extends TestCase
     public function test_the_map_never_shrinks(): void
     {
         $this->assertGreaterThanOrEqual(
-            204,
+            205,
             count(self::fixes()),
             'ردیفی از نقشهٔ رگرسیون حذف شده؛ یعنی اصلاحی محافظش را از دست داده.',
         );
