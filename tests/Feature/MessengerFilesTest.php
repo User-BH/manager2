@@ -16,6 +16,7 @@ use App\Support\PrivateFiles;
 use App\Support\TenantContext;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Testing\TestResponse;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
@@ -180,6 +181,44 @@ class MessengerFilesTest extends TestCase
         app(Membership::class)->end($this->neighbour, $this->manager, $this->complex->id);
         // عضوِ رفته زمینه‌ای ندارد؛ پیامِ مجتمع با دامنه‌ی مستأجر برایش «نیست»
         $this->as($this->neighbour->fresh())->get("/api/v1/messenger/{$groupFile}/attachment")->assertNotFound();
+    }
+
+    /**
+     * 🔴 ۱۲/۶ (بندِ ۴۸ ِ سندِ هسته): پیوستِ پیامی که مدیریت پنهان کرده با نشانیِ مستقیم هم به ساکن نمی‌رسد. متنِ پیامِ
+     * پنهان برای ساکن پاک می‌شود (`MessageModerationTest`)؛ پیوستش با `GET messenger/{id}/attachment` همان قاعده را دارد.
+     * مدیر هنوز می‌بیندش تا بتواند پنهان‌کردن را برگرداند.
+     */
+    public function test_a_hidden_messages_attachment_is_not_served_to_residents(): void
+    {
+        $id = $this->send($this->owner, $this->file('plan.pdf', '%PDF-1.4
+%%EOF'))->assertCreated()->json('message.id');
+        $this->as($this->neighbour)->get("/api/v1/messenger/{$id}/attachment")->assertOk();
+
+        $this->as($this->manager)->patchJson("/api/v1/messenger/{$id}/toggle-hide")->assertOk()->assertJsonPath('message.isHidden', true);
+
+        $this->as($this->neighbour)->get("/api/v1/messenger/{$id}/attachment")->assertNotFound();
+        $this->as($this->manager)->get("/api/v1/messenger/{$id}/attachment")->assertOk();
+
+        // در فهرستِ پیام‌ها هم: ساکن نه نام می‌بیند نه نشانی؛ مدیر هر دو
+        $rowFor = fn (User $user): array => collect($this->as($user)->getJson("/api/v1/messenger/conversations/{$this->group->id}/messages")
+            ->assertOk()->json('messages'))->firstWhere('id', $id) ?? [];
+        $this->assertArrayHasKey('attachment', $rowFor($this->neighbour), 'پیامِ پنهان در فهرستِ ساکن (با جای‌خالی) هست.');
+        $this->assertNull($rowFor($this->neighbour)['attachment']);
+        $this->assertSame('plan.pdf', $rowFor($this->manager)['attachment']['name'] ?? null);
+
+        $this->as($this->manager)->patchJson("/api/v1/messenger/{$id}/toggle-hide")->assertOk()->assertJsonPath('message.isHidden', false);
+        $this->as($this->neighbour)->get("/api/v1/messenger/{$id}/attachment")->assertOk();
+    }
+
+    /** ۱۲/۶ (بندِ ۳۷، «Message timestamps»): هر پیام زمانِ ارسالش را به تقویمِ شمسی و به وقتِ تهران دارد. */
+    public function test_every_message_carries_its_jalali_send_time(): void
+    {
+        $this->travelTo(Carbon::create(2026, 10, 17, 14, 58, 0, 'Asia/Tehran'));
+        $id = $this->send($this->owner, $this->file('plan.pdf', '%PDF-1.4
+%%EOF'))->assertCreated()->json('message.id');
+
+        $row = collect($this->as($this->neighbour)->getJson("/api/v1/messenger/conversations/{$this->group->id}/messages")->json('messages'))->firstWhere('id', $id);
+        $this->assertSame('۱۴۰۵/۰۷/۲۵ ۱۴:۵۸', $row['sentAt'] ?? null);
     }
 
     /** بندِ ۴۸: فایلِ بزرگ از دیسک جریان می‌یابد، به حافظه نمی‌آید؛ و Range برای پخشِ ویدیو. */

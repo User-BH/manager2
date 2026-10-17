@@ -12,6 +12,7 @@ use App\Services\Account\MembershipLedger;
 use App\Services\Messenger\ConversationDirectory;
 use App\Services\Messenger\MessagingAccess;
 use App\Services\Units\TenureService;
+use App\Support\SessionContext;
 use App\Support\TenantContext;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
@@ -82,6 +83,30 @@ class MembershipMessagingTest extends TestCase
             ->assertJsonPath('resident.canMessage', true);
         $this->assertFalse(MessagingAccess::blocked($this->mina, $this->a->id));
         $this->assertDatabaseHas('audit_logs', ['action' => 'resident.messaging_blocked', 'complex_id' => $this->a->id]);
+    }
+
+    /**
+     * ۱۲/۶ (بندِ ۳۸ ِ سندِ هسته): دسترسی به گفت‌وگو از **عضویتِ فعال** است. عضوِ معلقِ الف نه گروهِ الف را می‌خواند نه در آن
+     * می‌نویسد — حتی با شناسه‌ی درستِ گفت‌وگو؛ عضویتِ فعالش در ب دست نمی‌خورد.
+     */
+    public function test_a_suspended_member_neither_reads_nor_writes_that_communitys_messenger(): void
+    {
+        app(TenantContext::class)->set(null);
+        $groupA = app(ConversationDirectory::class)->channel($this->a);
+        $this->as($this->managerA)->postJson("/api/v1/messenger/conversations/{$groupA->id}/messages", ['body' => 'رازِ گروهِ الف'])->assertCreated();
+
+        app(MembershipLedger::class)->suspend($this->mina, $this->a->id, $this->managerA);
+
+        $read = $this->as($this->mina->fresh())->getJson("/api/v1/messenger/conversations/{$groupA->id}/messages");
+        $this->assertContains($read->status(), [403, 404]);
+        $this->assertStringNotContainsString('رازِ گروهِ الف', (string) json_encode($read->json(), JSON_UNESCAPED_UNICODE));
+        $this->assertContains($this->as($this->mina->fresh())->postJson("/api/v1/messenger/conversations/{$groupA->id}/messages", ['body' => 'x'])->status(), [403, 404]);
+
+        // در ب همچنان عضوِ فعال است و گروهِ ب را دارد
+        app(TenantContext::class)->set(null);
+        $groupB = app(ConversationDirectory::class)->channel($this->b);
+        $this->as($this->mina->fresh())->withCredentials()->withCookie(SessionContext::COOKIE, $this->mina->id.':'.$this->b->id)
+            ->getJson("/api/v1/messenger/conversations/{$groupB->id}/messages")->assertOk();
     }
 
     /** دادهٔ موجود: بستنِ ثبت‌شده‌ی مدیر فقط در همان مجتمع؛ بستنِ بی‌سابقه در همه — چیزی بی‌صدا باز نمی‌شود. */

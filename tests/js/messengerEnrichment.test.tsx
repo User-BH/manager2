@@ -91,6 +91,13 @@ describe('حبابِ پیام', () => {
     expect(screen.getAllByText(payload)).toHaveLength(2)
   })
 
+  /** ۱۲/۶ (بندِ ۳۷، «Message timestamps»): زمانِ شمسیِ سرور روی هر حباب. */
+  it('زمانِ ارسال همان رشته‌ی شمسیِ سرور است', () => {
+    bubble(message(1, { sentAt: '۱۴۰۵/۰۷/۲۵ ۱۴:۵۸' }))
+
+    expect(screen.getByText('۱۴۰۵/۰۷/۲۵ ۱۴:۵۸')).toBeInTheDocument()
+  })
+
   it('پیامِ حذف‌شده بی‌متن و بی‌پیوست است', () => {
     bubble(
       message(2, {

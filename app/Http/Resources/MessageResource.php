@@ -85,8 +85,11 @@ class MessageResource extends JsonResource
             'audience' => $message->audience->value,
             'audienceLabel' => $this->audienceLabel($message),
 
-            // پیوست (R23b) — مسیرِ سرو کنترل‌شده است، نه لینکِ مستقیمِ دیسک
-            'attachment' => ! $deleted && $message->hasAttachment() ? [
+            /*
+             * پیوست (R23b) — مسیرِ سرو کنترل‌شده است، نه لینکِ مستقیمِ دیسک. 🔴 ۱۲/۶: پیوستِ پیامِ پنهان همان قاعده‌ی متنش را
+             * دارد — نام، نوع و نشانی‌اش هم برای کسی که متن را نمی‌بیند نمی‌آید (`MessengerController::attachment`).
+             */
+            'attachment' => ! $deleted && (! $hidden || $mayReadHidden) && $message->hasAttachment() ? [
                 'name' => $message->attachment_name,
                 'kind' => $message->attachment_kind,
                 'url' => route('api.messenger.attachment', $message),

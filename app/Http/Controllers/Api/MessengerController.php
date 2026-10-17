@@ -277,7 +277,13 @@ class MessengerController extends Controller
             ->whereKey($message->id)
             ->exists();
 
-        abort_unless($visible && $message->hasAttachment(), 404);
+        /*
+         * 🔴 ۱۲/۶ (بندِ ۴۸): پیامِ پنهان‌شده متنش را به ساکن نمی‌دهد (`MessageResource`)؛ پیوستش هم نه — حتی با نشانیِ
+         * مستقیم. مدیریت هنوز می‌بیندش تا پنهان‌کردن را برگرداند.
+         */
+        $readable = ! $message->is_hidden || $user->isAdmin();
+
+        abort_unless($visible && $readable && $message->hasAttachment(), 404);
 
         // نوع، درون‌خطی یا دانلود، و Range از نوعِ پیوست (۱۰/۱۲)
         return Uploads::serveAttachment($message->attachment_path, (string) $message->attachment_kind, $message->attachment_name);

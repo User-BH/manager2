@@ -1418,6 +1418,18 @@ class PhaseRegressionMapTest extends TestCase
             '🔴 ۱۲/۵: حسابِ اولیه سنجه‌ی Web Vitals را مثلِ مهمان می‌فرستد' => [
                 'InitialAccountTest', 'test_an_initial_account_reports_web_vitals_like_a_guest', '۱۲',
             ],
+            '🔴 ۱۲/۶: پیوستِ پیامِ پنهان به ساکن نمی‌رسد' => [
+                'MessengerFilesTest', 'test_a_hidden_messages_attachment_is_not_served_to_residents', '۱۲',
+            ],
+            '۱۲/۶: زمانِ شمسیِ هر پیام به وقتِ تهران' => [
+                'MessengerFilesTest', 'test_every_message_carries_its_jalali_send_time', '۱۲',
+            ],
+            '۱۲/۶: عضوِ معلق پیام‌رسانِ همان مجتمع را ندارد' => [
+                'MembershipMessagingTest', 'test_a_suspended_member_neither_reads_nor_writes_that_communitys_messenger', '۱۲',
+            ],
+            '🔴 ۱۲/۶: ماتریسِ قابلیت‌های پیام‌رسان' => [
+                'MessengerFeatureMatrixTest', 'test_every_feature_of_the_document_has_guards', '۱۲',
+            ],
         ];
     }
 
@@ -1609,7 +1621,7 @@ class PhaseRegressionMapTest extends TestCase
     public function test_the_map_never_shrinks(): void
     {
         $this->assertGreaterThanOrEqual(
-            200,
+            204,
             count(self::fixes()),
             'ردیفی از نقشهٔ رگرسیون حذف شده؛ یعنی اصلاحی محافظش را از دست داده.',
         );
