@@ -1415,6 +1415,9 @@ class PhaseRegressionMapTest extends TestCase
             '🔴 ۱۲/۴: جاروی BOLA با مهاجمِ چندمجتمعی' => [
                 'BolaSweepTest', 'test_no_attacker_reaches_another_tenants_or_accounts_resources', '۱۲',
             ],
+            '🔴 ۱۲/۵: حسابِ اولیه سنجه‌ی Web Vitals را مثلِ مهمان می‌فرستد' => [
+                'InitialAccountTest', 'test_an_initial_account_reports_web_vitals_like_a_guest', '۱۲',
+            ],
         ];
     }
 
@@ -1606,7 +1609,7 @@ class PhaseRegressionMapTest extends TestCase
     public function test_the_map_never_shrinks(): void
     {
         $this->assertGreaterThanOrEqual(
-            199,
+            200,
             count(self::fixes()),
             'ردیفی از نقشهٔ رگرسیون حذف شده؛ یعنی اصلاحی محافظش را از دست داده.',
         );

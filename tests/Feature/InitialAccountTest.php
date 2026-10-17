@@ -162,6 +162,21 @@ class InitialAccountTest extends TestCase
         $this->actingAs($this->fresh)->postJson('/api/v1/notifications/read-all')->assertOk();
     }
 
+    /**
+     * 🔴 ۱۲/۵ (سفرِ مرورگریِ `initial-dashboard`): سنجه‌های Web Vitals برای مهمان باز است ولی حسابِ اولیه ۴۰۳ می‌گرفت —
+     * قفل آن را «نوشتنِ داده‌ی مجتمع» می‌شمرد. همان دلیلِ `client-errors`: نوشتنی است ولی داده‌ی هیچ مجتمعی نیست.
+     */
+    public function test_an_initial_account_reports_web_vitals_like_a_guest(): void
+    {
+        $this->actingAs($this->fresh)->postJson('/api/v1/web-vitals', [
+            'metrics' => [['name' => 'LCP', 'value' => 1234.5, 'rating' => 'good']],
+            'path' => '/dashboard',
+            'device' => 'desktop',
+        ])->assertSuccessful();
+
+        $this->assertDatabaseCount('web_vitals', 1);
+    }
+
     public function test_reading_is_still_allowed(): void
     {
         // قفل نباید حساب را بی‌مصرف کند؛ باید بتواند ببیند و راهنما بخواند

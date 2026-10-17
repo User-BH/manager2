@@ -66,7 +66,14 @@ async function me(page: Page) {
     })
     return (
       (await res.json()) as {
-        user: { role: string; accountState: string; complex: { name: string } | null }
+        user: {
+          id: number
+          name: string
+          phone: string
+          role: string
+          accountState: string
+          complex: { name: string } | null
+        }
       }
     ).user
   })
@@ -114,7 +121,8 @@ test('QR ِ عمومی: اسکن ← درخواست ← هنوز عضو نیست
   await expect(page.getByRole('heading', { name: 'درخواست فرستاده شد' })).toBeVisible()
 
   // صرفِ درخواست عضویت نیست: هنوز حسابِ اولیه، داشبوردِ اولیه
-  expect(await me(page)).toMatchObject({ accountState: 'initial', complex: null })
+  const before = await me(page)
+  expect(before).toMatchObject({ accountState: 'initial', complex: null })
   await page.goto('/dashboard')
   await expect(page.locator('[data-experience="registrant"]')).toBeAttached({ timeout: 15_000 })
 
@@ -127,11 +135,18 @@ test('QR ِ عمومی: اسکن ← درخواست ← هنوز عضو نیست
 
   // ── همان نشستِ درخواست‌کننده حالا عضو است: داشبوردِ واحد، نه داشبوردِ اولیه ──
   await page.goto('/dashboard')
-  expect(await me(page)).toMatchObject({
+  const after = await me(page)
+  expect(after).toMatchObject({
     accountState: 'member',
     role: 'tenant',
     complex: { name: complexName },
   })
+  // بندِ ۳۳ ِ سندِ هسته (۱۲/۵): همان حساب و همان هویت — نه حسابِ تازه
+  expect([after.id, after.name, after.phone], 'تأییدِ درخواست حساب یا هویت را عوض کرد').toEqual([
+    before.id,
+    before.name,
+    before.phone,
+  ])
   await expect(page.locator('aside').first()).toBeAttached({ timeout: 15_000 })
   await expect(page.locator('[data-experience="registrant"]')).toHaveCount(0)
 })
