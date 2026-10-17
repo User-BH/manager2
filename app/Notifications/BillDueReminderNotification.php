@@ -45,6 +45,8 @@ class BillDueReminderNotification extends Notification
                 $this->daysOverdue,
                 number_format($this->bill->remaining()),
             ),
+            // مجتمعِ این اعلان: فقط در زمینه‌ی همان مجتمع دیده می‌شود (۱۲/۴، `Notifications::inContext`)
+            'complexId' => $this->bill->complex_id,
             'billId' => $this->bill->id,
             'url' => '/my-bills',
         ];

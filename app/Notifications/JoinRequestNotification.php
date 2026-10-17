@@ -30,6 +30,8 @@ class JoinRequestNotification extends Notification
             'type' => 'join_request.received',
             'title' => 'درخواستِ تازه‌ی عضویت',
             'body' => $this->applicantName.' درخواستِ پیوستن به مجتمع داده است. در صفحه‌ی ساکنین تأیید یا رد کنید.',
+            // مجتمعِ این اعلان: فقط در زمینه‌ی همان مجتمع دیده می‌شود (۱۲/۴، `Notifications::inContext`)
+            'complexId' => $this->request->complex_id,
             'joinRequestId' => $this->request->id,
         ];
     }

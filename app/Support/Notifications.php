@@ -47,8 +47,27 @@ class Notifications
     public static function unreadCount(User $user, ?int $messenger = null): int
     {
         return self::unreadAnnouncementCount($user)
-            + $user->unreadNotifications()->count()
+            + self::inContext($user->unreadNotifications(), $user)->count()
             + ($messenger ?? self::messengerUnread($user));
+    }
+
+    /**
+     * اعلان‌های شخصیِ **همین زمینه** (مرحلهٔ ۱۲ · فاز ۴؛ بندهای ۱۹ و ۲۰ ِ سندِ هسته).
+     *
+     * اعلانِ لاراول مالِ حساب است، نه مجتمع. تا ۱۲/۴ کسی که مدیرِ الف و ساکنِ ب است در داشبوردِ واحدِ ب درخواستِ
+     * عضویت و درخواستِ خدماتِ الف را می‌دید (نام و واحدِ ساکنانِ الف)، و برعکس قبضِ ب را در داشبوردِ مدیرِ الف.
+     * اعلانِ مجتمعی `complexId` دارد و فقط در زمینه‌ی همان مجتمع دیده، شمرده و خوانده می‌شود؛ اعلانِ حسابی (ورود
+     * از دستگاهِ تازه، تغییرِ شماره، پاسخِ بازخورد، سلامتِ سامانه) بی `complexId` است و همه‌جا.
+     *
+     * @template TQuery of \Illuminate\Database\Eloquent\Builder<\Illuminate\Notifications\DatabaseNotification>|\Illuminate\Database\Eloquent\Relations\MorphMany<\Illuminate\Notifications\DatabaseNotification, User>
+     *
+     * @param  TQuery  $query
+     * @return TQuery
+     */
+    public static function inContext($query, User $user)
+    {
+        return $query->where(fn ($q) => $q->whereNull('data->complexId')
+            ->when($user->complex_id !== null, fn ($q) => $q->orWhere('data->complexId', $user->complex_id)));
     }
 
     /**
@@ -96,7 +115,7 @@ class Notifications
      */
     public static function personal(User $user, int $limit = 5): array
     {
-        return $user->notifications()
+        return self::inContext($user->notifications(), $user)
             ->latest()
             ->limit($limit)
             ->get()
@@ -124,7 +143,7 @@ class Notifications
      */
     public static function personalHistory(User $user, int $limit): array
     {
-        return $user->notifications()
+        return self::inContext($user->notifications(), $user)
             ->latest()
             ->limit($limit)
             ->get()
@@ -166,10 +185,11 @@ class Notifications
     /** خواندنِ همه‌ی اعلان‌های شخصی. */
     public static function markAllPersonalRead(User $user): int
     {
-        $count = $user->unreadNotifications()->count();
-        $user->unreadNotifications->markAsRead();
+        // فقط آن‌چه همین زمینه نشان می‌دهد: «همه را خواندم» در ب اعلانِ دیده‌نشده‌ی الف را نمی‌بلعد
+        $unread = self::inContext($user->unreadNotifications(), $user)->get();
+        $unread->markAsRead();
 
-        return $count;
+        return $unread->count();
     }
 
     /**

@@ -68,6 +68,15 @@ use Tests\TestCase;
  * بدنه هم فرستاده می‌شود تا روشن شود هیچ‌کدام به‌تنهایی اختیار نمی‌سازد.
  *
  * پنلِ ادمینِ کل: هر مسیرِ `system/*` برای این سه مهاجم باید رد شود (همان جارو).
+ *
+ * ─── مهاجمِ چندمجتمعی (مرحلهٔ ۱۲ · فاز ۴؛ بندهای ۱۷، ۱۹ و ۲۰ ِ سندِ هسته) ──────────
+ * از ۱۲/۱ زمینه مالِ مرورگر است و یک حساب می‌تواند در چند مجتمع با نقش‌های گوناگون باشد. دو مهاجمِ تازه
+ * **عضوِ واقعیِ هر دو مجتمع** اند و فقط زمینه‌شان فرق دارد:
+ *
+ *   • `dualInA`: مدیرِ الف و مالکِ واحدی در ب، در زمینه‌ی الف ← کلِ مجموعه‌ی «ب» (حتی گروهِ عمومی و
+ *     اطلاعیه‌ی ب که در زمینه‌ی ب حقِ اوست) باید از زمینه‌ی الف نادیدنی باشد؛
+ *   • `dualInB`: مالکِ ب و مدیرِ الف، در زمینه‌ی ب ← «مدیر بودن در الف» در زمینه‌ی ب هیچ دسترسی‌ای به
+ *     دادهٔ الف (مجموعه‌ی «الف۲») نمی‌دهد.
  */
 class BolaSweepTest extends TestCase
 {
@@ -86,6 +95,9 @@ class BolaSweepTest extends TestCase
 
     /** @var array<string, User> */
     private array $actors = [];
+
+    /** @var array<string, string> زمینه‌ای که هر مهاجمِ چندمجتمعی باید در آن بماند (`X-Sakena-Context`) */
+    private array $contexts = [];
 
     /** واحدِ خودِ مهاجم، برای بدنه‌ی معتبرِ دورِ دوم */
     private int $attackerUnit;
@@ -137,6 +149,17 @@ class BolaSweepTest extends TestCase
         app(MembershipLedger::class)->end($formerB, ComplexMembership::END_REMOVED);
         $this->actors['formerB'] = $formerB;
 
+        // ── مهاجمانِ چندمجتمعی: عضوِ فعالِ هر دو مجتمع، فقط با زمینه‌ی متفاوت ──
+        $dualInA = $this->user(UserRole::ComplexAdmin, '09310000008', $this->a->id, 'مدیرِ الف و مالکِ ب');
+        app(MembershipLedger::class)->start($dualInA, $this->b, UserRole::Owner, ComplexMembership::SOURCE_DIRECT, activate: false);
+        $this->unit($this->b, '202', $dualInA);
+        $dualInB = $this->user(UserRole::Owner, '09310000009', $this->b->id, 'مالکِ ب و مدیرِ الف');
+        $this->unit($this->b, '203', $dualInB);
+        app(MembershipLedger::class)->start($dualInB, $this->a, UserRole::ComplexAdmin, ComplexMembership::SOURCE_DIRECT, activate: false);
+        $this->actors['dualInA'] = $dualInA;
+        $this->actors['dualInB'] = $dualInB;
+        $this->contexts = ['dualInA' => $this->a->id.':complex_admin', 'dualInB' => $this->b->id.':owner'];
+
         $b = $this->recordsOf($this->b, $unitB, $residentB, $managerB, 'ZQB');
         $a2 = $this->recordsOf($this->a, $unitA2, $residentA2, $managerA, 'ZQA2');
 
@@ -167,6 +190,16 @@ class BolaSweepTest extends TestCase
 
         // کنترلِ مثبت: صاحبان به همین شناسه‌ها **می‌رسند** — جارو پوچ نیست
         $this->assertOwnersReach($residentB, $managerB, $b['targets']);
+
+        /*
+         * کنترلِ مثبتِ مهاجمانِ چندمجتمعی: هر کدام واقعاً در زمینه‌ای است که فرض شده، با نقشِ همان عضویت، و در
+         * همان زمینه به دادهٔ خودش می‌رسد. بی این، «رد» شاید فقط از زمینه‌ی غلط یا ورودِ شکسته بود.
+         */
+        $this->as($dualInA)->getJson('/api/v1/units')->assertOk()
+            ->assertHeader('X-Sakena-Context', $this->a->id.':complex_admin');
+        $this->as($dualInB)->getJson('/api/v1/my-bills')->assertOk()
+            ->assertHeader('X-Sakena-Context', $this->b->id.':owner');
+        $this->as($dualInB)->getJson('/api/v1/units')->assertForbidden();
     }
 
     public function test_no_attacker_reaches_another_tenants_or_accounts_resources(): void
@@ -209,6 +242,10 @@ class BolaSweepTest extends TestCase
 
                         $label = "{$method} {$uri} [{$actorName}→{$set}]";
                         $status = $response->status();
+                        $context = $response->headers->get('X-Sakena-Context');
+                        if (isset($this->contexts[$actorName]) && $context !== null && $context !== $this->contexts[$actorName]) {
+                            $violations[] = "{$label}: در زمینه‌ی «{$context}» اجرا شد، نه «{$this->contexts[$actorName]}»";
+                        }
                         $report[] = ['route' => $method.' '.$route->uri(), 'actor' => $actorName, 'set' => $set, 'status' => $status, 'code' => $response->json('code')];
                         $body = (string) json_encode($response->json() ?? [], JSON_UNESCAPED_UNICODE).$response->getContent();
 
@@ -500,6 +537,18 @@ class BolaSweepTest extends TestCase
      */
     private function applies(Route $route, string $actor, string $set): bool
     {
+        /*
+         * مهاجمِ چندمجتمعی فقط روی مجتمعی که زمینه‌اش **نیست**: `dualInB` در ب ساکن است و گروه و اطلاعیه‌ی ب حقِ
+         * اوست؛ `dualInA` مدیرِ الف است و دادهٔ الف حقِ او. روی مجتمعِ دیگر — با وجودِ عضویتِ واقعی — همه‌چیز.
+         */
+        if ($actor === 'dualInA' || $actor === 'dualInB') {
+            /*
+             * ⚠️ تعویضِ زمینه نه: او واقعاً عضوِ مجتمعِ دیگر است و رفتن به آن حقِ اوست (پیش‌فرضِ حسابش را عوض
+             * می‌کند). دورِ اولِ این جارو همین را نشان داد — پس از تعویض، باقیِ درخواست‌ها در زمینه‌ی تازه رفتند و
+             * «نقض» ساختگی بود. هر درخواستِ این دو مهاجم سربرگِ زمینه‌اش هم سنجیده می‌شود (`$contexts`).
+             */
+            return $set === ($actor === 'dualInA' ? 'b' : 'a2') && $route->uri() !== 'api/v1/account/context';
+        }
         if ($set === 'b') {
             return true;
         }

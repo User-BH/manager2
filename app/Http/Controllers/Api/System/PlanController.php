@@ -3,11 +3,13 @@
 namespace App\Http\Controllers\Api\System;
 
 use App\Enums\SubscriptionPlan;
+use App\Exceptions\DomainException;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\GrantPlanRequest;
 use App\Http\Requests\RevokePlanRequest;
 use App\Http\Requests\StorePlanRequest;
 use App\Http\Resources\PlanResource;
+use App\Models\CheckoutIntent;
 use App\Models\Complex;
 use App\Models\Plan;
 use App\Models\Subscription;
@@ -71,7 +73,22 @@ class PlanController extends Controller
 
     public function destroy(Plan $plan): JsonResponse
     {
-        // اشتراک‌هایی که به این پکیج وصل‌اند plan_idشان null می‌شود (nullOnDelete).
+        /*
+         * 🔴 ۱۲/۴ (بندهای ۲۳ و ۲۶ ِ سندِ هسته): پکیجی که فروخته شده یا خریدی برایش ثبت شده حذف نمی‌شود. کلیدِ
+         * `plan_id` روی اشتراک و قصدِ خرید `SET NULL` است (`DeleteSemanticsTest::REGISTER`)؛ حذف یعنی اشتراکِ فعال
+         * امکاناتِ پکیج را از دست می‌دهد (`PlanGate` به پیش‌فرض برمی‌گردد) و سابقه‌ی فروش نمی‌گوید چه پکیجی بود.
+         * برای کنار گذاشتن «غیرفعال» هست (`toggle`)؛ پکیجِ هرگز استفاده‌نشده هنوز حذف می‌شود.
+         */
+        $used = Subscription::withoutGlobalScopes()->where('plan_id', $plan->id)->exists()
+            || CheckoutIntent::withoutGlobalScopes()->where('plan_id', $plan->id)->exists();
+
+        if ($used) {
+            throw DomainException::conflict(
+                'این پکیج اشتراک یا خریدِ ثبت‌شده دارد و حذفش سابقه‌ی آن‌ها را می‌برد. به‌جای حذف، غیرفعالش کنید.',
+                'plan.in_use',
+            );
+        }
+
         $plan->delete();
 
         return response()->json(['message' => 'پکیج حذف شد.']);

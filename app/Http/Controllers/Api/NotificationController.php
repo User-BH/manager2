@@ -183,7 +183,8 @@ class NotificationController extends Controller
     {
         $user = Auth::user();
 
-        $notification = $user->notifications()->whereKey($id)->firstOrFail();
+        // همان دامنه‌ی فهرست: اعلانِ مجتمعِ دیگر در این زمینه نه دیده می‌شود نه خوانده (۱۲/۴)
+        $notification = Notifications::inContext($user->notifications(), $user)->whereKey($id)->firstOrFail();
         $notification->markAsRead();
 
         return response()->json(['unreadCount' => Notifications::unreadCount($user)]);

@@ -1388,6 +1388,33 @@ class PhaseRegressionMapTest extends TestCase
             '🔴 ۱۲/۳: پذیرشِ دعوت با otp_disabled هم کد می‌خواهد' => [
                 'SecureInvitationTest', 'test_the_platform_otp_switch_does_not_let_acceptance_skip_its_code', '۱۲',
             ],
+            '🔴 ۱۲/۴: اعلانِ هر مجتمع فقط در زمینه‌ی همان مجتمع' => [
+                'CommunityIsolationTest', 'test_each_communitys_notifications_stay_in_its_own_context', '۱۲',
+            ],
+            '۱۲/۴: خواندنِ اعلان در همان زمینه' => [
+                'CommunityIsolationTest', 'test_reading_follows_the_context', '۱۲',
+            ],
+            '🔴 ۱۲/۴: هر کلاسِ اعلان مجتمعی یا حسابی' => [
+                'CommunityIsolationTest', 'test_every_notification_class_is_either_community_or_account_scoped', '۱۲',
+            ],
+            '۱۲/۴: اعلان‌های قدیمی مجتمعشان را می‌گیرند' => [
+                'CommunityIsolationTest', 'test_the_backfill_gives_old_notifications_their_community', '۱۲',
+            ],
+            '🔴 ۱۲/۴: پکیجِ فروخته‌شده غیرفعال می‌شود نه حذف' => [
+                'DataPreservationTest', 'test_a_plan_that_was_sold_is_deactivated_not_deleted', '۱۲',
+            ],
+            '🔴 ۱۲/۴: مستأجرِ تازه درخواستِ خدماتِ ساکنِ قبلی را نمی‌بیند' => [
+                'MembershipLifecycleTest', 'test_the_next_tenant_does_not_see_the_previous_tenants_service_requests', '۱۲',
+            ],
+            '🔴 ۱۲/۴: ساکنِ جابه‌جاشده درخواستِ ساکنِ بعدی را نمی‌بیند' => [
+                'MembershipLifecycleTest', 'test_a_resident_who_moved_does_not_see_the_next_occupants_service_requests', '۱۲',
+            ],
+            '🔴 ۱۲/۴: درخواستِ تازه به واحدِ جاری' => [
+                'MembershipLifecycleTest', 'test_a_resident_who_moved_files_requests_for_the_current_unit', '۱۲',
+            ],
+            '🔴 ۱۲/۴: جاروی BOLA با مهاجمِ چندمجتمعی' => [
+                'BolaSweepTest', 'test_no_attacker_reaches_another_tenants_or_accounts_resources', '۱۲',
+            ],
         ];
     }
 
@@ -1579,7 +1606,7 @@ class PhaseRegressionMapTest extends TestCase
     public function test_the_map_never_shrinks(): void
     {
         $this->assertGreaterThanOrEqual(
-            190,
+            199,
             count(self::fixes()),
             'ردیفی از نقشهٔ رگرسیون حذف شده؛ یعنی اصلاحی محافظش را از دست داده.',
         );

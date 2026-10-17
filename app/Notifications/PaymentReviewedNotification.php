@@ -48,6 +48,8 @@ class PaymentReviewedNotification extends Notification
                 : 'رسیدِ '.Jalali::digits(number_format($amount)).' تومان تایید نشد.'
                     .($this->note ? ' دلیل: '.$this->note : ''),
             // برای اینکه کلیکِ روی اعلان کاربر را به همان قبض ببرد
+            // مجتمعِ این اعلان: فقط در زمینه‌ی همان مجتمع دیده می‌شود (۱۲/۴، `Notifications::inContext`)
+            'complexId' => $this->payment->complex_id,
             'billId' => $this->payment->bill_id,
             'paymentId' => $this->payment->id,
         ];

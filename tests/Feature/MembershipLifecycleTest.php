@@ -3,6 +3,9 @@
 namespace Tests\Feature;
 
 use App\Enums\ResidentRelation;
+use App\Enums\ServiceRequestCategory;
+use App\Enums\ServiceRequestPriority;
+use App\Enums\ServiceRequestStatus;
 use App\Enums\UserRole;
 use App\Models\AuditLog;
 use App\Models\Bill;
@@ -10,6 +13,7 @@ use App\Models\Complex;
 use App\Models\ComplexInvitation;
 use App\Models\Message;
 use App\Models\Payment;
+use App\Models\ServiceRequest;
 use App\Models\TrustedDevice;
 use App\Models\Unit;
 use App\Models\UnitTenure;
@@ -245,6 +249,65 @@ class MembershipLifecycleTest extends TestCase
         $this->assertSame($own->id, $units[0]['latestBill']['id']);
     }
 
+    /**
+     * 🔴 ۱۲/۴ (بندِ ۲۲ ِ سندِ هسته): درخواستِ خدماتِ ساکنِ قبلی — عنوان، شرح و پیوست — مالِ اوست. دیدنِ «درخواست‌های
+     * واحد» تا پیش از این از **همه‌ی** دوره‌های سکونت بی مرزِ زمانی بود: مستأجرِ تازه درخواست‌های قبلی را می‌دید.
+     */
+    public function test_the_next_tenant_does_not_see_the_previous_tenants_service_requests(): void
+    {
+        $this->travel(-60)->days();
+        $old = $this->serviceRequest($this->alice, 'نشتیِ حمامِ ساکنِ قبلی');
+        $this->travelBack();
+
+        $bob = $this->nextTenant();
+        $own = $this->serviceRequest($bob, 'درخواستِ خودِ مستأجرِ تازه');
+
+        $ids = collect($this->as($bob)->getJson('/api/v1/service-requests')->assertOk()->json('requests'))->pluck('id')->all();
+        $this->assertSame([$own->id], $ids);
+        $this->assertContains($this->as($bob)->getJson("/api/v1/service-requests/{$old->id}")->status(), [403, 404]);
+    }
+
+    /** و برعکس: ساکنی که در همان مجتمع به واحدِ دیگری رفته درخواستِ ساکنِ بعدیِ واحدِ قبلی‌اش را نمی‌بیند. */
+    public function test_a_resident_who_moved_does_not_see_the_next_occupants_service_requests(): void
+    {
+        $this->travel(-60)->days();
+        $mine = $this->serviceRequest($this->alice, 'درخواستِ آلیس در دوره‌ی خودش');
+        $this->travelBack();
+
+        $tenures = app(TenureService::class);
+        $tenures->close(UnitTenure::withoutGlobalScopes()->where('user_id', $this->alice->id)->where('unit_id', $this->unit->id)->sole(), now()->subDays(10));
+        $otherUnit = Unit::factory()->create(['complex_id' => $this->complex->id, 'unit_number' => '14']);
+        $tenures->open($otherUnit, $this->alice, ResidentRelation::Tenant, 100, now()->subDays(9));
+
+        $carol = User::factory()->create(['complex_id' => $this->complex->id, 'role' => UserRole::Tenant, 'is_active' => true, 'phone' => '09126660003']);
+        $tenures->open($this->unit, $carol, ResidentRelation::Tenant, 100, now()->subDays(5));
+        $theirs = $this->serviceRequest($carol, 'درخواستِ ساکنِ بعدی');
+
+        $ids = collect($this->as($this->alice)->getJson('/api/v1/service-requests')->assertOk()->json('requests'))->pluck('id')->all();
+        $this->assertNotContains($theirs->id, $ids);
+        $this->assertContains($mine->id, $ids, 'درخواستِ خودش در دوره‌ی خودش می‌ماند.');
+        $this->assertContains($this->as($this->alice)->getJson("/api/v1/service-requests/{$theirs->id}")->status(), [403, 404]);
+    }
+
+    /**
+     * 🔴 ۱۲/۴: درخواستِ تازه به واحدِ **جاری** می‌رود. `units()->value(...)` نخستین دوره را برمی‌داشت — شاید واحدِ قبلی؛
+     * درخواستِ ساکنِ رفته به نامِ واحدِ قبلی‌اش ثبت می‌شد و ساکنِ فعلیِ آن واحد آن را می‌دید.
+     */
+    public function test_a_resident_who_moved_files_requests_for_the_current_unit(): void
+    {
+        $tenures = app(TenureService::class);
+        $tenures->close(UnitTenure::withoutGlobalScopes()->where('user_id', $this->alice->id)->where('unit_id', $this->unit->id)->sole(), now()->subDays(10));
+        $otherUnit = Unit::factory()->create(['complex_id' => $this->complex->id, 'unit_number' => '14']);
+        $tenures->open($otherUnit, $this->alice, ResidentRelation::Tenant, 100, now()->subDays(9));
+
+        $this->as($this->alice)->postJson('/api/v1/service-requests', [
+            'title' => 'درخواست پس از جابه‌جایی', 'description' => 'شرح', 'category' => ServiceRequestCategory::Facilities->value,
+            'unit_id' => $this->unit->id,
+        ])->assertCreated();
+
+        $this->assertSame($otherUnit->id, ServiceRequest::withoutGlobalScopes()->where('user_id', $this->alice->id)->sole()->unit_id);
+    }
+
     public function test_the_next_tenant_does_not_read_the_previous_tenants_thread(): void
     {
         $thread = app(ConversationDirectory::class)->unitThread($this->complex, $this->unit);
@@ -450,6 +513,15 @@ class MembershipLifecycleTest extends TestCase
     /* ── کمکی ──────────────────────────────────────────────────────────── */
 
     /** آلیس می‌رود؛ باب با دعوتِ امن همان واحد را می‌گیرد. */
+    private function serviceRequest(User $author, string $title): ServiceRequest
+    {
+        return ServiceRequest::withoutGlobalScopes()->create([
+            'complex_id' => $this->complex->id, 'unit_id' => $this->unit->id, 'user_id' => $author->id,
+            'category' => ServiceRequestCategory::Facilities, 'priority' => ServiceRequestPriority::Normal,
+            'status' => ServiceRequestStatus::New, 'title' => $title, 'description' => 'شرح',
+        ]);
+    }
+
     private function nextTenant(): User
     {
         $this->as($this->manager)->deleteJson("/api/v1/residents/{$this->alice->id}")->assertOk();

@@ -627,6 +627,8 @@ class AuthorizationAttackTest extends TestCase
         // ── پلتفرم: عمداً فرامجتمعی، و پشتِ نقشِ super_admin ──
         'app/Services/System/PlatformStats.php' => [14, 'آمارِ کلِ پلتفرم؛ فقط ادمینِ کل'],
         'app/Http/Controllers/Api/System/MemberController.php' => [3, 'فهرستِ کاربرانِ همه‌ی مجتمع‌ها؛ role:super_admin'],
+        // ۱۲/۴: پکیجِ فروخته‌شده حذف نمی‌شود — «فروخته شده؟» در همه‌ی مجتمع‌ها سنجیده می‌شود؛ پنلِ ادمینِ کل زمینه‌ی مجتمع ندارد
+        'app/Http/Controllers/Api/System/PlanController.php' => [2, 'آیا پکیج در هیچ مجتمعی اشتراک یا قصدِ خرید دارد؛ role:super_admin، فقط exists'],
 
         // ── پیش از آنکه کاربر عضوِ مجتمعی باشد ──
         // یکی کمتر از پیش: بررسیِ «قبلاً ثبت شده» در گامِ اولِ ثبت‌نام برداشته شد (شمارشِ حساب)

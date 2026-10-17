@@ -39,6 +39,8 @@ class ServiceRequestNotification extends Notification
             'type' => 'service_request',
             'title' => $this->title,
             'body' => $this->body,
+            // مجتمعِ این اعلان: فقط در زمینه‌ی همان مجتمع دیده می‌شود (۱۲/۴، `Notifications::inContext`)
+            'complexId' => $this->request->complex_id,
             'serviceRequestId' => $this->request->id,
         ];
     }

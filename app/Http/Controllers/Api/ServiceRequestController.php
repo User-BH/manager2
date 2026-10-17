@@ -109,10 +109,13 @@ class ServiceRequestController extends Controller
          * واحدِ درخواست: ساکن هرچه بفرستد نادیده گرفته می‌شود و واحدِ خودش
          * می‌نشیند. وگرنه می‌شد درخواستی به نامِ واحدِ همسایه ثبت کرد و از
          * راهِ `visibleTo` گفت‌وگویش را خواند.
+         *
+         * 🔴 ۱۲/۴: واحدِ **جاری**. `units()` دوره‌های بسته را هم دارد؛ ساکنی که به واحدِ دیگری رفته درخواستش را به نامِ
+         * واحدِ قبلی ثبت می‌کرد و ساکنِ فعلیِ آن واحد آن را می‌دید.
          */
         $unitId = $user->role->isAdmin()
             ? ($data['unit_id'] ?? null)
-            : $user->units()->value('units.id');
+            : $user->currentUnits()->value('units.id');
 
         $write = fn (?string $path) => ServiceRequest::create([
             'unit_id' => $unitId,

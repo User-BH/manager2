@@ -97,6 +97,13 @@ class ServiceRequest extends Model
      * بتواند ببیندش، حتی اگر مالِ واحدِ دیگری باشد. بدونِ این، واگذاری به
      * ساکنی که عملاً سرایدار است بی‌فایده می‌شد.
      *
+     * ─── 🔴 مرزِ زمانیِ دوره‌ی سکونت (۱۲/۴، بندِ ۲۲ ِ سندِ هسته) ─────────────────
+     * «واحدِ خودش» از **همه‌ی** دوره‌های سکونت بی مرزِ زمانی خوانده می‌شد (`units()` دوره‌های بسته را هم دارد):
+     * مستأجرِ تازه درخواست‌های ساکنِ قبلی را می‌دید و ساکنی که به واحدِ دیگری رفته درخواست‌های ساکنِ بعدی را.
+     * حالا مثلِ قبض (`Bill::scopeVisibleToResident`): درخواستِ واحد فقط اگر در بازه‌ی یکی از دوره‌های سکونتِ همین
+     * کاربر روی همان واحد ثبت شده باشد. مالکی که دوره‌اش ادامه دارد سابقه‌ی مستأجرِ رفته را همچنان می‌بیند — همان
+     * «یک پرونده» ِ بالا؛ دوره‌ی بی‌تاریخِ شروع (داده‌ی پیش از R26) مرزی ندارد.
+     *
      * @param  Builder<ServiceRequest>  $query
      */
     public function scopeVisibleTo(Builder $query, User $user): void
@@ -105,14 +112,23 @@ class ServiceRequest extends Model
             return;
         }
 
-        $unitIds = $user->units()->pluck('units.id')->all();
+        $tenures = UnitTenure::query()->where('user_id', $user->id)->get(['unit_id', 'start_date', 'end_date']);
 
-        $query->where(function (Builder $inner) use ($unitIds, $user): void {
+        $query->where(function (Builder $inner) use ($tenures, $user): void {
             $inner->where('user_id', $user->id)
                 ->orWhere('assigned_to', $user->id);
 
-            if ($unitIds !== []) {
-                $inner->orWhereIn('unit_id', $unitIds);
+            foreach ($tenures as $tenure) {
+                $inner->orWhere(function (Builder $q) use ($tenure): void {
+                    $q->where('unit_id', $tenure->unit_id);
+
+                    if ($tenure->start_date) {
+                        $q->where('created_at', '>=', $tenure->start_date->copy()->startOfDay());
+                    }
+                    if ($tenure->end_date) {
+                        $q->where('created_at', '<', $tenure->end_date->copy()->addDay()->startOfDay());
+                    }
+                });
             }
         });
     }
