@@ -208,7 +208,8 @@ class ChargeReminderCampaign
                         && $user->phone
                         && $this->preferences->allows($user, NotificationChannelKey::SmsReminder))
                     ->map(fn (User $user) => [
-                        'phone' => $user->phone,
+                        // صافیِ بالا بی‌شماره را بیرون گذاشته؛ از ۱۳/۱ ستون در نوع هم nullable است
+                        'phone' => (string) $user->phone,
                         'unit' => $bill->unit->unit_number,
                         'debt' => $debt,
                         'user' => $user,

@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { motion } from 'framer-motion'
@@ -85,14 +86,18 @@ export function ComplexesPage() {
    * کسب‌وکار بی‌کران می‌شد. `page` جزوِ کلید است، پس هر صفحه کشِ خودش را دارد
    * و برگشتن به صفحه‌ی قبلی آنی است.
    */
+  // دادهٔ آزمایشی پیش‌فرض بیرون است و سرور کنارش می‌گذارد (۱۳/۱)؛ انتخاب در نشانی می‌ماند
+  const [search, setSearch] = useSearchParams()
+  const includeDemo = search.get('include_demo') === '1'
+
   const { data, error, isLoading, refetch } = useQuery({
-    queryKey: queryKeys.system.complexes({ page }),
+    queryKey: queryKeys.system.complexes({ page, includeDemo }),
     queryFn: ({ signal }) =>
       api<{
         data: ComplexRow[]
         activeId: number | null
         meta: { currentPage: number; lastPage: number; total: number }
-      }>(`/system/complexes?page=${page}`, { signal }),
+      }>(`/system/complexes?page=${page}${includeDemo ? '&include_demo=1' : ''}`, { signal }),
   })
 
   /**
@@ -195,6 +200,21 @@ export function ComplexesPage() {
         </div>
 
         <div className="flex items-center gap-2">
+          <label
+            className="flex items-center gap-1.5 text-[12px]"
+            style={{ color: 'var(--text-secondary)' }}
+          >
+            <input
+              type="checkbox"
+              className="h-4 w-4 rounded"
+              checked={includeDemo}
+              onChange={(e) => {
+                setSearch(e.target.checked ? { include_demo: '1' } : {})
+                setPage(1)
+              }}
+            />
+            شامل داده‌ی آزمایشی
+          </label>
           {data?.activeId && (
             <button
               onClick={clear}

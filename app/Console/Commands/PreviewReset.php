@@ -4,7 +4,7 @@ namespace App\Console\Commands;
 
 use App\Models\User;
 use App\Support\Preview;
-use Database\Seeders\DemoSeeder;
+use Database\Seeders\PreviewSeeder;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
@@ -19,8 +19,10 @@ use Illuminate\Support\Facades\Schema;
  *   ③ نه روی پایگاه‌داده‌ی **بی‌برچسبی که کاربر دارد** — شاید محصول است، و
  *      `migrate:fresh` یعنی پاک‌شدنِ همه‌چیز. پایگاه‌داده‌ی خالی یا برچسب‌دار فقط.
  *
- * دادهٔ نمونه همان `DemoSeeder` است (چهار حسابِ آزمایشی)؛ هیچ دادهٔ محصولی وارد
- * Preview نمی‌شود — این دستور اصلاً راهی به پایگاه‌داده‌ی دیگری ندارد.
+ * دادهٔ نمونه `PreviewSeeder` است (مرحلهٔ ۱۳ · فاز ۱؛ «داشبورد های آزمایشی»): چهار حسابِ آزمایشی با نام کاربری و
+ * شش زمینه‌ی نوع × پلن؛ هیچ دادهٔ محصولی وارد Preview نمی‌شود — این دستور اصلاً راهی به پایگاه‌داده‌ی دیگری ندارد.
+ * رمزِ حساب‌ها تصادفی است و فقط همین‌جا یک بار چاپ می‌شود؛ در مخزن نیست. افزودنِ چیزِ جاافتاده بی پاک‌کردن:
+ * `preview:seed`.
  */
 class PreviewReset extends Command
 {
@@ -59,7 +61,8 @@ class PreviewReset extends Command
         }
 
         $this->call('migrate:fresh', ['--force' => true]);
-        $this->call('db:seed', ['--class' => DemoSeeder::class, '--force' => true]);
+        $seeder = app(PreviewSeeder::class);
+        $seeder->run();
         Preview::markDatabase();
 
         if ($this->call('blog:import', ['--no-interaction' => true]) !== self::SUCCESS) {
@@ -67,12 +70,7 @@ class PreviewReset extends Command
         }
 
         $this->info("پایگاه‌داده‌ی Preview («{$database}») ساخته و برچسب خورد.");
-        $this->table(['نقش', 'شماره', 'رمز'], [
-            ['ادمینِ کل', '09120000001', 'password'],
-            ['ثبت‌نامِ اولیه (بی‌مجتمع)', DemoSeeder::FRESH_SIGNUP_PHONE, 'password'],
-            ['مدیرِ مجتمع', '09120000000', 'password'],
-            ['واحد', '09121111101', 'password'],
-        ]);
+        PreviewSeedCommand::printIssued($this, $seeder->issued());
 
         return self::SUCCESS;
     }

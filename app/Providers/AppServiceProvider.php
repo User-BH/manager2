@@ -18,6 +18,7 @@ use App\Support\Jalali;
 use App\Support\Phone;
 use App\Support\RequestId;
 use App\Support\TenantContext;
+use App\Support\Username;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
 use Illuminate\Pagination\Paginator;
@@ -141,9 +142,14 @@ class AppServiceProvider extends ServiceProvider
      */
     private function registerRateLimiters(): void
     {
-        // ورود با رمز: ۵ تلاش در دقیقه برای هر شماره، و ۲۰ در دقیقه برای هر IP
+        /*
+         * ورود با رمز: ۵ تلاش در دقیقه برای هر شناسه، و ۲۰ در دقیقه برای هر IP. شناسه‌ی نام کاربری (۱۳/۱) کلیدِ
+         * خودش را دارد؛ بی آن همه‌ی تلاش‌های نام کاربری پشتِ یک IP یک سهمیه می‌شدند و برای هر نام کاربری جدا نه.
+         */
         RateLimiter::for('login', fn (Request $request) => [
-            Limit::perMinute(5)->by($this->phoneKey($request)),
+            Limit::perMinute(5)->by($request->input('identifier_type') === 'username'
+                ? 'username:'.Username::normalize((string) $request->input('username')).'|'.$request->ip()
+                : $this->phoneKey($request)),
             Limit::perMinute(20)->by($request->ip()),
         ]);
 

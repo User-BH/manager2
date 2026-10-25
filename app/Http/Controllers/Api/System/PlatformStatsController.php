@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Services\System\PlatformStats;
 use App\Support\Observability;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 
 /**
  * آمارِ کلِ پلتفرم برای ادمینِ کل (R29).
@@ -15,9 +16,10 @@ use Illuminate\Http\JsonResponse;
  */
 class PlatformStatsController extends Controller
 {
-    public function index(PlatformStats $stats): JsonResponse
+    public function index(Request $request, PlatformStats $stats): JsonResponse
     {
-        return response()->json($stats->all() + [
+        // دادهٔ آزمایشی فقط با درخواستِ صریح (۱۳/۱؛ «داشبورد های آزمایشی» بندِ ۴.۲)
+        return response()->json($stats->all($request->boolean('include_demo')) + [
             /*
              * وضعیتِ ابزارهای آنالیز (R8) کنارِ آمار می‌آید و نه در صفحه‌ی
              * جدا: ادمینی که می‌پرسد «چند کاربر داریم؟» بلافاصله بعدش

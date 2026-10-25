@@ -100,6 +100,8 @@ Route::middleware(['guest', 'cache.headers:no_store;private'])->group(function (
     Route::view('/auth/verify', 'public.auth', $authView);
     Route::view('/auth/forgot', 'public.auth', $authView);
     Route::view('/auth/recover', 'public.auth', $authView);
+    // ورود با نام کاربری (مرحلهٔ ۱۳ · فاز ۱): همان island؛ فقط سوپر ادمین و حساب‌های آزمایشیِ Preview وارد می‌شوند
+    Route::view('/auth/username', 'public.auth', $authView);
     // پیوندِ دعوت (مرحلهٔ ۹ · فاز ۶): همان island؛ توکن پس از `#` و هرگز به سرور نمی‌رسد.
     // کاربرِ واردشده با `guest` به داشبورد می‌رود — دعوت همان‌جا منتظر است.
     Route::view('/invite', 'public.auth', $authView);

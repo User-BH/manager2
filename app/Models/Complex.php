@@ -5,6 +5,7 @@ namespace App\Models;
 use App\Casts\EncryptedJson;
 use App\Enums\ComplexType;
 use App\Models\Concerns\KeepsHistory;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
@@ -32,6 +33,7 @@ use Illuminate\Support\Carbon;
  * @property string|null $board
  * @property string|null $response_hours
  * @property string|null $emergency_info
+ * @property bool $is_demo نشانگرِ سمتِ سرورِ مجتمعِ آزمایشی (۱۳/۱)؛ فقط seeder ِ Preview می‌نویسد، نه در `fillable`
  */
 class Complex extends Model
 {
@@ -89,7 +91,20 @@ class Complex extends Model
             'latitude' => 'decimal:7',
             'longitude' => 'decimal:7',
             'information_completed_at' => 'datetime',
+            'is_demo' => 'boolean',
         ];
+    }
+
+    /**
+     * مجتمع‌های عملیاتی — بی دادهٔ آزمایشی («داشبورد های آزمایشی» بندِ ۴.۲)؛ فهرست و آمارِ سوپر ادمین به‌طورِ
+     * پیش‌فرض از همین می‌خوانند.
+     *
+     * @param  Builder<Complex>  $query
+     * @return Builder<Complex>
+     */
+    public function scopeOperational(Builder $query): Builder
+    {
+        return $query->where('complexes.is_demo', false);
     }
 
     /** @return HasMany<Building, $this> */

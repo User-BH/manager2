@@ -35,6 +35,7 @@ return [
     'prohibited' => ':attribute را نمی‌توان فرستاد.',
     'prohibits' => ':attribute را نمی‌توان هم‌زمان با موردِ دیگری فرستاد.',
     'required_if' => 'وقتی :other «:value» است، وارد کردن :attribute الزامی است.',
+    'required_unless' => 'جز وقتی :other «:values» است، وارد کردن :attribute الزامی است.',
     'required_with' => 'وقتی :values هست، وارد کردن :attribute الزامی است.',
     'required_without_all' => 'دستِ‌کم یکی از :attribute یا موارد دیگر را بفرستید.',
     'starts_with' => ':attribute باید با یکی از این‌ها شروع شود: :values.',

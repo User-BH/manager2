@@ -6,6 +6,7 @@ use App\Enums\UserRole;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\UpdateMemberRequest;
 use App\Http\Resources\MemberResource;
+use App\Models\ComplexMembership;
 use App\Models\User;
 use App\Services\Account\MembershipLedger;
 use App\Support\Audit;
@@ -30,7 +31,9 @@ class MemberController extends Controller
     {
         $search = trim((string) $request->query('q', ''));
 
-        $query = User::withoutGlobalScopes()->with('complex')->latest();
+        // حساب و شخصِ ساختگیِ آزمایشی فقط با «شاملِ دادهٔ آزمایشی» (۱۳/۱؛ «داشبورد های آزمایشی» بندِ ۴.۲)
+        $query = User::withoutGlobalScopes()->with('complex')->latest()
+            ->when(! $request->boolean('include_demo'), fn ($q) => $q->operational());
 
         if ($search !== '') {
             $normalized = Phone::normalize($search);
@@ -50,6 +53,12 @@ class MemberController extends Controller
                 'page' => $users->currentPage(),
                 'lastPage' => $users->lastPage(),
             ],
+            /*
+             * سه حسابِ آزمایشی در بخشِ جدا و ثابتِ بالای فهرست («داشبورد های آزمایشی» بندِ ۴.۱). فقط روی Preview
+             * چنین حسابی هست؛ سوپر ادمینِ واقعی به دادهٔ Preview دسترسی ندارد (پیامِ کارفرما ۲۰۲۶-۱۰-۱۹، بخش ۲). پنج
+             * مجتمعِ حسابِ مدیر پنج کاربر نیستند: یک حساب است با شمارِ عضویت‌هایش.
+             */
+            'demoAccounts' => $this->demoAccounts(),
             'roles' => collect(UserRole::options())
                 ->map(fn ($label, $value) => ['value' => $value, 'label' => $label])
                 ->values(),
@@ -159,5 +168,31 @@ class MemberController extends Controller
     private function present(User $user): array
     {
         return (new MemberResource($user))->toArray(request());
+    }
+
+    /**
+     * حساب‌های آزمایشیِ قابلِ ورود (نام کاربری دارند)، جز سوپر ادمینِ آزمایشی که خودش همین صفحه را می‌بیند.
+     *
+     * @return list<array{id: int, name: string, username: string|null, communities: int}>
+     */
+    private function demoAccounts(): array
+    {
+        return User::withoutGlobalScopes()
+            ->where('is_demo', true)
+            ->whereNotNull('username')
+            ->where('role', '!=', UserRole::SuperAdmin->value)
+            ->orderBy('username')
+            ->get()
+            // حداکثر سه حساب؛ یک شمارش برای هر کدام
+            ->map(fn (User $u): array => [
+                'id' => $u->id,
+                'name' => $u->name,
+                'username' => $u->username,
+                'communities' => ComplexMembership::where('user_id', $u->id)
+                    ->where('status', ComplexMembership::ACTIVE)
+                    ->count(),
+            ])
+            ->values()
+            ->all();
     }
 }

@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import {
   Activity,
@@ -52,9 +53,14 @@ const ANALYTICS_LABELS: Record<string, string> = {
 export function PlatformStatsPage() {
   useDocumentTitle('آمار پلتفرم')
 
+  // دادهٔ آزمایشی پیش‌فرض بیرون است و سرور کنارش می‌گذارد (۱۳/۱)
+  const [includeDemo, setIncludeDemo] = useState(false)
+
   const { data, error, isLoading, refetch } = useQuery({
-    queryKey: queryKeys.system.stats(),
-    queryFn: ({ signal }) => api<Stats>('/system/stats', { signal }),
+    // کلیدِ مشترک دست نمی‌خورد (باندلِ همه‌ی صفحه‌ها)؛ گزینه فقط به انتهای کلیدِ همین صفحه می‌چسبد
+    queryKey: [...queryKeys.system.stats(), { includeDemo }],
+    queryFn: ({ signal }) =>
+      api<Stats>(`/system/stats${includeDemo ? '?include_demo=1' : ''}`, { signal }),
   })
 
   if (isLoading) return <InlineSpinner />
@@ -73,6 +79,19 @@ export function PlatformStatsPage() {
           نمای کلی همه‌ی مجتمع‌ها، کاربران، درآمد و سلامت سامانه
         </p>
       </header>
+
+      <label
+        className="flex items-center gap-1.5 text-[12px]"
+        style={{ color: 'var(--text-secondary)' }}
+      >
+        <input
+          type="checkbox"
+          className="h-4 w-4 rounded"
+          checked={includeDemo}
+          onChange={(e) => setIncludeDemo(e.target.checked)}
+        />
+        شامل داده‌ی آزمایشی
+      </label>
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <StatCard

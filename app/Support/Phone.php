@@ -36,6 +36,16 @@ class Phone
         return $digits;
     }
 
+    /**
+     * نسخه‌ی پوشیده برای نمایش به کسی که شماره را خودش نداده (ورود با نام کاربری، ۱۳/۱): ۰۹۱۲•••۰۰۰۱.
+     */
+    public static function mask(string $phone): string
+    {
+        $digits = self::normalize($phone);
+
+        return strlen($digits) < 8 ? '•••' : substr($digits, 0, 4).'•••'.substr($digits, -4);
+    }
+
     /** A valid Iranian mobile looks like 09 followed by 9 digits. */
     public static function isValidMobile(?string $raw): bool
     {

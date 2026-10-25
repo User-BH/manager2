@@ -16,6 +16,7 @@ use App\Services\Subscription\PlanGate;
 use App\Support\Audit;
 use App\Support\Jalali;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
@@ -26,7 +27,7 @@ class ComplexController extends Controller
         private readonly Membership $membership,
     ) {}
 
-    public function index(): JsonResponse
+    public function index(Request $request): JsonResponse
     {
         /*
          * تنها فهرستی که با رشدِ کسب‌وکار بی‌کران می‌شود.
@@ -35,7 +36,10 @@ class ComplexController extends Controller
          * ولی تعدادِ مجتمع‌های پلتفرم فقط زیاد می‌شود. بدونِ صفحه‌بندی، این
          * صفحه روزی همه‌ی رکوردها را در یک پاسخ می‌ریخت.
          */
-        $complexes = Complex::withCount(['units', 'users'])->latest()->paginate(20);
+        // مجتمعِ آزمایشی فقط با «شاملِ دادهٔ آزمایشی» (۱۳/۱؛ «داشبورد های آزمایشی» بندِ ۴.۲)
+        $complexes = Complex::withCount(['units', 'users'])
+            ->when(! $request->boolean('include_demo'), fn ($q) => $q->operational())
+            ->latest()->paginate(20)->withQueryString();
 
         return response()->json([
             'meta' => [
@@ -56,6 +60,7 @@ class ComplexController extends Controller
                 'isSuspended' => ! $c->is_active,
                 'suspendedAt' => $c->suspended_at ? Jalali::dateTime($c->suspended_at) : null,
                 'suspensionReason' => $c->suspension_reason,
+                'isDemo' => $c->is_demo,
             ])->values(),
             'activeId' => session('active_complex_id'),
         ]);

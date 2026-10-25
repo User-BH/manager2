@@ -28,9 +28,11 @@ use App\Services\Auth\SessionRegistry;
 use App\Services\Auth\TrustedDeviceService;
 use App\Services\Messenger\Presence;
 use App\Support\Audit;
+use App\Support\DemoData;
 use App\Support\PersianName;
 use App\Support\Phone;
 use App\Support\SystemSettings;
+use App\Support\Username;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -47,6 +49,11 @@ use Illuminate\Validation\ValidationException;
  */
 class AuthController extends Controller
 {
+    /** پیامِ یکسانِ «نیست یا رمز غلط» — هر دو نوعِ شناسه */
+    public const WRONG_PHONE = 'شماره تلفن یا رمز عبور نادرست است.';
+
+    public const WRONG_USERNAME = 'نام کاربری یا رمز عبور نادرست است.';
+
     public function __construct(
         protected TrustedDeviceService $devices,
         protected LoginRecorder $recorder,
@@ -80,8 +87,17 @@ class AuthController extends Controller
     {
         $request->validated();
 
-        $phone = Phone::normalize($request->input('phone'));
-        $user = User::where('phone', $phone)->first();
+        /*
+         * نوعِ شناسه را درخواست صریح می‌گوید (مرحلهٔ ۱۳ · فاز ۱): شماره برای کاربرِ واقعی، نام کاربری فقط برای سوپر
+         * ادمین و حسابِ آزمایشیِ Preview. هیچ‌کدام از شکلِ دیگری حدس زده نمی‌شود.
+         */
+        $byUsername = $request->byUsername();
+        $field = $request->identifierField();
+        $wrong = $byUsername ? self::WRONG_USERNAME : self::WRONG_PHONE;
+
+        $user = $byUsername
+            ? User::where('username', Username::normalize($request->input('username')))->first()
+            : User::where('phone', Phone::normalize($request->input('phone')))->first();
 
         /*
          * پیامِ یکسان برای «کاربر نیست» و «رمز غلط» تا نشود شماره‌ها را شمارش کرد.
@@ -92,22 +108,44 @@ class AuthController extends Controller
          */
         $passwordOk = Hash::check((string) $request->input('password'), $user->password ?? OtpService::dummyHash());
 
-        if (! $user || ! $passwordOk) {
+        /*
+         * 🔴 همان پیام و همان زمان برای دو حالتِ دیگر هم (مرحلهٔ ۱۳ · فاز ۱):
+         * - نام کاربری فقط مالِ سوپر ادمین و حسابِ آزمایشی است؛ کاربرِ واقعی با آن وارد نمی‌شود؛
+         * - حسابِ آزمایشی روی Production هرگز وارد نمی‌شود (`DemoData`)؛ پاسخ نمی‌گوید چنین حسابی هست.
+         */
+        $eligible = $user !== null
+            && (! $byUsername || $user->signsInByUsername())
+            && ! DemoData::refuses($user);
+
+        if (! $eligible || ! $passwordOk) {
             // فقط برای حسابِ موجود ثبت می‌شود؛ صاحبش در تاریخچه‌ی ورود می‌بیندش
             if ($user) {
                 $this->recorder->failure($user, $request, LoginEvent::FAILED_PASSWORD);
             }
 
-            throw ValidationException::withMessages([
-                'phone' => 'شماره تلفن یا رمز عبور نادرست است.',
-            ]);
+            throw ValidationException::withMessages([$field => $wrong]);
         }
 
         if (! $user->is_active) {
             throw ValidationException::withMessages([
-                'phone' => 'حساب کاربری شما هنوز فعال نشده است. پس از تایید مدیر مجتمع می‌توانید وارد شوید.',
+                $field => 'حساب کاربری شما هنوز فعال نشده است. پس از تایید مدیر مجتمع می‌توانید وارد شوید.',
             ]);
         }
+
+        /*
+         * حسابِ بی شماره کدِ پیامکی نمی‌گیرد. فقط حسابِ آزمایشی چنین است و فقط بیرون از Production (پیامِ کارفرما
+         * ۲۰۲۶-۱۰-۱۹: «شماره‌ی موبایلِ واقعی برای این حساب‌ها الزامی نباشد»)؛ Preview پشتِ کلیدِ دسترسیِ خودش است.
+         * سوپر ادمینِ بی شماره وارد نمی‌شود: عاملِ دوم ندارد.
+         */
+        if ($user->phone === null) {
+            if ($user->is_demo) {
+                return $this->completeLogin($request, $user, remember: false, otp: $otp);
+            }
+
+            throw ValidationException::withMessages([$field => 'برای این حساب عاملِ دومِ ورود تعریف نشده است.']);
+        }
+
+        $phone = $user->phone;
 
         // ورودِ بدونِ کدِ یک‌بارمصرف (تنظیمِ ادمینِ کل): مرحله‌ی دوم کلاً رد و
         // کاربر مستقیم وارد می‌شود. برای وقتی پنلِ پیامک هنوز آماده نیست.
@@ -124,7 +162,7 @@ class AuthController extends Controller
         $result = $otp->request($phone);
         if (! $result['ok']) {
             throw ValidationException::withMessages([
-                'phone' => $result['error'] ?? 'ارسال کد ورود ناموفق بود.',
+                $field => $result['error'] ?? 'ارسال کد ورود ناموفق بود.',
             ]);
         }
 
@@ -134,10 +172,13 @@ class AuthController extends Controller
             'at' => now()->timestamp,
         ]);
 
+        // با نام کاربری، شماره را کسی نداده؛ پاسخ فقط نسخه‌ی پوشیده‌اش را نشان می‌دهد
+        $shown = $byUsername ? Phone::mask($phone) : $phone;
+
         return response()->json([
             'otpRequired' => true,
-            'phone' => $phone,
-            'message' => 'کد ورود به شماره '.$phone.' ارسال شد.',
+            'phone' => $shown,
+            'message' => 'کد ورود به شماره '.$shown.' ارسال شد.',
             // در حالت تست (درایور log) کد برگردانده می‌شود تا بدون پیامک واقعی هم
             // بتوان ورود را آزمود؛ در حالت واقعی null است.
             'dev_code' => $result['dev_code'] ?? null,
@@ -539,6 +580,11 @@ class AuthController extends Controller
      */
     private function completeLogin(Request $request, User $user, bool $remember, ?OtpService $otp = null): JsonResponse
     {
+        // لایه‌ی آخر (۱۳/۱): هیچ مسیرِ ورودی — رمز، کد، دستگاهِ مورداعتماد — حسابِ آزمایشی را روی Production وارد نمی‌کند
+        if (DemoData::refuses($user)) {
+            throw ValidationException::withMessages(['phone' => self::WRONG_PHONE]);
+        }
+
         Auth::login($user);
 
         // جلوگیری از session fixation. توکن CSRF هم عوض می‌شود، پس تازه‌اش
@@ -548,7 +594,9 @@ class AuthController extends Controller
         // کدهای این شماره پاک می‌شوند تا اگر کاربر بلافاصله بیرون بیاید و دوباره
         // وارد شود، «فاصله‌ی ارسال مجدد» جلوی کدِ تازه را نگیرد و پیامِ «کمی صبر
         // کنید» زیر شماره‌ی موبایل ظاهر نشود.
-        $otp?->clear($user->phone);
+        if ($user->phone !== null) {
+            $otp?->clear($user->phone);
+        }
 
         // رمز همین حالا زده شد؛ پنجره‌ی «تأییدِ دوباره» از همین لحظه باز است
         $this->confirmation->confirm($request);

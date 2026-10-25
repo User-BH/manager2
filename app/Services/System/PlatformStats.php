@@ -13,6 +13,8 @@ use App\Models\Subscription;
 use App\Models\Unit;
 use App\Models\User;
 use App\Support\Jalali;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\DB;
 
 /**
@@ -36,10 +38,18 @@ class PlatformStats
     private const TREND_MONTHS = 6;
 
     /**
+     * دادهٔ آزمایشی به‌طورِ پیش‌فرض بیرون است («داشبورد های آزمایشی» بندِ ۴.۲؛ مرحلهٔ ۱۳ · فاز ۱): هر عدد فقط مجتمع‌ها،
+     * حساب‌ها و ردیف‌های عملیاتی را می‌شمارد، مگر سوپر ادمین صریحاً «شاملِ دادهٔ آزمایشی» را بخواهد.
+     */
+    private bool $includeDemo = false;
+
+    /**
      * @return array<string, mixed>
      */
-    public function all(): array
+    public function all(bool $includeDemo = false): array
     {
+        $this->includeDemo = $includeDemo;
+
         return [
             'complexes' => $this->complexes(),
             'people' => $this->people(),
@@ -52,7 +62,7 @@ class PlatformStats
     /** @return array<string, int> */
     private function complexes(): array
     {
-        $complexes = Complex::withoutGlobalScopes()->get(['id', 'is_active', 'type']);
+        $complexes = $this->realComplexes(Complex::withoutGlobalScopes())->get(['id', 'is_active', 'type']);
 
         return [
             'total' => $complexes->count(),
@@ -66,7 +76,7 @@ class PlatformStats
              */
             'residential' => $complexes->where('type', ComplexType::Residential)->count(),
             'commercial' => $complexes->where('type', ComplexType::Commercial)->count(),
-            'units' => Unit::withoutGlobalScopes()->count(),
+            'units' => $this->real(Unit::withoutGlobalScopes())->count(),
         ];
     }
 
@@ -84,20 +94,20 @@ class PlatformStats
         $since = now()->subDays(30);
 
         return [
-            'total' => User::withoutGlobalScopes()->count(),
-            'active' => User::withoutGlobalScopes()->where('is_active', true)->count(),
+            'total' => $this->realUsers(User::withoutGlobalScopes())->count(),
+            'active' => $this->realUsers(User::withoutGlobalScopes())->where('is_active', true)->count(),
             /*
              * معیارِ «درگیر بودن» از خودِ فعالیت خوانده می‌شود و نه از یک
              * ستونِ `last_seen_at`: چنین ستونی باید در هر درخواست نوشته
              * می‌شد و برای عددی که ماهی یک بار نگاه می‌شود، هزینه‌ی
              * سنگینی است.
              */
-            'engaged' => User::withoutGlobalScopes()
+            'engaged' => $this->realUsers(User::withoutGlobalScopes())
                 ->where(fn ($q) => $q
                     ->whereHas('payments', fn ($p) => $p->where('created_at', '>=', $since))
                     ->orWhereHas('serviceRequests', fn ($r) => $r->where('created_at', '>=', $since)))
                 ->count(),
-            'openRequests' => ServiceRequest::withoutGlobalScopes()->open()->count(),
+            'openRequests' => $this->real(ServiceRequest::withoutGlobalScopes())->open()->count(),
         ];
     }
 
@@ -106,7 +116,7 @@ class PlatformStats
     {
         $period = Jalali::currentPeriod();
 
-        $paid = Payment::withoutGlobalScopes()->where('status', PaymentStatus::Success->value);
+        $paid = $this->real(Payment::withoutGlobalScopes())->where('status', PaymentStatus::Success->value);
 
         return [
             'periodLabel' => Jalali::periodLabel($period),
@@ -115,7 +125,7 @@ class PlatformStats
             'paymentsThisPeriod' => (float) (clone $paid)->where('period', $period)->sum('amount'),
 
             // بدهیِ معوقِ کلِ پلتفرم — مجموعِ ماندهٔ قبض‌های تسویه‌نشده
-            'outstanding' => (float) Bill::withoutGlobalScopes()
+            'outstanding' => (float) $this->real(Bill::withoutGlobalScopes())
                 ->where('status', '!=', 'paid')
                 ->sum(DB::raw('total_amount - paid_amount')),
 
@@ -124,10 +134,10 @@ class PlatformStats
              * این تنها عددی است که به کسب‌وکارِ ما مربوط است؛ بقیه پولِ
              * ساختمان‌هاست که فقط از سامانه رد می‌شود.
              */
-            'subscriptionRevenue' => (float) Subscription::withoutGlobalScopes()
+            'subscriptionRevenue' => (float) $this->real(Subscription::withoutGlobalScopes())
                 ->whereNotNull('paid_at')
                 ->sum('amount'),
-            'activeSubscriptions' => Subscription::withoutGlobalScopes()
+            'activeSubscriptions' => $this->real(Subscription::withoutGlobalScopes())
                 ->whereNotNull('paid_at')
                 ->where('ends_at', '>=', now())
                 ->count(),
@@ -160,9 +170,9 @@ class PlatformStats
     {
         $from = now()->subMonths(self::TREND_MONTHS);
 
-        $complexes = Complex::withoutGlobalScopes()
+        $complexes = $this->realComplexes(Complex::withoutGlobalScopes())
             ->where('created_at', '>=', $from)->pluck('created_at');
-        $users = User::withoutGlobalScopes()
+        $users = $this->realUsers(User::withoutGlobalScopes())
             ->where('created_at', '>=', $from)->pluck('created_at');
 
         $bucket = fn ($dates) => $dates
@@ -187,5 +197,43 @@ class PlatformStats
         }
 
         return $months;
+    }
+
+    /**
+     * ردیف‌هایی که مالِ مجتمعِ آزمایشی نیستند. ردیفِ بی‌مجتمع (مثلاً اشتراکِ پیش از ساختِ مجتمع) عملیاتی است: `NOT IN`
+     * روی `NULL` نتیجه‌ی نامعلوم می‌دهد و آن ردیف را بی‌صدا بیرون می‌انداخت.
+     *
+     * @template TModel of Model
+     *
+     * @param  Builder<TModel>  $query
+     * @return Builder<TModel>
+     */
+    private function real(Builder $query, string $column = 'complex_id'): Builder
+    {
+        if ($this->includeDemo) {
+            return $query;
+        }
+
+        $demo = Complex::withoutGlobalScopes()->select('id')->where('is_demo', true);
+
+        return $query->where(fn (Builder $q) => $q->whereNull($column)->orWhereNotIn($column, $demo));
+    }
+
+    /**
+     * @param  Builder<Complex>  $query
+     * @return Builder<Complex>
+     */
+    private function realComplexes(Builder $query): Builder
+    {
+        return $this->includeDemo ? $query : $query->where('is_demo', false);
+    }
+
+    /**
+     * @param  Builder<User>  $query
+     * @return Builder<User>
+     */
+    private function realUsers(Builder $query): Builder
+    {
+        return $this->includeDemo ? $query : $query->where('is_demo', false);
     }
 }

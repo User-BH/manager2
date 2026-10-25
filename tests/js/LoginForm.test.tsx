@@ -229,6 +229,15 @@ describe('LoginForm', () => {
     await waitFor(() => expect(screen.getByTestId('puzzle-reset')).toHaveTextContent('1'))
   })
 
+  it('پیوندِ «ورود با نام کاربری» به صفحه‌ی جدایش می‌رود (۱۳/۱)', () => {
+    render(<LoginForm />)
+
+    expect(screen.getByRole('link', { name: 'ورود با نام کاربری' })).toHaveAttribute(
+      'href',
+      '/auth/username',
+    )
+  })
+
   it('کپی‌کردن از فیلد رمز مسدود است', async () => {
     const user = userEvent.setup()
     render(<LoginForm />)

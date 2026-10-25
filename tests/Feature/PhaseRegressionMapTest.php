@@ -1433,6 +1433,34 @@ class PhaseRegressionMapTest extends TestCase
             '۱۲/۸: جست‌وجوگرِ چندمجتمعی فقط از زمینه‌ی همین مرورگر' => [
                 'ManagerSearchTest', 'test_one_account_searches_only_from_the_community_of_this_browser', '۱۲',
             ],
+            // مرحلهٔ ۱۳ · فاز ۱ — محیط‌ها، حساب‌های آزمایشی و ورود با نام کاربری (docs/STAGE13_ROADMAP.md)
+            '🔴 ۱۳/۱: حسابِ آزمایشی روی Production وارد نمی‌شود و وجودش لو نمی‌رود' => [
+                'UsernameLoginTest', 'test_a_demo_account_is_refused_in_production_with_the_generic_answer', '۱۳',
+            ],
+            '🔴 ۱۳/۱: نشستِ حسابِ آزمایشی روی Production بریده می‌شود' => [
+                'UsernameLoginTest', 'test_an_existing_demo_session_is_cut_off_in_production', '۱۳',
+            ],
+            '🔴 ۱۳/۱: کاربرِ واقعی با نام کاربری وارد نمی‌شود' => [
+                'UsernameLoginTest', 'test_a_real_user_cannot_sign_in_with_a_username_even_if_one_is_set', '۱۳',
+            ],
+            '🔴 ۱۳/۱: سوپر ادمین با نام کاربری هم کدِ ورود می‌خواهد' => [
+                'UsernameLoginTest', 'test_the_super_admin_signs_in_by_username_and_still_needs_the_code', '۱۳',
+            ],
+            '🔴 ۱۳/۱: نشانگرِ آزمایشی از درخواست نوشته نمی‌شود' => [
+                'UsernameLoginTest', 'test_the_demo_marker_cannot_be_set_from_a_request', '۱۳',
+            ],
+            '🔴 ۱۳/۱: پنج زمینه‌ی مدیرِ آزمایشی دقیقاً طبقِ سند' => [
+                'DemoDataTest', 'test_the_four_accounts_and_the_five_manager_contexts_match_the_spec', '۱۳',
+            ],
+            '🔴 ۱۳/۱: نقشِ مدیر به زمینه‌ی واحد نشت نمی‌کند' => [
+                'DemoDataTest', 'test_the_manager_role_does_not_leak_into_the_unit_contexts', '۱۳',
+            ],
+            '🔴 ۱۳/۱: دادهٔ آزمایشی پیش‌فرض بیرون از فهرست و آمارِ سوپر ادمین' => [
+                'DemoDataTest', 'test_super_admin_lists_and_stats_leave_demo_data_out_by_default', '۱۳',
+            ],
+            '🔴 ۱۳/۱: seed ِ دوباره رمزِ تغییرکرده را برنمی‌گرداند' => [
+                'DemoDataTest', 'test_seeding_again_creates_nothing_and_keeps_a_changed_password', '۱۳',
+            ],
         ];
     }
 
@@ -1476,7 +1504,7 @@ class PhaseRegressionMapTest extends TestCase
         usort($phases, fn (string $a, string $b) => $latin($a) <=> $latin($b));
 
         $this->assertSame(
-            ['۰', '۱', '۲', '۳', '۴', '۵', '۶', '۷', '۸', '۹', '۱۰', '۱۲'],
+            ['۰', '۱', '۲', '۳', '۴', '۵', '۶', '۷', '۸', '۹', '۱۰', '۱۲', '۱۳'],
             $phases,
             '⚠️ فازی از نقشهٔ رگرسیون افتاده است.',
         );

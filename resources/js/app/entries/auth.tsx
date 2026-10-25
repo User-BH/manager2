@@ -12,12 +12,13 @@ import { JoinPage } from '@/features/auth/JoinPage'
 import { takeJoinCodeFromUrl } from '@/features/auth/joinCode'
 
 /*
- * بازیابیِ حساب بی شماره‌ی قبلی (مرحلهٔ ۹) نادر است: تنبل، تا وزن و چانک‌هایش به
- * هر ورودِ معمولی تحمیل نشود (بودجه‌ی باندلِ نشست).
+ * بازیابیِ حساب بی شماره‌ی قبلی (مرحلهٔ ۹) و ورود با نام کاربری (مرحلهٔ ۱۳ · فاز ۱؛ فقط سوپر ادمین و حساب‌های
+ * آزمایشیِ Preview) نادرند: تنبل، و هر دو از **یک** ماژول، تا وزن و چانک‌هایشان به هر ورودِ معمولی تحمیل نشود
+ * (بودجه‌ی باندلِ نشست).
  */
-const RecoverAccountPage = lazy(() =>
-  import('@/features/auth/RecoverAccountPage').then((m) => ({ default: m.RecoverAccountPage })),
-)
+const loadRare = () => import('@/features/auth/rarePages')
+const RecoverAccountPage = lazy(() => loadRare().then((m) => ({ default: m.RecoverAccountPage })))
+const UsernameLoginPage = lazy(() => loadRare().then((m) => ({ default: m.UsernameLoginPage })))
 
 /**
  * Entryِ بخشِ ورود/ثبت‌نام (island).
@@ -61,24 +62,22 @@ createRoot(document.getElementById('root')!).render(
       */}
     <MotionConfig reducedMotion="user">
       <BrowserRouter>
-        <Routes>
-          <Route path="/auth" element={<AuthPage />} />
-          <Route path="/auth/verify" element={<VerifyOtpPage />} />
-          <Route path="/auth/forgot" element={<ForgotPasswordPage />} />
-          {/* بازیابیِ حساب بی شماره‌ی قبلی (مرحلهٔ ۹): فقط ثبتِ درخواست برای ادمینِ کل */}
-          <Route
-            path="/auth/recover"
-            element={
-              <Suspense fallback={null}>
-                <RecoverAccountPage />
-              </Suspense>
-            }
-          />
-          {/* پیوندِ دعوت (مرحلهٔ ۹ · فاز ۶): فقط پیش‌نمایش؛ توکن پس از # */}
-          <Route path="/invite" element={<InvitePage />} />
-          {/* QR ِ ورودِ عمومیِ مجتمع (مرحلهٔ ۱۰ · فاز ۵): نامِ مجتمع و فرستادنِ درخواست؛ کد پس از # */}
-          <Route path="/join" element={<JoinPage />} />
-        </Routes>
+        {/* یک Suspense برای صفحه‌های تنبل؛ بقیه‌ی مسیرها هرگز معلق نمی‌شوند */}
+        <Suspense fallback={null}>
+          <Routes>
+            <Route path="/auth" element={<AuthPage />} />
+            <Route path="/auth/verify" element={<VerifyOtpPage />} />
+            <Route path="/auth/forgot" element={<ForgotPasswordPage />} />
+            {/* بازیابیِ حساب بی شماره‌ی قبلی (مرحلهٔ ۹): فقط ثبتِ درخواست برای ادمینِ کل */}
+            <Route path="/auth/recover" element={<RecoverAccountPage />} />
+            {/* ورود با نام کاربری (۱۳/۱): فقط سوپر ادمین و حساب‌های آزمایشیِ Preview */}
+            <Route path="/auth/username" element={<UsernameLoginPage />} />
+            {/* پیوندِ دعوت (مرحلهٔ ۹ · فاز ۶): فقط پیش‌نمایش؛ توکن پس از # */}
+            <Route path="/invite" element={<InvitePage />} />
+            {/* QR ِ ورودِ عمومیِ مجتمع (مرحلهٔ ۱۰ · فاز ۵): نامِ مجتمع و فرستادنِ درخواست؛ کد پس از # */}
+            <Route path="/join" element={<JoinPage />} />
+          </Routes>
+        </Suspense>
       </BrowserRouter>
     </MotionConfig>
   </StrictMode>,

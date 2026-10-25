@@ -9,6 +9,7 @@ import { useDebounce, useDocumentTitle } from '@/shared/hooks'
 import { useApiAction } from '@/shared/hooks/useAction'
 import { api } from '@/shared/lib/api'
 import { queryKeys } from '@/shared/lib/queryKeys'
+import { formatNumber } from '@/shared/lib/format'
 
 interface Member {
   id: number
@@ -19,12 +20,23 @@ interface Member {
   isActive: boolean
   complex: { id: number; name: string } | null
   registeredAt: string
+  isDemo: boolean
+}
+
+/** حسابِ آزمایشیِ قابلِ ورود («داشبورد های آزمایشی» بندِ ۴.۱) — فقط روی Preview هست */
+interface DemoAccount {
+  id: number
+  name: string
+  username: string
+  communities: number
 }
 
 interface MembersResponse {
   data: Member[]
   meta: { total: number; page: number; lastPage: number }
   roles: { value: string; label: string }[]
+  // سرورِ پیش از ۱۳/۱ این کلید را نمی‌فرستد (نسخه‌های ناهم‌زمانِ کلاینت و سرور)
+  demoAccounts?: DemoAccount[]
 }
 
 /**
@@ -48,13 +60,16 @@ export function MembersPage() {
    * فقط صفحه‌ی اول خواسته می‌شد؛ عضوِ بیست‌ویکم جز با جست‌وجو دیده نمی‌شد.
    */
   const [page, setPage] = useState(1)
+  // دادهٔ آزمایشی پیش‌فرض بیرون است و سرور کنارش می‌گذارد (۱۳/۱)
+  const [includeDemo, setIncludeDemo] = useState(false)
 
   const { data, error, isLoading, refetch } = useQuery({
-    queryKey: queryKeys.members.list({ q: deferredQuery, page }),
+    queryKey: queryKeys.members.list({ q: deferredQuery, page, includeDemo }),
     queryFn: ({ signal }) =>
-      api<MembersResponse>(`/system/members?q=${encodeURIComponent(deferredQuery)}&page=${page}`, {
-        signal,
-      }),
+      api<MembersResponse>(
+        `/system/members?q=${encodeURIComponent(deferredQuery)}&page=${page}${includeDemo ? '&include_demo=1' : ''}`,
+        { signal },
+      ),
     placeholderData: keepPreviousData,
   })
 
@@ -127,6 +142,70 @@ export function MembersPage() {
         </p>
       </header>
 
+      {data?.demoAccounts && data.demoAccounts.length > 0 && (
+        <section
+          aria-label="حساب‌های آزمایشی"
+          className="rounded-2xl border-2 border-dashed p-4"
+          style={{
+            borderColor: 'var(--color-brand-500)',
+            backgroundColor: 'color-mix(in srgb, var(--color-brand-500) 6%, transparent)',
+          }}
+        >
+          <h2
+            className="flex items-center gap-2 text-[14px] font-extrabold"
+            style={{ color: 'var(--text-primary)' }}
+          >
+            <UserCog size={16} style={{ color: 'var(--color-brand-600)' }} />
+            حساب‌های آزمایشی
+          </h2>
+          <p className="mt-1 text-[12px]" style={{ color: 'var(--text-tertiary)' }}>
+            برای بررسیِ داشبوردها؛ داده‌شان ساختگی است و در آمار و فهرستِ عادی شمرده نمی‌شود.
+          </p>
+          <ul className="mt-3 grid gap-2 sm:grid-cols-3">
+            {data.demoAccounts.map((account) => (
+              <li
+                key={account.id}
+                className="rounded-xl border p-3"
+                style={{
+                  borderColor: 'var(--border-subtle)',
+                  backgroundColor: 'var(--surface-base)',
+                }}
+              >
+                <span
+                  className="block text-[13px] font-bold"
+                  style={{ color: 'var(--text-primary)' }}
+                >
+                  {account.name}
+                </span>
+                <span className="mt-1 block text-[12px]" style={{ color: 'var(--text-tertiary)' }}>
+                  <span dir="ltr">{account.username}</span>
+                  {' · '}
+                  {account.communities === 0
+                    ? 'بی مجتمع'
+                    : `${formatNumber(account.communities)} مجتمع`}
+                </span>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+
+      <label
+        className="flex items-center gap-1.5 text-[12px]"
+        style={{ color: 'var(--text-secondary)' }}
+      >
+        <input
+          type="checkbox"
+          className="h-4 w-4 rounded"
+          checked={includeDemo}
+          onChange={(e) => {
+            setIncludeDemo(e.target.checked)
+            setPage(1)
+          }}
+        />
+        شامل داده‌ی آزمایشی
+      </label>
+
       {/* جست‌وجو */}
       <div className="relative">
         <Search
@@ -169,6 +248,17 @@ export function MembersPage() {
                     </span>
                     {member.role === 'super_admin' && (
                       <ShieldCheck size={14} style={{ color: 'var(--color-brand-500)' }} />
+                    )}
+                    {member.isDemo && (
+                      <span
+                        className="rounded-full px-2 py-0.5 text-[10.5px] font-bold"
+                        style={{
+                          backgroundColor: 'var(--surface-sunken)',
+                          color: 'var(--text-secondary)',
+                        }}
+                      >
+                        آزمایشی
+                      </span>
                     )}
                   </div>
                   <div

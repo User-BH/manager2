@@ -37,6 +37,8 @@ class MemberResource extends JsonResource
             'isActive' => (bool) $user->is_active,
             'complex' => $user->complex ? ['id' => $user->complex->id, 'name' => $user->complex->name] : null,
             'registeredAt' => Jalali::date($user->created_at),
+            // نشانگرِ سمتِ سرورِ دادهٔ آزمایشی (۱۳/۱)؛ فقط با «شاملِ دادهٔ آزمایشی» در فهرست می‌آید
+            'isDemo' => (bool) $user->is_demo,
         ];
     }
 }

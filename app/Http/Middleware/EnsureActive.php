@@ -2,6 +2,7 @@
 
 namespace App\Http\Middleware;
 
+use App\Support\DemoData;
 use Closure;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -9,6 +10,9 @@ use Symfony\Component\HttpFoundation\Response;
 
 /**
  * حسابی که غیرفعال شده باید همان لحظه از نشست بیرون بیاید.
+ *
+ * حسابِ آزمایشی روی Production هم (مرحلهٔ ۱۳ · فاز ۱؛ `DemoData`): اگر چنین حسابی از راهی (بازیابیِ نادرست، کپیِ دستی)
+ * نشستی داشته باشد، همان رفتارِ حسابِ غیرفعال را می‌گیرد — هیچ درخواستِ بعدی به داده‌ی واقعی نمی‌رسد.
  */
 class EnsureActive
 {
@@ -16,7 +20,7 @@ class EnsureActive
 
     public function handle(Request $request, Closure $next): Response
     {
-        if (($user = $request->user()) && ! $user->is_active) {
+        if (($user = $request->user()) && (! $user->is_active || DemoData::refuses($user))) {
             Auth::logout();
             $request->session()->invalidate();
             $request->session()->regenerateToken();

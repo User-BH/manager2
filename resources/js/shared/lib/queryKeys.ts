@@ -156,7 +156,8 @@ export const queryKeys = {
   // ── پنلِ ادمینِ کل ────────────────────────────────────────────────────────
   members: {
     all: () => ['members'] as const,
-    list: (params: { q?: string; page?: number } = {}) => ['members', 'list', params] as const,
+    list: (params: { q?: string; page?: number; includeDemo?: boolean } = {}) =>
+      ['members', 'list', params] as const,
   },
 
   // دعوت‌های دریافتیِ کاربر در «حالتِ اولیه» (R21)
@@ -192,7 +193,8 @@ export const queryKeys = {
     ads: () => ['system', 'ads'] as const,
     auditLogs: (params: { query?: string } = {}) => ['system', 'audit-logs', params] as const,
     backups: () => ['system', 'backups'] as const,
-    complexes: (params: { page?: number } = {}) => ['system', 'complexes', params] as const,
+    complexes: (params: { page?: number; includeDemo?: boolean } = {}) =>
+      ['system', 'complexes', params] as const,
     plans: () => ['system', 'plans'] as const,
     siteSettings: () => ['system', 'site-settings'] as const,
     // صفِ بازخوردهای صفحه‌ی پشتیبانی (مرحلهٔ ۷ · فاز ۴)

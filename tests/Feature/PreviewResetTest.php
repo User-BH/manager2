@@ -33,7 +33,10 @@ class PreviewResetTest extends TestCase
         parent::tearDown();
     }
 
-    /** پایگاه‌داده‌ی خالی ← ساخته، برچسب‌خورده، با چهار حسابِ آزمایشی؛ اجرای دوباره هم مجاز. */
+    /**
+     * پایگاه‌داده‌ی خالی ← ساخته، برچسب‌خورده، با چهار حسابِ آزمایشیِ «داشبورد های آزمایشی» (مرحلهٔ ۱۳ · فاز ۱):
+     * نام کاربری، بی شماره، نشانگرِ آزمایشی؛ رمزِ هر حساب فقط یک بار در خروجی. اجرای دوباره هم مجاز.
+     */
     public function test_reset_builds_a_marked_database_with_the_four_test_accounts(): void
     {
         $run = $this->artisan_('preview');
@@ -42,18 +45,72 @@ class PreviewResetTest extends TestCase
         $db = $this->pdo();
         $this->assertSame('preview', $db->query("select value from settings where complex_id is null and key = 'database_role'")->fetchColumn());
 
-        $roles = $db->query("select phone, role, complex_id from users where phone in ('09120000001','09120000002','09120000000','09121111101')")
-            ->fetchAll(PDO::FETCH_ASSOC);
-        $byPhone = array_column($roles, null, 'phone');
-        $this->assertSame('super_admin', $byPhone['09120000001']['role']);
-        $this->assertNull($byPhone['09120000002']['complex_id'], 'حسابِ ثبت‌نامِ اولیه نباید مجتمع داشته باشد.');
-        $this->assertSame('complex_admin', $byPhone['09120000000']['role']);
-        $this->assertNotNull($byPhone['09121111101']['complex_id'], 'حسابِ واحد مجتمع ندارد.');
+        $accounts = array_column($db->query('select id, username, phone, role, complex_id, is_demo from users where username is not null')
+            ->fetchAll(PDO::FETCH_ASSOC), null, 'username');
+        $this->assertSame(['demo.admin', 'demo.initial', 'demo.manager', 'demo.unit'], array_keys($this->sorted($accounts)));
+        $this->assertSame('super_admin', $accounts['demo.admin']['role']);
+        $this->assertNull($accounts['demo.initial']['complex_id'], 'حسابِ ثبت‌نامِ اولیه نباید مجتمع داشته باشد.');
+        $this->assertSame('complex_admin', $accounts['demo.manager']['role']);
+        foreach ($accounts as $username => $row) {
+            $this->assertNull($row['phone'], "حسابِ آزمایشیِ {$username} شماره‌ی موبایل دارد.");
+            $this->assertSame(1, (int) $row['is_demo'], "حسابِ {$username} نشانگرِ آزمایشی ندارد.");
+            $this->assertStringContainsString($username, $run->output(), "رمزِ {$username} یک بار چاپ نشد.");
+        }
+
+        $memberships = (int) $db->query("select count(*) from complex_memberships where status = 'active' and user_id = ".(int) $accounts['demo.manager']['id'])->fetchColumn();
+        $this->assertSame(5, $memberships, 'حسابِ مدیرِ آزمایشی باید پنج عضویتِ مستقل داشته باشد.');
+        $this->assertSame(0, (int) $db->query('select count(*) from users where is_demo = 0')->fetchColumn(), 'حسابِ بی‌نشانگر در Preview ساخته شد.');
 
         // اجرای دوباره روی پایگاه‌داده‌ی برچسب‌دار: مجاز، و باز همان چهار حساب
         $again = $this->artisan_('preview');
         $this->assertTrue($again->successful(), $again->errorOutput());
-        $this->assertSame(4, (int) $this->pdo()->query("select count(*) from users where phone in ('09120000001','09120000002','09120000000','09121111101')")->fetchColumn());
+        $this->assertSame(4, (int) $this->pdo()->query('select count(*) from users where username is not null')->fetchColumn());
+    }
+
+    /**
+     * `preview:seed` چیزی پاک نمی‌کند و رمزِ تغییرکرده را برنمی‌گرداند («داشبورد های آزمایشی» بندِ ۶.۳)؛ چیزِ تکراری
+     * هم نمی‌سازد.
+     */
+    public function test_seeding_again_keeps_changed_passwords_and_creates_no_duplicates(): void
+    {
+        $this->assertTrue($this->artisan_('preview')->successful());
+
+        $db = $this->pdo();
+        $db->exec("update users set password = 'changed-by-the-reviewer' where username = 'demo.unit'");
+        $counts = fn (): array => [
+            (int) $this->pdo()->query('select count(*) from users')->fetchColumn(),
+            (int) $this->pdo()->query('select count(*) from complexes')->fetchColumn(),
+            (int) $this->pdo()->query('select count(*) from complex_memberships')->fetchColumn(),
+            (int) $this->pdo()->query('select count(*) from bills')->fetchColumn(),
+        ];
+        $before = $counts();
+
+        $seed = $this->process(['preview:seed', '--no-interaction'], 'preview');
+        $this->assertTrue($seed->successful(), $seed->output().$seed->errorOutput());
+
+        $this->assertSame('changed-by-the-reviewer', $this->pdo()->query("select password from users where username = 'demo.unit'")->fetchColumn());
+        $this->assertSame($before, $counts(), 'اجرای دوباره چیزِ تکراری ساخت.');
+        $this->assertStringNotContainsString('demo.unit', $seed->output(), 'رمزِ حسابِ موجود دوباره چاپ شد.');
+    }
+
+    /** `preview:seed` روی محصول و روی پایگاه‌داده‌ی بی‌برچسب کاری نمی‌کند. */
+    public function test_seeding_refuses_outside_a_marked_preview(): void
+    {
+        $this->assertFalse($this->process(['preview:seed', '--no-interaction'], 'production')->successful());
+        $this->assertTrue($this->process(['migrate', '--force'], 'local')->successful());
+        $this->assertFalse($this->process(['preview:seed', '--no-interaction'], 'preview')->successful());
+        $this->assertSame(0, (int) $this->pdo()->query('select count(*) from users')->fetchColumn());
+    }
+
+    /**
+     * @param  array<string, mixed>  $rows
+     * @return array<string, mixed>
+     */
+    private function sorted(array $rows): array
+    {
+        ksort($rows);
+
+        return $rows;
     }
 
     /** پایگاه‌داده‌ی بی‌برچسبی که کاربر دارد (شاید محصول) دست نمی‌خورد. */

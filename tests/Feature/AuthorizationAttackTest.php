@@ -625,8 +625,10 @@ class AuthorizationAttackTest extends TestCase
         'app/Jobs/BuildBillsBundleJob.php' => [3, 'صف؛ زمینه‌ی مستأجری در worker وجود ندارد'],
 
         // ── پلتفرم: عمداً فرامجتمعی، و پشتِ نقشِ super_admin ──
-        'app/Services/System/PlatformStats.php' => [14, 'آمارِ کلِ پلتفرم؛ فقط ادمینِ کل'],
-        'app/Http/Controllers/Api/System/MemberController.php' => [3, 'فهرستِ کاربرانِ همه‌ی مجتمع‌ها؛ role:super_admin'],
+        // ۱۳/۱: +۱ برای زیرپرسشِ «مجتمع‌های آزمایشی» که از همه‌ی آمارها کنار گذاشته می‌شوند
+        'app/Services/System/PlatformStats.php' => [15, 'آمارِ کلِ پلتفرم؛ فقط ادمینِ کل'],
+        // ۱۳/۱: +۱ برای بخشِ «حساب‌های آزمایشی» (حساب‌های نشان‌دارِ همه‌ی مجتمع‌ها)
+        'app/Http/Controllers/Api/System/MemberController.php' => [4, 'فهرستِ کاربرانِ همه‌ی مجتمع‌ها؛ role:super_admin'],
         // ۱۲/۴: پکیجِ فروخته‌شده حذف نمی‌شود — «فروخته شده؟» در همه‌ی مجتمع‌ها سنجیده می‌شود؛ پنلِ ادمینِ کل زمینه‌ی مجتمع ندارد
         'app/Http/Controllers/Api/System/PlanController.php' => [2, 'آیا پکیج در هیچ مجتمعی اشتراک یا قصدِ خرید دارد؛ role:super_admin، فقط exists'],
 
