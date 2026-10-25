@@ -5,6 +5,7 @@ import { ArrowLeft, PlayCircle } from 'lucide-react'
 import { heroHighlights } from '@/features/landing/content/landingContent'
 import { heroImages as imageUrls } from '@/shared/constants/images'
 import { isViewerAuthenticated } from '@/shared/lib/viewer'
+import { HeroInstallButton } from '@/shared/pwa/HeroInstallButton'
 
 export function HeroSection() {
   const navigate = useNavigate()
@@ -96,6 +97,8 @@ export function HeroSection() {
               <PlayCircle size={18} />
               مشاهده دمو
             </button>
+            {/* نصبِ اپلیکیشن (۱۳/۲): کم‌وزن‌تر از دو دکمه‌ی اصلی، و فقط با قابلیتِ واقعیِ مرورگر */}
+            <HeroInstallButton />
           </motion.div>
 
           <motion.div

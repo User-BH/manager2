@@ -12,6 +12,7 @@ import {
 } from '@/features/landing/home/components/GallerySwiperSection'
 import { GalleryLightbox } from '@/features/landing/home/components/GalleryLightbox'
 import { InstallPrompt } from '@/shared/pwa/InstallPrompt'
+import { promptInstall } from '@/shared/pwa/installEvent'
 import { features } from '@/features/landing/content/landingContent'
 import { PANEL_TOUR } from '@/features/landing/content/sections'
 import { buildingPhotos, panelTourItems } from '@/shared/constants/images'
@@ -374,8 +375,10 @@ describe('پیشنهادِ نصب', () => {
 
   beforeEach(() => vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] }))
 
-  afterEach(() => {
+  afterEach(async () => {
     vi.useRealTimers()
+    // رویدادِ نصب از ۱۳/۲ در انباره‌ی سطحِ ماژول است؛ رویدادِ مانده‌ی هر آزمون با همان مسیرِ واقعیِ کلیک مصرف می‌شود
+    await promptInstall()
     if (ua) Object.defineProperty(window.navigator, 'userAgent', ua)
     else delete (window.navigator as { userAgent?: string }).userAgent
     delete (window.navigator as { standalone?: boolean }).standalone

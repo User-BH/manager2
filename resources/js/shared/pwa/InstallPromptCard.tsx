@@ -1,6 +1,7 @@
 import { motion } from 'framer-motion'
 import { Download, Share, X } from 'lucide-react'
 import type { InstallGuide } from './installState'
+import { GUIDE_STEPS } from './installGuides'
 
 /**
  * خودِ کارتِ پیشنهادِ نصب — **تنبل** (مرحلهٔ ۷ · فاز ۵).
@@ -12,23 +13,6 @@ import type { InstallGuide } from './installState'
  * دانلود می‌شوند که واقعاً لازم‌اند — در همان مکثِ کوتاهِ پیش از نمایش.
  * بودجه‌ی باندلِ پشتیبانی و دمو همین را گرفت.
  */
-/**
- * راهنمای مرورگرهای بی‌رویداد (مرحلهٔ ۸ · فاز ۲). این مرورگرها نمی‌توانند
- * بگویند ساکنا نصب است یا نه، پس متن **مشروط** است و دکمه‌ی «نصب» ندارد —
- * فقط «متوجه شدم».
- */
-const GUIDE_STEPS: Record<InstallGuide, React.ReactNode> = {
-  ios: (
-    <>
-      دکمه‌ی اشتراک‌گذاری{' '}
-      <Share className="inline h-3.5 w-3.5 align-[-2px]" aria-label="اشتراک‌گذاری" /> را بزنید و
-      «Add to Home Screen» را انتخاب کنید.
-    </>
-  ),
-  'macos-safari': <>از منوی File گزینه‌ی «Add to Dock» را انتخاب کنید.</>,
-  'firefox-android': <>از منوی ⋮ گزینه‌ی «Install» یا «Add to Home screen» را انتخاب کنید.</>,
-}
-
 export default function InstallPromptCard({
   placement,
   guide,
