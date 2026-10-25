@@ -81,10 +81,47 @@ async function signIn(
   }, ownerFor(project))
 }
 
+/**
+ * نشستِ واردشده‌ی همین موتور برای آزمون‌هایی که موضوعشان ورود نیست (۲۰۲۶-۱۰-۲۶).
+ *
+ * ⚠️ چرا: هر ورود یک درخواستِ `/api/login` است و همه‌ی ورودهای E2E از یک IP (`127.0.0.1`) می‌آیند؛ سقفِ ۲۰ ورود در
+ * دقیقه برای هر IP (`AppServiceProvider`، کنترلِ امنیتیِ واقعی که دست نمی‌خورد) در CI ِ `45347ff` روی فایرفاکس پر شد و
+ * «پرداخت از کیف» دو بار ۴۲۹ گرفت. ورود خودش را آزمونِ اول ثابت می‌کند و آزمونِ خروج با نشستِ تازه‌ی خودش؛ بقیه همان
+ * نشست را دوباره به کار می‌برند — اگر سرور آن را نشناسد (`/api/v1/me` تهی)، ورودِ تازه.
+ */
+const sessions = new Map<
+  string,
+  Awaited<ReturnType<import('@playwright/test').BrowserContext['cookies']>>
+>()
+
+async function signedIn(
+  page: import('@playwright/test').Page,
+  project: string,
+): Promise<{ status: number; body: string }> {
+  const saved = sessions.get(project)
+  if (saved) {
+    await page.context().addCookies(saved)
+    await page.goto('/')
+    const known = await page.evaluate(async () => {
+      const res = await fetch('/api/v1/me', {
+        credentials: 'include',
+        headers: { Accept: 'application/json' },
+      })
+      return ((await res.json()) as { user: unknown }).user !== null
+    })
+    if (known) return { status: 200, body: 'نشستِ همین موتور' }
+  }
+
+  const login = await signIn(page, project)
+  if (login.status === 200) sessions.set(project, await page.context().cookies())
+  return login
+}
+
 test.describe('سفرِ مالی', () => {
   test('ساکن وارد می‌شود و قبض‌هایش را می‌بیند', async ({ page }, testInfo) => {
     const login = await signIn(page, testInfo.project.name)
     expect(login.status, `ورود ناموفق: ${login.body}`).toBe(200)
+    sessions.set(testInfo.project.name, await page.context().cookies())
 
     await page.goto('/my-bills')
 
@@ -102,7 +139,7 @@ test.describe('سفرِ مالی', () => {
   })
 
   test('پرداختِ آنلاین از درگاهِ ساختگی تا نتیجه', async ({ page }, testInfo) => {
-    const login = await signIn(page, testInfo.project.name)
+    const login = await signedIn(page, testInfo.project.name)
     expect(login.status, `ورود ناموفق: ${login.body}`).toBe(200)
 
     await page.goto('/my-bills')
@@ -171,7 +208,7 @@ test.describe('سفرِ مالی', () => {
   })
 
   test('پرداختِ ثبت‌شده در تاریخچه دیده می‌شود', async ({ page }, testInfo) => {
-    const login = await signIn(page, testInfo.project.name)
+    const login = await signedIn(page, testInfo.project.name)
     expect(login.status, `ورود ناموفق: ${login.body}`).toBe(200)
 
     /*
@@ -223,7 +260,7 @@ test.describe('سفرِ مالی', () => {
    * پیامِ روشن قرمز می‌شود — نه سبزِ بی‌معنا.
    */
   test('قبض از کیفِ پول پرداخت می‌شود', async ({ page }, testInfo) => {
-    const login = await signIn(page, testInfo.project.name)
+    const login = await signedIn(page, testInfo.project.name)
     expect(login.status, `ورود ناموفق: ${login.body}`).toBe(200)
 
     const unpaid = await page.evaluate(async () => {
