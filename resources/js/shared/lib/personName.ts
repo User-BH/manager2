@@ -1,4 +1,4 @@
-import { z } from 'zod'
+import { z } from 'zod/mini'
 import type { FilterResult } from './inputFilters'
 
 /**
@@ -14,6 +14,10 @@ import type { FilterResult } from './inputFilters'
  * همین فایل یک چانکِ ‎۷۰۶ بایتیِ مشترک ساخت و صفحه‌ی پشتیبانی از سقفِ بودجه‌ی
  * باندل و تعدادِ فایل گذشت (اندازه‌گیری‌شده). هم‌سانیِ دو نسخه را
  * `personName.test.ts` می‌سنجد، و سرور فقط یک قاعده دارد (`PersianName`).
+ *
+ * ⚠️ `zod/mini` و نه `zod` (به‌روزرسانیِ امنیتیِ zod ۴.۶.۶، ۲۰۲۶-۱۰-۲۵): این فایل در بارگذاریِ اولِ صفحه است و
+ * نسخه‌ی کاملِ zod از ۴.۵ به بعد مولدِ JSON Schema و پیام‌های انگلیسی را همیشه با خود می‌آورد (حدودِ ۶٫۵ کیلوبایتِ
+ * gzip). قاعده‌ها و پیام‌ها عیناً همان‌اند؛ صفحه‌های تنبل همچنان `zod` ِ کامل را به کار می‌برند.
  */
 export const PERSIAN_NAME_PATTERN = /^[ء-غف-يپچژکگی‌ ]+$/
 
@@ -44,9 +48,11 @@ export function filterPersianName(value: string): FilterResult {
 export function personNamePart(label: 'نام' | 'نام خانوادگی') {
   return z
     .string()
-    .trim()
-    .min(1, `${label} را وارد کنید.`)
-    .min(2, `${label} دست‌کم ۲ حرف است.`)
-    .max(NAME_PART_MAX, `${label} بیش از ${NAME_PART_MAX} حرف است.`)
-    .regex(PERSIAN_NAME_PATTERN, `${label} فقط با حروف فارسی نوشته شود.`)
+    .check(
+      z.trim(),
+      z.minLength(1, `${label} را وارد کنید.`),
+      z.minLength(2, `${label} دست‌کم ۲ حرف است.`),
+      z.maxLength(NAME_PART_MAX, `${label} بیش از ${NAME_PART_MAX} حرف است.`),
+      z.regex(PERSIAN_NAME_PATTERN, `${label} فقط با حروف فارسی نوشته شود.`),
+    )
 }
