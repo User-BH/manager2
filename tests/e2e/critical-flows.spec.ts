@@ -335,6 +335,12 @@ test.describe('تم و تاریخچه', () => {
 
     await page.locator('button[type="submit"]:visible').click()
     await page.waitForURL(/\/dashboard/, { timeout: 15_000 })
+    /*
+     * ⚠️ صبر تا داشبورد بالا بیاید (۲۰۲۶-۱۰-۲۵): `BrowserRouter` هنگامِ رندرِ اول `history.replaceState` می‌زند (ناوبریِ
+     * هم‌سندِ دوم به `/dashboard`، ۲۰ تا ۵۰ms پس از رسیدنِ نشانی). «بازگشت» ِ درست وسطِ آن در WebKit گاهی گم می‌شد و
+     * آزمون در CI ناپایدار بود (`failOnFlakyTests`). ادعای آزمون — فرمِ ورود در تاریخچه نیست — همان است.
+     */
+    await page.waitForLoadState('networkidle')
 
     // 🔴 پیش از این `assign` بود و «بازگشت» دوباره فرمِ ورود را نشان می‌داد
     await page.goBack()
