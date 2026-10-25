@@ -3,6 +3,7 @@
 namespace App\Support;
 
 use App\Models\User;
+use Illuminate\Http\Request;
 
 /**
  * مرزِ دادهٔ آزمایشی (مرحلهٔ ۱۳ · فاز ۱؛ «داشبورد های آزمایشی» بندِ ۴.۳، پیامِ کارفرما ۲۰۲۶-۱۰-۱۹ بخش‌های ۲ و ۳).
@@ -22,5 +23,14 @@ final class DemoData
     public static function refuses(User $user): bool
     {
         return $user->is_demo && ! self::allowedHere();
+    }
+
+    /**
+     * «شاملِ دادهٔ آزمایشی» در فهرست و آمارِ سوپر ادمین (دستورِ ۲۰۲۶-۱۰-۲۵، بخشِ دوم): فقط با درخواستِ صریح و فقط
+     * بیرون از Production. روی Production پارامترِ `include_demo` بی‌اثر است — هر چه client بفرستد.
+     */
+    public static function included(Request $request): bool
+    {
+        return self::allowedHere() && $request->boolean('include_demo');
     }
 }

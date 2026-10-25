@@ -9,6 +9,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\ForgotPasswordRequest;
 use App\Http\Requests\ForgotVerifyRequest;
 use App\Http\Requests\LoginRequest;
+use App\Http\Requests\LoginTwoFactorRequest;
 use App\Http\Requests\LoginVerifyRequest;
 use App\Http\Requests\RegisterRequest;
 use App\Http\Requests\RegisterVerifyRequest;
@@ -21,6 +22,7 @@ use App\Models\LoginEvent;
 use App\Models\User;
 use App\Services\Account\Membership;
 use App\Services\Account\ProfilePhoto;
+use App\Services\Auth\AdminTwoFactor;
 use App\Services\Auth\LoginRecorder;
 use App\Services\Auth\OtpService;
 use App\Services\Auth\PasswordConfirmation;
@@ -29,6 +31,7 @@ use App\Services\Auth\TrustedDeviceService;
 use App\Services\Messenger\Presence;
 use App\Support\Audit;
 use App\Support\DemoData;
+use App\Support\Jalali;
 use App\Support\PersianName;
 use App\Support\Phone;
 use App\Support\SystemSettings;
@@ -38,6 +41,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Validation\ValidationException;
 
 /**
@@ -54,11 +58,27 @@ class AuthController extends Controller
 
     public const WRONG_USERNAME = 'نام کاربری یا رمز عبور نادرست است.';
 
+    /** مرحله‌ی دومِ ورودِ در انتظار: کدِ پیامکی یا کدِ برنامه‌ی Authenticator ِ سوپر ادمین */
+    private const FACTOR_SMS = 'sms';
+
+    private const FACTOR_TOTP = 'totp';
+
+    /** چالشِ TOTP: مهلت و شمارِ تلاشِ نادرست پیش از بازگشت به گامِ رمز */
+    private const TOTP_PENDING_SECONDS = 300;
+
+    private const TOTP_ATTEMPTS = 5;
+
+    /** قفلِ هر حساب پس از تلاش‌های نادرستِ پیاپی، مستقل از نشست و IP */
+    private const TOTP_LOCK_ATTEMPTS = 10;
+
+    private const TOTP_LOCK_SECONDS = 900;
+
     public function __construct(
         protected TrustedDeviceService $devices,
         protected LoginRecorder $recorder,
         protected PasswordConfirmation $confirmation,
         protected SessionRegistry $sessions,
+        protected AdminTwoFactor $twoFactor,
     ) {}
 
     /** کاربر واردشده‌ی فعلی، یا null برای مهمان. */
@@ -133,6 +153,21 @@ class AuthController extends Controller
         }
 
         /*
+         * 🔴 سوپر ادمین با TOTP (۲۰۲۶-۱۰-۲۵، بخشِ ۵): پس از رمز **همیشه** کدِ برنامه‌ی Authenticator — با هر شناسه، با
+         * `otp_disabled` یا بی آن؛ دستگاهِ مورداعتماد هم ندارد. هیچ شاخه‌ی پایین‌تری (پیامک، ورودِ بی کد) به او نمی‌رسد.
+         */
+        if ($this->twoFactor->enabled($user)) {
+            return $this->startTwoFactor($request, $user);
+        }
+
+        // سوپر ادمینِ Production بی TOTP فقط با کدِ پیامکی تا راه‌اندازی؛ بی پیامک، ورود فقط با رمز هرگز
+        if ($this->twoFactor->setupRequired($user) && ($user->phone === null || SystemSettings::get('otp_disabled', false))) {
+            throw ValidationException::withMessages([
+                $field => 'ورودِ دومرحله‌ایِ این حساب هنوز راه‌اندازی نشده و کدِ پیامکی هم در دسترس نیست. عاملِ دوم را با فرمانِ «php artisan admin:two-factor» روی سرور فعال کنید.',
+            ]);
+        }
+
+        /*
          * حسابِ بی شماره کدِ پیامکی نمی‌گیرد. فقط حسابِ آزمایشی چنین است و فقط بیرون از Production (پیامِ کارفرما
          * ۲۰۲۶-۱۰-۱۹: «شماره‌ی موبایلِ واقعی برای این حساب‌ها الزامی نباشد»)؛ Preview پشتِ کلیدِ دسترسیِ خودش است.
          * سوپر ادمینِ بی شماره وارد نمی‌شود: عاملِ دوم ندارد.
@@ -170,6 +205,7 @@ class AuthController extends Controller
             'user_id' => $user->id,
             'remember' => $request->boolean('remember'),
             'at' => now()->timestamp,
+            'factor' => self::FACTOR_SMS,
         ]);
 
         // با نام کاربری، شماره را کسی نداده؛ پاسخ فقط نسخه‌ی پوشیده‌اش را نشان می‌دهد
@@ -194,7 +230,8 @@ class AuthController extends Controller
 
         $pending = $request->session()->get('login.pending');
 
-        if (! $pending) {
+        // مرحله‌ی دومِ پیامکی فقط برای ورودی که با پیامک شروع شد — نه برای چالشِ TOTP
+        if (! $pending || ($pending['factor'] ?? self::FACTOR_SMS) !== self::FACTOR_SMS) {
             throw ValidationException::withMessages([
                 'code' => 'مهلت ورود تمام شده است. دوباره با رمز عبور وارد شوید.',
             ]);
@@ -204,6 +241,12 @@ class AuthController extends Controller
         if (! $user || ! $user->is_active) {
             $request->session()->forget('login.pending');
             throw ValidationException::withMessages(['code' => 'حساب کاربری در دسترس نیست.']);
+        }
+
+        // سوپر ادمینی که میانِ دو گام TOTP را فعال کرد با کدِ پیامکی وارد نمی‌شود
+        if ($this->twoFactor->enabled($user)) {
+            $request->session()->forget('login.pending');
+            throw ValidationException::withMessages(['code' => 'مهلت ورود تمام شده است. دوباره با رمز عبور وارد شوید.']);
         }
 
         if (! $otp->verify($user->phone, $request->input('code'))) {
@@ -220,12 +263,94 @@ class AuthController extends Controller
     }
 
     /**
+     * گام ۲ ِ ورودِ سوپر ادمین با TOTP: کدِ برنامه‌ی Authenticator یا یک کدِ بازیابیِ یک‌بارمصرف.
+     *
+     * - چالش فقط از گامِ رمزِ همین نشست می‌آید و پنج دقیقه زنده است؛ پنج کدِ نادرست ← بازگشت به گامِ رمز.
+     * - مستقل از نشست و IP، هر حساب پس از ده کدِ نادرست ۱۵ دقیقه قفل است — نشستِ تازه یا IP ِ دیگر شمارش را صفر
+     *   نمی‌کند.
+     * - کدِ پذیرفته‌شده دوباره پذیرفته نمی‌شود (`two_factor_last_step`)؛ کدِ بازیابی پس از مصرف از فهرست بیرون می‌رود.
+     */
+    public function loginTwoFactor(LoginTwoFactorRequest $request, OtpService $otp): JsonResponse
+    {
+        $data = $request->validated();
+        $field = filled($data['recovery_code'] ?? null) ? 'recovery_code' : 'code';
+        $expired = 'مهلت ورود تمام شده است. دوباره با رمز عبور وارد شوید.';
+
+        $pending = $request->session()->get('login.pending');
+        if (! $pending || ($pending['factor'] ?? null) !== self::FACTOR_TOTP
+            || now()->timestamp - (int) $pending['at'] > self::TOTP_PENDING_SECONDS) {
+            $request->session()->forget('login.pending');
+            throw ValidationException::withMessages([$field => $expired]);
+        }
+
+        $user = User::find($pending['user_id']);
+        if (! $user || ! $user->is_active || DemoData::refuses($user) || ! $this->twoFactor->enabled($user)) {
+            $request->session()->forget('login.pending');
+            throw ValidationException::withMessages([$field => $expired]);
+        }
+
+        $lock = 'two-factor:'.$user->id;
+        if (RateLimiter::tooManyAttempts($lock, self::TOTP_LOCK_ATTEMPTS)) {
+            return response()->json([
+                'message' => 'تلاش‌های نادرستِ زیادی شد. '.Jalali::digits((string) ceil(RateLimiter::availableIn($lock) / 60)).' دقیقه‌ی دیگر دوباره بکوشید.',
+            ], 429);
+        }
+
+        $remaining = null;
+        $ok = $field === 'recovery_code'
+            ? ($remaining = $this->twoFactor->useRecoveryCode($user, (string) $data['recovery_code'])) !== null
+            : $this->twoFactor->verifyCode($user, (string) $data['code']);
+
+        if (! $ok) {
+            RateLimiter::hit($lock, self::TOTP_LOCK_SECONDS);
+            $this->recorder->failure($user, $request, LoginEvent::FAILED_OTP);
+
+            $attempts = (int) ($pending['attempts'] ?? 0) + 1;
+            if ($attempts >= self::TOTP_ATTEMPTS) {
+                $request->session()->forget('login.pending');
+                throw ValidationException::withMessages([$field => 'کدِ نادرستِ پیاپی. دوباره با رمز عبور وارد شوید.']);
+            }
+            $request->session()->put('login.pending', [...$pending, 'attempts' => $attempts]);
+
+            throw ValidationException::withMessages([$field => $field === 'recovery_code'
+                ? 'کدِ بازیابی نادرست است یا پیش‌تر به کار رفته.'
+                : 'کدِ برنامه نادرست یا منقضی است.']);
+        }
+
+        RateLimiter::clear($lock);
+        $request->session()->forget('login.pending');
+
+        $response = $this->completeLogin($request, $user, remember: false, otp: $otp);
+
+        // پس از ورود با کدِ بازیابی، رابط شمارِ باقی‌مانده را نشان می‌دهد تا صاحبِ حساب کدهای تازه بسازد
+        return $remaining === null ? $response : $response->setData([...$response->getData(true), 'recoveryCodesRemaining' => $remaining]);
+    }
+
+    /** آغازِ چالشِ TOTP ِ سوپر ادمین؛ هیچ پیامکی نمی‌رود */
+    private function startTwoFactor(Request $request, User $user): JsonResponse
+    {
+        $request->session()->put('login.pending', [
+            'user_id' => $user->id,
+            'remember' => false,
+            'at' => now()->timestamp,
+            'factor' => self::FACTOR_TOTP,
+            'attempts' => 0,
+        ]);
+
+        return response()->json([
+            'twoFactorRequired' => true,
+            'message' => 'کدِ شش‌رقمیِ برنامه‌ی Authenticator را وارد کنید.',
+        ]);
+    }
+
+    /**
      * ارسال دوباره‌ی کد در مرحله‌ی دوم ورود.
      */
     public function loginResend(Request $request, OtpService $otp): JsonResponse
     {
         $pending = $request->session()->get('login.pending');
-        if (! $pending) {
+        // چالشِ TOTP پیامکی نمی‌فرستد
+        if (! $pending || ($pending['factor'] ?? self::FACTOR_SMS) !== self::FACTOR_SMS) {
             throw ValidationException::withMessages([
                 'code' => 'مهلت ورود تمام شده است. دوباره با رمز عبور وارد شوید.',
             ]);
@@ -373,6 +498,21 @@ class AuthController extends Controller
          * مهمان است، پس «همه جز این» یعنی همه.
          */
         $this->sessions->endOthers($user, $request->session()->getId());
+
+        /*
+         * 🔴 سوپر ادمین با TOTP (یا سوپر ادمینِ Production) خودکار وارد نمی‌شود (۲۰۲۶-۱۰-۲۵، بخشِ ۵): کدِ پیامکی فقط
+         * مالکیتِ سیم‌کارت را ثابت می‌کند، نه عاملِ دوم را — وگرنه بازیابیِ رمز راهِ دورزدنِ Authenticator بود. رمز عوض
+         * شد؛ ورود همان مسیرِ رمز + کدِ برنامه است.
+         */
+        if ($this->twoFactor->enabled($user) || $this->twoFactor->setupRequired($user)) {
+            Audit::log('auth.password_reset_admin', 'بازیابیِ رمزِ سوپر ادمین با کدِ پیامکی؛ ورود همچنان با عاملِ دوم', $user, [], null);
+
+            return response()->json([
+                'message' => 'رمز عبور تغییر کرد. با رمزِ تازه و کدِ برنامه‌ی Authenticator وارد شوید.',
+                'user' => null,
+                'csrfToken' => csrf_token(),
+            ]);
+        }
 
         /*
          * ورودِ خودکار پس از بازیابی.
@@ -636,6 +776,10 @@ class AuthController extends Controller
             'roleLabel' => $user->role->label(),
             'isAdmin' => $user->role->isAdmin(),
             'isSuperAdmin' => $user->isSuperAdmin(),
+            // کلیدِ «شاملِ دادهٔ آزمایشی» فقط جایی که سرور هم آن را می‌پذیرد (`DemoData::included`)؛ روی Production نه
+            'demoData' => $user->isSuperAdmin() && DemoData::allowedHere(),
+            // نشستِ سوپر ادمینِ Production بی TOTP: رابط فقط راه‌اندازیِ عاملِ دوم را پیش می‌گذارد (`EnsureAdminTwoFactor`)
+            'twoFactorSetupRequired' => $this->twoFactor->setupRequired($user),
             'complex' => $complex ? [
                 'id' => $complex->id,
                 'name' => $complex->name,

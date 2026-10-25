@@ -6,8 +6,9 @@
 
 ## جمع‌بندی
 
-- **222** عملیات روی مسیرهای `api/v1`: 24 عمومی، 82 هر حسابِ واردشده،
-  57 مدیر (و ادمینِ کل)، 59 فقط ادمینِ کل. مسیرهای قدیمیِ `/api/*` همان کنترلر و همان
+- **229** عملیات روی مسیرهای `api/v1` (شمارشِ ۲۰۲۶-۱۰-۲۵ از همین جدول): 25 عمومی، 83 هر حسابِ واردشده،
+  57 مدیر (و ادمینِ کل)، 64 فقط ادمینِ کل. عددهای جاروی BOLA ِ پایین مالِ اجرای مرحلهٔ ۹ است؛ ردیف‌های تازه‌ی
+  عاملِ دومِ سوپر ادمین از اجرای `BOLA_REPORT` ِ همان روز آمده‌اند. مسیرهای قدیمیِ `/api/*` همان کنترلر و همان
   محافظ‌ها را دارند (`test_legacy_aliases_carry_the_same_guards`).
 - **جاروی BOLA/IDOR:** 1094 درخواستِ مهاجم روی 198 مسیرِ واردشده؛ هر درخواست با شناسه‌ی
   **دیگران**: «→ب» منابعِ مجتمعِ دیگر، «→همسایه» دادهٔ خصوصیِ ساکنِ دیگرِ همان مجتمع و حسابِ او.
@@ -45,6 +46,7 @@
 | عمومی     | `POST login`                                                               | —                                                                                  | —                           | مهمان؛ سیاهه‌ی عمومیِ `EndpointInventoryTest`                                                                    |
 | عمومی     | `POST login/resend`                                                        | —                                                                                  | —                           | مهمان؛ سیاهه‌ی عمومیِ `EndpointInventoryTest`                                                                    |
 | عمومی     | `POST login/verify`                                                        | —                                                                                  | —                           | مهمان؛ سیاهه‌ی عمومیِ `EndpointInventoryTest`                                                                    |
+| عمومی     | `POST login/two-factor`                                                    | —                                                                                  | —                           | مهمان؛ سیاهه‌ی عمومیِ `EndpointInventoryTest`                                                                    |
 | عمومی     | `GET me`                                                                   | —                                                                                  | —                           | مهمان؛ سیاهه‌ی عمومیِ `EndpointInventoryTest`                                                                    |
 | عمومی     | `POST password/forgot`                                                     | —                                                                                  | —                           | مهمان؛ سیاهه‌ی عمومیِ `EndpointInventoryTest`                                                                    |
 | عمومی     | `POST password/forgot/verify`                                              | —                                                                                  | —                           | مهمان؛ سیاهه‌ی عمومیِ `EndpointInventoryTest`                                                                    |
@@ -255,3 +257,7 @@
 | ادمینِ کل | `POST system/subscriptions/{subscription}/approve`                         | `subscription` → Subscription                                                      | —                           | رفته→ب: 403 · مدیر→ب: 403 · اولیه→همسایه: 403 · اولیه→ب: 403 · ساکن→همسایه: 403 · ساکن→ب: 403                    |
 | ادمینِ کل | `GET system/subscriptions/{subscription}/receipt`                          | `subscription` → Subscription                                                      | —                           | رفته→ب: 403 · مدیر→ب: 403 · اولیه→همسایه: 403 · اولیه→ب: 403 · ساکن→همسایه: 403 · ساکن→ب: 403                    |
 | ادمینِ کل | `POST system/subscriptions/{subscription}/reject`                          | `subscription` → Subscription                                                      | —                           | رفته→ب: 403 · مدیر→ب: 403 · اولیه→همسایه: 403 · اولیه→ب: 403 · ساکن→همسایه: 403 · ساکن→ب: 403                    |
+| ادمینِ کل | `GET profile/two-factor`                                                   | —                                                                                  | —                           | رفته→ب: 403 · مدیر→ب: 403 · اولیه→همسایه: 403 · اولیه→ب: 403 · ساکن→همسایه: 403 · ساکن→ب: 403                    |
+| ادمینِ کل | `POST profile/two-factor/confirm`                                          | —                                                                                  | reauth                      | رفته→ب: 403 · مدیر→ب: 403 · اولیه→ب: 403 · ساکن→ب: 403                                                           |
+| ادمینِ کل | `POST profile/two-factor/recovery-codes`                                   | —                                                                                  | reauth                      | رفته→ب: 403 · مدیر→ب: 403 · اولیه→ب: 403 · ساکن→ب: 403                                                           |
+| ادمینِ کل | `POST profile/two-factor/setup`                                            | —                                                                                  | reauth                      | رفته→ب: 403 · مدیر→ب: 403 · اولیه→ب: 403 · ساکن→ب: 403                                                           |

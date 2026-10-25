@@ -46,6 +46,7 @@ function filterUsername(value: string) {
 
 interface LoginResponse {
   otpRequired?: boolean
+  twoFactorRequired?: boolean
   phone?: string
   dev_code?: string | null
   user?: CurrentUser
@@ -88,7 +89,13 @@ export default function UsernameLoginPage() {
         return
       }
 
-      // سوپر ادمین کدِ پیامکی می‌گیرد؛ سرور فقط شماره‌ی پوشیده را برمی‌گرداند
+      // سوپر ادمین با Authenticator: گامِ دوم کدِ برنامه است، نه پیامک (۲۰۲۶-۱۰-۲۵)
+      if (data.twoFactorRequired) {
+        void navigate('/auth/two-factor', { replace: true, state: { fromPassword: true } })
+        return
+      }
+
+      // سوپر ادمینِ بی Authenticator کدِ پیامکی می‌گیرد؛ سرور فقط شماره‌ی پوشیده را برمی‌گرداند
       if (data.otpRequired) {
         void navigate('/auth/verify', {
           replace: true,

@@ -4,3 +4,5 @@
  */
 export { RecoverAccountPage } from './RecoverAccountPage'
 export { default as UsernameLoginPage } from './UsernameLoginPage'
+// گامِ دومِ سوپر ادمین با Authenticator (۲۰۲۶-۱۰-۲۵): همان چانکِ ورود با نام کاربری
+export { default as TwoFactorLoginPage } from './TwoFactorLoginPage'

@@ -617,6 +617,8 @@ class AuthorizationAttackTest extends TestCase
         'app/Console/Commands/RaceCheckout.php' => [7, 'آزمونِ همزمانیِ واقعیِ خرید (مرحلهٔ ۹ · فاز ۵)؛ فقط داده‌ی ساخته‌ی خودش را می‌خواند و پاک می‌کند'],
         // مرحلهٔ ۹ · فاز ۸: «پایگاه‌داده کاربر دارد؟» پیش از پاک‌سازی — بی مجتمع، در کلِ پایگاه‌داده
         'app/Console/Commands/PreviewReset.php' => [1, 'پیش از پاک‌سازی می‌سنجد پایگاه‌داده‌ی بی‌برچسب هیچ کاربری ندارد'],
+        // ۲۰۲۶-۱۰-۲۵: فرمانِ سرورِ عاملِ دومِ سوپر ادمین — سوپر ادمین مجتمع ندارد؛ پیدا کردنش با نام کاربری در کلِ سکو
+        'app/Console/Commands/AdminTwoFactorCommand.php' => [1, 'سوپر ادمین با نام کاربری، بی مجتمع؛ فقط همان حساب و فقط اگر نقشش سوپر ادمین است'],
         'app/Console/Commands/PruneGeneratedDocuments.php' => [1, 'پاک‌سازیِ زمان‌بندی‌شده روی همه‌ی مجتمع‌ها'],
         'app/Console/Commands/PruneOrphanUploads.php' => [5, 'فایل‌های یتیم در همه‌ی مجتمع‌ها — پنج نوع پیوست از R58'],
         'app/Console/Commands/ResetUserPassword.php' => [2, 'بازیابیِ رمز از کنسول، پیش از هر نشستی'],
@@ -643,6 +645,8 @@ class AuthorizationAttackTest extends TestCase
         'app/Http/Controllers/Api/AccountContextController.php' => [1, 'عضویت‌های خودِ حساب در همه‌ی مجتمع‌ها؛ مرز `user_id = خودش` (مرحلهٔ ۱۰ · فاز ۳)'],
         // مرحلهٔ ۹: شماره مالِ حساب است و یکتاییِ آن در کلِ سکو سنجیده می‌شود
         'app/Services/Account/PhoneChange.php' => [3, 'قفلِ حسابِ خود و یکتاییِ شماره در همه‌ی مجتمع‌ها؛ حسابِ اولیه هم مجتمع ندارد'],
+        // ۲۰۲۶-۱۰-۲۵: قفلِ ردیفِ خودِ سوپر ادمین برای ضدِ replay و مصرفِ یک‌باره‌ی کدِ بازیابی؛ مرز `id = همان حساب`
+        'app/Services/Auth/AdminTwoFactor.php' => [2, 'قفلِ ردیفِ خودِ حساب (سوپر ادمین مجتمع ندارد) هنگامِ پذیرشِ کدِ TOTP و مصرفِ کدِ بازیابی'],
         'app/Services/Account/AccountRecovery.php' => [3, 'حسابِ منطبق با شماره‌ی قبلی در هر مجتمعی، قفلِ آن و یکتاییِ شماره‌ی تازه در کلِ سکو'],
         // مرحلهٔ ۹ · فاز ۴: قفلِ خریدار — حسابِ اولیه هنوز مجتمعی ندارد
         'app/Services/Subscription/ComplexPurchase.php' => [3, 'خریدار هنوز عضوِ هیچ مجتمعی نیست؛ قفل و بازخوانیِ همان کاربرِ خودش (۱۲/۲: تکمیلِ دوباره‌ی قصدِ پرداخت‌شده هم)'],

@@ -37,6 +37,8 @@ return [
     'required_if' => 'وقتی :other «:value» است، وارد کردن :attribute الزامی است.',
     'required_unless' => 'جز وقتی :other «:values» است، وارد کردن :attribute الزامی است.',
     'required_with' => 'وقتی :values هست، وارد کردن :attribute الزامی است.',
+    // گامِ دومِ سوپر ادمین: کدِ برنامه یا کدِ بازیابی (۲۰۲۶-۱۰-۲۵)
+    'required_without' => 'وقتی :values نیست، وارد کردن :attribute الزامی است.',
     'required_without_all' => 'دستِ‌کم یکی از :attribute یا موارد دیگر را بفرستید.',
     'starts_with' => ':attribute باید با یکی از این‌ها شروع شود: :values.',
     'url' => 'قالب :attribute معتبر نیست.',

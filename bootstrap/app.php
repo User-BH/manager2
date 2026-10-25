@@ -7,6 +7,7 @@ use App\Http\Middleware\AssignRequestId;
 use App\Http\Middleware\AuthenticateTrustedDevice;
 use App\Http\Middleware\EnforceSessionLifetime;
 use App\Http\Middleware\EnsureActive;
+use App\Http\Middleware\EnsureAdminTwoFactor;
 use App\Http\Middleware\EnsureComplexActive;
 use App\Http\Middleware\EnsureFeatureEnabled;
 use App\Http\Middleware\EnsureNotInMaintenance;
@@ -194,6 +195,11 @@ return Application::configure(basePath: dirname(__DIR__))
             EnforceSessionLifetime::class,
             EnsureActive::class,
             /*
+             * سوپر ادمینِ Production بی TOTP فقط تا راه‌اندازیِ آن (۲۰۲۶-۱۰-۲۵). پس از `EnsureActive` تا حسابِ
+             * غیرفعال پیش‌تر بیرون رفته باشد؛ پیش از تعیینِ مجتمع تا به هیچ داده‌ای نرسد.
+             */
+            EnsureAdminTwoFactor::class,
+            /*
              * حالتِ تعمیر از پنل (مرحلهٔ ۵ · فاز ۹). پس از `EnsureActive` تا
              * کاربرِ واردشده شناخته شده باشد و سوپرادمین رد شود.
              */
@@ -242,6 +248,12 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->prependToPriorityList(
             before: SetCurrentComplex::class,
             prepend: EnsureActive::class,
+        );
+
+        // و نشستِ سوپر ادمینِ بی TOTP ِ Production پیش از هر بایندینگ و خواندنِ داده بسته می‌شود
+        $middleware->prependToPriorityList(
+            before: SetCurrentComplex::class,
+            prepend: EnsureAdminTwoFactor::class,
         );
 
         /*

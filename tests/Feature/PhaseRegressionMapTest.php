@@ -927,8 +927,9 @@ class PhaseRegressionMapTest extends TestCase
             '🔴 ۹/۸: preview:reset روی محصول اجرا نمی‌شود' => [
                 'PreviewResetTest', 'test_reset_refuses_on_production', '۹',
             ],
-            '۹/۸: preview:reset چهار حسابِ آزمایشی را می‌سازد' => [
-                'PreviewResetTest', 'test_reset_builds_a_marked_database_with_the_four_test_accounts', '۹',
+            // ساختارِ حساب‌ها با «دستورِ یکپارچه»ی ۲۰۲۶-۱۰-۲۵ سه حساب شد؛ محافظ همان است با نامِ تازه
+            '۹/۸: preview:reset حساب‌های آزمایشی را می‌سازد' => [
+                'PreviewResetTest', 'test_reset_builds_a_marked_database_with_the_three_test_accounts', '۹',
             ],
             '🔴 ۹/۸: استقرارِ محصول پیش از مهاجرت بکاپ می‌گیرد و می‌سنجد' => [
                 'DeployScriptSafetyTest', 'test_production_deploys_back_up_and_verify_before_any_migration', '۹',
@@ -1449,11 +1450,39 @@ class PhaseRegressionMapTest extends TestCase
             '🔴 ۱۳/۱: نشانگرِ آزمایشی از درخواست نوشته نمی‌شود' => [
                 'UsernameLoginTest', 'test_the_demo_marker_cannot_be_set_from_a_request', '۱۳',
             ],
-            '🔴 ۱۳/۱: پنج زمینه‌ی مدیرِ آزمایشی دقیقاً طبقِ سند' => [
-                'DemoDataTest', 'test_the_four_accounts_and_the_five_manager_contexts_match_the_spec', '۱۳',
+            // ساختارِ نهاییِ ۲۰۲۶-۱۰-۲۵: تک‌مجتمعی، چندمجتمعی با دقیقاً پنج زمینه‌ی جدول، بی حسابِ «اولیه»
+            '🔴 ۱۳/۱: پنج زمینه‌ی حسابِ چندمجتمعی دقیقاً طبقِ جدول' => [
+                'DemoDataTest', 'test_the_multi_community_account_has_exactly_the_five_contexts_of_the_table', '۱۳',
             ],
-            '🔴 ۱۳/۱: نقشِ مدیر به زمینه‌ی واحد نشت نمی‌کند' => [
-                'DemoDataTest', 'test_the_manager_role_does_not_leak_into_the_unit_contexts', '۱۳',
+            '🔴 ۱۳/۱: حسابِ تک‌مجتمعی دقیقاً یک زمینه‌ی مسکونی · پیشرفته · واحد' => [
+                'DemoDataTest', 'test_the_single_community_account_has_exactly_one_residential_advanced_unit_membership', '۱۳',
+            ],
+            '🔴 ۱۳/۱: نقشِ هر زمینه با تعویضِ واقعی، بی نشتِ نقش یا داده' => [
+                'DemoDataTest', 'test_switching_through_the_five_contexts_applies_each_role_and_isolates_the_data', '۱۳',
+            ],
+            '🔴 ۱۳/۱: روی Production «شاملِ دادهٔ آزمایشی» بی‌اثر است' => [
+                'DemoDataTest', 'test_on_production_include_demo_is_ignored_and_the_demo_section_is_absent', '۱۳',
+            ],
+            '🔴 ۱۳/۱: جست‌وجوی نامِ کاربران همه را برنمی‌گرداند' => [
+                'SystemMemberSearchTest', 'test_a_name_search_returns_only_matching_names', '۱۳',
+            ],
+            '🔴 ۱۳/۱: سوپر ادمین با TOTP همیشه کدِ برنامه می‌خواهد، بی پیامک' => [
+                'AdminTwoFactorTest', 'test_login_by_username_or_phone_always_asks_for_the_app_code_and_sends_no_sms', '۱۳',
+            ],
+            '🔴 ۱۳/۱: خاموشیِ پیامک عاملِ دومِ سوپر ادمین را خاموش نمی‌کند' => [
+                'AdminTwoFactorTest', 'test_disabling_sms_codes_does_not_disable_the_admin_second_factor', '۱۳',
+            ],
+            '🔴 ۱۳/۱: کدِ TOTP دوباره پذیرفته نمی‌شود' => [
+                'AdminTwoFactorTest', 'test_a_used_code_cannot_be_replayed', '۱۳',
+            ],
+            '🔴 ۱۳/۱: هر کدِ بازیابی یک بار' => [
+                'AdminTwoFactorTest', 'test_each_recovery_code_works_exactly_once', '۱۳',
+            ],
+            '🔴 ۱۳/۱: بازیابیِ رمز با پیامک سوپر ادمین را وارد نمی‌کند' => [
+                'AdminTwoFactorTest', 'test_resetting_the_password_by_sms_does_not_sign_the_admin_in', '۱۳',
+            ],
+            '🔴 ۱۳/۱: نشستِ سوپر ادمینِ بی TOTP روی Production فقط به راه‌اندازی می‌رسد' => [
+                'AdminTwoFactorTest', 'test_on_production_an_unenrolled_admin_session_reaches_only_the_setup', '۱۳',
             ],
             '🔴 ۱۳/۱: دادهٔ آزمایشی پیش‌فرض بیرون از فهرست و آمارِ سوپر ادمین' => [
                 'DemoDataTest', 'test_super_admin_lists_and_stats_leave_demo_data_out_by_default', '۱۳',

@@ -28,6 +28,12 @@ use LogicException;
  * @property Carbon|null $last_seen_at آخرین درخواستِ داشبورد — فقط `Presence` می‌نویسد و می‌خواند
  * @property string|null $username شناسه‌ی ورودِ سوپر ادمین و حسابِ آزمایشی (۱۳/۱)؛ نه در `fillable`
  * @property bool $is_demo نشانگرِ سمتِ سرورِ حسابِ آزمایشی (۱۳/۱)؛ فقط seeder ِ Preview می‌نویسد، نه در `fillable`
+ * @property string|null $two_factor_secret کلیدِ TOTP ِ سوپر ادمین — رمزنگاری‌شده، پنهان، فقط `AdminTwoFactor`
+ * @property string|null $two_factor_pending_secret کلیدِ تازه تا تأیید — رمزنگاری‌شده، پنهان
+ * @property Carbon|null $two_factor_pending_at
+ * @property string|null $two_factor_recovery_codes HMAC ِ کدهای بازیابی (JSON) — رمزنگاری‌شده، پنهان
+ * @property Carbon|null $two_factor_confirmed_at
+ * @property int|null $two_factor_last_step آخرین گامِ TOTP ِ پذیرفته‌شده (ضدِ replay)
  */
 class User extends Authenticatable
 {
@@ -41,7 +47,11 @@ class User extends Authenticatable
     ];
 
     /** `last_seen_at`: حضور فقط از راهِ `Presence` و فقط به هم‌گروهِ فعال می‌رسد، نه با سریال‌شدنِ حساب */
-    protected $hidden = ['password', 'remember_token', 'last_seen_at'];
+    protected $hidden = [
+        'password', 'remember_token', 'last_seen_at',
+        // عاملِ دومِ سوپر ادمین (۲۰۲۶-۱۰-۲۵): هرگز با سریال‌شدنِ حساب بیرون نمی‌رود
+        'two_factor_secret', 'two_factor_pending_secret', 'two_factor_recovery_codes', 'two_factor_last_step',
+    ];
 
     protected function casts(): array
     {
@@ -55,6 +65,12 @@ class User extends Authenticatable
             'terms_accepted_at' => 'datetime',
             'last_seen_at' => 'datetime',
             'is_demo' => 'boolean',
+            'two_factor_secret' => 'encrypted',
+            'two_factor_pending_secret' => 'encrypted',
+            'two_factor_pending_at' => 'datetime',
+            'two_factor_recovery_codes' => 'encrypted',
+            'two_factor_confirmed_at' => 'datetime',
+            'two_factor_last_step' => 'integer',
         ];
     }
 

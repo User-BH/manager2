@@ -11,6 +11,7 @@ import {
   Wallet,
 } from 'lucide-react'
 import { api } from '@/shared/lib/api'
+import { useAuth } from '@/shared/stores/authStore'
 import { queryKeys } from '@/shared/lib/queryKeys'
 import { useDocumentTitle } from '@/shared/hooks'
 import { Card } from '@/shared/ui/Card'
@@ -55,6 +56,8 @@ export function PlatformStatsPage() {
 
   // دادهٔ آزمایشی پیش‌فرض بیرون است و سرور کنارش می‌گذارد (۱۳/۱)
   const [includeDemo, setIncludeDemo] = useState(false)
+  // روی Production سرور این کلید را نادیده می‌گیرد؛ پس نشانش هم نمی‌دهیم
+  const demoData = useAuth().user?.demoData === true
 
   const { data, error, isLoading, refetch } = useQuery({
     // کلیدِ مشترک دست نمی‌خورد (باندلِ همه‌ی صفحه‌ها)؛ گزینه فقط به انتهای کلیدِ همین صفحه می‌چسبد
@@ -80,18 +83,20 @@ export function PlatformStatsPage() {
         </p>
       </header>
 
-      <label
-        className="flex items-center gap-1.5 text-[12px]"
-        style={{ color: 'var(--text-secondary)' }}
-      >
-        <input
-          type="checkbox"
-          className="h-4 w-4 rounded"
-          checked={includeDemo}
-          onChange={(e) => setIncludeDemo(e.target.checked)}
-        />
-        شامل داده‌ی آزمایشی
-      </label>
+      {demoData && (
+        <label
+          className="flex items-center gap-1.5 text-[12px]"
+          style={{ color: 'var(--text-secondary)' }}
+        >
+          <input
+            type="checkbox"
+            className="h-4 w-4 rounded"
+            checked={includeDemo}
+            onChange={(e) => setIncludeDemo(e.target.checked)}
+          />
+          شامل داده‌ی آزمایشی
+        </label>
+      )}
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <StatCard

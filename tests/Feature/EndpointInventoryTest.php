@@ -47,6 +47,7 @@ class EndpointInventoryTest extends TestCase
             'join-link/preview',        // پیش‌نمایشِ QR ِ ورودِ عمومی؛ سقفِ نرخ، فقط نامِ مجتمع (مرحلهٔ ۱۰ · فاز ۵)
             'feedback',                 // فرمِ بازخوردِ پشتیبانی؛ سقفِ نرخ + تله‌ی ربات (مرحلهٔ ۷ · فاز ۴)
             'login', 'login/resend', 'login/verify',
+            'login/two-factor',         // گامِ دومِ سوپر ادمین (۲۰۲۶-۱۰-۲۵): فقط پس از گامِ رمزِ همین نشست؛ قفلِ حساب و سقفِ نرخ
             'me',                       // برای مهمان تهی برمی‌گرداند
             'password/forgot', 'password/forgot/verify', 'password/reset',
             // بازیابیِ حساب بی شماره‌ی قبلی (مرحلهٔ ۹): فقط ثبتِ درخواست، سقفِ نرخ، پاسخِ یکسان؛ دسترسی نمی‌دهد

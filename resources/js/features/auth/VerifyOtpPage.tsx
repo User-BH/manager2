@@ -58,14 +58,15 @@ export function VerifyOtpPage() {
     setError(null)
 
     try {
-      await api<{ user: CurrentUser }>('/login/verify', {
+      const { user } = await api<{ user: CurrentUser }>('/login/verify', {
         method: 'POST',
         body: { code: value },
       })
 
       // ورود کامل شد؛ به داشبورد (سندِ SPAِ جدا) می‌رویم — با `replace`،
-      // تا «بازگشت» از داشبورد به گامِ کد برنگردد (مرحلهٔ ۷ · فاز ۱)
-      window.location.replace(afterSignIn())
+      // تا «بازگشت» از داشبورد به گامِ کد برنگردد (مرحلهٔ ۷ · فاز ۱). سوپر ادمینِ Production ِ بی Authenticator
+      // فقط به راه‌اندازیِ آن می‌رسد (سرور بقیه را می‌بندد؛ ۲۰۲۶-۱۰-۲۵)
+      window.location.replace(user.twoFactorSetupRequired ? '/profile' : afterSignIn())
     } catch (err) {
       if (err instanceof ApiError && err.status === 422) {
         setError(err.fieldError('code') ?? err.message)

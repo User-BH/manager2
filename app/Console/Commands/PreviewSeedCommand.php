@@ -37,6 +37,11 @@ class PreviewSeedCommand extends Command
         $seeder = app(PreviewSeeder::class);
         $seeder->run();
 
+        // ساختارِ پیشینِ ۱۳/۱: غیرفعال شد، نه حذف؛ پاک‌سازیِ کامل فقط با `preview:reset`
+        foreach ($seeder->retired() as $username) {
+            $this->warn("حسابِ «{$username}» از ساختارِ پیشینِ حساب‌های آزمایشی است و غیرفعال شد؛ برای پاک‌سازیِ کامل `preview:reset` را اجرا کنید.");
+        }
+
         self::printIssued($this, $seeder->issued());
 
         return self::SUCCESS;

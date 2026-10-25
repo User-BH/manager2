@@ -10,6 +10,7 @@ use App\Models\ComplexMembership;
 use App\Models\User;
 use App\Services\Account\MembershipLedger;
 use App\Support\Audit;
+use App\Support\DemoData;
 use App\Support\Phone;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -33,14 +34,20 @@ class MemberController extends Controller
 
         // حساب و شخصِ ساختگیِ آزمایشی فقط با «شاملِ دادهٔ آزمایشی» (۱۳/۱؛ «داشبورد های آزمایشی» بندِ ۴.۲)
         $query = User::withoutGlobalScopes()->with('complex')->latest()
-            ->when(! $request->boolean('include_demo'), fn ($q) => $q->operational());
+            ->when(! DemoData::included($request), fn ($q) => $q->operational());
 
         if ($search !== '') {
             $normalized = Phone::normalize($search);
             $query->where(function ($q) use ($search, $normalized) {
                 $q->where('name', 'like', "%{$search}%")
-                    ->orWhere('phone', 'like', "%{$normalized}%")
                     ->orWhere('phone', 'like', "%{$search}%");
+                /*
+                 * ⚠️ متنِ بی رقم (مثلاً «آزمایشی») به رشته‌ی خالی normalize می‌شود و `like '%%'` همه را
+                 * می‌گرفت — جست‌وجوی نام همه‌ی کاربران را برمی‌گرداند (پیدا شده در ۲۰۲۶-۱۰-۲۵).
+                 */
+                if ($normalized !== '') {
+                    $q->orWhere('phone', 'like', "%{$normalized}%");
+                }
             });
         }
 
@@ -177,6 +184,11 @@ class MemberController extends Controller
      */
     private function demoAccounts(): array
     {
+        // روی Production این بخش نیست، حتی اگر حسابِ نشان‌داری به پایگاه‌داده رسیده باشد
+        if (! DemoData::allowedHere()) {
+            return [];
+        }
+
         return User::withoutGlobalScopes()
             ->where('is_demo', true)
             ->whereNotNull('username')

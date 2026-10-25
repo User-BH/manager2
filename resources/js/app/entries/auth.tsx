@@ -19,6 +19,7 @@ import { takeJoinCodeFromUrl } from '@/features/auth/joinCode'
 const loadRare = () => import('@/features/auth/rarePages')
 const RecoverAccountPage = lazy(() => loadRare().then((m) => ({ default: m.RecoverAccountPage })))
 const UsernameLoginPage = lazy(() => loadRare().then((m) => ({ default: m.UsernameLoginPage })))
+const TwoFactorLoginPage = lazy(() => loadRare().then((m) => ({ default: m.TwoFactorLoginPage })))
 
 /**
  * Entryِ بخشِ ورود/ثبت‌نام (island).
@@ -72,6 +73,8 @@ createRoot(document.getElementById('root')!).render(
             <Route path="/auth/recover" element={<RecoverAccountPage />} />
             {/* ورود با نام کاربری (۱۳/۱): فقط سوپر ادمین و حساب‌های آزمایشیِ Preview */}
             <Route path="/auth/username" element={<UsernameLoginPage />} />
+            {/* گامِ دومِ سوپر ادمین: کدِ Authenticator یا کدِ بازیابی (۲۰۲۶-۱۰-۲۵) */}
+            <Route path="/auth/two-factor" element={<TwoFactorLoginPage />} />
             {/* پیوندِ دعوت (مرحلهٔ ۹ · فاز ۶): فقط پیش‌نمایش؛ توکن پس از # */}
             <Route path="/invite" element={<InvitePage />} />
             {/* QR ِ ورودِ عمومیِ مجتمع (مرحلهٔ ۱۰ · فاز ۵): نامِ مجتمع و فرستادنِ درخواست؛ کد پس از # */}

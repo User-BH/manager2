@@ -21,6 +21,7 @@ import { afterSignIn } from '../joinCode'
 
 interface LoginResponse {
   otpRequired?: boolean
+  twoFactorRequired?: boolean
   phone?: string
   dev_code?: string | null
   user?: CurrentUser
@@ -86,6 +87,12 @@ export function LoginForm() {
       // (مرحلهٔ ۷ · فاز ۱): «بازگشت» از داشبورد نباید به فرمِ ورود برسد.
       if (data.user) {
         window.location.replace(afterSignIn())
+        return
+      }
+
+      // سوپر ادمین با Authenticator (با شماره هم وارد شود): کدِ برنامه، نه پیامک
+      if (data.twoFactorRequired) {
+        void navigate('/auth/two-factor', { replace: true, state: { fromPassword: true } })
         return
       }
 

@@ -8,6 +8,7 @@ import { keepPreviousData, useQuery } from '@tanstack/react-query'
 import { useDebounce, useDocumentTitle } from '@/shared/hooks'
 import { useApiAction } from '@/shared/hooks/useAction'
 import { api } from '@/shared/lib/api'
+import { useAuth } from '@/shared/stores/authStore'
 import { queryKeys } from '@/shared/lib/queryKeys'
 import { formatNumber } from '@/shared/lib/format'
 
@@ -62,6 +63,8 @@ export function MembersPage() {
   const [page, setPage] = useState(1)
   // دادهٔ آزمایشی پیش‌فرض بیرون است و سرور کنارش می‌گذارد (۱۳/۱)
   const [includeDemo, setIncludeDemo] = useState(false)
+  // روی Production سرور این کلید را نادیده می‌گیرد؛ پس نشانش هم نمی‌دهیم
+  const demoData = useAuth().user?.demoData === true
 
   const { data, error, isLoading, refetch } = useQuery({
     queryKey: queryKeys.members.list({ q: deferredQuery, page, includeDemo }),
@@ -190,21 +193,23 @@ export function MembersPage() {
         </section>
       )}
 
-      <label
-        className="flex items-center gap-1.5 text-[12px]"
-        style={{ color: 'var(--text-secondary)' }}
-      >
-        <input
-          type="checkbox"
-          className="h-4 w-4 rounded"
-          checked={includeDemo}
-          onChange={(e) => {
-            setIncludeDemo(e.target.checked)
-            setPage(1)
-          }}
-        />
-        شامل داده‌ی آزمایشی
-      </label>
+      {demoData && (
+        <label
+          className="flex items-center gap-1.5 text-[12px]"
+          style={{ color: 'var(--text-secondary)' }}
+        >
+          <input
+            type="checkbox"
+            className="h-4 w-4 rounded"
+            checked={includeDemo}
+            onChange={(e) => {
+              setIncludeDemo(e.target.checked)
+              setPage(1)
+            }}
+          />
+          شامل داده‌ی آزمایشی
+        </label>
+      )}
 
       {/* جست‌وجو */}
       <div className="relative">

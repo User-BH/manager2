@@ -70,8 +70,8 @@ describe('UsernameLoginPage', () => {
     renderPage()
 
     // حرفِ بزرگ و نویسه‌ی نامجاز همان لحظه پالوده می‌شود
-    await user.type(screen.getByPlaceholderText('نام کاربری'), 'Demo.Manager!')
-    expect(screen.getByPlaceholderText('نام کاربری')).toHaveValue('demo.manager')
+    await user.type(screen.getByPlaceholderText('نام کاربری'), 'Demo.Multi!')
+    expect(screen.getByPlaceholderText('نام کاربری')).toHaveValue('demo.multi')
 
     await user.type(screen.getByPlaceholderText('رمز عبور خود را وارد کنید'), 'secret123')
     await user.click(screen.getByText('حل-پازل'))
@@ -81,7 +81,7 @@ describe('UsernameLoginPage', () => {
     expect(apiMock.mock.calls[0][0]).toBe('/login')
     expect(apiMock.mock.calls[0][1].body).toEqual({
       identifier_type: 'username',
-      username: 'demo.manager',
+      username: 'demo.multi',
       password: 'secret123',
     })
   })
@@ -109,7 +109,7 @@ describe('UsernameLoginPage', () => {
 
     const username = screen.getByPlaceholderText('نام کاربری')
     const password = screen.getByPlaceholderText('رمز عبور خود را وارد کنید')
-    await user.type(username, 'demo.unit')
+    await user.type(username, 'demo.single')
     await user.type(password, 'wrongpass')
     await user.click(screen.getByText('حل-پازل'))
     await user.click(screen.getByRole('button', { name: /ورود به پنل/ }))

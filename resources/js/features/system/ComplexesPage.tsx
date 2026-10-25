@@ -75,7 +75,9 @@ export function ComplexesPage() {
   const [reason, setReason] = useState('')
   const [reasonError, setReasonError] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
-  const { refresh } = useAuth()
+  const { refresh, user } = useAuth()
+  // روی Production سرور «شاملِ دادهٔ آزمایشی» را نادیده می‌گیرد؛ پس کلیدش هم نیست
+  const demoData = user?.demoData === true
 
   useDocumentTitle('مدیریت مجتمع‌ها')
 
@@ -200,21 +202,23 @@ export function ComplexesPage() {
         </div>
 
         <div className="flex items-center gap-2">
-          <label
-            className="flex items-center gap-1.5 text-[12px]"
-            style={{ color: 'var(--text-secondary)' }}
-          >
-            <input
-              type="checkbox"
-              className="h-4 w-4 rounded"
-              checked={includeDemo}
-              onChange={(e) => {
-                setSearch(e.target.checked ? { include_demo: '1' } : {})
-                setPage(1)
-              }}
-            />
-            شامل داده‌ی آزمایشی
-          </label>
+          {demoData && (
+            <label
+              className="flex items-center gap-1.5 text-[12px]"
+              style={{ color: 'var(--text-secondary)' }}
+            >
+              <input
+                type="checkbox"
+                className="h-4 w-4 rounded"
+                checked={includeDemo}
+                onChange={(e) => {
+                  setSearch(e.target.checked ? { include_demo: '1' } : {})
+                  setPage(1)
+                }}
+              />
+              شامل داده‌ی آزمایشی
+            </label>
+          )}
           {data?.activeId && (
             <button
               onClick={clear}

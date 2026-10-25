@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useForm, useWatch } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { KeyRound, Loader2, Lock, Phone } from 'lucide-react'
 import { AuthScreen } from './components/AuthScreen'
 import { OtpBoxes } from './components/OtpBoxes'
@@ -34,6 +34,7 @@ const RESEND_SECONDS = 60
  *    دوباره فرم ورود را پر کند.
  */
 export function ForgotPasswordPage() {
+  const navigate = useNavigate()
   const [step, setStep] = useState<Step>('phone')
 
   useDocumentTitle('بازیابی رمز عبور')
@@ -144,10 +145,20 @@ export function ForgotPasswordPage() {
        * برمی‌گرداند؛ هویتش همین حالا با کد پیامکی اثبات شده، پس نه فرم ورود
        * لازم است نه یک پیامکِ دومرحله‌ایِ دیگر.
        */
-      await api<{ user: CurrentUser }>('/password/reset', {
+      const { user } = await api<{ user: CurrentUser | null; message: string }>('/password/reset', {
         method: 'POST',
         body: { password: values.password, password_confirmation: values.confirmPassword },
       })
+
+      /*
+       * سوپر ادمین با عاملِ دوم خودکار وارد نمی‌شود (۲۰۲۶-۱۰-۲۵): کدِ پیامکی Authenticator را دور نمی‌زند؛ ورود
+       * همان رمز + کدِ برنامه است.
+       */
+      if (!user) {
+        toastSuccess('رمز عبور تغییر کرد. با رمزِ تازه و کدِ برنامه‌ی Authenticator وارد شوید.')
+        void navigate('/auth/username', { replace: true })
+        return
+      }
 
       toastSuccess('رمز عبور تغییر کرد. خوش آمدید!')
       // ورود خودکار انجام شده؛ به داشبورد (سندِ جدا) می‌رویم — با `replace`،

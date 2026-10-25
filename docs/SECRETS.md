@@ -30,6 +30,8 @@
 - `complexes.gateway_config` و `settings.sms_config`
 - همه‌ی بکاپ‌های رمزشده‌ی موجود
 - نشست‌ها و کوکی‌های امضاشده (کاربران بیرون می‌افتند — این یکی بی‌خطر است)
+- عاملِ دومِ سوپر ادمین: `users.two_factor_secret` (رمزنگاری‌شده) و HMAC ِ کدهای بازیابی (با همین کلید) — پس از
+  چرخش، `php artisan admin:two-factor <نام کاربری> --reset` و راه‌اندازیِ دوباره ([ADMIN_TWO_FACTOR.md](ADMIN_TWO_FACTOR.md))
 
 پس چرخشش یک **مهاجرتِ داده** است، نه عوض‌کردنِ یک خط در `.env`.
 
@@ -58,9 +60,12 @@ php artisan migrate:rollback --step=1 --force
 php artisan migrate --force
 ```
 
-۶. `php artisan config:cache && php artisan up`
+۶. عاملِ دومِ سوپر ادمین را بازنشانی و دوباره راه‌اندازی کنید (کلیدِ قدیمی دیگر خوانده نمی‌شود):
+`php artisan admin:two-factor <نام کاربری> --reset --force` و سپس `php artisan admin:two-factor <نام کاربری>`.
 
-۷. با `php artisan health:check` و یک پرداختِ آزمایشی تأیید کنید.
+۷. `php artisan config:cache && php artisan up`
+
+۸. با `php artisan health:check` و یک پرداختِ آزمایشی تأیید کنید.
 
 ### اگر بدونِ گامِ ۲ کلید را عوض کردید
 

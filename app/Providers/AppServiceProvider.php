@@ -414,6 +414,18 @@ class AppServiceProvider extends ServiceProvider
         ]);
 
         /*
+         * عاملِ دومِ سوپر ادمین (۲۰۲۶-۱۰-۲۵). ورود: سقفِ نشست و IP؛ قفلِ هر **حساب** (ده نادرست در ۱۵ دقیقه) در خودِ
+         * `AuthController::loginTwoFactor` است تا نشستِ تازه یا IP ِ دیگر شمارش را صفر نکند. مدیریت: هر حساب.
+         */
+        RateLimiter::for('two-factor-login', fn (Request $request) => [
+            Limit::perMinute(5)->by('2fa-login:'.$request->session()->getId()),
+            Limit::perMinute(20)->by($request->ip()),
+        ]);
+        RateLimiter::for('two-factor-manage', fn (Request $request) => [
+            Limit::perMinutes(15, 10)->by('2fa-manage:'.($request->user()?->id ?: $request->ip())),
+        ]);
+
+        /*
          * شروعِ پرداخت هر بار یک درخواستِ بیرونی به بانک و یک `ref_id` تازه
          * است (همان نقصِ فاز ۴). کاربرِ واقعی در دقیقه یکی دو بار می‌زند.
          */

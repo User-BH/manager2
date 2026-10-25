@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { Suspense, lazy, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import {
@@ -35,6 +35,9 @@ import { queryKeys } from '@/shared/lib/queryKeys'
 import { useDocumentTitle } from '@/shared/hooks'
 import { formatMoney, formatNumber } from '@/shared/lib/format'
 import type { ProfileResponse } from './types'
+
+/** فقط سوپر ادمین (۲۰۲۶-۱۰-۲۵): کارتِ Authenticator تنبل است تا صفحه‌ی پروفایلِ بقیه سنگین نشود */
+const TwoFactorCard = lazy(() => import('./TwoFactorCard'))
 
 /**
  * «پروفایل من».
@@ -130,6 +133,11 @@ export function ProfilePage() {
             </Card>
 
             <PhoneCard currentPhone={profile.phone} onChanged={() => void refetch()} />
+            {user?.isSuperAdmin && (
+              <Suspense fallback={null}>
+                <TwoFactorCard />
+              </Suspense>
+            )}
             <PasswordCard />
             <SecurityCard />
           </div>

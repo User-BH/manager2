@@ -31,62 +31,66 @@ use Illuminate\Support\Str;
 use RuntimeException;
 
 /**
- * دادهٔ نمونه‌ی Preview طبقِ «داشبورد های آزمایشی» (مرحلهٔ ۱۳ · فاز ۱؛ پیامِ کارفرما ۲۰۲۶-۱۰-۱۹، بخش‌های ۲ تا ۴).
+ * دادهٔ نمونه‌ی Preview (مرحلهٔ ۱۳ · فاز ۱؛ ساختارِ نهاییِ «دستورِ یکپارچه‌ی ادامه‌ی مرحلهٔ ۱۳»، ۲۰۲۶-۱۰-۲۵، بخشِ اول).
  *
- * چهار حسابِ آزمایشی، همه با نام کاربری و بی شماره‌ی موبایل (شماره‌ای رزرو نمی‌شود و پیامکی نمی‌رود):
+ * سه حسابِ آزمایشی، همه با نام کاربری و بی شماره‌ی موبایل (شماره‌ای رزرو نمی‌شود و پیامکی نمی‌رود):
  *
- *   demo.initial  ثبت‌نامِ اولیه، بی عضویت (بندِ ۲.۱)
- *   demo.unit     واحد: دقیقاً یک مجتمعِ مسکونی با پلنِ پیشرفته (بندِ ۲.۲)
- *   demo.manager  یک Account با پنج عضویتِ مستقل (بندِ ۲.۳):
- *                   الف مسکونی · مدیر · پایه      ب مسکونی · مدیر · حرفه‌ای     پ تجاری · مدیر · پیشرفته
- *                   ت تجاری · عضوِ واحد · پایه     ث مسکونی · عضوِ واحد · حرفه‌ای
- *   demo.admin    سوپر ادمینِ آزمایشی برای بررسیِ قابلیت‌های مدیریتی در Preview (پیامِ ۲۰۲۶-۱۰-۱۹، بخش ۲)
+ *   demo.single  «داشبوردِ آزمایشیِ تک‌مجتمعی» (Single-community test dashboard): دقیقاً یک مجتمعِ مسکونی با پلنِ
+ *                پیشرفته، نقشِ واحد (بندِ ۱.۱)
+ *   demo.multi   «داشبوردِ آزمایشیِ چندمجتمعی» (Multi-community test dashboard): یک Account با پنج عضویتِ مستقل (بندِ ۱.۲):
+ *                  ۱ مسکونی · پایه · مدیر        ۲ مسکونی · حرفه‌ای · مدیر
+ *                  ۳ تجاری · پایه · واحد          ۴ تجاری · حرفه‌ای · واحد        ۵ تجاری · پیشرفته · مدیر
+ *   demo.admin   «سوپر ادمینِ آزمایشی» برای بررسیِ قابلیت‌های مدیریتی، فقط در Preview (بندِ ۱.۳)
  *
- * پنج زمینه‌ی مدیر به‌علاوه‌ی واحدِ تک‌مجتمعی هر شش ترکیبِ نوع × پلن را پوشش می‌دهند (بندِ ۳).
+ * داشبوردِ ثبت‌نامِ اولیه یک **وضعیت** است، نه حساب (بندِ ۱.۴): هر حسابی که عضویتِ فعالی ندارد به آن می‌رسد؛ برای آن
+ * حسابِ آزمایشیِ جدا ساخته نمی‌شود.
  *
  * 🔴 قاعده‌ها:
- * - همه‌چیز `is_demo` می‌گیرد — نشانگرِ سمتِ سرور (بندِ ۴.۳)؛ هیچ مسیرِ API آن را نمی‌نویسد.
- * - **idempotent** (بندِ ۶.۳): اجرای دوباره چیزِ تکراری نمی‌سازد و رمزِ حسابی را که هست هرگز عوض نمی‌کند. هر چه
- *   نیست ساخته می‌شود؛ رمزِ حسابِ تازه تصادفی است و فقط یک بار به خروجیِ فرمان می‌رود (`issued()`) — نه در مخزن،
- *   نه در لاگ، نه در پایگاه‌داده جز به شکلِ hash.
+ * - همه‌چیز `is_demo` می‌گیرد — نشانگرِ سمتِ سرور؛ هیچ مسیرِ API آن را نمی‌نویسد.
+ * - **idempotent**: اجرای دوباره چیزِ تکراری نمی‌سازد و رمزِ حسابی را که هست هرگز عوض نمی‌کند. هر چه نیست ساخته
+ *   می‌شود؛ رمزِ حسابِ تازه تصادفی است و فقط یک بار به خروجیِ فرمان می‌رود (`issued()`) — نه در مخزن، نه در لاگ، نه در
+ *   پایگاه‌داده جز به شکلِ hash.
+ * - حساب‌های ساختارِ پیشینِ ۱۳/۱ (`LEGACY`) اگر روی پایگاه‌داده‌ای مانده باشند **غیرفعال** می‌شوند، نه حذف؛ فرمان
+ *   گزارششان می‌دهد و `preview:reset` پاکشان می‌کند.
  * - روی Production اجرا نمی‌شود.
  * - اشتراک‌ها «اهدای نمونه» با روشِ `manual` و مبلغِ صفرند: هیچ پرداخت، درگاه یا پولِ واقعی‌ای در کار نیست.
  */
 class PreviewSeeder extends Seeder
 {
-    /** نام‌های کاربریِ چهار حساب — برای فرمان، آزمون و مستندات */
-    public const INITIAL = 'demo.initial';
+    /** نام‌های کاربریِ سه حساب — برای فرمان، آزمون و مستندات */
+    public const SINGLE = 'demo.single';
 
-    public const UNIT = 'demo.unit';
-
-    public const MANAGER = 'demo.manager';
+    public const MULTI = 'demo.multi';
 
     public const ADMIN = 'demo.admin';
 
+    /** حساب‌های ساختارِ پیشینِ ۱۳/۱ که دیگر در سند نیستند */
+    public const LEGACY = ['demo.initial', 'demo.unit', 'demo.manager'];
+
+    /** مجتمعِ تکِ حسابِ تک‌مجتمعی */
+    public const SINGLE_CONTEXT = 'demo-single';
+
     /**
-     * پنج زمینه‌ی حسابِ مدیر (بندِ ۲.۳) و مجتمعِ تکِ حسابِ واحد (بندِ ۲.۲). `plan` همان slug ِ پلن‌های پیش‌فرض است:
-     * basic = پایه، plus = حرفه‌ای، business = سطحِ سوم («پیشرفته» ِ اسناد).
+     * مجتمع‌های آزمایشی. `plan` همان slug ِ پلن‌های پیش‌فرض است: basic = پایه، plus = حرفه‌ای، business = سطحِ سوم
+     * («پیشرفته» ِ اسناد). `role` نقشِ **حسابِ آزمایشی** در همان مجتمع است: مدیر (`ComplexAdmin`) یا واحد (`Owner`).
+     * پنج سطرِ اول دقیقاً جدولِ بندِ ۱.۲ و به همان ترتیب‌اند؛ سطرِ آخر مجتمعِ حسابِ تک‌مجتمعی (بندِ ۱.۱).
      *
-     * @var array<string, array{name: string, type: ComplexType, plan: string, manager: UserRole|null}>
+     * @var array<string, array{name: string, type: ComplexType, plan: string, role: UserRole}>
      */
     public const CONTEXTS = [
-        'demo-a' => ['name' => 'مجتمع مسکونی آزمایشی A', 'type' => ComplexType::Residential, 'plan' => 'basic', 'manager' => UserRole::ComplexAdmin],
-        'demo-b' => ['name' => 'مجتمع مسکونی آزمایشی B', 'type' => ComplexType::Residential, 'plan' => 'plus', 'manager' => UserRole::ComplexAdmin],
-        'demo-c' => ['name' => 'مجتمع تجاری آزمایشی C', 'type' => ComplexType::Commercial, 'plan' => 'business', 'manager' => UserRole::ComplexAdmin],
-        'demo-d' => ['name' => 'مجتمع تجاری آزمایشی D', 'type' => ComplexType::Commercial, 'plan' => 'basic', 'manager' => UserRole::Owner],
-        'demo-e' => ['name' => 'مجتمع مسکونی آزمایشی E', 'type' => ComplexType::Residential, 'plan' => 'plus', 'manager' => UserRole::Tenant],
-        'demo-unit' => ['name' => 'مجتمع مسکونی آزمایشی (واحد)', 'type' => ComplexType::Residential, 'plan' => 'business', 'manager' => null],
-        /*
-         * 🔴 تعارضِ درونِ سند (بندِ ۲ در برابرِ بندِ ۳): پنج زمینه‌ی بندِ ۲.۳ و واحدِ بندِ ۲.۲ «مسکونی + حرفه‌ای» را دو
-         * بار دارند و «تجاری + حرفه‌ای» را هیچ‌کدام؛ بندِ ۳ و DoD ولی هر شش ترکیب را قابلِ آزمایش می‌خواهند. شمارِ حساب و
-         * زمینه دقیقاً همان سند می‌ماند و این ترکیب مجتمعِ ششمی با مدیرِ نمونه می‌گیرد که سوپر ادمینِ آزمایشی از «مدیریتِ
-         * مجتمع‌ها» بازش می‌کند (docs/STAGE13_ROADMAP.md، پ-۵).
-         */
-        'demo-f' => ['name' => 'مجتمع تجاری آزمایشی F', 'type' => ComplexType::Commercial, 'plan' => 'plus', 'manager' => null],
+        'demo-res-basic' => ['name' => 'مجتمع مسکونی آزمایشی ۱ (پایه)', 'type' => ComplexType::Residential, 'plan' => 'basic', 'role' => UserRole::ComplexAdmin],
+        'demo-res-pro' => ['name' => 'مجتمع مسکونی آزمایشی ۲ (حرفه‌ای)', 'type' => ComplexType::Residential, 'plan' => 'plus', 'role' => UserRole::ComplexAdmin],
+        'demo-com-basic' => ['name' => 'مجتمع تجاری آزمایشی ۳ (پایه)', 'type' => ComplexType::Commercial, 'plan' => 'basic', 'role' => UserRole::Owner],
+        'demo-com-pro' => ['name' => 'مجتمع تجاری آزمایشی ۴ (حرفه‌ای)', 'type' => ComplexType::Commercial, 'plan' => 'plus', 'role' => UserRole::Owner],
+        'demo-com-advanced' => ['name' => 'مجتمع تجاری آزمایشی ۵ (پیشرفته)', 'type' => ComplexType::Commercial, 'plan' => 'business', 'role' => UserRole::ComplexAdmin],
+        self::SINGLE_CONTEXT => ['name' => 'مجتمع مسکونی آزمایشیِ تک‌مجتمعی (پیشرفته)', 'type' => ComplexType::Residential, 'plan' => 'business', 'role' => UserRole::Owner],
     ];
 
     /** @var list<array{label: string, username: string, password: string}> */
     private array $issued = [];
+
+    /** @var list<string> */
+    private array $retired = [];
 
     public function run(): void
     {
@@ -94,33 +98,38 @@ class PreviewSeeder extends Seeder
             throw new RuntimeException('PreviewSeeder روی محصول اجرا نمی‌شود: دادهٔ آزمایشی فقط روی Preview است.');
         }
 
+        $this->retireLegacy();
+
         $complexes = [];
         foreach (self::CONTEXTS as $slug => $spec) {
             $complexes[$slug] = Complex::where('slug', $slug)->first() ?? $this->buildComplex($slug, $spec);
         }
 
         $this->persona(self::ADMIN, 'سوپر ادمینِ آزمایشی', UserRole::SuperAdmin, null);
-        $this->persona(self::INITIAL, 'حسابِ آزمایشیِ ثبت‌نامِ اولیه', UserRole::Owner, null);
 
-        $unitAccount = $this->persona(self::UNIT, 'حسابِ آزمایشیِ واحد', UserRole::Owner, $complexes['demo-unit']);
-        $this->ensureResident($unitAccount, $complexes['demo-unit'], UserRole::Owner, '1');
+        $single = $this->persona(self::SINGLE, 'داشبوردِ آزمایشیِ تک‌مجتمعی', UserRole::Owner, $complexes[self::SINGLE_CONTEXT]);
+        $this->ensureResident($single, $complexes[self::SINGLE_CONTEXT], UserRole::Owner, '1');
 
-        $manager = $this->persona(self::MANAGER, 'حسابِ آزمایشیِ مدیر', UserRole::ComplexAdmin, $complexes['demo-a']);
-        foreach (['demo-b', 'demo-c', 'demo-d', 'demo-e'] as $slug) {
-            $role = self::CONTEXTS[$slug]['manager'];
-            $this->ensureMembership($manager, $complexes[$slug], $role);
-            if ($role !== UserRole::ComplexAdmin) {
-                $this->ensureResident($manager, $complexes[$slug], $role, '1');
+        // زمینه‌ی اولِ جدول زمینه‌ی پیش‌فرضِ حساب است؛ چهار تای دیگر عضویتِ مستقلِ همان Account
+        $multiContexts = array_keys(array_diff_key(self::CONTEXTS, [self::SINGLE_CONTEXT => true]));
+        $first = array_shift($multiContexts);
+        $multi = $this->persona(self::MULTI, 'داشبوردِ آزمایشیِ چندمجتمعی', self::CONTEXTS[$first]['role'], $complexes[$first]);
+        foreach ($multiContexts as $slug) {
+            $this->ensureMembership($multi, $complexes[$slug], self::CONTEXTS[$slug]['role']);
+        }
+        foreach (array_keys(array_diff_key(self::CONTEXTS, [self::SINGLE_CONTEXT => true])) as $slug) {
+            if (self::CONTEXTS[$slug]['role'] !== UserRole::ComplexAdmin) {
+                $this->ensureResident($multi, $complexes[$slug], self::CONTEXTS[$slug]['role'], '1');
             }
         }
 
-        // پیامِ گروه در سه زمینه‌ای که مدیرشان خودِ حسابِ آزمایشی است — یک بار
-        foreach (['demo-a', 'demo-b', 'demo-c'] as $slug) {
+        // پیامِ گروه در زمینه‌هایی که مدیرشان خودِ حسابِ چندمجتمعی است — یک بار
+        foreach (self::CONTEXTS as $slug => $spec) {
             $complex = $complexes[$slug];
-            if (! Message::withoutGlobalScopes()->where('complex_id', $complex->id)->exists()) {
+            if ($spec['role'] === UserRole::ComplexAdmin && ! Message::withoutGlobalScopes()->where('complex_id', $complex->id)->exists()) {
                 Message::create([
-                    'complex_id' => $complex->id, 'user_id' => $manager->id, 'body' => 'پیامِ نمونه‌ی گروهِ مجتمع.',
-                    'author_name' => $manager->name, 'author_role' => UserRole::ComplexAdmin->value, 'unit_label' => 'مدیریت',
+                    'complex_id' => $complex->id, 'user_id' => $multi->id, 'body' => 'پیامِ نمونه‌ی گروهِ مجتمع.',
+                    'author_name' => $multi->name, 'author_role' => UserRole::ComplexAdmin->value, 'unit_label' => 'مدیریت',
                 ]);
             }
         }
@@ -134,6 +143,30 @@ class PreviewSeeder extends Seeder
     public function issued(): array
     {
         return $this->issued;
+    }
+
+    /**
+     * حساب‌های ساختارِ پیشین که همین اجرا غیرفعال کرد — فرمان گزارششان می‌دهد.
+     *
+     * @return list<string>
+     */
+    public function retired(): array
+    {
+        return $this->retired;
+    }
+
+    /**
+     * حسابِ آزمایشیِ ساختارِ پیشین دیگر واردشدنی نیست؛ حذف نمی‌شود تا هیچ داده‌ای بی‌بررسی از دست نرود
+     * (`preview:reset` همه را از نو می‌سازد).
+     */
+    private function retireLegacy(): void
+    {
+        $legacy = User::withoutGlobalScopes()->where('is_demo', true)->whereIn('username', self::LEGACY)->where('is_active', true)->get();
+
+        foreach ($legacy as $user) {
+            $user->forceFill(['is_active' => false])->save();
+            $this->retired[] = (string) $user->username;
+        }
     }
 
     /** حسابِ آزمایشی؛ اگر هست دست نمی‌خورد (نه رمز، نه نام) */
@@ -200,7 +233,7 @@ class PreviewSeeder extends Seeder
      * مدیر در آن‌ها عضوِ واحد است)، ساختمان، چهار واحد با مالک و مستأجر، قوانینِ شارژ، صورتحساب، هزینه، درآمد،
      * اطلاعیه و پیامِ گروه، و اشتراکِ نمونه.
      *
-     * @param  array{name: string, type: ComplexType, plan: string, manager: UserRole|null}  $spec
+     * @param  array{name: string, type: ComplexType, plan: string, role: UserRole}  $spec
      */
     private function buildComplex(string $slug, array $spec): Complex
     {
@@ -216,8 +249,8 @@ class PreviewSeeder extends Seeder
         ]);
         $complex->save();
 
-        // حسابِ مدیر در «الف» تا «پ» مدیر است؛ در بقیه یک مدیرِ نمونه لازم است تا مجتمع بی‌مدیر نماند
-        $admin = $spec['manager'] === UserRole::ComplexAdmin
+        // جایی که حسابِ آزمایشی مدیر است مدیرِ دیگری لازم نیست؛ در بقیه یک مدیرِ نمونه تا مجتمع بی‌مدیر نماند
+        $admin = $spec['role'] === UserRole::ComplexAdmin
             ? null
             : $this->sample($complex, 'مدیرِ نمونه‌ی '.$spec['name'], UserRole::ComplexAdmin);
 
@@ -244,8 +277,8 @@ class PreviewSeeder extends Seeder
                 'uses_elevator' => $spec2['floor'] > 0,
             ]);
 
-            // واحدِ ۱ مالِ حساب‌های آزمایشی است (واحدِ تک‌مجتمعی، و «ت» و «ث» ِ حسابِ مدیر)؛ بقیه ساکنِ نمونه دارند
-            if ($spec2['no'] === '1' && in_array($slug, ['demo-d', 'demo-e', 'demo-unit'], true)) {
+            // واحدِ ۱ مالِ حسابِ آزمایشی است هر جا نقشش «واحد» است؛ بقیه ساکنِ نمونه دارند
+            if ($spec2['no'] === '1' && $spec['role'] !== UserRole::ComplexAdmin) {
                 continue;
             }
 

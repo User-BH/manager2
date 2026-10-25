@@ -31,6 +31,7 @@ vi.mock('@/shared/lib/alert', () => ({
 }))
 
 const { MembersPage } = await import('@/features/system/MembersPage')
+const { useAuthStore } = await import('@/shared/stores/authStore')
 
 const membersResponse = {
   data: [
@@ -56,6 +57,22 @@ beforeEach(() => {
   apiMock.mockReset()
   confirmMock.mockReset()
   apiMock.mockResolvedValue(membersResponse)
+})
+
+describe('کلیدِ «شامل داده‌ی آزمایشی» (۲۰۲۶-۱۰-۲۵، بخشِ دوم)', () => {
+  it('فقط وقتی سرور `demoData` را اعلام کند دیده می‌شود — روی Production نه', async () => {
+    useAuthStore.setState({ user: null })
+    const { unmount } = renderWithQuery(<MembersPage />)
+    await screen.findByText('علی محمدی')
+    expect(screen.queryByLabelText(/شامل داده‌ی آزمایشی/)).toBeNull()
+    unmount()
+
+    useAuthStore.setState({ user: { isSuperAdmin: true, demoData: true } as never })
+    renderWithQuery(<MembersPage />)
+    await screen.findByText('علی محمدی')
+    expect(screen.getByLabelText(/شامل داده‌ی آزمایشی/)).toBeInTheDocument()
+    useAuthStore.setState({ user: null })
+  })
 })
 
 describe('MembersPage با TanStack Query', () => {

@@ -9,6 +9,7 @@ use App\Support\SystemSettings;
 use Database\Seeders\PreviewSeeder;
 use Illuminate\Foundation\Http\Middleware\PreventRequestForgery;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\RateLimiter;
 use Tests\TestCase;
@@ -34,6 +35,14 @@ class UsernameLoginTest extends TestCase
         // شمارنده‌ها بین آزمون‌ها نشت نکنند
         RateLimiter::clear('login');
         $this->app['cache']->flush();
+    }
+
+    /** ⚠️ درخواستِ `env = production` میزبان‌های مجاز را ایستا روی `Request` می‌نشاند (همان پاک‌سازیِ `PreviewEnvironmentTest`) */
+    protected function tearDown(): void
+    {
+        Request::setTrustedHosts([]);
+
+        parent::tearDown();
     }
 
     /* ── ۱ ─────────────────────────────────────────────────────────────── */
@@ -127,9 +136,9 @@ class UsernameLoginTest extends TestCase
 
     public function test_a_demo_account_signs_in_by_username_outside_production(): void
     {
-        $demo = $this->account(['phone' => null, 'role' => UserRole::Owner, 'username' => 'demo.initial', 'is_demo' => true]);
+        $demo = $this->account(['phone' => null, 'role' => UserRole::Owner, 'username' => 'demo.single', 'is_demo' => true]);
 
-        $this->postJson('/api/v1/login', ['identifier_type' => 'username', 'username' => 'demo.initial', 'password' => self::PASSWORD])
+        $this->postJson('/api/v1/login', ['identifier_type' => 'username', 'username' => 'demo.single', 'password' => self::PASSWORD])
             ->assertOk()
             ->assertJsonPath('user.id', $demo->id);
 
@@ -140,7 +149,7 @@ class UsernameLoginTest extends TestCase
 
     public function test_a_demo_account_is_refused_in_production_with_the_generic_answer(): void
     {
-        $this->account(['phone' => null, 'role' => UserRole::Owner, 'username' => 'demo.initial', 'is_demo' => true]);
+        $this->account(['phone' => null, 'role' => UserRole::Owner, 'username' => 'demo.single', 'is_demo' => true]);
         $this->account(['phone' => '09127777777', 'role' => UserRole::Owner, 'username' => 'demo.phone', 'is_demo' => true]);
         $this->app['env'] = 'production';
         // در production نگهبانِ CSRF فعال است؛ این آزمون فقط مرزِ دادهٔ آزمایشی را می‌سنجد
@@ -148,7 +157,7 @@ class UsernameLoginTest extends TestCase
 
         $missing = $this->postJson('/api/v1/login', ['identifier_type' => 'username', 'username' => 'nobody.here', 'password' => self::PASSWORD])
             ->assertStatus(422)->json('errors');
-        $refused = $this->postJson('/api/v1/login', ['identifier_type' => 'username', 'username' => 'demo.initial', 'password' => self::PASSWORD])
+        $refused = $this->postJson('/api/v1/login', ['identifier_type' => 'username', 'username' => 'demo.single', 'password' => self::PASSWORD])
             ->assertStatus(422)->json('errors');
 
         // همان پاسخِ «نیست»: وجودِ حسابِ آزمایشی لو نمی‌رود
@@ -164,7 +173,7 @@ class UsernameLoginTest extends TestCase
 
     public function test_an_existing_demo_session_is_cut_off_in_production(): void
     {
-        $demo = $this->account(['phone' => null, 'role' => UserRole::Owner, 'username' => 'demo.initial', 'is_demo' => true]);
+        $demo = $this->account(['phone' => null, 'role' => UserRole::Owner, 'username' => 'demo.single', 'is_demo' => true]);
 
         $this->actingAs($demo)->getJson('/api/v1/me')->assertOk();
 
@@ -235,7 +244,7 @@ class UsernameLoginTest extends TestCase
         $this->seed(PreviewSeeder::class);
         $real = Complex::factory()->create(['name' => 'مجتمعِ واقعی']);
 
-        $manager = User::withoutGlobalScopes()->where('username', 'demo.manager')->firstOrFail();
+        $manager = User::withoutGlobalScopes()->where('username', 'demo.multi')->firstOrFail();
 
         // جعلِ مجتمع با پارامتر هیچ دسترسی‌ای نمی‌دهد: سرور عضویت را می‌سنجد
         $this->actingAs($manager)->postJson('/api/v1/account/context', ['complex_id' => $real->id])

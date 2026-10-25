@@ -14,6 +14,7 @@ use App\Models\Complex;
 use App\Services\Account\Membership;
 use App\Services\Subscription\PlanGate;
 use App\Support\Audit;
+use App\Support\DemoData;
 use App\Support\Jalali;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -38,7 +39,7 @@ class ComplexController extends Controller
          */
         // مجتمعِ آزمایشی فقط با «شاملِ دادهٔ آزمایشی» (۱۳/۱؛ «داشبورد های آزمایشی» بندِ ۴.۲)
         $complexes = Complex::withCount(['units', 'users'])
-            ->when(! $request->boolean('include_demo'), fn ($q) => $q->operational())
+            ->when(! DemoData::included($request), fn ($q) => $q->operational())
             ->latest()->paginate(20)->withQueryString();
 
         return response()->json([

@@ -60,6 +60,7 @@ use App\Http\Controllers\Api\System\PlatformStatsController;
 use App\Http\Controllers\Api\System\SiteSettingsController;
 use App\Http\Controllers\Api\System\SmsController;
 use App\Http\Controllers\Api\System\SubscriptionReviewController;
+use App\Http\Controllers\Api\TwoFactorController;
 use App\Http\Controllers\Api\UnitController;
 use App\Http\Controllers\Api\UnitInformationController;
 use App\Http\Controllers\Api\WalletController;
@@ -89,6 +90,9 @@ Route::post('login/verify', [AuthController::class, 'loginVerify'])
     ->middleware('throttle:otp-verify')->name('login.verify');
 Route::post('login/resend', [AuthController::class, 'loginResend'])
     ->middleware('throttle:otp-request')->name('login.resend');
+// گام ۲ ِ سوپر ادمین با TOTP (۲۰۲۶-۱۰-۲۵): کدِ برنامه یا کدِ بازیابی؛ قفلِ هر حساب در خودِ کنترلر
+Route::post('login/two-factor', [AuthController::class, 'loginTwoFactor'])
+    ->middleware('throttle:two-factor-login')->name('login.two-factor');
 
 // فراموشی رمز: شماره + نام مجتمع + تاریخ تولد ← کد پیامکی ← رمز تازه
 Route::post('password/forgot', [AuthController::class, 'forgotPassword'])
@@ -444,6 +448,19 @@ Route::middleware(['auth', 'presence'])->group(function () {
             ->name('profile.sessions.end-others');
         Route::delete('profile/devices/{device}', [SecurityController::class, 'destroyDevice'])
             ->whereNumber('device')->name('profile.devices.destroy');
+    });
+
+    /*
+     * عاملِ دومِ سوپر ادمین (۲۰۲۶-۱۰-۲۵، بخشِ ۵): وضعیت آزاد؛ راه‌اندازی، تأیید و کدهای تازه پشتِ تأییدِ رمز و سقفِ
+     * نرخِ هر حساب. غیرفعال‌سازی مسیرِ وب ندارد (`TwoFactorController`).
+     */
+    Route::get('profile/two-factor', [TwoFactorController::class, 'show'])
+        ->middleware('role:super_admin')->name('profile.two-factor.show');
+    Route::middleware(['role:super_admin', 'reauth', 'throttle:two-factor-manage'])->group(function () {
+        Route::post('profile/two-factor/setup', [TwoFactorController::class, 'setup'])->name('profile.two-factor.setup');
+        Route::post('profile/two-factor/confirm', [TwoFactorController::class, 'confirm'])->name('profile.two-factor.confirm');
+        Route::post('profile/two-factor/recovery-codes', [TwoFactorController::class, 'regenerateRecoveryCodes'])
+            ->name('profile.two-factor.recovery-codes');
     });
 
     Route::get('subscription', [SubscriptionController::class, 'show'])->name('subscription.show');
