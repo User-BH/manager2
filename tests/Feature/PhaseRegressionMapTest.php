@@ -1539,6 +1539,9 @@ class PhaseRegressionMapTest extends TestCase
             '🔴 حفره ها۲: مجتمعِ ساخته‌ی حسابِ آزمایشی دادهٔ آزمایشی است' => [
                 'DemoDataTest', 'test_a_community_built_by_a_demo_account_is_demo_data', '۱۳',
             ],
+            '🔴 حفره ها۲ (ت-۱): فقط مسکونی و تجاری؛ Mixed-Use بی‌صدا اضافه نمی‌شود' => [
+                'ComplexTypeScopeTest', 'test_only_residential_and_commercial_are_in_scope', '۱۳',
+            ],
         ];
     }
 

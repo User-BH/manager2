@@ -25,20 +25,23 @@
 | ح-۴ | تحویلِ اطلاعاتِ ورود دستورالعملِ یکجا نداشت (در چند سند پخش بود)                                                                                                                                                                                                                                               | ۵.۵         | بخشِ «تحویلِ اطلاعاتِ ورود» در [PREVIEW.md](PREVIEW.md)                                                                                                                                                                               |
 | ح-۵ | ورودِ سوپر ادمینِ اصلی «نام کاربری + رمز + Authenticator» است و `admin:two-factor` با نام کاربری کار می‌کند، ولی **هیچ راهِ پشتیبانی‌شده‌ای برای دادنِ نام کاربری به سوپر ادمینِ واقعی نبود**: `admin:create` فقط شماره می‌گرفت و `username` عمداً در هیچ API نیست. روی سرورِ تازه، ورودِ مصوب عملاً ممکن نبود | ۵.۱، ۵.۵    | `admin:create --username=` و فرمانِ تازه‌ی `admin:username <username> --phone=`: فقط سوپر ادمینِ واقعی (نه حسابِ آزمایشی، نه کاربرِ عادی)، الگوی `Username`، یکتا، بی پیشوندِ `demo.`، با audit log                                   |
 
-**تعارضِ واقعی که تصمیم می‌خواهد (کد عوض نشد):**
+**تعارضِ واقعی — بسته با تصمیمِ نهاییِ کارفرما (۲۰۲۶-۱۰-۲۶):**
 
 - **ت-۱ · نوعِ «Mixed-Use».** بندِ ۶.۳ «حداقل نوع‌های موردنیاز» را مسکونی، تجاری و Mixed-Use می‌گوید؛ تصمیمِ ۹ ِ کارفرما
   Mixed-Use را INTENTIONALLY NOT BUILT گذاشته ([ARCHITECTURE_EVIDENCE_MAP.md](ARCHITECTURE_EVIDENCE_MAP.md) بندِ ۶، پرسشِ
   ت-۱۳ ِ [STAGE13_ROADMAP.md](STAGE13_ROADMAP.md)) و ماتریسِ همین سند (۴.۴) هم فقط مسکونی و تجاری دارد. افزودنِ نوعِ سوم
   تعرفه، کارتِ پلن، داشبوردها و قیدِ پایگاه‌داده را عوض می‌کند. طبقِ گامِ ۳ ِ بخشِ ۲۱ («بدون تغییر خاموش requirementها
-  را ضعیف نکن») تعارض ثبت شد و **Mixed-Use تا تصمیمِ کارفرما ساخته نمی‌شود**.
+  را ضعیف نکن») تعارض ثبت شد. **پاسخِ کارفرما (نهایی):** دامنه فقط Residential و Commercial است؛ Mixed-Use
+  **INTENTIONALLY NOT BUILT** (نه OPEN)؛ هیچ تغییری در پایگاه‌داده، تعرفه، کارتِ پلن یا منطقِ داشبورد برایش داده نمی‌شود؛
+  افزودنِ آینده فقط با Specification ِ مستقل، بررسیِ اثر، مهاجرتِ امن و آزمونِ کامل. بررسیِ وابستگیِ معماری به «دقیقاً
+  دو نوع» و چک‌لیستِ آینده در [COMPLEX_TYPES.md](COMPLEX_TYPES.md)؛ نگهبان: `ComplexTypeScopeTest`.
 
 ## ۲. وضعیتِ هر بخش (خروجیِ بخشِ ۲۳)
 
 | #   | بخش                           | وضعیت                                                    | مدرک                                                                                                                                                                                                                                                                                                                                               |
 | --- | ----------------------------- | -------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | ۱   | Account Architecture          | VERIFIED                                                 | یک Account با چند عضویت: `MultiCommunityContextTest`، `MembershipLedgerTest`؛ پنج زمینه یک حساب: `DemoDataTest::test_the_multi_community_account_has_exactly_the_five_contexts_of_the_table`                                                                                                                                                       |
-| ۲   | Community Architecture        | VERIFIED                                                 | نوعِ اجباری، بی پیش‌فرض: `ComplexTypeTest::test_a_missing_type_is_refused_instead_of_defaulting`، `ComplexTypeTest::test_the_admin_creation_path_also_refuses_a_missing_type`. Mixed-Use: تعارضِ ت-۱                                                                                                                                               |
+| ۲   | Community Architecture        | VERIFIED                                                 | نوعِ اجباری، بی پیش‌فرض: `ComplexTypeTest::test_a_missing_type_is_refused_instead_of_defaulting`، `ComplexTypeTest::test_the_admin_creation_path_also_refuses_a_missing_type`. Mixed-Use: INTENTIONALLY NOT BUILT (ت-۱، `ComplexTypeScopeTest::test_only_residential_and_commercial_are_in_scope`)                                                 |
 | ۳   | Unit Architecture             | VERIFIED                                                 | واحدِ canonical و دوره‌ها: `UnitTenureTest`، `CommunityAndUnitInformationTest`                                                                                                                                                                                                                                                                     |
 | ۴   | Membership Lifecycle          | VERIFIED                                                 | درخواست، تأیید، رد، پایان، تعلیق: `MembershipLifecycleTest`، `JoinRequestTest`، `MembershipSuspensionTest`، `MembershipPathsTest`                                                                                                                                                                                                                  |
 | ۵   | Invitation System             | VERIFIED                                                 | توکنِ امن و یک‌بار، QR جدا از دعوت: `SecureInvitationTest`، `DirectInvitationRoutingTest`، `PublicJoinTest`، `InvitationConcurrencyTest`، `InvitationNotificationTest`                                                                                                                                                                             |
@@ -88,7 +91,7 @@
 | **OPEN**                                                     | **۰**  |
 | **جمع**                                                      | **۳۷** |
 
-بیرون از این ۳۷ بخش: Mixed-Use (ت-۱) همچنان INTENTIONALLY NOT BUILT به تصمیمِ ۹، تا پاسخِ کارفرما.
+بیرون از این ۳۷ بخش: Mixed-Use (ت-۱) — **INTENTIONALLY NOT BUILT**، تصمیمِ نهاییِ ۲۰۲۶-۱۰-۲۶.
 
 ## ۳. چهار سناریوی Preview — شرطِ به شرط (بخش‌های ۳، ۴ و ۱۸)
 
