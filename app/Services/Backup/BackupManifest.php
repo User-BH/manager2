@@ -42,6 +42,8 @@ final class BackupManifest
      */
     public const TABLES = [
         'plans',
+        // قیمتِ هر مدتِ هر پلن (۱۳/۶) — بی آن، پلنِ بازیابی‌شده خریدنی نیست
+        'plan_prices',
         'complexes',
         'users',
         'buildings',

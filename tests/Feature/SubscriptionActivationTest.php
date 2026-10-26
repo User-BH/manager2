@@ -6,7 +6,6 @@ use App\Enums\ComplexType;
 use App\Enums\SubscriptionPlan;
 use App\Enums\UserRole;
 use App\Models\Complex;
-use App\Models\Plan;
 use App\Models\Subscription;
 use App\Models\User;
 use App\Services\Subscription\PlanGate;
@@ -14,6 +13,7 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Route;
 use LogicException;
 use Symfony\Component\Finder\Finder;
+use Tests\Concerns\TestPlans;
 use Tests\TestCase;
 
 /**
@@ -46,7 +46,7 @@ class SubscriptionActivationTest extends TestCase
 
     private function unpaidRenewal(): Subscription
     {
-        $this->actingAs($this->manager)->post('/subscription/checkout', ['plan' => 'pro'])->assertRedirect();
+        $this->actingAs($this->manager)->post('/subscription/checkout', ['plan' => 'basic'])->assertRedirect();
 
         return Subscription::where('method', 'online')->where('status', 'pending')->latest('id')->firstOrFail();
     }
@@ -74,7 +74,7 @@ class SubscriptionActivationTest extends TestCase
     public function test_granting_a_plan_never_activates_the_unpaid_online_row(): void
     {
         $pending = $this->unpaidRenewal();
-        $plan = Plan::create(['name' => 'هدیه', 'slug' => 'gift', 'price' => 100000, 'months' => 1, 'is_active' => true]);
+        $plan = TestPlans::create(['name' => 'هدیه', 'slug' => 'gift', 'price' => 100000, 'months' => 1, 'is_active' => true]);
 
         $this->actingAs($this->super)->postJson('/api/v1/system/plans/grant', ['complex_id' => $this->complex->id, 'plan_id' => $plan->id])
             ->assertCreated();

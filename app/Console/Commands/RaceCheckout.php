@@ -3,11 +3,13 @@
 namespace App\Console\Commands;
 
 use App\Enums\ComplexType;
+use App\Enums\PlanTier;
 use App\Enums\UserRole;
 use App\Models\CheckoutIntent;
 use App\Models\Complex;
 use App\Models\ComplexMembership;
 use App\Models\Plan;
+use App\Models\PlanPrice;
 use App\Models\Subscription;
 use App\Models\User;
 use App\Services\Account\MembershipLedger;
@@ -62,8 +64,10 @@ class RaceCheckout extends Command
 
         $plan = Plan::create([
             'name' => 'آزمونِ همزمانی', 'slug' => "race-{$tag}", 'complex_type' => ComplexType::Residential,
-            'price' => 100000, 'months' => 1, 'is_active' => true,
+            'tier' => PlanTier::Basic, 'price' => 100000, 'months' => 1, 'is_active' => true,
         ]);
+        // قیمتِ مدت از ۱۳/۶ در جدولِ خودش است (`Plan::priceFor`)
+        PlanPrice::create(['plan_id' => $plan->id, 'months' => 1, 'price' => 100000, 'is_active' => true]);
         $user = User::create([
             'first_name' => 'آزمون', 'last_name' => 'همزمانی', 'name' => 'آزمون همزمانی',
             'phone' => '0912'.random_int(1000000, 9999999), 'password' => Str::random(32),

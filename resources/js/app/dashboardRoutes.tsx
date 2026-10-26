@@ -82,11 +82,6 @@ export const SHARED_ROUTES: DashboardRoute[] = [
     page: page(() => import('@/features/tools/calculator/CalculatorPage'), 'CalculatorPage'),
   },
   { path: '/profile', page: page(() => import('@/features/profile/ProfilePage'), 'ProfilePage') },
-  /*
-   * `/new-complex` (خریدِ عضو درونِ داشبوردِ مجتمع، ۱۰/۵) از ۱۳/۳ نیست: خریدِ مجتمعِ تازه از «ایجادِ حسابِ جدید» و
-   * همان داشبوردِ اولیه است (ایرادات ۱۱، بندِ ۵.۶ — «نه داشبوردِ موازی»)؛ سرور همان مسیرِ خرید را دارد.
-   */
-  { path: '/account', page: page(() => import('@/features/account/AccountPage'), 'AccountPage') },
   // مالک/مستأجرِ فعلی یا مدیر — مجوز در سرور (مرحلهٔ ۱۰ · فاز ۷)
   {
     path: '/units/:unitId/information',
@@ -95,7 +90,17 @@ export const SHARED_ROUTES: DashboardRoute[] = [
 ]
 
 /** مدیریتِ مجتمع: مدیر، و ادمینِ کل در مجتمعی که برگزیده. */
+const AccountPage = page(() => import('@/features/account/AccountPage'), 'AccountPage')
+
 export const MANAGER_ROUTES: DashboardRoute[] = [
+  /*
+   * «تنظیماتِ حساب» (۱۳/۶؛ ایرادات ۱۰، بندِ ۲): فقط داشبوردِ مدیر — نه واحد (پیش از این در مسیرهای مشترک بود). سوپر
+   * ادمین «تنظیماتِ حساب» اش مدیریتِ پلن‌هاست (`/system/plans`) و سرور خرید را از او هم رد می‌کند. `/new-complex`
+   * از ۱۳/۳ نیست: خریدِ مجتمعِ تازه از همان داشبوردِ اولیه است (ایرادات ۱۱، بندِ ۵.۶).
+   */
+  { path: '/account', page: AccountPage },
+  // «تاریخچه‌ی پرداخت‌ها» — همان صفحه، محتوای دیگر (بندِ ۲۶)
+  { path: '/account/history', page: AccountPage },
   { path: '/units', page: page(() => import('@/features/units/UnitsPage'), 'UnitsPage') },
   // سهمیه‌ی ماهانه‌ی پیامک — فقط مدیر (R27)
   {

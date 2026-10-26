@@ -66,8 +66,8 @@ async function me(page: Page) {
 }
 
 /**
- * از رابطِ واقعی (مرحلهٔ ۹ · فاز ۵): داشبوردِ اولیه ← «مشاهده‌ی پکیج‌ها» ← نام و
- * نوعِ مجتمع ← پلن ← «پرداختِ آنلاین». مبلغ را رابط نمی‌فرستد؛ سرور از پلن می‌خواند.
+ * از رابطِ واقعی (مرحلهٔ ۹ · فاز ۵؛ جادوگرِ ۱۳/۶): داشبوردِ اولیه ← «مشاهده‌ی پکیج‌ها» ← نوعِ مجتمع ← پلن ← مدت ←
+ * تأیید (نام) ← «تأیید و پرداخت». مبلغ را رابط نمی‌فرستد؛ سرور از جدولِ قیمت می‌خواند.
  */
 async function submitCheckout(page: Page, complexName: string) {
   await page.goto('/dashboard')
@@ -75,9 +75,11 @@ async function submitCheckout(page: Page, complexName: string) {
   await expect(
     page.getByRole('heading', { level: 1, name: 'ساختِ مجتمع و خریدِ اشتراک' }),
   ).toBeVisible()
-  await page.getByLabel('نامِ مجتمع').fill(complexName)
-  await page.getByRole('radio', { name: 'مسکونی' }).check()
-  await page.getByRole('radio', { name: /^پایه / }).check()
+  await page.getByRole('button', { name: /^مسکونی/ }).click()
+  await page.getByRole('button', { name: /^پایه/ }).first().click()
+  await page.getByRole('button', { name: /^۱ ماهه/ }).click()
+  await expect(page.getByRole('heading', { name: 'تأییدِ نهایی' })).toBeVisible()
+  await page.getByLabel(/نامِ مجتمع/).fill(complexName)
 
   /*
    * رسید هیچ نقشی در مدیر شدن ندارد (F1، F2): نه فایلی، نه دکمه‌ی رسیدی.
@@ -87,7 +89,7 @@ async function submitCheckout(page: Page, complexName: string) {
    */
   await expect(page.locator('input[type="file"]')).toHaveCount(0)
   await expect(page.getByRole('button', { name: /رسید/ })).toHaveCount(0)
-  await page.getByRole('button', { name: 'پرداختِ آنلاین' }).click()
+  await page.getByRole('button', { name: 'تأیید و پرداخت' }).click()
 }
 
 test.describe.configure({ mode: 'serial' })

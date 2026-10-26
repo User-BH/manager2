@@ -186,9 +186,9 @@ class AbusePreventionTest extends TestCase
         config(['subscription.gateway' => 'sandbox']);
 
         for ($i = 1; $i <= 6; $i++) {
-            $this->actingAs($this->manager)->post('/subscription/checkout', ['plan' => 'pro'])->assertRedirect();
+            $this->actingAs($this->manager)->post('/subscription/checkout', ['plan' => 'basic'])->assertRedirect();
         }
 
-        $this->actingAs($this->manager)->post('/subscription/checkout', ['plan' => 'pro'])->assertStatus(429);
+        $this->actingAs($this->manager)->post('/subscription/checkout', ['plan' => 'basic'])->assertStatus(429);
     }
 }

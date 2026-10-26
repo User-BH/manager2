@@ -9,7 +9,6 @@ use App\Http\Middleware\SetCurrentComplex;
 use App\Models\Bill;
 use App\Models\Complex;
 use App\Models\ComplexMembership;
-use App\Models\Plan;
 use App\Models\Unit;
 use App\Models\User;
 use App\Services\Account\Membership;
@@ -22,6 +21,7 @@ use App\Support\SystemSettings;
 use App\Support\TenantContext;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Testing\TestResponse;
+use Tests\Concerns\TestPlans;
 use Tests\TestCase;
 
 /**
@@ -204,7 +204,7 @@ class SessionContextTest extends TestCase
         $this->device($person, null)->getJson('/api/v1/me')->assertOk()->assertJsonPath('user.dashboard', 'unit');
 
         // و همان حساب ← مدیرِ مجتمعِ تازه با خرید
-        $plan = Plan::create(['name' => 'پایه', 'slug' => 'basic-test', 'price' => 100_000, 'months' => 1, 'is_active' => true, 'complex_type' => ComplexType::Residential->value]);
+        $plan = TestPlans::create(['name' => 'پایه', 'slug' => 'basic-test', 'price' => 100_000, 'months' => 1, 'is_active' => true, 'complex_type' => ComplexType::Residential->value]);
         $purchase = app(ComplexPurchase::class);
         $intent = $purchase->begin(User::find($person->id), $plan, 'مجتمعِ مریم', ComplexType::Residential, null);
         $done = $purchase->complete($intent, 'TRK-12-1');

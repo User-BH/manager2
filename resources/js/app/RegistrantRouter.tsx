@@ -77,6 +77,8 @@ export function RegistrantRouter() {
           ))}
           {/* مقصدِ اعلانِ دعوت و گزینه‌ی «دعوت‌ها» ِ منوی آدمک (۱۳/۵) — زبانه‌ی جدا نیست؛ داشبورد هم دعوت‌ها را دارد */}
           <Route path={INVITATIONS_PATH} element={<RegistrantInvitationsPage />} />
+          {/* «تاریخچه‌ی پرداخت‌ها» ِ «حساب و اشتراک» (۱۳/۶، بندِ ۲۶) — همان صفحه، محتوای دیگر */}
+          <Route path="/account/history" element={<RegistrantPurchasePage />} />
         </Route>
       </Route>
 

@@ -11,7 +11,6 @@ use App\Models\CheckoutIntent;
 use App\Models\Complex;
 use App\Models\ComplexInvitation;
 use App\Models\ComplexMembership;
-use App\Models\Plan;
 use App\Models\Unit;
 use App\Models\User;
 use App\Services\Account\MembershipLedger;
@@ -23,6 +22,7 @@ use App\Support\TenantContext;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Testing\TestResponse;
+use Tests\Concerns\TestPlans;
 use Tests\TestCase;
 
 /**
@@ -260,7 +260,7 @@ class MultiCommunityContextTest extends TestCase
     public function test_a_purchase_from_the_initial_dashboard_builds_a_community_only_after_payment(): void
     {
         config(['subscription.gateway' => 'zarinpal', 'subscription.config.merchant_id' => 'test-merchant-id', 'subscription.config.sandbox' => false]);
-        Plan::create(['name' => 'پایه', 'slug' => 'res-13-3', 'complex_type' => ComplexType::Residential, 'price' => 250000, 'months' => 3, 'is_active' => true]);
+        TestPlans::create(['name' => 'پایه', 'slug' => 'res-13-3', 'complex_type' => ComplexType::Residential, 'price' => 250000, 'months' => 3, 'is_active' => true]);
         [$failing, $paying] = ['A00000000000000000000000000000013301', 'A00000000000000000000000000000013302'];
         Http::fake([
             // هر درخواست authority ِ خودش را می‌گیرد، مثلِ درگاهِ واقعی

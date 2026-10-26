@@ -181,7 +181,7 @@ class SubscriptionFlowTest extends TestCase
 
         // و ساکن خریدِ آنلاین هم نمی‌تواند
         $this->actingAs($this->resident)
-            ->post('/subscription/checkout', ['plan' => 'pro'])
+            ->post('/subscription/checkout', ['plan' => 'basic'])
             ->assertStatus(403);
     }
 
@@ -208,7 +208,7 @@ class SubscriptionFlowTest extends TestCase
         config(['subscription.gateway' => 'sandbox']);
 
         $this->actingAs($this->admin)
-            ->post('/subscription/checkout', ['plan' => 'pro'])
+            ->post('/subscription/checkout', ['plan' => 'basic'])
             ->assertRedirect();
 
         $subscription = Subscription::firstOrFail();

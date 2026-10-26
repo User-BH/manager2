@@ -34,6 +34,7 @@ import type { NavSection, UserRole } from '@/shared/types'
 const ADMINS: UserRole[] = ['super_admin', 'complex_admin']
 const RESIDENTS: UserRole[] = ['owner', 'tenant']
 const SUPER: UserRole[] = ['super_admin']
+const MANAGERS: UserRole[] = ['complex_admin']
 
 /**
  * ساختار منوی داشبورد.
@@ -89,9 +90,11 @@ export const navSections: NavSection[] = [
       { label: 'بکاپ مجتمع', path: '/settings/backup', icon: DatabaseBackup, roles: ADMINS },
       /*
        * «تنظیماتِ حساب» در منوی کناری، نه منوی آدمک (۱۳/۳؛ ایرادات ۱۰، بندِ ۲ و «داشبورد های آزمایشی» ۵.۲): مدیر و
-       * سوپر ادمین — نه واحد. بازسازیِ خودِ صفحه و بستنِ سمتِ سرورِ واحد در ۱۳/۶.
+       * سوپر ادمین — نه واحد (سرور هم رد می‌کند، ۱۳/۶). مدیر: پلن، تمدید و پرداخت؛ سوپر ادمین: مدیریتِ کارت‌ها، پلن‌ها و
+       * قیمت‌ها، بی هیچ خرید و پرداختی (بندِ ۵).
        */
-      { label: 'تنظیمات حساب', path: '/account', icon: CircleUserRound, roles: ADMINS },
+      { label: 'تنظیمات حساب', path: '/account', icon: CircleUserRound, roles: MANAGERS },
+      { label: 'تنظیمات حساب', path: '/system/plans', icon: CircleUserRound, roles: SUPER },
     ],
   },
   {
@@ -102,7 +105,6 @@ export const navSections: NavSection[] = [
       { label: 'آمار پلتفرم', path: '/system/stats', icon: BarChart3, roles: SUPER },
       { label: 'مدیریت مجتمع‌ها', path: '/system/complexes', icon: Building, roles: SUPER },
       { label: 'اعضای سامانه', path: '/system/members', icon: Users, roles: SUPER },
-      { label: 'پکیج‌های اشتراک', path: '/system/plans', icon: BadgePercent, roles: SUPER },
       { label: 'اشتراک‌ها', path: '/system/subscriptions', icon: Crown, roles: SUPER },
       { label: 'تبلیغات صفحه اصلی', path: '/system/ads', icon: MegaphoneIcon, roles: SUPER },
       { label: 'بلاگ', path: '/system/blog', icon: Newspaper, roles: SUPER },

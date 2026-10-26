@@ -20,7 +20,7 @@ class Subscription extends Model implements GatewayOrder
     use HasFactory;
 
     protected $fillable = [
-        'complex_id', 'user_id', 'plan', 'plan_id', 'status', 'method', 'amount', 'months',
+        'complex_id', 'user_id', 'plan', 'plan_id', 'status', 'method', 'purchase_kind', 'amount', 'months',
         'starts_at', 'ends_at', 'gateway', 'ref_id', 'tracking_code', 'paid_at',
         'receipt_path', 'receipt_original_name', 'receipt_paid_on',
         'reviewed_by', 'reviewed_at', 'review_note',
@@ -200,6 +200,8 @@ class Subscription extends Model implements GatewayOrder
             'pending' => $this->method === 'receipt' ? 'در انتظار بررسی' : 'در انتظار پرداخت',
             'failed' => $this->method === 'receipt' ? 'رد شده' : 'ناموفق',
             'canceled' => 'لغو شده',
+            // پلنِ دیگری با پرداختِ موفق جایش را گرفت (۱۳/۶، بندِ ۲۲)
+            'replaced' => 'خاتمه با تغییرِ پلن',
             default => 'منقضی‌شده',
         };
     }

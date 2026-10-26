@@ -23,6 +23,7 @@ use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Testing\TestResponse;
+use Tests\Concerns\TestPlans;
 use Tests\TestCase;
 
 /**
@@ -465,7 +466,7 @@ class InitialAccountTest extends TestCase
     /** slug یکتا، چون پکیج‌های پیش‌فرض از قبل seed شده‌اند. */
     private function makePlan(): Plan
     {
-        return Plan::create([
+        return TestPlans::create([
             'name' => 'پایه‌ی آزمایشی', 'slug' => 'r21-test-plan', 'price' => 500000,
             'months' => 12, 'unit_limit' => 50, 'is_active' => true,
         ]);

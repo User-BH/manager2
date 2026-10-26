@@ -3,6 +3,7 @@
 namespace App\Policies;
 
 use App\Enums\AccountState;
+use App\Enums\UserRole;
 use App\Models\Subscription;
 use App\Models\User;
 use App\Support\ComplexResolver;
@@ -22,7 +23,20 @@ class SubscriptionPolicy
          * مدیرش می‌کند (R21). بدونِ این شرط، تنها راهِ بیرون آمدن از آن حالت
          * برای کسی که مدیری ندارد تا دعوتش کند، بسته می‌ماند.
          */
-        return $user->isAdmin() || AccountState::of($user) === AccountState::Initial;
+        /*
+         * 🔴 ۱۳/۶ (ایرادات ۱۰، بندِ ۵): سوپر ادمین هیچ مسیرِ خرید، تمدید یا پرداختی ندارد. پیش از این `isAdmin()` او را هم
+         * می‌پذیرفت و سوپر ادمینی که مجتمعی را برگزیده بود تمدیدِ همان مجتمع را تا درگاه می‌برد.
+         */
+        return $user->role === UserRole::ComplexAdmin || AccountState::of($user) === AccountState::Initial;
+    }
+
+    /**
+     * «تنظیماتِ حساب» و تاریخچه‌ی پرداخت (بندِ ۲): مدیرِ مجتمعِ فعال و حسابِ اولیه. **نه** واحد — داشبوردِ واحد مسئولِ
+     * خرید و اشتراک نیست — و نه سوپر ادمین، که تنظیماتِ حسابش مدیریتِ پلن‌هاست (`System\PlanController`).
+     */
+    public function viewAccount(User $user): bool
+    {
+        return $this->purchase($user);
     }
 
     /**

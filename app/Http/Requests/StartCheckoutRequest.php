@@ -4,6 +4,7 @@ namespace App\Http\Requests;
 
 use App\Enums\AccountState;
 use App\Enums\ComplexType;
+use App\Enums\PlanTier;
 use App\Models\User;
 use Illuminate\Validation\Rule;
 
@@ -22,6 +23,13 @@ class StartCheckoutRequest extends BaseFormRequest
     {
         return [
             'plan' => ['required', 'string'],
+            /*
+             * مدتِ اشتراک (۱۳/۶، بندِ ۱۶): فقط از شش مدت؛ قیمتش را سرور از جدول می‌خواند. خالی فقط برای تبِ بازِ نسخه‌ی پیشین
+             * (همان مدتی که آن صفحه نشان می‌داد) — یک چرخه‌ی استقرار، سپس اجباری.
+             */
+            'months' => ['nullable', 'integer', Rule::in(PlanTier::DURATIONS)],
+            // تأییدِ صریحِ «تغییرِ پلن» (بندِ ۲۲): بی آن تغییر ساخته نمی‌شود؛ برای تمدیدِ همان پلن بی‌اثر
+            'confirm_change' => ['nullable', 'boolean'],
 
             /*
              * «مجتمعِ تازه» یا «تمدیدِ همین مجتمع» (مرحلهٔ ۱۰ · فاز ۵). عضوِ یک مجتمع هم حالا مجتمعِ تازه
@@ -48,10 +56,16 @@ class StartCheckoutRequest extends BaseFormRequest
     {
         return [
             'plan' => 'پلن',
+            'months' => 'مدتِ اشتراک',
             'complex_name' => 'نام مجتمع',
             'complex_type' => 'نوع مجتمع',
             'complex_address' => 'نشانی مجتمع',
         ];
+    }
+
+    public function months(): ?int
+    {
+        return $this->filled('months') ? (int) $this->input('months') : null;
     }
 
     /** آیا این خرید مجتمعِ تازه می‌سازد؟ حسابِ اولیه همیشه؛ عضو فقط با `purpose=new_complex`. */

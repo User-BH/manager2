@@ -262,18 +262,19 @@ describe('داشبوردِ اولیه‌ی عضو («ایجادِ حسابِ ج�
   })
 })
 
-describe('«تنظیماتِ حساب» در منوی کناری (۱۳/۳)', () => {
-  it('مدیر و سوپر ادمین دارند؛ واحد نه', () => {
-    const has = (role: CurrentUser['role']) =>
+describe('«تنظیماتِ حساب» در منوی کناری (۱۳/۳، ۱۳/۶)', () => {
+  it('مدیر و سوپر ادمین دارند؛ واحد نه — سوپر ادمین مدیریتِ پلن‌ها، نه خرید', () => {
+    const target = (role: CurrentUser['role']) =>
       m.navigation
         .visibleSections(role)
-        .some((section) => section.items.some((item) => item.path === '/account'))
+        .flatMap((section) => section.items)
+        .find((item) => item.label === 'تنظیمات حساب')?.path ?? null
 
-    expect([has('complex_admin'), has('super_admin'), has('owner'), has('tenant')]).toEqual([
-      true,
-      true,
-      false,
-      false,
-    ])
+    expect([
+      target('complex_admin'),
+      target('super_admin'),
+      target('owner'),
+      target('tenant'),
+    ]).toEqual(['/account', '/system/plans', null, null])
   })
 })

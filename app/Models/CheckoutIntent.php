@@ -121,9 +121,30 @@ class CheckoutIntent extends Model implements GatewayOrder
         return $this->belongsTo(Subscription::class);
     }
 
+    /** @return BelongsTo<Plan, $this> */
+    public function plan(): BelongsTo
+    {
+        return $this->belongsTo(Plan::class);
+    }
+
     public function isPending(): bool
     {
         return $this->status === self::PENDING;
+    }
+
+    /** برای «تاریخچه‌ی پرداخت‌ها» ِ حسابِ اولیه (۱۳/۶، بندِ ۲۷) */
+    public function statusLabel(): string
+    {
+        return match ($this->status) {
+            self::PENDING => 'در انتظار پرداخت',
+            self::COMPLETED => 'موفق',
+            // پول گرفته شد ولی مجتمع ساخته نشد — ادمینِ کل تعیینِ تکلیف می‌کند
+            self::PAID => 'پرداخت‌شده، در انتظار بررسی',
+            self::FAILED => 'ناموفق',
+            self::CANCELLED => 'لغو شده',
+            self::REFUNDED => 'بازپرداخت شد',
+            default => $this->status,
+        };
     }
 
     /**

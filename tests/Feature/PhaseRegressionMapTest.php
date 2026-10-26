@@ -1539,6 +1539,22 @@ class PhaseRegressionMapTest extends TestCase
             '🔴 حفره ها۲: مجتمعِ ساخته‌ی حسابِ آزمایشی دادهٔ آزمایشی است' => [
                 'DemoDataTest', 'test_a_community_built_by_a_demo_account_is_demo_data', '۱۳',
             ],
+            // مرحلهٔ ۱۳ · فاز ۶ — تنظیماتِ حساب، پلن، تمدید و تغییر
+            '🔴 ۱۳/۶: سوپر ادمین و واحد هیچ مسیرِ خرید و پرداختی ندارند' => [
+                'AccountPlansTest', 'test_the_super_admin_and_a_unit_member_have_no_purchase_path', '۱۳',
+            ],
+            '🔴 ۱۳/۶: قیمتِ تازه‌ی سوپر ادمین در همان تمدیدِ بعدی؛ مبلغِ کلاینت بی‌اثر' => [
+                'AccountPlansTest', 'test_a_new_super_admin_price_is_used_at_the_very_next_renewal_and_the_client_amount_is_ignored', '۱۳',
+            ],
+            '🔴 ۱۳/۶: تغییرِ پلن بی تأییدِ صریح هیچ ردیفی نمی‌سازد' => [
+                'AccountPlansTest', 'test_changing_the_plan_needs_an_explicit_confirmation_and_creates_nothing_without_it', '۱۳',
+            ],
+            '🔴 ۱۳/۶: تغییرِ پلن فقط با پرداختِ تأییدشده پلنِ قبلی را خاتمه می‌دهد' => [
+                'AccountPlansTest', 'test_a_confirmed_change_ends_the_old_plan_only_when_the_payment_is_verified', '۱۳',
+            ],
+            '🔴 ۱۳/۶: پلنِ سایه‌خورده با slug ِ مستقیم خریدنی نیست' => [
+                'AccountPlansTest', 'test_a_typed_plan_shadows_the_shared_one_and_the_shadowed_slug_is_not_purchasable', '۱۳',
+            ],
             '🔴 حفره ها۲ (ت-۱): فقط مسکونی و تجاری؛ Mixed-Use بی‌صدا اضافه نمی‌شود' => [
                 'ComplexTypeScopeTest', 'test_only_residential_and_commercial_are_in_scope', '۱۳',
             ],
@@ -1665,7 +1681,7 @@ class PhaseRegressionMapTest extends TestCase
             // نسخه‌ی جدای فرمِ بازخورد (بودجه‌ی باندل) از قاعده‌ی مشترک جدا نمی‌افتد
             'personName' => ['۹/۳', 'الگوی هر دو نسخه یکی است'],
             // مرحلهٔ ۹ · فاز ۵: خریدِ حسابِ اولیه فقط آنلاین؛ مبلغ از سرور
-            'registrantPurchase' => ['۹/۵', 'فقط slug و نام و نوع را به درگاه می‌فرستد — مبلغ نه'],
+            'registrantPurchase' => ['۹/۵', 'slug، مدت، نام و نوع را به درگاه می‌فرستد — مبلغ نه'],
             // مرحلهٔ ۹ · فاز ۶: دعوت نه نام می‌فرستد نه رمز؛ توکن در بدنه، نه در نشانی
             'secureInvitation' => ['۹/۶', 'فقط شماره، نقش و واحد می‌رود — نه نام، نه رمز'],
             // اصلاحاتِ پس از ۹/۶: تلاشِ دومِ E2E شکستِ اول را پنهان نمی‌کند
@@ -1713,6 +1729,8 @@ class PhaseRegressionMapTest extends TestCase
             // مرحلهٔ ۱۳ · فاز ۴: ماتریسِ نوار و پنلِ جست‌وجوی زیرِ سربرگ
             'topBar' => ['۱۳/۴', 'اولیه: آدمک، اعلان، تم — و هیچ جست‌وجو، اخیرها یا ماشین‌حسابی'],
             // مرحلهٔ ۱۳ · فاز ۵: نشانِ دعوت، رفتن به داشبوردِ اولیه، زنگوله‌ای که با ضربه باز می‌ماند
+            // ۱۳/۶: «تمدیدِ پلنِ فعلی» مستقیم به مدت، و تغییرِ پلن بی تأییدِ صریح چیزی نمی‌فرستد
+            'accountSettings' => ['۱۳/۶', 'تغییرِ پلن: هشدارِ روشن و تأییدِ صریح پیش از پرداخت؛ بی تأیید چیزی نمی‌رود'],
             'invitationNotifications' => ['۱۳/۵', 'ضربه‌ی لمسی (focus سپس click) باز می‌کند، نه باز-و-بسته'],
         ];
 

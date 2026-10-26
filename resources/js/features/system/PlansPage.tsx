@@ -10,6 +10,15 @@ import { useDocumentTitle } from '@/shared/hooks'
 import { api } from '@/shared/lib/api'
 import { alertError, confirmAction, toastSuccess } from '@/shared/lib/alert'
 
+type Tier = 'basic' | 'professional' | 'advanced'
+
+/** قیمتِ یک مدت (۱۳/۶) — مدتِ بی‌قیمت یا غیرفعال خریدنی نیست */
+interface DurationPrice {
+  months: number
+  price: number
+  is_active: boolean
+}
+
 interface Plan {
   id: number
   name: string
@@ -17,9 +26,14 @@ interface Plan {
   /** null یعنی «برای هر دو نوع» (R67) */
   complex_type: 'residential' | 'commercial' | null
   complexTypeLabel: string
-  price: number
-  priceLabel: string
-  months: number
+  /** سطحِ canonical (۱۳/۶)؛ بی سطح = در کارت‌های خرید نمی‌آید */
+  tier: Tier | null
+  tierLabel: string | null
+  description: string | null
+  prices: (DurationPrice & { priceLabel: string })[]
+  /** همان چیزی که کارتِ خرید از ستون‌های اجراشده نشان می‌دهد */
+  capabilities: string[]
+  includesEverything: boolean
   unit_limit: number | null
   real_gateway: boolean
   excel_export: boolean
@@ -38,18 +52,34 @@ interface ComplexRow {
 interface PlansResponse {
   plans: Plan[]
   complexes: ComplexRow[]
+  durations: number[]
+  tiers: { value: Tier; label: string }[]
 }
 
-type Draft = Omit<Plan, 'id' | 'priceLabel'> & { id?: number }
+interface Draft {
+  id?: number
+  name: string
+  slug: string
+  complex_type: Plan['complex_type']
+  tier: Tier | null
+  description: string
+  /** یک ردیف برای هر شش مدت */
+  prices: DurationPrice[]
+  unit_limit: number | null
+  real_gateway: boolean
+  excel_export: boolean
+  features: string[]
+  is_active: boolean
+  sort_order: number
+}
 
-const BLANK: Draft = {
+const BLANK: Omit<Draft, 'prices'> = {
   name: '',
   slug: '',
   // پیش‌فرض «هر دو»، چون همه‌ی پکیج‌های امروز همین‌اند
   complex_type: null,
-  complexTypeLabel: 'هر دو',
-  price: 0,
-  months: 1,
+  tier: null,
+  description: '',
   unit_limit: null,
   real_gateway: false,
   excel_export: false,
@@ -58,8 +88,39 @@ const BLANK: Draft = {
   sort_order: 0,
 }
 
+/** شش ردیفِ قیمت برای فرم — از پلنِ موجود یا خالی */
+function draftPrices(durations: number[], plan?: Plan): DurationPrice[] {
+  return durations.map((months) => {
+    const row = plan?.prices.find((price) => price.months === months)
+    return { months, price: row?.price ?? 0, is_active: row?.is_active ?? false }
+  })
+}
+
+function toDraft(plan: Plan, durations: number[]): Draft {
+  return {
+    id: plan.id,
+    name: plan.name,
+    slug: plan.slug,
+    complex_type: plan.complex_type,
+    tier: plan.tier,
+    description: plan.description ?? '',
+    prices: draftPrices(durations, plan),
+    unit_limit: plan.unit_limit,
+    real_gateway: plan.real_gateway,
+    excel_export: plan.excel_export,
+    features: plan.features,
+    is_active: plan.is_active,
+    sort_order: plan.sort_order,
+  }
+}
+
+/**
+ * «تنظیماتِ حساب» ِ سوپر ادمین (۱۳/۶؛ ایرادات ۱۰، بندهای ۵ تا ۸): کارت‌ها، پلن‌ها، امکانات و قیمتِ هر مدت — بی هیچ
+ * خرید یا پرداختی. هر تغییر از همین لحظه در همه‌ی داشبوردها و در هر خرید و تمدید خوانده می‌شود و در audit log با قیمتِ
+ * پیش و پس ثبت می‌شود.
+ */
 export function PlansPage() {
-  useDocumentTitle('پکیج‌های اشتراک')
+  useDocumentTitle('تنظیمات حساب — پلن‌ها و قیمت‌ها')
 
   const { data, error, isLoading, refetch } = useQuery({
     queryKey: queryKeys.system.plans(),
@@ -71,7 +132,12 @@ export function PlansPage() {
   async function savePlan() {
     if (!draft) return
     setSaving(true)
-    const body = { ...draft, unit_limit: draft.unit_limit || null }
+    // مدتی که نه قیمت دارد نه فعال است فرستاده نمی‌شود؛ سرور هم دست‌کم یک مدت می‌خواهد
+    const body = {
+      ...draft,
+      unit_limit: draft.unit_limit || null,
+      prices: draft.prices.filter((price) => price.price > 0 || price.is_active),
+    }
     try {
       if (draft.id) await api(`/system/plans/${draft.id}`, { method: 'PUT', body })
       else await api('/system/plans', { method: 'POST', body })
@@ -120,15 +186,22 @@ export function PlansPage() {
       <header className="flex items-center justify-between gap-3">
         <div>
           <h1 className="text-xl font-extrabold" style={{ color: 'var(--text-primary)' }}>
-            پکیج‌های اشتراک
+            تنظیمات حساب — پلن‌ها و قیمت‌ها
           </h1>
           <p className="mt-1 text-[13px]" style={{ color: 'var(--text-tertiary)' }}>
-            پکیج‌ها را تعریف و امکاناتشان را فعال/غیرفعال کنید؛ یا دستی برای یک مجتمع فعال کنید.
+            برای هر نوع مجتمع سه سطح (پایه، حرفه‌ای، پیشرفته) و برای هر سطح قیمتِ هر مدت را تعیین
+            کنید؛ مدتِ بی‌قیمت خریدنی نیست. یا پلنی را دستی برای یک مجتمع فعال کنید.
           </p>
         </div>
         <button
           type="button"
-          onClick={() => setDraft({ ...BLANK, sort_order: data.plans.length + 1 })}
+          onClick={() =>
+            setDraft({
+              ...BLANK,
+              prices: draftPrices(data.durations),
+              sort_order: data.plans.length + 1,
+            })
+          }
           className="flex shrink-0 items-center gap-1.5 rounded-xl px-4 py-2.5 text-sm font-bold text-white"
           style={{ backgroundColor: 'var(--color-brand-500)' }}
         >
@@ -176,23 +249,23 @@ export function PlansPage() {
                   })
                 }
               />
-              <TextField
-                label="قیمت (تومان)"
-                dir="ltr"
-                inputMode="numeric"
-                value={String(draft.price)}
+              {/* سطحِ canonical (۱۳/۶): کارت‌های خرید و «پیشرفته» ِ دستیار به آن تکیه می‌کنند */}
+              <SelectField
+                label="سطح"
+                options={[
+                  { value: '', label: 'انتخاب کنید' },
+                  ...data.tiers.map((tier) => ({ value: tier.value, label: tier.label })),
+                ]}
+                value={draft.tier ?? ''}
                 onChange={(e) =>
-                  setDraft({ ...draft, price: Number(e.target.value.replace(/\D/g, '')) || 0 })
+                  setDraft({ ...draft, tier: (e.target.value || null) as Draft['tier'] })
                 }
               />
               <TextField
-                label="مدت (ماه)"
-                dir="ltr"
-                inputMode="numeric"
-                value={String(draft.months)}
-                onChange={(e) =>
-                  setDraft({ ...draft, months: Number(e.target.value.replace(/\D/g, '')) || 1 })
-                }
+                label="توضیحِ کوتاهِ کارت"
+                value={draft.description}
+                maxLength={300}
+                onChange={(e) => setDraft({ ...draft, description: e.target.value })}
               />
               <TextField
                 label="سقف واحد (خالی = نامحدود)"
@@ -219,6 +292,11 @@ export function PlansPage() {
                 }
               />
             </div>
+
+            <PriceGrid
+              prices={draft.prices}
+              onChange={(prices) => setDraft({ ...draft, prices })}
+            />
 
             {/* امکاناتِ قابل‌اعمالِ کد */}
             <div
@@ -312,18 +390,39 @@ export function PlansPage() {
                   {plan.name}
                 </span>
                 <span className="text-[13px] font-bold" style={{ color: 'var(--color-brand-600)' }}>
-                  {plan.priceLabel}
+                  {plan.tierLabel ?? 'بی سطح'}
                 </span>
               </div>
               <div className="text-[11.5px]" style={{ color: 'var(--text-tertiary)' }}>
-                {plan.complexTypeLabel} · {plan.months} ماهه · سقف واحد:{' '}
-                {plan.unit_limit ?? 'نامحدود'} · {plan.real_gateway ? 'درگاه ✓' : 'درگاه ✕'} ·{' '}
+                {plan.complexTypeLabel} · سقف واحد: {plan.unit_limit ?? 'نامحدود'} ·{' '}
+                {plan.real_gateway ? 'درگاه ✓' : 'درگاه ✕'} ·{' '}
                 {plan.excel_export ? 'Excel ✓' : 'Excel ✕'}
               </div>
+              <ul
+                className="flex flex-wrap gap-1.5 text-small"
+                style={{ color: 'var(--text-secondary)' }}
+              >
+                {plan.prices
+                  .filter((price) => price.is_active && price.price > 0)
+                  .map((price) => (
+                    <li
+                      key={price.months}
+                      className="rounded-lg px-2 py-0.5"
+                      style={{ backgroundColor: 'var(--surface-sunken)' }}
+                    >
+                      {price.months} ماهه: {price.priceLabel}
+                    </li>
+                  ))}
+              </ul>
+              {!plan.tier && (
+                <p className="text-small" style={{ color: 'var(--state-warning)' }}>
+                  بی سطح: در کارت‌های خرید نمی‌آید تا سطحش را تعیین کنید.
+                </p>
+              )}
               <div className="mt-1 flex gap-2">
                 <button
                   type="button"
-                  onClick={() => setDraft({ ...plan })}
+                  onClick={() => setDraft(toDraft(plan, data.durations))}
                   className="rounded-lg border px-3 py-1.5 text-[12px] font-semibold"
                   style={{ borderColor: 'var(--border-subtle)', color: 'var(--text-primary)' }}
                 >
@@ -354,6 +453,49 @@ export function PlansPage() {
       {/* فعال‌سازیِ دستی برای مجتمع */}
       <ManualGrant plans={data.plans} complexes={data.complexes} onDone={() => void refetch()} />
     </div>
+  )
+}
+
+/** قیمتِ هر مدت (بندِ ۱۶) — تیک یعنی خریدنی؛ قیمت حدس زده نمی‌شود، مدتِ بی‌قیمت در کارت‌ها نمی‌آید */
+function PriceGrid({
+  prices,
+  onChange,
+}: {
+  prices: DurationPrice[]
+  onChange: (prices: DurationPrice[]) => void
+}) {
+  const update = (months: number, change: Partial<DurationPrice>) =>
+    onChange(prices.map((row) => (row.months === months ? { ...row, ...change } : row)))
+
+  return (
+    <fieldset
+      className="grid gap-3 rounded-2xl border p-3 sm:grid-cols-2 lg:grid-cols-3"
+      style={{ borderColor: 'var(--border-subtle)', backgroundColor: 'var(--surface-sunken)' }}
+    >
+      <legend className="px-1 text-body font-semibold" style={{ color: 'var(--text-secondary)' }}>
+        قیمتِ هر مدت (تومان)
+      </legend>
+      {prices.map((row) => (
+        <div key={row.months} className="flex items-center gap-2">
+          <Toggle
+            label={`${row.months} ماهه`}
+            checked={row.is_active}
+            onChange={(checked) => update(row.months, { is_active: checked })}
+          />
+          <input
+            aria-label={`قیمتِ ${row.months} ماهه`}
+            dir="ltr"
+            inputMode="numeric"
+            value={row.price === 0 ? '' : String(row.price)}
+            placeholder="—"
+            onChange={(e) =>
+              update(row.months, { price: Number(e.target.value.replace(/\D/g, '')) || 0 })
+            }
+            className="field w-full min-w-0 rounded-xl px-3 py-2 text-sm"
+          />
+        </div>
+      ))}
+    </fieldset>
   )
 }
 

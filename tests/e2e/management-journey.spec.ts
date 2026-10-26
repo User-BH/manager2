@@ -373,14 +373,18 @@ test.describe('سفرِ مدیریت', () => {
 
     await page.goto('/account')
 
-    const buyOnline = page.getByRole('button', { name: 'پرداخت آنلاین' }).first()
+    // جادوگرِ ۱۳/۶: مدیر نوع را انتخاب نمی‌کند — پلن ← مدت ← تأیید ← پرداخت
+    await page.getByRole('button', { name: /^پایه/ }).first().click()
+    await page.getByRole('button', { name: /^۱ ماهه/ }).click()
+    // اگر مجتمع پلنِ دیگری دارد، این تغییرِ پلن است و تأییدِ صریح می‌خواهد (بندِ ۲۲)
+    const accept = page.getByRole('checkbox', { name: /متوجه شدم/ })
+    if (await accept.isVisible()) await accept.check()
+    const pay = page.getByRole('button', { name: 'تأیید و پرداخت' })
     await expect(
-      buyOnline,
+      pay,
       'دکمه‌ی پرداختِ آنلاین نیست؛ SUBSCRIPTION_GATEWAY=sandbox و PAYMENT_SANDBOX_ENABLED=true لازم است.',
-    ).toBeVisible()
-
-    await buyOnline.click()
-    await page.getByRole('button', { name: 'انتقال به درگاه' }).click()
+    ).toBeEnabled()
+    await pay.click()
 
     // فرمِ واقعیِ مرورگر → درگاهِ آزمایشی → بازگشت
     await page.waitForURL(/\/account\?checkout=/, { timeout: 20_000 })

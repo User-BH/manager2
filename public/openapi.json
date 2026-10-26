@@ -9755,6 +9755,60 @@
                 }
             }
         },
+        "/api/v1/subscription/history": {
+            "get": {
+                "summary": "api.subscription.history",
+                "tags": [
+                    "subscription"
+                ],
+                "parameters": [],
+                "responses": {
+                    "200": {
+                        "description": "موفق"
+                    },
+                    "422": {
+                        "description": "خطای اعتبارسنجی",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    },
+                    "429": {
+                        "description": "عبور از محدودیتِ نرخ",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "وارد نشده‌اید",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "دسترسی ندارید",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/api/v1/subscription/receipt": {
             "post": {
                 "summary": "api.subscription.receipt",
@@ -13010,6 +13064,14 @@
                                         "type": "string",
                                         "description": "نوع مجتمع"
                                     },
+                                    "tier": {
+                                        "type": "string",
+                                        "description": "سطح"
+                                    },
+                                    "description": {
+                                        "type": "string",
+                                        "description": "توضیح"
+                                    },
                                     "price": {
                                         "type": "number",
                                         "description": "قیمت"
@@ -13017,6 +13079,21 @@
                                     "months": {
                                         "type": "number",
                                         "description": "مدت"
+                                    },
+                                    "prices": {
+                                        "type": "array",
+                                        "description": "قیمتِ مدت‌ها"
+                                    },
+                                    "prices.*.months": {
+                                        "type": "number",
+                                        "description": "مدت"
+                                    },
+                                    "prices.*.price": {
+                                        "type": "number",
+                                        "description": "قیمت"
+                                    },
+                                    "prices.*.is_active": {
+                                        "type": "boolean"
                                     },
                                     "unit_limit": {
                                         "type": "number"
@@ -13043,8 +13120,10 @@
                                 "required": [
                                     "name",
                                     "slug",
-                                    "price",
-                                    "months"
+                                    "tier",
+                                    "prices",
+                                    "prices.*.months",
+                                    "prices.*.price"
                                 ]
                             }
                         }
@@ -13289,6 +13368,14 @@
                                         "type": "string",
                                         "description": "نوع مجتمع"
                                     },
+                                    "tier": {
+                                        "type": "string",
+                                        "description": "سطح"
+                                    },
+                                    "description": {
+                                        "type": "string",
+                                        "description": "توضیح"
+                                    },
                                     "price": {
                                         "type": "number",
                                         "description": "قیمت"
@@ -13296,6 +13383,21 @@
                                     "months": {
                                         "type": "number",
                                         "description": "مدت"
+                                    },
+                                    "prices": {
+                                        "type": "array",
+                                        "description": "قیمتِ مدت‌ها"
+                                    },
+                                    "prices.*.months": {
+                                        "type": "number",
+                                        "description": "مدت"
+                                    },
+                                    "prices.*.price": {
+                                        "type": "number",
+                                        "description": "قیمت"
+                                    },
+                                    "prices.*.is_active": {
+                                        "type": "boolean"
                                     },
                                     "unit_limit": {
                                         "type": "number"
@@ -13322,8 +13424,10 @@
                                 "required": [
                                     "name",
                                     "slug",
-                                    "price",
-                                    "months"
+                                    "tier",
+                                    "prices",
+                                    "prices.*.months",
+                                    "prices.*.price"
                                 ]
                             }
                         }

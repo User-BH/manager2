@@ -54,23 +54,32 @@ class ComplexPurchase
      * همه‌ی پلن‌های قابلِ خریدِ آنلاین برای مجتمعِ تازه از این نوع.
      *
      * همان فهرستی که صفحه‌ی خرید نشان می‌دهد و همان که `plan()` می‌پذیرد — یک
-     * قاعده، تا صفحه پلنی را عرضه نکند که سرور رد می‌کند (مرحلهٔ ۹ · فاز ۵).
+     * قاعده، تا صفحه پلنی را عرضه نکند که سرور رد می‌کند (مرحلهٔ ۹ · فاز ۵). از ۱۳/۶ همان کارت‌های سطح‌دارِ
+     * `Plan::catalogFor`، که تمدید هم از آن می‌خواند.
      *
      * @return Collection<int, Plan>
      */
     public function plans(ComplexType $type): Collection
     {
-        return Plan::purchasable()->forComplexType($type)->where('price', '>', 0)->get();
+        return Plan::catalogFor($type);
     }
 
     /**
-     * قصدِ خرید؛ مبلغ و مدت از پلن، نه از درخواست.
+     * قصدِ خرید؛ مبلغ و مدت از جدولِ قیمت (`Plan::priceFor`)، نه از درخواست — مدتِ بی‌قیمت خریدنی نیست.
      *
      * قصدِ بازِ قبلیِ همین کاربر «لغو» می‌شود تا هر بار فقط یکی منتظرِ درگاه باشد.
      */
-    public function begin(User $user, Plan $plan, string $complexName, ComplexType $type, ?string $address): CheckoutIntent
+    public function begin(User $user, Plan $plan, string $complexName, ComplexType $type, ?string $address, ?int $months = null): CheckoutIntent
     {
-        return DB::transaction(function () use ($user, $plan, $complexName, $type, $address): CheckoutIntent {
+        // ⚠️ مدتِ خالی فقط برای تبِ بازِ نسخه‌ی پیشین: همان مدتی که آن صفحه نشان می‌داد
+        $months ??= (int) $plan->months;
+        $amount = $plan->priceFor($months);
+
+        if ($amount === null) {
+            throw DomainException::invalid('این مدت برای این پلن قیمت ندارد و فعلاً خریدنی نیست.', 'subscription.invalid_duration');
+        }
+
+        return DB::transaction(function () use ($user, $plan, $complexName, $type, $address, $months, $amount): CheckoutIntent {
             $fresh = User::withoutGlobalScopes()->lockForUpdate()->findOrFail($user->id);
 
             /*
@@ -100,8 +109,8 @@ class ComplexPurchase
                 'user_id' => $fresh->id,
                 'plan_id' => $plan->id,
                 'plan_name' => $plan->name,
-                'amount' => (int) $plan->price,
-                'months' => (int) $plan->months,
+                'amount' => $amount,
+                'months' => $months,
                 'complex_name' => $complexName,
                 'complex_type' => $type,
                 'complex_address' => $address,

@@ -12,6 +12,7 @@ use App\Models\User;
 use App\Services\Subscription\ComplexPurchase;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Http;
+use Tests\Concerns\TestPlans;
 use Tests\TestCase;
 
 /**
@@ -47,7 +48,7 @@ class ReconcilePaymentsTest extends TestCase
 
         $this->complex = Complex::factory()->create(['type' => ComplexType::Residential]);
         $this->manager = User::factory()->create(['complex_id' => $this->complex->id, 'role' => UserRole::ComplexAdmin, 'is_active' => true, 'phone' => '09125558001']);
-        $this->plan = Plan::create(['name' => 'پایه', 'slug' => 'base', 'complex_type' => ComplexType::Residential, 'price' => 200000, 'months' => 1, 'is_active' => true]);
+        $this->plan = TestPlans::create(['name' => 'پایه', 'slug' => 'base', 'complex_type' => ComplexType::Residential, 'price' => 200000, 'months' => 1, 'is_active' => true]);
     }
 
     /** @param  array<string, mixed>  $verify */

@@ -5,10 +5,10 @@ namespace Tests\Feature;
 use App\Enums\ComplexType;
 use App\Enums\UserRole;
 use App\Models\Complex;
-use App\Models\Plan;
 use App\Models\Subscription;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\Concerns\TestPlans;
 use Tests\TestCase;
 
 /**
@@ -36,7 +36,7 @@ class DataPreservationTest extends TestCase
     public function test_a_plan_that_was_sold_is_deactivated_not_deleted(): void
     {
         $complex = Complex::factory()->create(['type' => ComplexType::Residential]);
-        $plan = Plan::create(['name' => 'طلایی', 'slug' => 'gold', 'price' => 100000, 'months' => 1, 'is_active' => true]);
+        $plan = TestPlans::create(['name' => 'طلایی', 'slug' => 'gold', 'price' => 100000, 'months' => 1, 'is_active' => true]);
         $this->actingAs($this->super)->postJson('/api/v1/system/plans/grant', ['complex_id' => $complex->id, 'plan_id' => $plan->id])->assertCreated();
         $subscription = Subscription::withoutGlobalScopes()->where('plan_id', $plan->id)->sole();
 
@@ -53,7 +53,7 @@ class DataPreservationTest extends TestCase
     /** پکیجی که هرگز فروخته نشده هنوز حذف می‌شود — قاعده فقط سابقه را نگه می‌دارد، نه هر پکیجی را. */
     public function test_an_unused_plan_is_still_deleted(): void
     {
-        $plan = Plan::create(['name' => 'آزمایشی', 'slug' => 'trial-x', 'price' => 50000, 'months' => 1, 'is_active' => true]);
+        $plan = TestPlans::create(['name' => 'آزمایشی', 'slug' => 'trial-x', 'price' => 50000, 'months' => 1, 'is_active' => true]);
 
         $this->actingAs($this->super)->deleteJson("/api/v1/system/plans/{$plan->id}")->assertOk();
         $this->assertNull($plan->fresh());

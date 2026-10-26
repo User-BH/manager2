@@ -204,9 +204,15 @@ describe('فرمِ درگاه', () => {
     vi.doMock('@/shared/lib/api', () => ({
       api: () =>
         Promise.resolve({
+          account: 'initial',
+          current: null,
+          renewal: null,
+          catalog: { residential: [], commercial: [] },
+          durations: [1, 3, 6, 12, 18, 24],
+          baseFeatures: [],
           checkoutEnabled: true,
           checkoutAction: '/subscription/checkout',
-          newComplexPlans: { residential: [], commercial: [] },
+          history: [],
         }),
       csrfToken: () => 'tok',
     }))
@@ -237,10 +243,14 @@ describe('فرمِ درگاه', () => {
     )
 
     await screen.findByText('ساختِ مجتمع و خریدِ اشتراک')
-    const purpose = document.querySelector<HTMLInputElement>(
-      'form[action="/subscription/checkout"] input[name="purpose"]',
-    )
-    expect(purpose?.value).toBe('new_complex')
+    // جادوگرِ «مجتمعِ تازه» (۱۳/۶): از انتخابِ نوع شروع می‌شود، نه از تمدیدِ مجتمعِ فعال؛ `purpose` هنگامِ ارسال
+    // `new_complex` می‌گیرد (`registrantPurchase.test.tsx`)
+    expect(
+      screen.getByRole('heading', { name: 'نوع مجتمع خود را انتخاب کنید.' }),
+    ).toBeInTheDocument()
+    expect(
+      document.querySelector('form[action="/subscription/checkout"] input[name="purpose"]'),
+    ).not.toBeNull()
     // و متنِ عضو: عضویت‌های فعلی دست نمی‌خورند
     expect(screen.getByText(/عضویت و نقشتان در مجتمع‌های فعلی دست نمی‌خورد/)).toBeInTheDocument()
   })

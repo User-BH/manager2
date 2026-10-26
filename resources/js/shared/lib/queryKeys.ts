@@ -117,6 +117,8 @@ export const queryKeys = {
 
   subscription: {
     all: () => ['subscription'] as const,
+    // «تاریخچه‌ی پرداخت‌ها» ِ تنظیماتِ حساب (۱۳/۶)
+    history: (page: number) => ['subscription', 'history', page] as const,
   },
 
   // ── جست‌وجوی سراسری: صفحه‌های یک گروه (۱۰/۸) ──────────────────────────────

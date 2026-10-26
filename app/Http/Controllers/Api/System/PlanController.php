@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api\System;
 
+use App\Enums\PlanTier;
 use App\Enums\SubscriptionPlan;
 use App\Exceptions\DomainException;
 use App\Http\Controllers\Controller;
@@ -12,12 +13,14 @@ use App\Http\Resources\PlanResource;
 use App\Models\CheckoutIntent;
 use App\Models\Complex;
 use App\Models\Plan;
+use App\Models\PlanPrice;
 use App\Models\Subscription;
 use App\Services\Subscription\PlanGate;
 use App\Support\Audit;
 use App\Support\Jalali;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 
 /**
  * پکیج‌های اشتراک برای ادمینِ کل: تعریف/ویرایش/فعال‌وغیرفعال‌کردنِ پکیج، و
@@ -29,7 +32,7 @@ class PlanController extends Controller
 
     public function index(): JsonResponse
     {
-        $plans = Plan::orderBy('sort_order')->orderBy('id')->get();
+        $plans = Plan::with('prices')->orderBy('sort_order')->orderBy('id')->get();
 
         $complexes = Complex::orderBy('name')->get()->map(function (Complex $c) {
             $active = $this->plans->activeSubscription($c);
@@ -45,22 +48,24 @@ class PlanController extends Controller
         return response()->json([
             'plans' => $plans->map(fn (Plan $p) => $this->present($p))->values(),
             'complexes' => $complexes->values(),
+            // ۱۳/۶: شش مدتِ قابلِ خرید و سه سطح — فرمِ قیمت از همین‌ها ساخته می‌شود، نه از عددِ درون‌کدِ رابط
+            'durations' => PlanTier::DURATIONS,
+            'tiers' => collect(PlanTier::cases())->map(fn (PlanTier $t) => ['value' => $t->value, 'label' => $t->label()])->values(),
         ]);
     }
 
     public function store(StorePlanRequest $request): JsonResponse
     {
-        $data = $request->validated();
-        $plan = Plan::create($data);
+        $plan = DB::transaction(fn (): Plan => $this->save(new Plan, $request->validated()));
 
         return response()->json(['message' => 'پکیج ساخته شد.', 'plan' => $this->present($plan)], 201);
     }
 
     public function update(StorePlanRequest $request, Plan $plan): JsonResponse
     {
-        $plan->update($request->validated());
+        $plan = DB::transaction(fn (): Plan => $this->save($plan, $request->validated()));
 
-        return response()->json(['message' => 'پکیج به‌روزرسانی شد.', 'plan' => $this->present($plan->fresh())]);
+        return response()->json(['message' => 'پکیج به‌روزرسانی شد.', 'plan' => $this->present($plan)]);
     }
 
     /** فعال/غیرفعال کردنِ خودِ پکیج (نه اشتراکِ مجتمع). */
@@ -68,7 +73,59 @@ class PlanController extends Controller
     {
         $plan->update(['is_active' => ! $plan->is_active]);
 
-        return response()->json(['message' => 'وضعیت پکیج تغییر کرد.', 'plan' => $this->present($plan)]);
+        Audit::log('plan.toggled', $plan->is_active ? 'فعال‌کردنِ پکیجِ اشتراک' : 'غیرفعال‌کردنِ پکیجِ اشتراک', $plan, [
+            'is_active' => $plan->is_active,
+        ]);
+
+        return response()->json(['message' => 'وضعیت پکیج تغییر کرد.', 'plan' => $this->present($plan->fresh())]);
+    }
+
+    /**
+     * پلن و قیمتِ هر مدتش — یک تراکنش، یک رویدادِ audit با قیمت‌های پیش و پس (۱۳/۶، بندهای ۶ تا ۸).
+     *
+     * قیمتِ تازه از همین لحظه در همه‌ی داشبوردها و در هر خرید و تمدید خوانده می‌شود (`Plan::priceFor`)؛ هیچ قیمتی در
+     * رابط یا state ذخیره نیست. مدتی که در فرم نیامده برداشته می‌شود — خرید و تمدیدِ در جریان مبلغِ خودشان را دارند.
+     *
+     * @param  array<string, mixed>  $data
+     */
+    private function save(Plan $plan, array $data): Plan
+    {
+        $before = $plan->exists ? $this->snapshot($plan) : null;
+        $prices = collect($data['prices'])->keyBy('months');
+        unset($data['prices']);
+
+        $plan->fill($data)->save();
+
+        $plan->prices()->whereNotIn('months', $prices->keys()->all())->delete();
+        foreach ($prices as $months => $row) {
+            PlanPrice::updateOrCreate(
+                ['plan_id' => $plan->id, 'months' => (int) $months],
+                ['price' => (int) $row['price'], 'is_active' => (bool) ($row['is_active'] ?? true)],
+            );
+        }
+
+        $plan = $plan->fresh(['prices']);
+        Audit::log($before === null ? 'plan.created' : 'plan.updated', $before === null ? 'ساختِ پکیجِ اشتراک' : 'ویرایشِ پکیجِ اشتراک', $plan, [
+            'before' => $before,
+            'after' => $this->snapshot($plan),
+        ]);
+
+        return $plan;
+    }
+
+    /** @return array<string, mixed> */
+    private function snapshot(Plan $plan): array
+    {
+        return [
+            'name' => $plan->name,
+            'tier' => $plan->tier?->value,
+            'complex_type' => $plan->complex_type?->value,
+            'is_active' => $plan->is_active,
+            'unit_limit' => $plan->unit_limit,
+            'real_gateway' => $plan->real_gateway,
+            'excel_export' => $plan->excel_export,
+            'prices' => $plan->prices()->get()->mapWithKeys(fn (PlanPrice $p) => [$p->months => [$p->price, $p->is_active]])->all(),
+        ];
     }
 
     public function destroy(Plan $plan): JsonResponse
@@ -89,6 +146,7 @@ class PlanController extends Controller
             );
         }
 
+        Audit::log('plan.deleted', 'حذفِ پکیجِ استفاده‌نشده', $plan, ['snapshot' => $this->snapshot($plan)]);
         $plan->delete();
 
         return response()->json(['message' => 'پکیج حذف شد.']);

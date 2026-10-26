@@ -3,7 +3,9 @@
 namespace App\Http\Resources;
 
 use App\Models\Plan;
+use App\Models\PlanPrice;
 use App\Support\Jalali;
+use App\Support\PlanCatalog;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
@@ -44,6 +46,19 @@ class PlanResource extends JsonResource
             'features' => $p->features ?? [],
             'is_active' => $p->is_active,
             'sort_order' => $p->sort_order,
+            // ۱۳/۶: سطح و قیمتِ هر مدت؛ پلنِ بی سطح در کارت‌های خرید نمی‌آید
+            'tier' => $p->tier?->value,
+            'tierLabel' => $p->tier?->label(),
+            'description' => $p->description,
+            'prices' => $p->prices->map(fn (PlanPrice $price) => [
+                'months' => $price->months,
+                'price' => $price->price,
+                'priceLabel' => Jalali::money($price->price),
+                'is_active' => $price->is_active,
+            ])->values()->all(),
+            // همان چیزی که کارتِ خرید از این پلن نشان می‌دهد (`PlanCatalog`)
+            'capabilities' => PlanCatalog::capabilities($p),
+            'includesEverything' => PlanCatalog::unlimited($p),
         ];
     }
 }

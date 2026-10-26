@@ -185,7 +185,7 @@ class GatewayCallbackTest extends TestCase
             'role' => UserRole::ComplexAdmin, 'password' => Hash::make('secret123'), 'is_active' => true,
         ]);
 
-        $this->actingAs($admin)->post('/subscription/checkout', ['plan' => 'pro']);
+        $this->actingAs($admin)->post('/subscription/checkout', ['plan' => 'basic']);
         $subscription = Subscription::withoutGlobalScopes()->latest('id')->firstOrFail();
 
         $this->actingAs($admin)->get("/subscription/callback/{$subscription->id}?ref={$subscription->ref_id}")
@@ -209,7 +209,7 @@ class GatewayCallbackTest extends TestCase
             'role' => UserRole::ComplexAdmin, 'password' => Hash::make('secret123'), 'is_active' => true,
         ]);
 
-        $this->actingAs($admin)->post('/subscription/checkout', ['plan' => 'pro']);
+        $this->actingAs($admin)->post('/subscription/checkout', ['plan' => 'basic']);
         $subscription = Subscription::withoutGlobalScopes()->latest('id')->firstOrFail();
 
         auth()->logout();

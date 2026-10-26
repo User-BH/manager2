@@ -5,13 +5,13 @@ namespace Tests\Feature;
 use App\Enums\ComplexType;
 use App\Enums\UserRole;
 use App\Models\Complex;
-use App\Models\Plan;
 use App\Models\Subscription;
 use App\Models\User;
 use App\Services\Subscription\SubscriptionRenewal;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Testing\TestResponse;
+use Tests\Concerns\TestPlans;
 use Tests\TestCase;
 
 /**
@@ -46,7 +46,7 @@ class SubscriptionRenewalTest extends TestCase
 
         $this->complex = Complex::factory()->create(['type' => ComplexType::Residential]);
         $this->manager = User::factory()->create(['complex_id' => $this->complex->id, 'role' => UserRole::ComplexAdmin, 'is_active' => true, 'phone' => '09125556001']);
-        Plan::create(['name' => 'تمدیدِ سه‌ماهه', 'slug' => 'renew-3', 'complex_type' => ComplexType::Residential, 'price' => 300000, 'months' => 3, 'is_active' => true]);
+        TestPlans::create(['name' => 'تمدیدِ سه‌ماهه', 'slug' => 'renew-3', 'complex_type' => ComplexType::Residential, 'price' => 300000, 'months' => 3, 'is_active' => true]);
     }
 
     /** @param  array<string, mixed>  $verify */
@@ -75,7 +75,10 @@ class SubscriptionRenewalTest extends TestCase
     public function test_the_amount_and_period_come_from_the_server_plan(): void
     {
         $this->fakeZarinpal();
-        $pending = $this->start(['amount' => 1, 'price' => 1, 'months' => 99]);
+        $this->actingAs($this->manager)->post('/subscription/checkout', ['plan' => 'renew-3', 'months' => 99])->assertSessionHasErrors('months');
+        $this->assertSame(0, Subscription::where('method', 'online')->count(), 'مدتِ بیرون از شش مدت ردیف ساخت.');
+
+        $pending = $this->start(['amount' => 1, 'price' => 1, 'months' => 3]);
 
         $this->assertSame([300000, 3, 'pending', 'online'], [(int) $pending->amount, $pending->months, $pending->status, $pending->method]);
 

@@ -1,18 +1,17 @@
-import { useEffect, useRef, useState } from 'react'
-import { Link, useSearchParams } from 'react-router-dom'
+import { useEffect, useState } from 'react'
+import { Link, useLocation, useSearchParams } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import {
+  ArrowRight,
   BadgeCheck,
   Building2,
   CalendarClock,
-  Check,
   CreditCard,
   Crown,
-  Headphones,
+  History,
   Hourglass,
-  Loader2,
+  RefreshCw,
   Sparkles,
-  UserRound,
 } from 'lucide-react'
 import { Card } from '@/shared/ui/Card'
 import { ErrorState } from '@/shared/ui/PageState'
@@ -28,33 +27,31 @@ import {
   confirmAction,
   toastSuccess,
 } from '@/shared/lib/alert'
-import { formatMoney, formatNumber } from '@/shared/lib/format'
-import type { SubscriptionPlanOption, SubscriptionResponse, SubscriptionRow } from './types'
-
-const STATUS_COLOR: Record<string, string> = {
-  active: 'var(--state-success)',
-  pending: 'var(--state-info)',
-  failed: 'var(--color-danger)',
-  canceled: 'var(--text-tertiary)',
-  expired: 'var(--text-tertiary)',
-}
+import { formatNumber } from '@/shared/lib/format'
+import { PAYMENT_HISTORY_PATH, PaymentHistory, PlanWizard } from '@/shared/ui/plans/PlanWizard'
+import type {
+  AccountSettingsResponse,
+  CurrentSubscription,
+  SubscriptionRow,
+} from '@/shared/ui/plans/types'
 
 /**
- * «تنظیمات حساب» — وضعیت اشتراک مجتمع، مصرف در برابر سقف پلن، خرید و سابقه.
+ * «تنظیمات حساب» ِ مدیرِ مجتمع (مرحلهٔ ۱۳ · فاز ۶؛ ایرادات ۱۰، بخشِ اول).
  *
- * اشتراک به مجتمع تعلق دارد نه به کاربر، پس هر مدیرِ همان مجتمع همین صفحه
- * را با همان وضعیت می‌بیند.
+ * بالای صفحه پلنِ فعلی و مجتمع و «تمدیدِ پلنِ فعلی» (بندهای ۴ و ۲۰)؛ زیرش جادوگرِ خرید (نوع ← پلن ← مدت ← تأیید ←
+ * پرداخت) و «تاریخچه‌ی پرداخت‌ها». اشتراک به مجتمع تعلق دارد نه به کاربر، پس هر مدیرِ همان مجتمع همین وضعیت را
+ * می‌بیند. واحد و سوپر ادمین این صفحه را ندارند — سرور هم رد می‌کند (`SubscriptionPolicy::viewAccount`).
  */
 export function AccountPage() {
   const [params, setParams] = useSearchParams()
-  const [busyPlan, setBusyPlan] = useState<string | null>(null)
-  const formRef = useRef<HTMLFormElement>(null)
+  const historyView = useLocation().pathname === PAYMENT_HISTORY_PATH
+  const [renewing, setRenewing] = useState(false)
 
-  useDocumentTitle('تنظیمات حساب')
+  useDocumentTitle(historyView ? 'تاریخچه پرداخت‌ها' : 'تنظیمات حساب')
 
   const { data, error, isLoading, refetch } = useQuery({
     queryKey: queryKeys.subscription.all(),
-    queryFn: ({ signal }) => api<SubscriptionResponse>('/subscription', { signal }),
+    queryFn: ({ signal }) => api<AccountSettingsResponse>('/subscription', { signal }),
   })
 
   /*
@@ -72,15 +69,12 @@ export function AccountPage() {
     } else if (checkout === 'failed') {
       void alertInfo(
         'پرداخت انجام نشد.',
-        'مبلغی از حساب شما کسر نشده است. می‌توانید دوباره تلاش کنید.',
+        'مبلغی از حساب شما کسر نشده و پلنِ فعلی‌تان دست نخورده است. می‌توانید دوباره تلاش کنید.',
       )
     } else if (checkout === 'unknown') {
       /*
-       * 🔴 حالتِ سوم، که پیش از R59 وجود نداشت.
-       *
-       * درگاه پاسخ نداد، پس **نمی‌دانیم** پول کسر شده یا نه. پیامِ
-       * «مبلغی کسر نشده» اینجا دروغ می‌شد. اشتراک در وضعیتِ در-انتظار
-       * می‌ماند و `payments:stale` آن را به اپراتور نشان می‌دهد.
+       * 🔴 حالتِ سوم (R59): درگاه پاسخ نداد، پس **نمی‌دانیم** پول کسر شده یا نه. اشتراک در وضعیتِ در-انتظار می‌ماند
+       * و `payments:stale` آن را به اپراتور نشان می‌دهد.
        */
       void alertInfo(
         'نتیجه‌ی پرداخت مشخص نشد.',
@@ -88,13 +82,12 @@ export function AccountPage() {
           'تا بررسی، دوباره پرداخت نکنید؛ اگر مبلغی کسر شده باشد پیگیری می‌شود.',
       )
     } else if (checkout === 'review') {
-      // خریدِ مجتمعِ تازه توسطِ عضو (۱۰/۵): پول گرفته شد ولی مجتمع ساخته نشد — با ادمینِ کل
       void alertInfo(
         'پرداخت تأیید شد ولی مجتمع ساخته نشد.',
         'دوباره پرداخت نکنید: اگر حساب‌تان دوباره فعال شود مجتمع خودکار ساخته می‌شود، وگرنه مبلغ بازگردانده می‌شود.',
       )
     } else if (checkout === 'error') {
-      void alertInfo('اتصال به درگاه ممکن نشد.', params.get('message') ?? undefined)
+      void alertInfo('خرید انجام نشد.', params.get('message') ?? undefined)
     }
 
     const next = new URLSearchParams(params)
@@ -111,33 +104,10 @@ export function AccountPage() {
 
   const pendingRequest = data.history.find((row) => row.status === 'pending') ?? null
 
-  async function startCheckout(plan: SubscriptionPlanOption) {
-    if (!data) return
-
-    const ok = await confirmAction({
-      title: `خرید ${plan.label}`,
-      text: `مبلغ ${formatMoney(plan.price)} تومان برای ${formatNumber(plan.months)} ماه. به درگاه پرداخت منتقل می‌شوید.`,
-      confirmLabel: 'انتقال به درگاه',
-    })
-    if (!ok) return
-
-    setBusyPlan(plan.value)
-
-    /*
-     * فرم واقعی submit می‌شود، نه fetch: مرورگر باید صفحه را ترک کند و به
-     * سایت بانک برود.
-     */
-    const form = formRef.current
-    if (!form) return
-
-    ;(form.elements.namedItem('plan') as HTMLInputElement).value = plan.value
-    form.submit()
-  }
-
   async function cancelSubscription(id: number) {
     const ok = await confirmAction({
       title: 'اشتراک لغو شود؟',
-      text: 'تا پایان دوره‌ی پرداخت‌شده امکانات پرو فعال می‌ماند.',
+      text: 'تا پایان دوره‌ی پرداخت‌شده امکاناتِ پلن فعال می‌ماند.',
       confirmLabel: 'لغو اشتراک',
       danger: true,
     })
@@ -154,87 +124,77 @@ export function AccountPage() {
 
   return (
     <div className="flex flex-col gap-5">
-      {/* فرم پنهانِ شروع پرداخت — تنها راهی که مرورگر واقعاً به بانک می‌رود */}
-      <form ref={formRef} method="POST" action={data.checkoutAction} className="hidden">
-        <input type="hidden" name="_token" value={csrfToken()} />
-        <input type="hidden" name="plan" defaultValue="" />
-      </form>
-
       <header className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <h1
-            className="flex items-center gap-2 text-xl font-extrabold"
-            style={{ color: 'var(--text-primary)' }}
-          >
-            <CreditCard size={19} style={{ color: 'var(--color-brand-500)' }} />
-            تنظیمات حساب
-          </h1>
-          <p className="mt-1 text-[13px]" style={{ color: 'var(--text-tertiary)' }}>
-            {data.complexName ? `${data.complexName} — ` : ''}
-            پلن فعلی: {data.currentPlanLabel}
-          </p>
-        </div>
-
-        <Link
-          to="/profile"
-          className="flex items-center gap-1.5 rounded-xl border px-4 py-2.5 text-[13px] font-semibold"
-          style={{ borderColor: 'var(--border-default)', color: 'var(--text-secondary)' }}
+        <h1
+          className="flex items-center gap-2 text-xl font-extrabold"
+          style={{ color: 'var(--text-primary)' }}
         >
-          <UserRound size={15} />
-          پروفایل من
-        </Link>
+          {historyView ? (
+            <History size={19} style={{ color: 'var(--color-brand-500)' }} />
+          ) : (
+            <CreditCard size={19} style={{ color: 'var(--color-brand-500)' }} />
+          )}
+          {historyView ? 'تاریخچه پرداخت‌ها' : 'تنظیمات حساب'}
+        </h1>
+        {historyView ? (
+          <Link
+            to="/account"
+            className="flex items-center gap-1.5 rounded-xl border px-4 py-2.5 text-body font-semibold"
+            style={{ borderColor: 'var(--border-default)', color: 'var(--text-secondary)' }}
+          >
+            <ArrowRight size={15} />
+            بازگشت به تنظیمات حساب
+          </Link>
+        ) : (
+          <Link
+            to={PAYMENT_HISTORY_PATH}
+            className="flex items-center gap-1.5 rounded-xl border px-4 py-2.5 text-body font-semibold"
+            style={{ borderColor: 'var(--border-default)', color: 'var(--text-secondary)' }}
+          >
+            <History size={15} />
+            تاریخچه پرداخت‌ها
+          </Link>
+        )}
       </header>
 
-      {/* درخواست در انتظار بررسی */}
-      {pendingRequest && <PendingBanner request={pendingRequest} />}
+      {historyView ? (
+        <PaymentHistory />
+      ) : (
+        <>
+          {pendingRequest && <PendingBanner request={pendingRequest} />}
 
-      <CurrentPlanBanner current={data.current} onCancel={cancelSubscription} />
-
-      {data.usage && <UsageCard usage={data.usage} planLabel={data.currentPlanLabel} />}
-
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
-        <FreePlanCard features={data.freeFeatures} isCurrent={data.currentPlan === 'free'} />
-
-        {data.plans.map((plan, index) => (
-          <PlanCard
-            key={plan.value}
-            plan={plan}
-            delay={0.05 * (index + 1)}
-            busy={busyPlan === plan.value}
-            disabled={busyPlan !== null || pendingRequest !== null}
-            checkoutEnabled={data.checkoutEnabled}
-            onBuyOnline={() => void startCheckout(plan)}
+          <CurrentPlanBanner
+            complexName={data.complexName}
+            current={data.current}
+            canRenew={data.renewal !== null && pendingRequest === null}
+            onRenew={() => {
+              setRenewing(true)
+              window.scrollTo({ top: 0, behavior: 'smooth' })
+            }}
+            onCancel={cancelSubscription}
           />
-        ))}
-      </div>
 
-      {!data.checkoutEnabled && (
-        <div
-          className="flex flex-wrap items-center gap-2.5 rounded-2xl border p-4 text-[12.5px]"
-          style={{
-            borderColor: 'var(--border-subtle)',
-            backgroundColor: 'color-mix(in srgb, var(--state-info) 8%, transparent)',
-            color: 'var(--text-secondary)',
-          }}
-        >
-          <Headphones size={16} style={{ color: 'var(--state-info)' }} />
-          پرداختِ آنلاین روی این نصب فعال نیست؛ خرید و تمدیدِ اشتراک فقط آنلاین است و تا فعال شدنِ
-          درگاه ممکن نیست. در صورتِ نیاز با پشتیبانی{' '}
-          <span className="font-bold" style={{ color: 'var(--text-primary)' }}>
-            {data.supportPhone}
-          </span>{' '}
-          تماس بگیرید.
-        </div>
+          {data.usage && <UsageCard usage={data.usage} planLabel={data.currentPlanLabel} />}
+
+          {pendingRequest === null && (
+            <Card
+              title={
+                renewing ? 'تمدیدِ پلنِ فعلی' : data.current ? 'تمدید یا تغییرِ پلن' : 'خریدِ پلن'
+              }
+            >
+              {/* `key`: «تمدیدِ پلنِ فعلی» جادوگر را از گامِ مدت از نو می‌سازد */}
+              <PlanWizard
+                key={renewing ? 'renew' : 'buy'}
+                data={data}
+                renewing={renewing}
+                onLeaveRenewal={() => setRenewing(false)}
+              />
+            </Card>
+          )}
+        </>
       )}
-
-      <HistoryCard history={data.history} />
     </div>
   )
-}
-
-/** توکن CSRF از همان متاتگ قالب؛ فرم معمولی بدون آن ۴۱۹ می‌گیرد. */
-function csrfToken(): string {
-  return document.querySelector<HTMLMetaElement>('meta[name="csrf-token"]')?.content ?? ''
 }
 
 function PendingBanner({ request }: { request: SubscriptionRow }) {
@@ -250,10 +210,10 @@ function PendingBanner({ request }: { request: SubscriptionRow }) {
     >
       <Hourglass size={18} style={{ color: 'var(--state-info)' }} />
       <div className="min-w-0 flex-1">
-        <p className="text-[13.5px] font-bold" style={{ color: 'var(--text-primary)' }}>
+        <p className="text-body font-bold" style={{ color: 'var(--text-primary)' }}>
           پرداختِ «{request.planLabel}» در انتظارِ نتیجه‌ی درگاه است
         </p>
-        <p className="mt-0.5 text-[12px]" style={{ color: 'var(--text-tertiary)' }}>
+        <p className="mt-0.5 text-small" style={{ color: 'var(--text-tertiary)' }}>
           ثبت‌شده در {request.createdAt} · مبلغ {request.amountLabel} تومان — تا روشن شدنِ نتیجه
           دوباره پرداخت نکنید؛ اگر مبلغی کسر شده باشد خودکار پیگیری می‌شود.
         </p>
@@ -288,10 +248,10 @@ function UsageCard({
         </span>
 
         <div className="min-w-0 flex-1">
-          <p className="text-[13.5px] font-bold" style={{ color: 'var(--text-primary)' }}>
+          <p className="text-body font-bold" style={{ color: 'var(--text-primary)' }}>
             واحدهای ثبت‌شده
           </p>
-          <p className="mt-0.5 text-[12px]" style={{ color: 'var(--text-tertiary)' }}>
+          <p className="mt-0.5 text-small" style={{ color: 'var(--text-tertiary)' }}>
             {unlimited
               ? `${formatNumber(usage.units)} واحد — بدون محدودیت در ${planLabel}`
               : `${formatNumber(usage.units)} از ${formatNumber(usage.unitLimit ?? 0)} واحد مجاز در ${planLabel}`}
@@ -300,7 +260,7 @@ function UsageCard({
 
         {!unlimited && (
           <span
-            className="text-[15px] font-extrabold tabular-nums"
+            className="text-reading font-extrabold tabular-nums"
             style={{ color: nearLimit ? 'var(--color-danger)' : 'var(--color-brand-600)' }}
           >
             {formatNumber(Math.round(percent))}٪
@@ -326,21 +286,30 @@ function UsageCard({
       )}
 
       {nearLimit && (
-        <p className="mt-2.5 text-[12px]" style={{ color: 'var(--color-danger)' }}>
-          به سقف پلن رایگان نزدیک شده‌اید. برای ثبت واحد بیشتر، اشتراک پرو را فعال کنید.
+        <p className="mt-2.5 text-small" style={{ color: 'var(--color-danger)' }}>
+          به سقفِ واحدهای پلن نزدیک شده‌اید. برای ثبتِ واحدِ بیشتر، پلنی با سقفِ بالاتر انتخاب کنید.
         </p>
       )}
     </Card>
   )
 }
 
-function CurrentPlanBanner({
-  current,
-  onCancel,
-}: {
-  current: SubscriptionRow | null
+interface CurrentPlanBannerProps {
+  complexName: string | null
+  current: CurrentSubscription | null
+  canRenew: boolean
+  onRenew: () => void
   onCancel: (id: number) => void
-}) {
+}
+
+/** «پلنِ فعلیِ شما: حرفه‌ای — ۳ ماهه / مجتمع: …» و «تمدیدِ پلنِ فعلی» (بندهای ۴، ۲۰ و ۱۱۴) */
+function CurrentPlanBanner({
+  complexName,
+  current,
+  canRenew,
+  onRenew,
+  onCancel,
+}: CurrentPlanBannerProps) {
   if (!current) {
     return (
       <motion.div
@@ -352,12 +321,13 @@ function CurrentPlanBanner({
       >
         <Sparkles size={20} style={{ color: 'var(--color-accent-500)' }} />
         <div className="min-w-0 flex-1">
-          <p className="text-[14px] font-bold" style={{ color: 'var(--text-primary)' }}>
-            این مجتمع روی پلن رایگان است.
+          <p className="text-sm font-bold" style={{ color: 'var(--text-primary)' }}>
+            {complexName
+              ? `«${complexName}» هنوز پلنِ فعالی ندارد.`
+              : 'این مجتمع هنوز پلنِ فعالی ندارد.'}
           </p>
-          <p className="mt-0.5 text-[12px]" style={{ color: 'var(--text-tertiary)' }}>
-            با ارتقا به پرو، سقف تعداد واحد برداشته می‌شود و اتصال درگاه بانکی و خروجی Excel باز
-            می‌شود.
+          <p className="mt-0.5 text-small" style={{ color: 'var(--text-tertiary)' }}>
+            از جادوگرِ پایین پلن و مدت را انتخاب کنید؛ اشتراک از لحظه‌ی پرداختِ موفق شروع می‌شود.
           </p>
         </div>
       </motion.div>
@@ -369,7 +339,7 @@ function CurrentPlanBanner({
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.3 }}
-      className="overflow-hidden rounded-2xl border"
+      className="overflow-hidden rounded-2xl border shadow-sm"
       style={{ borderColor: 'var(--color-brand-400)' }}
     >
       <div
@@ -388,227 +358,56 @@ function CurrentPlanBanner({
 
         <div className="min-w-0 flex-1">
           <p
-            className="flex items-center gap-2 text-[15px] font-extrabold"
+            className="flex items-center gap-2 text-reading font-extrabold"
             style={{ color: 'var(--text-primary)' }}
           >
-            {current.planLabel}
+            پلنِ فعلیِ شما: {current.tierLabel ?? current.planLabel} —{' '}
+            {formatNumber(current.months)} ماهه
             <BadgeCheck size={16} style={{ color: 'var(--state-success)' }} />
           </p>
+          {complexName && (
+            <p
+              className="mt-0.5 text-body font-semibold"
+              style={{ color: 'var(--text-secondary)' }}
+            >
+              مجتمع: {complexName}
+            </p>
+          )}
           <p
-            className="mt-0.5 flex flex-wrap items-center gap-x-3 text-[12px]"
+            className="mt-1 flex flex-wrap items-center gap-x-3 text-small"
             style={{ color: 'var(--text-tertiary)' }}
           >
             <span className="flex items-center gap-1">
               <CalendarClock size={12} />
-              تا {current.endsAt}
+              پرداخت‌شده تا {current.paidUntil}
             </span>
-            <span>{formatNumber(current.daysLeft)} روز باقی‌مانده</span>
-            <span>{current.methodLabel}</span>
+            <span>{formatNumber(current.daysLeftTotal)} روز باقی‌مانده</span>
             {current.trackingCode && <span dir="ltr">کد رهگیری: {current.trackingCode}</span>}
           </p>
         </div>
 
-        <button
-          onClick={() => onCancel(current.id)}
-          className="rounded-xl border px-4 py-2 text-[12.5px] font-semibold"
-          style={{ borderColor: 'var(--border-default)', color: 'var(--color-danger)' }}
-        >
-          لغو اشتراک
-        </button>
+        <div className="flex flex-wrap gap-2">
+          {canRenew && (
+            <button
+              type="button"
+              onClick={onRenew}
+              className="flex items-center gap-1.5 rounded-xl px-4 py-2.5 text-body font-bold text-white shadow-sm transition hover:shadow-md"
+              style={{ backgroundColor: 'var(--color-brand-600)' }}
+            >
+              <RefreshCw size={15} />
+              تمدید پلن فعلی
+            </button>
+          )}
+          <button
+            type="button"
+            onClick={() => onCancel(current.id)}
+            className="rounded-xl border px-4 py-2.5 text-body font-semibold"
+            style={{ borderColor: 'var(--border-default)', color: 'var(--color-danger)' }}
+          >
+            لغو اشتراک
+          </button>
+        </div>
       </div>
     </motion.div>
-  )
-}
-
-function FreePlanCard({ features, isCurrent }: { features: string[]; isCurrent: boolean }) {
-  return (
-    <Card className="flex flex-col">
-      <div className="flex items-center justify-between gap-2">
-        <h2 className="text-[15px] font-extrabold" style={{ color: 'var(--text-primary)' }}>
-          رایگان
-        </h2>
-        {isCurrent && (
-          <span
-            className="rounded-full px-2 py-0.5 text-[10.5px] font-bold"
-            style={{
-              backgroundColor: 'color-mix(in srgb, var(--color-brand-500) 13%, transparent)',
-              color: 'var(--color-brand-600)',
-            }}
-          >
-            پلن فعلی
-          </span>
-        )}
-      </div>
-
-      <p className="mt-2 text-[24px] font-extrabold" style={{ color: 'var(--text-primary)' }}>
-        ۰
-        <span className="mr-1 text-[12px] font-medium" style={{ color: 'var(--text-tertiary)' }}>
-          تومان
-        </span>
-      </p>
-
-      <FeatureList features={features} muted />
-    </Card>
-  )
-}
-
-function PlanCard({
-  plan,
-  delay,
-  busy,
-  disabled,
-  checkoutEnabled,
-  onBuyOnline,
-}: {
-  plan: SubscriptionPlanOption
-  delay: number
-  busy: boolean
-  disabled: boolean
-  checkoutEnabled: boolean
-  onBuyOnline: () => void
-}) {
-  const highlighted = plan.savingPercent > 0
-
-  return (
-    <Card delay={delay} className="relative flex flex-col">
-      {highlighted && (
-        <span
-          className="absolute -top-2.5 right-5 rounded-full px-2.5 py-0.5 text-[10.5px] font-extrabold text-white"
-          style={{ backgroundColor: 'var(--color-accent-500)' }}
-        >
-          {formatNumber(plan.savingPercent)}٪ صرفه‌جویی
-        </span>
-      )}
-
-      <div className="flex items-center gap-2">
-        <Crown size={16} style={{ color: 'var(--color-brand-500)' }} />
-        <h2 className="text-[15px] font-extrabold" style={{ color: 'var(--text-primary)' }}>
-          {plan.label}
-        </h2>
-      </div>
-
-      <p
-        className="mt-2 text-[24px] font-extrabold tabular-nums"
-        style={{ color: 'var(--text-primary)' }}
-      >
-        {plan.priceLabel}
-        <span className="mr-1 text-[12px] font-medium" style={{ color: 'var(--text-tertiary)' }}>
-          تومان / {formatNumber(plan.months)} ماه
-        </span>
-      </p>
-
-      <FeatureList features={plan.features} />
-
-      <div className="mt-4 flex flex-col gap-2">
-        {/* پرداخت آنلاین فقط وقتی درگاه واقعاً فعال است نشان داده می‌شود */}
-        {checkoutEnabled && (
-          <button
-            onClick={onBuyOnline}
-            disabled={disabled}
-            className="flex items-center justify-center gap-1.5 rounded-xl py-3 text-[13px] font-bold text-white transition-transform hover:scale-[1.02] disabled:opacity-60"
-            style={{ backgroundColor: 'var(--color-brand-500)' }}
-          >
-            {busy ? <Loader2 size={15} className="animate-spin" /> : <CreditCard size={15} />}
-            {busy ? 'در حال انتقال به درگاه…' : 'پرداخت آنلاین'}
-          </button>
-        )}
-      </div>
-    </Card>
-  )
-}
-
-function FeatureList({ features, muted }: { features: string[]; muted?: boolean }) {
-  return (
-    <ul className="mt-4 flex flex-1 flex-col gap-2">
-      {features.map((feature) => (
-        <li
-          key={feature}
-          className="flex items-start gap-2 text-[12.5px]"
-          style={{ color: 'var(--text-secondary)' }}
-        >
-          <Check
-            size={14}
-            className="mt-0.5 shrink-0"
-            style={{ color: muted ? 'var(--text-tertiary)' : 'var(--state-success)' }}
-          />
-          {feature}
-        </li>
-      ))}
-    </ul>
-  )
-}
-
-function HistoryCard({ history }: { history: SubscriptionRow[] }) {
-  return (
-    <Card title="سابقه اشتراک" delay={0.2}>
-      {history.length === 0 ? (
-        <p className="py-8 text-center text-[12.5px]" style={{ color: 'var(--text-tertiary)' }}>
-          هنوز خریدی ثبت نشده است.
-        </p>
-      ) : (
-        <div className="overflow-x-auto">
-          <table className="w-full min-w-[680px] text-right text-[13px]">
-            <thead>
-              <tr style={{ color: 'var(--text-tertiary)' }}>
-                <th className="pb-3 font-medium">پلن</th>
-                <th className="pb-3 font-medium">روش</th>
-                <th className="pb-3 font-medium">مبلغ</th>
-                <th className="pb-3 font-medium">خریدار</th>
-                <th className="pb-3 font-medium">تاریخ</th>
-                <th className="pb-3 font-medium">اعتبار تا</th>
-                <th className="pb-3 font-medium">وضعیت</th>
-              </tr>
-            </thead>
-            <tbody>
-              {history.map((row) => (
-                <tr
-                  key={row.id}
-                  className="border-t"
-                  style={{ borderColor: 'var(--border-subtle)' }}
-                >
-                  <td className="py-3 font-semibold" style={{ color: 'var(--text-primary)' }}>
-                    {row.planLabel}
-                  </td>
-                  <td className="py-3" style={{ color: 'var(--text-secondary)' }}>
-                    {row.methodLabel}
-                  </td>
-                  <td className="py-3 tabular-nums" style={{ color: 'var(--text-secondary)' }}>
-                    {row.amountLabel}
-                  </td>
-                  <td className="py-3" style={{ color: 'var(--text-tertiary)' }}>
-                    {row.buyerName ?? '—'}
-                  </td>
-                  <td className="py-3 tabular-nums" style={{ color: 'var(--text-tertiary)' }}>
-                    {row.createdAt}
-                  </td>
-                  <td className="py-3 tabular-nums" style={{ color: 'var(--text-tertiary)' }}>
-                    {row.endsAt ?? '—'}
-                  </td>
-                  <td className="py-3">
-                    <span
-                      className="rounded-full px-2.5 py-0.5 text-[11px] font-medium"
-                      style={{
-                        backgroundColor: `color-mix(in srgb, ${STATUS_COLOR[row.status] ?? 'var(--text-tertiary)'} 14%, transparent)`,
-                        color: STATUS_COLOR[row.status] ?? 'var(--text-tertiary)',
-                      }}
-                    >
-                      {row.statusLabel}
-                    </span>
-                    {row.status === 'failed' && row.reviewNote && (
-                      <span
-                        className="mt-1 block text-[10.5px]"
-                        style={{ color: 'var(--text-tertiary)' }}
-                      >
-                        {row.reviewNote}
-                      </span>
-                    )}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
-    </Card>
   )
 }

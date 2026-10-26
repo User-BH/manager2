@@ -136,8 +136,9 @@ class GatewayFormActionTest extends TestCase
             'subscription.config' => ['terminal_id' => '12345678'],
         ]);
 
+        // اشتراکِ فعالِ setUp پلنِ دیگری است، پس این خرید «تغییرِ پلن» است و تأییدِ صریح می‌خواهد (۱۳/۶، بندِ ۲۲)
         $response = $this->actingAs($this->admin)
-            ->post('/subscription/checkout', ['plan' => 'pro'])
+            ->post('/subscription/checkout', ['plan' => 'basic', 'months' => 1, 'confirm_change' => '1'])
             ->assertOk();
 
         $this->assertEveryFormCanSubmit($response);

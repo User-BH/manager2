@@ -11,7 +11,6 @@ use App\Models\CheckoutIntent;
 use App\Models\Complex;
 use App\Models\ComplexInvitation;
 use App\Models\ComplexMembership;
-use App\Models\Plan;
 use App\Models\Unit;
 use App\Models\User;
 use App\Services\Account\Membership;
@@ -25,6 +24,7 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use LogicException;
+use Tests\Concerns\TestPlans;
 use Tests\TestCase;
 
 /**
@@ -105,7 +105,7 @@ class MembershipLedgerTest extends TestCase
     public function test_a_verified_purchase_records_the_manager_membership(): void
     {
         $user = $this->registrant();
-        $plan = Plan::create(['name' => 'پلن', 'slug' => 'p', 'complex_type' => ComplexType::Residential, 'price' => 1000, 'months' => 1, 'is_active' => true]);
+        $plan = TestPlans::create(['name' => 'پلن', 'slug' => 'p', 'complex_type' => ComplexType::Residential, 'price' => 1000, 'months' => 1, 'is_active' => true]);
         $intent = app(ComplexPurchase::class)->begin($user, $plan, 'مجتمع خریدار', ComplexType::Residential, null);
 
         $intent = app(ComplexPurchase::class)->complete($intent, 'TRK-M1');

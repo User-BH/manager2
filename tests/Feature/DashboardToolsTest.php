@@ -4,12 +4,12 @@ namespace Tests\Feature;
 
 use App\Enums\AnnouncementAudience;
 use App\Enums\OccupancyStatus;
-use App\Enums\SubscriptionPlan;
 use App\Enums\UserRole;
 use App\Models\Announcement;
 use App\Models\AnnouncementRead;
 use App\Models\Complex;
 use App\Models\Plan;
+use App\Models\PlanPrice;
 use App\Models\Subscription;
 use App\Models\Unit;
 use App\Models\User;
@@ -406,13 +406,13 @@ class DashboardToolsTest extends TestCase
         config(['subscription.gateway' => 'sandbox']);
 
         $this->actingAs($this->admin)
-            ->post('/subscription/checkout', ['plan' => 'pro', 'amount' => 1])
+            ->post('/subscription/checkout', ['plan' => 'basic', 'amount' => 1])
             ->assertRedirect();
 
         $subscription = Subscription::where('user_id', $this->admin->id)->firstOrFail();
 
-        // مبلغ باید از enum خوانده شود، نه از درخواست
-        $this->assertEquals(SubscriptionPlan::Pro->price(), (float) $subscription->amount);
+        // مبلغ از جدولِ قیمتِ سرور (۱۳/۶)، نه از درخواست
+        $this->assertEquals(Plan::where('slug', 'basic')->sole()->priceFor(1), (float) $subscription->amount);
         $this->assertSame('pending', $subscription->status);
     }
 
@@ -420,7 +420,9 @@ class DashboardToolsTest extends TestCase
     {
         config(['subscription.gateway' => 'sandbox']);
 
-        $this->actingAs($this->admin)->post('/subscription/checkout', ['plan' => 'pro_yearly']);
+        // پلنِ سالانه: قیمتِ مدتِ ۱۲ ماهه را سوپر ادمین گذاشته است (۱۳/۶)
+        PlanPrice::create(['plan_id' => Plan::where('slug', 'basic')->value('id'), 'months' => 12, 'price' => 2_490_000, 'is_active' => true]);
+        $this->actingAs($this->admin)->post('/subscription/checkout', ['plan' => 'basic', 'months' => 12]);
         $subscription = Subscription::where('user_id', $this->admin->id)->firstOrFail();
 
         $this->actingAs($this->admin)
@@ -446,7 +448,7 @@ class DashboardToolsTest extends TestCase
     {
         config(['subscription.gateway' => 'sandbox']);
 
-        $this->actingAs($this->admin)->post('/subscription/checkout', ['plan' => 'pro']);
+        $this->actingAs($this->admin)->post('/subscription/checkout', ['plan' => 'basic']);
         $subscription = Subscription::where('user_id', $this->admin->id)->firstOrFail();
 
         $this->actingAs($this->admin)
@@ -460,7 +462,7 @@ class DashboardToolsTest extends TestCase
     {
         config(['subscription.gateway' => 'sandbox']);
 
-        $this->actingAs($this->admin)->post('/subscription/checkout', ['plan' => 'pro']);
+        $this->actingAs($this->admin)->post('/subscription/checkout', ['plan' => 'basic']);
         $subscription = Subscription::where('user_id', $this->admin->id)->firstOrFail();
 
         $this->actingAs($this->resident)
@@ -478,7 +480,7 @@ class DashboardToolsTest extends TestCase
         config(['subscription.gateway' => null]);
 
         $this->actingAs($this->admin)
-            ->post('/subscription/checkout', ['plan' => 'pro'])
+            ->post('/subscription/checkout', ['plan' => 'basic'])
             ->assertRedirectContains('checkout=error');
 
         // ۱۲/۲: درگاهِ خاموش پیش از ساختنِ هر ردیفی گفته می‌شود — نه ردیفِ «ناموفق»، نه راهِ دیگر

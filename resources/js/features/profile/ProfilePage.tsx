@@ -63,6 +63,16 @@ export function ProfilePage() {
   if (!data) return null
 
   const { profile, units, people, complexes, stats } = data
+  /*
+   * «تنظیماتِ حساب» (۱۳/۶؛ ایرادات ۱۰، بندِ ۲): حسابِ اولیه و مدیر — خرید و تمدید؛ سوپر ادمین — مدیریتِ پلن‌ها؛ واحد
+   * ندارد (سرور هم رد می‌کند).
+   */
+  const accountSettingsPath =
+    user?.role === 'super_admin'
+      ? '/system/plans'
+      : user?.accountState === 'initial' || user?.role === 'complex_admin'
+        ? '/account'
+        : null
 
   return (
     <div className="flex flex-col gap-5">
@@ -78,6 +88,7 @@ export function ProfilePage() {
         complexName={profile.complex?.name ?? null}
         joinedAt={profile.joinedAt}
         isActive={profile.isActive}
+        accountSettingsPath={accountSettingsPath}
         onEdit={() => setEditing((prev) => !prev)}
         editing={editing}
       />
@@ -163,6 +174,7 @@ function ProfileHero({
   complexName,
   joinedAt,
   isActive,
+  accountSettingsPath,
   editing,
   onEdit,
 }: {
@@ -173,6 +185,7 @@ function ProfileHero({
   complexName: string | null
   joinedAt: string
   isActive: boolean
+  accountSettingsPath: string | null
   editing: boolean
   onEdit: () => void
 }) {
@@ -251,14 +264,16 @@ function ProfileHero({
 
         <div className="flex flex-wrap items-center gap-2">
           <ProfilePhotoControl hasPhoto={avatarUrl !== null} onChanged={onPhotoChanged} />
-          <Link
-            to="/account"
-            className="flex items-center gap-1.5 rounded-xl border px-4 py-2.5 text-[13px] font-semibold"
-            style={{ borderColor: 'var(--border-default)', color: 'var(--text-secondary)' }}
-          >
-            <Settings size={15} />
-            تنظیمات حساب
-          </Link>
+          {accountSettingsPath && (
+            <Link
+              to={accountSettingsPath}
+              className="flex items-center gap-1.5 rounded-xl border px-4 py-2.5 text-[13px] font-semibold"
+              style={{ borderColor: 'var(--border-default)', color: 'var(--text-secondary)' }}
+            >
+              <Settings size={15} />
+              تنظیمات حساب
+            </Link>
+          )}
 
           <button
             onClick={onEdit}

@@ -19,6 +19,7 @@ use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Http\Client\Request;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Testing\TestResponse;
+use Tests\Concerns\TestPlans;
 use Tests\TestCase;
 
 /**
@@ -51,7 +52,7 @@ class CheckoutIntentTest extends TestCase
             'subscription.config.sandbox' => false,
         ]);
 
-        $this->plan = Plan::create([
+        $this->plan = TestPlans::create([
             'name' => 'پلنِ آزمون', 'slug' => 'res-test', 'complex_type' => ComplexType::Residential,
             'price' => 250000, 'months' => 3, 'is_active' => true,
         ]);
@@ -103,7 +104,12 @@ class CheckoutIntentTest extends TestCase
         $this->fakeZarinpal();
         $user = $this->initial();
 
-        $this->start($user, ['amount' => 1, 'price' => 1, 'months' => 99])
+        // مدتِ بیرون از شش مدت (۱۳/۶) رد می‌شود و هیچ قصدی نمی‌سازد
+        $this->start($user, ['months' => 99])->assertSessionHasErrors('months');
+        $this->assertSame(0, CheckoutIntent::count());
+
+        // مبلغ و قیمتِ کلاینت نادیده؛ مدت فقط یکی از شش مدت و قیمتش از جدولِ سرور
+        $this->start($user, ['amount' => 1, 'price' => 1, 'months' => 3])
             ->assertRedirect('https://payment.zarinpal.com/pg/StartPay/'.self::AUTHORITY);
 
         $intent = CheckoutIntent::sole();
@@ -366,9 +372,9 @@ class CheckoutIntentTest extends TestCase
     {
         $this->fakeZarinpal();
         $user = $this->initial();
-        Plan::create(['name' => 'تجاری', 'slug' => 'com', 'complex_type' => ComplexType::Commercial, 'price' => 1, 'months' => 1, 'is_active' => true]);
-        Plan::create(['name' => 'رایگان', 'slug' => 'free', 'complex_type' => ComplexType::Residential, 'price' => 0, 'months' => 1, 'is_active' => true]);
-        Plan::create(['name' => 'خاموش', 'slug' => 'off', 'complex_type' => ComplexType::Residential, 'price' => 1000, 'months' => 1, 'is_active' => false]);
+        TestPlans::create(['name' => 'تجاری', 'slug' => 'com', 'complex_type' => ComplexType::Commercial, 'price' => 1, 'months' => 1, 'is_active' => true]);
+        TestPlans::create(['name' => 'رایگان', 'slug' => 'free', 'complex_type' => ComplexType::Residential, 'price' => 0, 'months' => 1, 'is_active' => true]);
+        TestPlans::create(['name' => 'خاموش', 'slug' => 'off', 'complex_type' => ComplexType::Residential, 'price' => 1000, 'months' => 1, 'is_active' => false]);
 
         foreach (['com', 'free', 'off', 'no-such'] as $slug) {
             $this->start($user, ['plan' => $slug])
@@ -468,10 +474,10 @@ class CheckoutIntentTest extends TestCase
      */
     public function test_the_purchase_page_offers_exactly_what_the_server_accepts(): void
     {
-        Plan::create(['name' => 'تجاری', 'slug' => 'com', 'complex_type' => ComplexType::Commercial, 'price' => 1000, 'months' => 1, 'is_active' => true]);
-        Plan::create(['name' => 'رایگان', 'slug' => 'free', 'complex_type' => ComplexType::Residential, 'price' => 0, 'months' => 1, 'is_active' => true]);
-        Plan::create(['name' => 'خاموش', 'slug' => 'off', 'complex_type' => ComplexType::Residential, 'price' => 1000, 'months' => 1, 'is_active' => false]);
-        Plan::create(['name' => 'هر دو', 'slug' => 'both', 'complex_type' => null, 'price' => 5000, 'months' => 12, 'is_active' => true]);
+        TestPlans::create(['name' => 'تجاری', 'slug' => 'com', 'complex_type' => ComplexType::Commercial, 'price' => 1000, 'months' => 1, 'is_active' => true]);
+        TestPlans::create(['name' => 'رایگان', 'slug' => 'free', 'complex_type' => ComplexType::Residential, 'price' => 0, 'months' => 1, 'is_active' => true]);
+        TestPlans::create(['name' => 'خاموش', 'slug' => 'off', 'complex_type' => ComplexType::Residential, 'price' => 1000, 'months' => 1, 'is_active' => false]);
+        TestPlans::create(['name' => 'هر دو', 'slug' => 'both', 'complex_type' => null, 'price' => 5000, 'months' => 12, 'is_active' => true]);
 
         $offered = $this->actingAs($this->initial())->getJson('/api/v1/subscription')->assertOk()->json('newComplexPlans');
 
@@ -499,8 +505,9 @@ class CheckoutIntentTest extends TestCase
         // از ۱۰/۵ عضوِ مجتمع هم مجتمعِ تازه می‌خرد و همان فهرست را می‌گیرد؛ ادمینِ کل نه
         $manager = User::factory()->create(['role' => UserRole::ComplexAdmin, 'complex_id' => Complex::factory()->create()->id, 'is_active' => true]);
         $this->assertSame($offered, $this->actingAs($manager)->getJson('/api/v1/subscription')->assertOk()->json('newComplexPlans'));
+        // ۱۳/۶ (ایرادات ۱۰، بندِ ۵): سوپر ادمین اصلاً «تنظیماتِ حسابِ خرید» ندارد — تنظیماتِ حسابش مدیریتِ پلن‌هاست
         $super = User::factory()->create(['role' => UserRole::SuperAdmin, 'complex_id' => null, 'is_active' => true]);
-        $this->actingAs($super)->getJson('/api/v1/subscription')->assertOk()->assertJsonPath('newComplexPlans', null);
+        $this->actingAs($super)->getJson('/api/v1/subscription')->assertForbidden();
     }
 
     /* ───────────────────── سابقه‌ی مالی ───────────────────── */

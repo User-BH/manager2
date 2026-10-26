@@ -24,6 +24,7 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Testing\TestResponse;
+use Tests\Concerns\TestPlans;
 use Tests\TestCase;
 
 /**
@@ -59,11 +60,11 @@ class MemberComplexPurchaseTest extends TestCase
             'subscription.config.merchant_id' => 'test-merchant-id',
             'subscription.config.sandbox' => false,
         ]);
-        Plan::create([
+        TestPlans::create([
             'name' => 'پلنِ آزمون', 'slug' => 'res-test', 'complex_type' => ComplexType::Residential,
             'price' => 250000, 'months' => 3, 'is_active' => true,
         ]);
-        Plan::create([
+        TestPlans::create([
             'name' => 'پلنِ تجاری', 'slug' => 'com-test', 'complex_type' => ComplexType::Commercial,
             'price' => 400000, 'months' => 3, 'is_active' => true,
         ]);
@@ -199,7 +200,7 @@ class MemberComplexPurchaseTest extends TestCase
         $this->fakeZarinpal();
 
         $this->start([
-            'amount' => 1, 'price' => 1, 'months' => 99,
+            'amount' => 1, 'price' => 1, 'months' => 3,
             'complex_id' => $this->a->id, 'role' => 'super_admin', 'user_id' => 1, 'unit_id' => $this->unitA->id,
         ]);
         $intent = CheckoutIntent::sole();
@@ -216,7 +217,7 @@ class MemberComplexPurchaseTest extends TestCase
     public function test_plan_rules_still_apply_to_members(): void
     {
         $this->fakeZarinpal();
-        Plan::create([
+        TestPlans::create([
             'name' => 'خاموش', 'slug' => 'off', 'complex_type' => ComplexType::Residential,
             'price' => 100000, 'months' => 1, 'is_active' => false,
         ]);

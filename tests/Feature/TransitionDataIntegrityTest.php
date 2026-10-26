@@ -14,7 +14,6 @@ use App\Models\ComplexInvitation;
 use App\Models\LoginEvent;
 use App\Models\Message;
 use App\Models\Payment;
-use App\Models\Plan;
 use App\Models\Subscription;
 use App\Models\TrustedDevice;
 use App\Models\Unit;
@@ -33,6 +32,7 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
+use Tests\Concerns\TestPlans;
 use Tests\TestCase;
 
 /**
@@ -134,7 +134,7 @@ class TransitionDataIntegrityTest extends TestCase
             'subscription.config.merchant_id' => 'test-merchant-id',
             'subscription.config.sandbox' => false,
         ]);
-        Plan::create([
+        TestPlans::create([
             'name' => 'پلنِ آزمون', 'slug' => 'res-test', 'complex_type' => ComplexType::Residential,
             'price' => 250000, 'months' => 3, 'is_active' => true,
         ]);
@@ -173,7 +173,7 @@ class TransitionDataIntegrityTest extends TestCase
             'subscription.config.merchant_id' => 'test-merchant-id',
             'subscription.config.sandbox' => false,
         ]);
-        Plan::create([
+        TestPlans::create([
             'name' => 'پلنِ آزمون', 'slug' => 'res-test', 'complex_type' => ComplexType::Residential,
             'price' => 250000, 'months' => 3, 'is_active' => true,
         ]);

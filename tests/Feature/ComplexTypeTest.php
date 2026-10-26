@@ -19,6 +19,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Storage;
 use PHPUnit\Framework\Attributes\DataProvider;
+use Tests\Concerns\TestPlans;
 use Tests\TestCase;
 
 /**
@@ -473,7 +474,7 @@ class ComplexTypeTest extends TestCase
 
     private function plan(string $slug, ?ComplexType $type, int $price): Plan
     {
-        return Plan::create([
+        return TestPlans::create([
             'name' => $slug,
             'slug' => $slug,
             'complex_type' => $type,

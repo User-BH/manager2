@@ -7,6 +7,7 @@ use App\Enums\SubscriptionPlan;
 use App\Enums\UserRole;
 use App\Models\Backup;
 use App\Models\Complex;
+use App\Models\Plan;
 use App\Models\Subscription;
 use App\Models\Unit;
 use App\Models\User;
@@ -195,9 +196,10 @@ class PolishTest extends TestCase
      */
     public function test_a_renewal_on_an_active_subscription_extends_it_instead_of_overwriting(): void
     {
+        // تمدیدِ **همان** پلن (۱۳/۶، بندِ ۲۱)؛ پلنِ دیگر تغییر است و تأییدِ جدا می‌خواهد (`AccountPlansTest`)
         $current = Subscription::create([
             'complex_id' => $this->complex->id, 'user_id' => $this->admin->id,
-            'plan' => SubscriptionPlan::Pro, 'status' => 'active', 'method' => 'receipt',
+            'plan' => SubscriptionPlan::Pro, 'plan_id' => Plan::where('slug', 'basic')->value('id'), 'status' => 'active', 'method' => 'receipt',
             'amount' => 100, 'months' => 1,
             'starts_at' => now()->subDays(10), 'ends_at' => now()->addDays(20),
         ]);
@@ -236,7 +238,7 @@ class PolishTest extends TestCase
     private function renewOnline(): Subscription
     {
         config(['subscription.gateway' => 'sandbox']);
-        $this->actingAs($this->admin)->post('/subscription/checkout', ['plan' => 'pro'])->assertRedirect();
+        $this->actingAs($this->admin)->post('/subscription/checkout', ['plan' => 'basic'])->assertRedirect();
         $pending = Subscription::where('method', 'online')->latest('id')->firstOrFail();
         $this->get("/subscription/callback/{$pending->id}?ref={$pending->ref_id}")->assertRedirectContains('checkout=success');
 

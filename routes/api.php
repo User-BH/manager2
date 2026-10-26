@@ -466,6 +466,8 @@ Route::middleware(['auth', 'presence'])->group(function () {
     });
 
     Route::get('subscription', [SubscriptionController::class, 'show'])->name('subscription.show');
+    // «تاریخچه‌ی پرداخت‌ها» ِ تنظیماتِ حساب (۱۳/۶، بندهای ۲۶ تا ۲۸) — مدیرِ مجتمعِ فعال یا حسابِ اولیه
+    Route::get('subscription/history', [SubscriptionController::class, 'history'])->name('subscription.history');
     // ۱۲/۲: خرید و تمدید فقط آنلاین — رسیدِ اشتراک یک چرخه‌ی استقرار ۴۱۰ می‌دهد، بعد برداشته می‌شود
     Route::post('subscription/receipt', [RetiredEndpointController::class, 'onlineOnly'])
         ->name('subscription.receipt');

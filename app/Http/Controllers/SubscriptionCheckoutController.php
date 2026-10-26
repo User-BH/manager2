@@ -61,7 +61,13 @@ class SubscriptionCheckoutController extends Controller
 
         // مبلغ و مدت سمتِ سرور، از پلن (`SubscriptionRenewal::resolvePlan`)
         try {
-            $subscription = $this->renewal->begin($complex, $user, $request->string('plan')->value());
+            $subscription = $this->renewal->begin(
+                $complex,
+                $user,
+                $request->string('plan')->value(),
+                $request->months(),
+                $request->boolean('confirm_change'),
+            );
         } catch (DomainException $e) {
             return redirect('/account?checkout=error&message='.urlencode($e->getMessage()));
         }
@@ -176,13 +182,18 @@ class SubscriptionCheckoutController extends Controller
             return redirect('/account?checkout=error&message='.urlencode('پرداختِ آنلاینِ اشتراک هنوز فعال نشده است.'));
         }
 
-        $intent = $this->purchase->begin(
-            Auth::user(),
-            $plan,
-            $data['complex_name'],
-            $type,
-            $data['complex_address'] ?? null,
-        );
+        try {
+            $intent = $this->purchase->begin(
+                Auth::user(),
+                $plan,
+                $data['complex_name'],
+                $type,
+                $data['complex_address'] ?? null,
+                $request->months(),
+            );
+        } catch (DomainException $e) {
+            return redirect('/account?checkout=error&message='.urlencode($e->getMessage()));
+        }
 
         try {
             $redirect = $this->gateways->driver()->request($intent);
