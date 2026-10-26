@@ -99,6 +99,16 @@ class SessionRegistry
             ->delete();
     }
 
+    /** پایانِ همه‌ی نشست‌های کاربر — بی نشستِ جاری (فرمانِ سرور، مثلِ `preview:reset-account`). */
+    public function endAll(User $user): int
+    {
+        if (! $this->supported()) {
+            return 0;
+        }
+
+        return $this->table()->where('user_id', $user->id)->delete();
+    }
+
     private function table(): Builder
     {
         return DB::connection(config('session.connection'))->table(config('session.table', 'sessions'));

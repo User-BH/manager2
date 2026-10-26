@@ -20,6 +20,7 @@
 | [docs/FEW_POINTS_VERIFICATION.md](docs/FEW_POINTS_VERIFICATION.md)                 | 🔴 **«چند نکته»** — هفت بند (لایه‌ها، آیکون و نامِ نصب، حضورِ آنلاین، فارسی‌سازی، لایه‌ی اعلان، ماشین‌حساب) با وضعیت، مدرک و محدودیت                                     |
 | [docs/STAGE12_ROADMAP.md](docs/STAGE12_ROADMAP.md)                                 | 🔴 **مرحلهٔ ۱۲** — هسته: چرخه‌ی عمرِ کاربر، چندمجتمعی، داشبوردِ اولیه، پیام‌رسان، جست‌وجو؛ فازها و نقشه‌ی شکافِ ۱۲/۰                                                     |
 | [docs/STAGE13_ROADMAP.md](docs/STAGE13_ROADMAP.md)                                 | 🔴 **مرحلهٔ ۱۳** — یک نشانی و داشبوردهای آزمایشی، چندمجتمعی، نوار بالا و جست‌وجو، اعلان‌ها، پلن و تمدید، تقویم، PWA، هوش مصنوعی؛ فهرست‌برداری، تعارض‌ها و فازبندی        |
+| [docs/HOLES2_CROSSCHECK.md](docs/HOLES2_CROSSCHECK.md)                             | 🔴 **«حفره ها۲»** — تطبیقِ دستورِ اجراییِ جامع با مخزن: ۳۷ بخش با برچسب و مدرک، حسابِ `demo.initial`، `preview:reset-account`، تعارضِ Mixed-Use                          |
 | [docs/STAGE12_REPORT.md](docs/STAGE12_REPORT.md)                                   | ✅ **مرحلهٔ ۱۲ — گزارشِ نهایی:** Definition of Done ِ سندِ هسته با وضعیت و مدرکِ هر معیار، و پانزده خروجیِ خواسته‌شده                                                    |
 | [docs/MEMBERSHIP.md](docs/MEMBERSHIP.md)                                           | 🔴 **عضویت** — موجودیتِ `complex_memberships`، چرخه‌ی عمر، تنها نویسنده (`MembershipLedger`)، مهاجرتِ دادهٔ موجود و `memberships:check` (فاز ۱۰/۲)                       |
 | [docs/PROFILE_AND_INFORMATION.md](docs/PROFILE_AND_INFORMATION.md)                 | 🔴 **پروفایل و اطلاعات** — تصویرِ canonical ِ حساب، «اطلاعاتِ مجتمع» و «اطلاعاتِ واحد»؛ آنچه از داده بیرون می‌آید ذخیره نمی‌شود (فاز ۱۰/۷)                               |
@@ -621,8 +622,14 @@ cd /var/www/sakena
 `migrate` فقط جدول می‌سازد؛ داده وارد نمی‌کند. یکی از این دو را انجام دهید:
 
 ```bash
-php artisan admin:create      # ساخت ادمین کل واقعی (برای سرویس واقعی)
+php artisan admin:create --username=<نام کاربری>   # ساخت ادمین کل واقعی (برای سرویس واقعی)
 ./scripts/setup.sh --demo     # دادهٔ نمونه: مجتمع، واحدها و قبوض ساختگی
+```
+
+نام کاربریِ ادمینِ کلِ موجود (ورود با نام کاربری + رمز + Authenticator — [docs/ADMIN_TWO_FACTOR.md](docs/ADMIN_TWO_FACTOR.md)):
+
+```bash
+php artisan admin:username <نام کاربری> --phone=09xxxxxxxxx
 ```
 
 اگر رمز ادمین را فراموش کردید:

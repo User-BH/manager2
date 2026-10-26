@@ -107,6 +107,17 @@ class Complex extends Model
         return $query->where('complexes.is_demo', false);
     }
 
+    /**
+     * مجتمعی که حسابِ آزمایشی می‌سازد نشانگرِ آزمایشی می‌گیرد («حفره ها۲»، بندِ ۱۸.۵) — از نشانگرِ سمتِ سرورِ خودِ
+     * حساب، نه از ورودیِ درخواست؛ `is_demo` هنوز `fillable` نیست.
+     */
+    public function markDemoIf(?User $creator): void
+    {
+        if ($creator?->is_demo && ! $this->is_demo) {
+            $this->forceFill(['is_demo' => true])->save();
+        }
+    }
+
     /** @return HasMany<Building, $this> */
     public function buildings(): HasMany
     {

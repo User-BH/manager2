@@ -42,6 +42,11 @@ class PreviewSeedCommand extends Command
             $this->warn("حسابِ «{$username}» از ساختارِ پیشینِ حساب‌های آزمایشی است و غیرفعال شد؛ برای پاک‌سازیِ کامل `preview:reset` را اجرا کنید.");
         }
 
+        // حسابِ ساختارِ فعلی که غیرفعال مانده — مثلاً `demo.initial` ِ ساختارِ ۲۰۲۶-۱۰-۲۵ — خودبه‌خود فعال نمی‌شود
+        foreach ($seeder->dormant() as $username) {
+            $this->warn("حسابِ «{$username}» هست ولی غیرفعال است؛ برای بازگرداندنش: php artisan preview:reset-account {$username}");
+        }
+
         self::printIssued($this, $seeder->issued());
 
         return self::SUCCESS;

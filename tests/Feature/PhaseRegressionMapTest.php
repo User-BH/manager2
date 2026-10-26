@@ -929,7 +929,7 @@ class PhaseRegressionMapTest extends TestCase
             ],
             // ساختارِ حساب‌ها با «دستورِ یکپارچه»ی ۲۰۲۶-۱۰-۲۵ سه حساب شد؛ محافظ همان است با نامِ تازه
             '۹/۸: preview:reset حساب‌های آزمایشی را می‌سازد' => [
-                'PreviewResetTest', 'test_reset_builds_a_marked_database_with_the_three_test_accounts', '۹',
+                'PreviewResetTest', 'test_reset_builds_a_marked_database_with_the_four_test_accounts', '۹',
             ],
             '🔴 ۹/۸: استقرارِ محصول پیش از مهاجرت بکاپ می‌گیرد و می‌سنجد' => [
                 'DeployScriptSafetyTest', 'test_production_deploys_back_up_and_verify_before_any_migration', '۹',
@@ -1525,6 +1525,19 @@ class PhaseRegressionMapTest extends TestCase
             ],
             '🔴 ۱۳/۵: اعلانِ دعوتِ کسِ دیگر نه دیده و نه خوانده می‌شود' => [
                 'InvitationNotificationTest', 'test_another_account_cannot_reach_the_notification', '۱۳',
+            ],
+            // «حفره ها۲» (۲۰۲۶-۱۰-۲۶) — حسابِ اولیه‌ی Preview، بازگرداندنِ کنترل‌شده، نشانگرِ مجتمعِ آزمایشی
+            '🔴 حفره ها۲: سناریوی ثبت‌نامِ اولیه حسابِ قابلِ ورودِ خودش را دارد، بی عضویت' => [
+                'DemoDataTest', 'test_the_initial_account_has_no_membership_and_lands_on_the_initial_dashboard_after_every_login', '۱۳',
+            ],
+            '🔴 حفره ها۲: بازگرداندنِ حساب سابقه و رمزِ تغییرکرده را نگه می‌دارد' => [
+                'PreviewAccountResetTest', 'test_the_initial_account_returns_to_no_membership_keeping_history_and_password', '۱۳',
+            ],
+            '🔴 حفره ها۲: بازگرداندن حسابِ واقعی یا بیرون از Preview را رد می‌کند' => [
+                'PreviewAccountResetTest', 'test_real_accounts_unknown_names_and_other_environments_are_refused', '۱۳',
+            ],
+            '🔴 حفره ها۲: مجتمعِ ساخته‌ی حسابِ آزمایشی دادهٔ آزمایشی است' => [
+                'DemoDataTest', 'test_a_community_built_by_a_demo_account_is_demo_data', '۱۳',
             ],
         ];
     }

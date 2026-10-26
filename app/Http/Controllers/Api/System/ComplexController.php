@@ -87,6 +87,8 @@ class ComplexController extends Controller
                 'address' => $data['address'] ?? null,
                 'payment_gateway' => 'none',
             ]);
+            // مجتمعِ ساخته‌ی سوپر ادمینِ آزمایشی دادهٔ آزمایشی است («حفره ها۲»، بندِ ۱۸.۵)
+            $complex->markDemoIf($request->user());
 
             [$invitation, $token] = $this->membership->invite(
                 $complex,

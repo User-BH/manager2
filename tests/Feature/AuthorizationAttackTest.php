@@ -623,6 +623,7 @@ class AuthorizationAttackTest extends TestCase
         'app/Console/Commands/PruneOrphanUploads.php' => [5, 'فایل‌های یتیم در همه‌ی مجتمع‌ها — پنج نوع پیوست از R58'],
         'app/Console/Commands/ResetUserPassword.php' => [2, 'بازیابیِ رمز از کنسول، پیش از هر نشستی'],
         'app/Console/Commands/SendBillReminders.php' => [1, 'یادآوریِ زمان‌بندی‌شده برای همه‌ی مجتمع‌ها'],
+        'app/Console/Commands/SetAdminUsername.php' => [2, 'نام کاربریِ سوپر ادمین از کنسول: یافتنِ حساب و یکتاییِ نام در کلِ سامانه («حفره ها۲»)'],
         'app/Console/Commands/StalePayments.php' => [2, 'گزارشِ اپراتور از پرداخت‌های بلاتکلیفِ همه‌ی مجتمع‌ها (R59)'],
         'app/Jobs/BuildBillsBundleJob.php' => [3, 'صف؛ زمینه‌ی مستأجری در worker وجود ندارد'],
 

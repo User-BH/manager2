@@ -14,6 +14,7 @@ use App\Models\Announcement;
 use App\Models\Building;
 use App\Models\ChargeRule;
 use App\Models\Complex;
+use App\Models\ComplexInvitation;
 use App\Models\ComplexMembership;
 use App\Models\Expense;
 use App\Models\Income;
@@ -22,8 +23,11 @@ use App\Models\Plan;
 use App\Models\Subscription;
 use App\Models\Unit;
 use App\Models\User;
+use App\Services\Account\Membership;
 use App\Services\Account\MembershipLedger;
+use App\Services\Auth\SessionRegistry;
 use App\Services\Charge\BillGenerator;
+use App\Support\Audit;
 use App\Support\Jalali;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
@@ -31,25 +35,29 @@ use Illuminate\Support\Str;
 use RuntimeException;
 
 /**
- * دادهٔ نمونه‌ی Preview (مرحلهٔ ۱۳ · فاز ۱؛ ساختارِ نهاییِ «دستورِ یکپارچه‌ی ادامه‌ی مرحلهٔ ۱۳»، ۲۰۲۶-۱۰-۲۵، بخشِ اول).
+ * دادهٔ نمونه‌ی Preview (مرحلهٔ ۱۳ · فاز ۱؛ ساختارِ نهاییِ «دستورِ اجراییِ جامع» = «حفره ها۲»، ۲۰۲۶-۱۰-۲۶، بخشِ چهارم).
  *
- * سه حسابِ آزمایشی، همه با نام کاربری و بی شماره‌ی موبایل (شماره‌ای رزرو نمی‌شود و پیامکی نمی‌رود):
+ * چهار حسابِ آزمایشی، همه با نام کاربری و بی شماره‌ی موبایل (شماره‌ای رزرو نمی‌شود و پیامکی نمی‌رود):
  *
+ *   demo.initial «داشبوردِ آزمایشیِ ثبت‌نامِ اولیه»: Account ِ مستقل **بی هیچ عضویت** — با هر ورود به داشبوردِ اولیه
+ *                می‌رسد و مسیرهای واقعیِ بی‌عضویت (درخواستِ پیوستن، خرید) را می‌آزماید (بندِ ۴.۱)
  *   demo.single  «داشبوردِ آزمایشیِ تک‌مجتمعی» (Single-community test dashboard): دقیقاً یک مجتمعِ مسکونی با پلنِ
- *                پیشرفته، نقشِ واحد (بندِ ۱.۱)
- *   demo.multi   «داشبوردِ آزمایشیِ چندمجتمعی» (Multi-community test dashboard): یک Account با پنج عضویتِ مستقل (بندِ ۱.۲):
+ *                پیشرفته، نقشِ واحد (بندِ ۴.۲)
+ *   demo.multi   «داشبوردِ آزمایشیِ چندمجتمعی» (Multi-community test dashboard): یک Account با پنج عضویتِ مستقل (بندِ ۴.۳):
  *                  ۱ مسکونی · پایه · مدیر        ۲ مسکونی · حرفه‌ای · مدیر
  *                  ۳ تجاری · پایه · واحد          ۴ تجاری · حرفه‌ای · واحد        ۵ تجاری · پیشرفته · مدیر
- *   demo.admin   «سوپر ادمینِ آزمایشی» برای بررسیِ قابلیت‌های مدیریتی، فقط در Preview (بندِ ۱.۳)
+ *   demo.admin   «سوپر ادمینِ آزمایشی» برای بررسیِ قابلیت‌های مدیریتی، فقط در Preview (بندِ ۴.۵)
  *
- * داشبوردِ ثبت‌نامِ اولیه یک **وضعیت** است، نه حساب (بندِ ۱.۴): هر حسابی که عضویتِ فعالی ندارد به آن می‌رسد؛ برای آن
- * حسابِ آزمایشیِ جدا ساخته نمی‌شود.
+ * ⚠️ تا ۲۰۲۶-۱۰-۲۵ داشبوردِ اولیه «وضعیت، نه حساب» بود و `demo.initial` غیرفعال می‌شد. «حفره ها۲» (بندِ ۳.۱) صریحاً
+ * همین را رد کرد: سناریوی اولیه باید حسابِ قابلِ ورودِ خودش را داشته باشد.
  *
  * 🔴 قاعده‌ها:
  * - همه‌چیز `is_demo` می‌گیرد — نشانگرِ سمتِ سرور؛ هیچ مسیرِ API آن را نمی‌نویسد.
  * - **idempotent**: اجرای دوباره چیزِ تکراری نمی‌سازد و رمزِ حسابی را که هست هرگز عوض نمی‌کند. هر چه نیست ساخته
  *   می‌شود؛ رمزِ حسابِ تازه تصادفی است و فقط یک بار به خروجیِ فرمان می‌رود (`issued()`) — نه در مخزن، نه در لاگ، نه در
  *   پایگاه‌داده جز به شکلِ hash.
+ * - حسابی که هست ولی غیرفعال است خودبه‌خود فعال نمی‌شود (شاید سوپر ادمینِ آزمایشی عمداً بسته باشدش)؛ `dormant()` گزارشش
+ *   می‌دهد و بازگرداندن با `restore()` (فرمانِ `preview:reset-account`) است — صریح و برای همان یک حساب.
  * - حساب‌های ساختارِ پیشینِ ۱۳/۱ (`LEGACY`) اگر روی پایگاه‌داده‌ای مانده باشند **غیرفعال** می‌شوند، نه حذف؛ فرمان
  *   گزارششان می‌دهد و `preview:reset` پاکشان می‌کند.
  * - روی Production اجرا نمی‌شود.
@@ -57,15 +65,19 @@ use RuntimeException;
  */
 class PreviewSeeder extends Seeder
 {
-    /** نام‌های کاربریِ سه حساب — برای فرمان، آزمون و مستندات */
+    /** نام‌های کاربریِ چهار حساب — برای فرمان، آزمون و مستندات */
+    public const INITIAL = 'demo.initial';
+
     public const SINGLE = 'demo.single';
 
     public const MULTI = 'demo.multi';
 
     public const ADMIN = 'demo.admin';
 
+    public const ACCOUNTS = [self::INITIAL, self::SINGLE, self::MULTI, self::ADMIN];
+
     /** حساب‌های ساختارِ پیشینِ ۱۳/۱ که دیگر در سند نیستند */
-    public const LEGACY = ['demo.initial', 'demo.unit', 'demo.manager'];
+    public const LEGACY = ['demo.unit', 'demo.manager'];
 
     /** مجتمعِ تکِ حسابِ تک‌مجتمعی */
     public const SINGLE_CONTEXT = 'demo-single';
@@ -106,6 +118,9 @@ class PreviewSeeder extends Seeder
         }
 
         $this->persona(self::ADMIN, 'سوپر ادمینِ آزمایشی', UserRole::SuperAdmin, null);
+
+        // بی مجتمع و بی عضویت: همان نقش و حالتی که ثبت‌نامِ واقعی می‌دهد (`AuthController::registerVerify`)
+        $this->persona(self::INITIAL, 'داشبوردِ آزمایشیِ ثبت‌نامِ اولیه', UserRole::Owner, null);
 
         $single = $this->persona(self::SINGLE, 'داشبوردِ آزمایشیِ تک‌مجتمعی', UserRole::Owner, $complexes[self::SINGLE_CONTEXT]);
         $this->ensureResident($single, $complexes[self::SINGLE_CONTEXT], UserRole::Owner, '1');
@@ -156,6 +171,155 @@ class PreviewSeeder extends Seeder
     }
 
     /**
+     * حساب‌های آزمایشیِ ساختارِ فعلی که هستند ولی غیرفعال‌اند — مثلاً `demo.initial` ِ غیرفعال‌شده‌ی ساختارِ ۲۰۲۶-۱۰-۲۵.
+     * این اجرا فعالشان نکرد؛ فرمان راهِ صریحِ بازگرداندن را می‌گوید.
+     *
+     * @return list<string>
+     */
+    public function dormant(): array
+    {
+        return User::withoutGlobalScopes()->where('is_demo', true)->whereIn('username', self::ACCOUNTS)
+            ->where('is_active', false)->orderBy('username')->pluck('username')->all();
+    }
+
+    /**
+     * بازگرداندنِ کنترل‌شده‌ی **یک** حسابِ آزمایشی به سناریوی تعریف‌شده‌اش («حفره ها۲»، بندهای ۴.۱ و ۴.۶).
+     *
+     * فقط همان حساب و فقط از مسیرهای واقعیِ دامنه:
+     * - درخواست‌های پیوستنِ در انتظارِ خودش پس گرفته می‌شوند (`REVOKED`)؛
+     * - عضویتِ زنده‌ای که در جدولِ همین حساب نیست با `Membership::end` پایان می‌یابد — ردیف و دوره‌ی واحد به‌عنوانِ سابقه
+     *   می‌مانند، هیچ مجتمع، پیام، قبض یا پرداختی حذف نمی‌شود (مجتمعی که با خریدِ آزمایشی ساخته شده سرِ جایش می‌ماند)؛
+     * - عضویتِ معلقِ درون جدول از سر گرفته و عضویتِ جاافتاده‌ی جدول دوباره ساخته می‌شود؛ زمینه‌ی پیش‌فرض اولین سطرِ جدول؛
+     * - حساب فعال می‌شود، همه‌ی نشست‌ها و دستگاه‌های مورداعتمادش پایان می‌یابند و رویداد در audit log ثبت می‌شود.
+     *
+     * 🔴 رمز فقط با `$newPassword` عوض می‌شود — رمزی را که بازبین عوض کرده بی‌اجازه برنمی‌گرداند. رمزِ تازه تصادفی است و
+     * فقط در مقدارِ بازگشتی (برای چاپِ یک‌باره) می‌آید. حسابِ بی‌نشانگرِ `is_demo` یا بیرون از چهار نام کاربری رد می‌شود.
+     *
+     * @return array{actions: list<string>, password: string|null}
+     */
+    public function restore(string $username, bool $newPassword = false): array
+    {
+        if (app()->environment('production')) {
+            throw new RuntimeException('حسابِ آزمایشی روی محصول بازگردانده نمی‌شود.');
+        }
+
+        if (! in_array($username, self::ACCOUNTS, true)) {
+            throw new RuntimeException("«{$username}» از حساب‌های آزمایشیِ Preview نیست: ".implode('، ', self::ACCOUNTS));
+        }
+
+        $user = User::withoutGlobalScopes()->where('username', $username)->where('is_demo', true)->first()
+            ?? throw new RuntimeException("حسابِ آزمایشیِ «{$username}» نیست؛ نخست `preview:seed` را اجرا کنید.");
+
+        $actions = [];
+
+        if (! $user->is_active) {
+            $user->forceFill(['is_active' => true])->save();
+            $actions[] = 'حساب فعال شد';
+        }
+
+        if ($username !== self::ADMIN) {
+            if ($user->isSuperAdmin()) {
+                throw new RuntimeException("«{$username}» به ادمینِ کل ارتقا یافته؛ این را فقط `preview:reset` برمی‌گرداند.");
+            }
+
+            $actions = [...$actions, ...$this->restoreMemberships($user)];
+        }
+
+        $sessions = app(SessionRegistry::class)->endAll($user);
+        $user->trustedDevices()->delete();
+        if ($sessions > 0) {
+            $actions[] = "{$sessions} نشست پایان یافت";
+        }
+
+        $password = null;
+        if ($newPassword) {
+            $password = Str::password(14, symbols: false);
+            $user->forceFill(['password' => Hash::make($password)])->save();
+            $actions[] = 'رمزِ تازه صادر شد';
+        }
+
+        Audit::log('preview.account_restored', 'بازگرداندنِ حسابِ آزمایشیِ Preview به سناریوی خودش', $user, [
+            'username' => $username,
+            'actions' => $actions,
+            'new_password' => $newPassword,
+        ]);
+
+        return ['actions' => $actions, 'password' => $password];
+    }
+
+    /**
+     * جدولِ هر حساب: مجتمع (slug) ← نقش، به ترتیب؛ اولی زمینه‌ی پیش‌فرض. حسابِ اولیه هیچ؛ سوپر ادمین عضوِ مجتمع نیست.
+     *
+     * @return array<string, UserRole>
+     */
+    private static function targets(string $username): array
+    {
+        $contexts = match ($username) {
+            self::SINGLE => [self::SINGLE_CONTEXT => self::CONTEXTS[self::SINGLE_CONTEXT]],
+            self::MULTI => array_diff_key(self::CONTEXTS, [self::SINGLE_CONTEXT => true]),
+            default => [],
+        };
+
+        return array_map(fn (array $spec): UserRole => $spec['role'], $contexts);
+    }
+
+    /** @return list<string> */
+    private function restoreMemberships(User $user): array
+    {
+        $actions = [];
+        $targets = self::targets((string) $user->username);
+
+        $requests = ComplexInvitation::where('direction', ComplexInvitation::REQUEST)->where('user_id', $user->id)
+            ->where('status', ComplexInvitation::PENDING)->get();
+        foreach ($requests as $request) {
+            $request->close(ComplexInvitation::REVOKED);
+        }
+        if ($requests->isNotEmpty()) {
+            $actions[] = $requests->count().' درخواستِ پیوستنِ در انتظار پس گرفته شد';
+        }
+
+        $live = ComplexMembership::where('user_id', $user->id)->whereIn('status', ComplexMembership::LIVE)->get();
+        foreach ($live as $membership) {
+            $complex = Complex::withoutGlobalScopes()->findOrFail($membership->complex_id);
+            $role = $targets[$complex->slug] ?? null;
+
+            if ($role !== $membership->role) {
+                // بیرون از جدول، یا با نقشِ دیگر: پایان با همان مسیرِ مدیر — سابقه می‌ماند
+                app(Membership::class)->end(User::withoutGlobalScopes()->findOrFail($user->id), null, $complex->id);
+                $actions[] = "عضویت در «{$complex->name}» پایان یافت";
+            } elseif ($membership->status === ComplexMembership::SUSPENDED) {
+                app(MembershipLedger::class)->resume(User::withoutGlobalScopes()->findOrFail($user->id), $complex->id);
+                $actions[] = "عضویت در «{$complex->name}» از تعلیق درآمد";
+            }
+        }
+
+        $account = User::withoutGlobalScopes()->findOrFail($user->id);
+        foreach ($targets as $slug => $role) {
+            $complex = Complex::where('slug', $slug)->first()
+                ?? throw new RuntimeException("مجتمعِ آزمایشیِ «{$slug}» نیست؛ نخست `preview:seed` را اجرا کنید.");
+
+            if ($this->ensureMembership($account, $complex, $role)) {
+                $actions[] = "عضویت در «{$complex->name}» دوباره برقرار شد";
+            }
+            if ($role !== UserRole::ComplexAdmin && $this->ensureResident($account, $complex, $role, '1')) {
+                $actions[] = "دوره‌ی واحدِ ۱ ِ «{$complex->name}» دوباره برقرار شد";
+            }
+        }
+
+        $default = array_key_first($targets);
+        $account = User::withoutGlobalScopes()->findOrFail($user->id);
+        if ($default !== null) {
+            $id = Complex::where('slug', $default)->value('id');
+            if ($account->complex_id !== $id) {
+                app(MembershipLedger::class)->switchTo($account, (int) $id);
+                $actions[] = 'زمینه‌ی پیش‌فرض به اولین سطرِ جدول برگشت';
+            }
+        }
+
+        return $actions;
+    }
+
+    /**
      * حسابِ آزمایشیِ ساختارِ پیشین دیگر واردشدنی نیست؛ حذف نمی‌شود تا هیچ داده‌ای بی‌بررسی از دست نرود
      * (`preview:reset` همه را از نو می‌سازد).
      */
@@ -196,8 +360,8 @@ class PreviewSeeder extends Seeder
         return $user;
     }
 
-    /** عضویتِ فعال در مجتمعِ دیگر، بی جابه‌جاکردنِ زمینه‌ی فعلی */
-    private function ensureMembership(User $user, Complex $complex, UserRole $role): void
+    /** عضویتِ فعال در مجتمعِ دیگر، بی جابه‌جاکردنِ زمینه‌ی فعلی؛ `true` اگر همین حالا ساخته شد */
+    private function ensureMembership(User $user, Complex $complex, UserRole $role): bool
     {
         $live = ComplexMembership::where('user_id', $user->id)
             ->where('complex_id', $complex->id)
@@ -207,16 +371,21 @@ class PreviewSeeder extends Seeder
         if (! $live) {
             app(MembershipLedger::class)->start($user, $complex, $role, ComplexMembership::SOURCE_DIRECT, activate: false);
         }
+
+        return ! $live;
     }
 
-    /** رابطه‌ی مالک یا مستأجر با واحد؛ یک بار */
-    private function ensureResident(User $user, Complex $complex, UserRole $role, string $unitNumber): void
+    /**
+     * دوره‌ی جاریِ مالک یا مستأجر در واحد؛ `true` اگر همین حالا ساخته شد. دوره‌ی بسته‌شده (پایانِ عضویت) سابقه است و
+     * دست نمی‌خورد — دوره‌ی تازه کنارش می‌نشیند.
+     */
+    private function ensureResident(User $user, Complex $complex, UserRole $role, string $unitNumber): bool
     {
         $unit = Unit::withoutGlobalScopes()->where('complex_id', $complex->id)->where('unit_number', $unitNumber)->firstOrFail();
         $relation = $role === UserRole::Tenant ? ResidentRelation::Tenant : ResidentRelation::Owner;
 
-        if ($unit->residents()->where('users.id', $user->id)->exists()) {
-            return;
+        if ($unit->residents()->where('users.id', $user->id)->wherePivot('is_current', true)->exists()) {
+            return false;
         }
 
         $unit->residents()->attach($user->id, [
@@ -226,6 +395,8 @@ class PreviewSeeder extends Seeder
             'is_current' => true,
             'start_date' => now()->subMonths(3),
         ]);
+
+        return true;
     }
 
     /**

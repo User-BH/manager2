@@ -356,6 +356,37 @@ class AdminTwoFactorTest extends TestCase
         $this->assertGuest();
     }
 
+    /**
+     * «حفره ها۲» بندِ ۱۸.۴ برای سوپر ادمینِ اصلی، روی Production: تغییرِ رمز از مسیرِ واقعی؛ رمزِ قبلی رد؛ رمزِ تازه هم
+     * **بی TOTP وارد نمی‌کند**؛ hash؛ رمز در audit log نیست؛ عاملِ دوم سرِ جایش؛ حسابِ دیگر دست‌نخورده.
+     */
+    public function test_the_main_admin_changes_the_password_and_still_needs_the_authenticator(): void
+    {
+        [$admin] = $this->enrolled();
+        $other = User::factory()->create(['password' => Hash::make('Other12345'), 'is_active' => true]);
+        $this->production();
+
+        $this->actingAs($admin)->putJson('/api/v1/profile/password', [
+            'current_password' => self::PASSWORD, 'password' => 'NewSecret456', 'password_confirmation' => 'NewSecret456',
+            'user_id' => $other->id,
+        ])->assertOk();
+
+        $fresh = $admin->fresh();
+        $this->assertTrue(Hash::check('NewSecret456', $fresh->password));
+        $this->assertStringNotContainsString('NewSecret456', (string) $fresh->getRawOriginal('password'));
+        $this->assertTrue(Hash::check('Other12345', $other->fresh()->password), 'رمزِ حسابِ دیگری عوض شد.');
+        $this->assertTrue(app(AdminTwoFactor::class)->enabled($fresh), 'تغییرِ رمز عاملِ دوم را برداشت.');
+        $this->assertStringNotContainsString('NewSecret456', (string) json_encode(AuditLog::all()->toArray()));
+
+        $this->flushSession();
+        $this->app['auth']->forgetGuards();
+        $this->postJson('/api/v1/login', ['identifier_type' => 'username', 'username' => 'sakena.admin', 'password' => self::PASSWORD])
+            ->assertStatus(422);
+        $this->postJson('/api/v1/login', ['identifier_type' => 'username', 'username' => 'sakena.admin', 'password' => 'NewSecret456'])
+            ->assertOk()->assertJson(['twoFactorRequired' => true]);
+        $this->assertGuest();
+    }
+
     /* ── فرمانِ سرور ───────────────────────────────────────────────────── */
 
     public function test_the_server_command_enrols_once_and_resets_with_an_audit_trail(): void

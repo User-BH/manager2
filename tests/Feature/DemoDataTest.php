@@ -11,6 +11,7 @@ use App\Models\Plan;
 use App\Models\Subscription;
 use App\Models\Unit;
 use App\Models\User;
+use App\Services\Account\ComplexUpgrader;
 use App\Services\Auth\AdminTwoFactor;
 use App\Services\Auth\Totp;
 use App\Support\SessionContext;
@@ -27,8 +28,9 @@ use Tests\TestCase;
  * دادهٔ نمونه‌ی Preview و جداییِ آن از فهرست و آمارِ عملیاتی (مرحلهٔ ۱۳ · فاز ۱؛ ساختارِ نهاییِ «دستورِ یکپارچه‌ی ادامه‌ی
  * مرحلهٔ ۱۳»، ۲۰۲۶-۱۰-۲۵، بخش‌های اول و دوم).
  *
- * ساختار از متنِ همان سند: حسابِ تک‌مجتمعی (مسکونی · پیشرفته · واحد)، حسابِ چندمجتمعی با **دقیقاً** پنج عضویتِ جدولِ
- * بندِ ۱.۲، سوپر ادمینِ آزمایشی؛ داشبوردِ ثبت‌نامِ اولیه حساب نیست. نقشِ هر زمینه از عضویتِ همان مجتمع، نه از حساب.
+ * ساختار از متنِ «حفره ها۲» (۲۰۲۶-۱۰-۲۶، بخشِ ۴): حسابِ ثبت‌نامِ اولیه بی عضویت، حسابِ تک‌مجتمعی (مسکونی · پیشرفته ·
+ * واحد)، حسابِ چندمجتمعی با **دقیقاً** پنج عضویتِ جدولِ بندِ ۴.۳، سوپر ادمینِ آزمایشی. نقشِ هر زمینه از عضویتِ همان
+ * مجتمع، نه از حساب.
  */
 class DemoDataTest extends TestCase
 {
@@ -61,18 +63,72 @@ class DemoDataTest extends TestCase
         parent::tearDown();
     }
 
-    /* ── بندِ ۱: سه حساب، نه چهار ─────────────────────────────────────── */
+    /* ── «حفره ها۲» بخشِ ۴: چهار حساب، یکی برای هر سناریو ─────────────── */
 
-    public function test_there_are_exactly_three_demo_accounts_and_no_initial_account(): void
+    public function test_there_are_exactly_four_demo_accounts_one_per_scenario(): void
     {
         $accounts = User::withoutGlobalScopes()->whereNotNull('username')->get()->keyBy('username');
 
-        $this->assertEqualsCanonicalizing([PreviewSeeder::ADMIN, PreviewSeeder::MULTI, PreviewSeeder::SINGLE], $accounts->keys()->all());
+        $this->assertEqualsCanonicalizing(PreviewSeeder::ACCOUNTS, $accounts->keys()->all());
         $this->assertTrue($accounts[PreviewSeeder::ADMIN]->isSuperAdmin());
-        // داشبوردِ ثبت‌نامِ اولیه وضعیت است (بندِ ۱.۴): هیچ حسابِ آزمایشیِ واردشدنی‌ای بی مجتمع نیست جز سوپر ادمین
-        $this->assertSame(0, User::withoutGlobalScopes()->whereNotNull('username')->whereNull('complex_id')->where('role', '!=', UserRole::SuperAdmin->value)->count());
+        // بی مجتمع فقط حسابِ اولیه (و سوپر ادمین که عضوِ مجتمع نمی‌شود)
+        $this->assertSame([PreviewSeeder::INITIAL], User::withoutGlobalScopes()->whereNotNull('username')->whereNull('complex_id')
+            ->where('role', '!=', UserRole::SuperAdmin->value)->pluck('username')->all());
+        $this->assertSame('داشبوردِ آزمایشیِ ثبت‌نامِ اولیه', $accounts[PreviewSeeder::INITIAL]->name);
         $this->assertSame('داشبوردِ آزمایشیِ تک‌مجتمعی', $accounts[PreviewSeeder::SINGLE]->name);
         $this->assertSame('داشبوردِ آزمایشیِ چندمجتمعی', $accounts[PreviewSeeder::MULTI]->name);
+    }
+
+    /**
+     * بندِ ۴.۱: Account ِ مستقل بی هیچ عضویت (نه فعال، نه معلق، نه درخواستِ در انتظار)، نقشِ ثبت‌نامِ واقعی؛ ورود با نام
+     * کاربری و رمز، بی پیامک، به داشبوردِ اولیه — و پس از خروج و ورودِ دوباره همان‌جا (state حفظ می‌شود).
+     */
+    public function test_the_initial_account_has_no_membership_and_lands_on_the_initial_dashboard_after_every_login(): void
+    {
+        $initial = $this->account(PreviewSeeder::INITIAL);
+
+        $this->assertNull($initial->complex_id);
+        $this->assertSame(UserRole::Owner, $initial->role);
+        $this->assertNull($initial->phone);
+        $this->assertSame(0, ComplexMembership::where('user_id', $initial->id)->count(), 'حسابِ اولیه عضویتِ جعلی گرفت.');
+        $initial->forceFill(['password' => Hash::make('Initial123')])->save();
+
+        foreach ([1, 2] as $round) {
+            $login = $this->postJson('/api/v1/login', ['identifier_type' => 'username', 'username' => PreviewSeeder::INITIAL, 'password' => 'Initial123'])
+                ->assertOk()->assertJsonPath('user.id', $initial->id);
+            $this->assertNull($login->json('requiresOtp'), 'حسابِ آزمایشی کدِ پیامکی خواست.');
+            $this->assertSame('initial', $this->getJson('/api/v1/me')->assertOk()->json('user.dashboard'), "ورودِ {$round} به داشبوردِ اولیه نرسید.");
+            // فقط‌خواندنی: نوشتن روی داده‌ی مجتمع رد، بی ساختنِ عضویت
+            $this->postJson('/api/v1/units', ['unit_number' => '9'])->assertForbidden();
+            $this->postJson('/api/v1/logout')->assertOk();
+            $this->app['auth']->forgetGuards();
+        }
+
+        $this->assertSame(0, ComplexMembership::where('user_id', $initial->id)->count());
+    }
+
+    /**
+     * بندِ ۱۸.۵: مجتمعی که حسابِ آزمایشی از مسیرِ واقعی می‌سازد — خریدِ حسابِ اولیه، یا ساختِ سوپر ادمینِ آزمایشی — خودش
+     * دادهٔ آزمایشی است و در فهرست و آمارِ عادی نمی‌آید؛ مجتمعِ کاربرِ واقعی نشانگر نمی‌گیرد.
+     */
+    public function test_a_community_built_by_a_demo_account_is_demo_data(): void
+    {
+        $bought = app(ComplexUpgrader::class)->upgrade($this->account(PreviewSeeder::INITIAL), 'مجتمعِ خریدِ آزمایشی', null, ComplexType::Residential);
+        $this->assertTrue($bought->fresh()->is_demo);
+
+        $this->actingAs($this->account(PreviewSeeder::ADMIN))->postJson('/api/v1/system/complexes', [
+            'name' => 'مجتمعِ سوپر ادمینِ آزمایشی', 'type' => 'commercial', 'admin_phone' => '09121110001',
+        ])->assertSuccessful();
+        $this->assertTrue(Complex::where('name', 'مجتمعِ سوپر ادمینِ آزمایشی')->sole()->is_demo);
+
+        $real = (new User)->forceFill(['name' => 'خریدارِ واقعی', 'phone' => '09121110002', 'role' => UserRole::Owner,
+            'password' => Hash::make('secret123'), 'is_active' => true]);
+        $real->save();
+        $this->assertFalse(app(ComplexUpgrader::class)->upgrade($real, 'مجتمعِ واقعی', null, ComplexType::Residential)->fresh()->is_demo);
+
+        $admin = $this->realAdmin();
+        $listed = collect($this->actingAs($admin)->getJson('/api/v1/system/complexes')->assertOk()->json('data'))->pluck('name')->all();
+        $this->assertSame(['مجتمعِ واقعی'], $listed, 'مجتمعِ ساخته‌ی حسابِ آزمایشی در فهرستِ عادی آمد.');
     }
 
     /** بندِ ۱.۱: دقیقاً یک مجتمع، مسکونی، پیشرفته، نقشِ واحد — و داشبوردِ واحد از سرور */
@@ -192,12 +248,12 @@ class DemoDataTest extends TestCase
     }
 
     /**
-     * هر سه حساب رمز را از مسیرِ واقعیِ «اطلاعاتِ کاربری» عوض می‌کنند؛ hash در سرور، ورودِ بعدی با رمزِ تازه، رمزِ قبلی
-     * رد، حساب‌های دیگر دست‌نخورده، و شناسه‌ی دستکاری‌شده‌ی درخواست بی‌اثر.
+     * هر چهار حساب (بندِ ۱۸.۴) — حسابِ اولیه‌ی فقط‌خواندنی هم — رمز را از مسیرِ واقعیِ «اطلاعاتِ کاربری» عوض می‌کنند؛ hash
+     * در سرور، ورودِ بعدی با رمزِ تازه، رمزِ قبلی رد، حساب‌های دیگر دست‌نخورده، و شناسه‌ی دستکاری‌شده‌ی درخواست بی‌اثر.
      */
     public function test_each_demo_account_changes_only_its_own_password_through_the_real_flow(): void
     {
-        $usernames = [PreviewSeeder::ADMIN, PreviewSeeder::MULTI, PreviewSeeder::SINGLE];
+        $usernames = PreviewSeeder::ACCOUNTS;
         foreach ($usernames as $username) {
             $this->account($username)->forceFill(['password' => Hash::make('Initial123')])->save();
         }
@@ -301,14 +357,15 @@ class DemoDataTest extends TestCase
         $this->assertFalse($this->actingAs($admin)->getJson('/api/v1/me')->json('user.demoData'));
     }
 
-    public function test_the_demo_section_lists_the_two_loginable_demo_accounts_once_each(): void
+    public function test_the_demo_section_lists_the_three_loginable_demo_accounts_once_each(): void
     {
         $admin = $this->account(PreviewSeeder::ADMIN);
 
         $section = collect($this->actingAs($admin)->getJson('/api/v1/system/members')->assertOk()->json('demoAccounts'))
             ->keyBy('username');
 
-        $this->assertEqualsCanonicalizing([PreviewSeeder::MULTI, PreviewSeeder::SINGLE], $section->keys()->all());
+        $this->assertEqualsCanonicalizing([PreviewSeeder::INITIAL, PreviewSeeder::MULTI, PreviewSeeder::SINGLE], $section->keys()->all());
+        $this->assertSame(0, $section[PreviewSeeder::INITIAL]['communities']);
         $this->assertSame(5, $section[PreviewSeeder::MULTI]['communities']);
         $this->assertSame(1, $section[PreviewSeeder::SINGLE]['communities']);
         $this->assertSame('داشبوردِ آزمایشیِ چندمجتمعی', $section[PreviewSeeder::MULTI]['name']);
