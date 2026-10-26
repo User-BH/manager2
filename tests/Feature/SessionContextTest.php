@@ -63,7 +63,7 @@ class SessionContextTest extends TestCase
     /** 🔴 بندهای ۴ و ۱۸: تعویض روی یک دستگاه دستگاهِ دیگرِ همان حساب را جابه‌جا نمی‌کند. */
     public function test_switching_on_one_device_leaves_the_other_device_where_it_was(): void
     {
-        // گوشی همان سنجاقی را دارد که ورود گذاشت (`test_signing_in_pins_the_browser_to_the_default`)
+        // گوشی همان سنجاقی را دارد که گزینش در صفحه‌ی انتخاب گذاشت (۱۳/۳، `MultiCommunityContextTest`)
         $phoneSession = ['user' => $this->sara->id, 'complex' => $this->a->id];
         $phone = $this->device($this->sara, $phoneSession)->getJson('/api/v1/me')->assertOk();
         $this->assertSame($this->a->id, $phone->json('user.complex.id'));
@@ -277,15 +277,26 @@ class SessionContextTest extends TestCase
         $this->assertSame($this->b->id, $this->pinOf($switch)['complex']);
     }
 
-    /** ورود — درخواستی تنها، پیش از هر درخواستِ دیگر — مرورگر را به پیش‌فرضِ حساب سنجاق می‌کند. */
+    /**
+     * ورود — درخواستی تنها، پیش از هر درخواستِ دیگر — مرورگرِ حسابِ **تک‌مجتمعی** را به پیش‌فرضِ حساب سنجاق می‌کند.
+     *
+     * از ۱۳/۳ الزام برای حسابِ چندمجتمعی (سارا) عوض شد، نه ضعیف: ورودِ او به صفحه‌ی انتخاب است و هیچ مجتمعی خودکار
+     * برگزیده نمی‌شود (ایرادات ۱۰، بندهای ۳۳ تا ۳۵؛ `MultiCommunityContextTest`).
+     */
     public function test_signing_in_pins_the_browser_to_the_default(): void
     {
         SystemSettings::set('otp_disabled', true);
+        $solo = User::factory()->create(['complex_id' => $this->a->id, 'role' => UserRole::Tenant, 'is_active' => true, 'phone' => '09127770111', 'password' => 'password']);
+
+        $login = $this->postJson('/api/v1/login', ['phone' => $solo->phone, 'password' => 'password'])->assertOk();
+        $this->assertSame(['user' => $solo->id, 'complex' => $this->a->id], $this->pinOf($login));
+
+        // سارا (دو عضویت): سنجاقِ «انتخاب»، نه پیش‌فرض
+        $this->flushSession();
+        $this->app['auth']->forgetGuards();
         $this->sara->forceFill(['password' => 'password'])->save();
-
-        $login = $this->postJson('/api/v1/login', ['phone' => $this->sara->phone, 'password' => 'password'])->assertOk();
-
-        $this->assertSame(['user' => $this->sara->id, 'complex' => $this->a->id], $this->pinOf($login));
+        $multi = $this->postJson('/api/v1/login', ['phone' => $this->sara->phone, 'password' => 'password'])->assertOk();
+        $this->assertSame($this->sara->id.':'.SessionContext::CHOOSING, $multi->getCookie(SessionContext::COOKIE)?->getValue());
     }
 
     /**

@@ -39,13 +39,39 @@ export async function switchContext(complexId: number, path = '/dashboard'): Pro
 }
 
 /**
+ * «ایجادِ حسابِ جدید» (مرحلهٔ ۱۳ · فاز ۳): همین مرورگر به همان داشبوردِ اولیه با همان حساب می‌رود. سرور فقط سنجاقِ
+ * این مرورگر را عوض می‌کند؛ مجتمع‌ها سرِ جایشان‌اند و بازگشت با `switchContext` است، بی خروج. ناوبریِ کامل به همان
+ * دلیلِ تعویض: هیچ چیزِ مجتمعِ قبلی در رابط نمی‌ماند.
+ */
+export async function enterInitialContext(): Promise<void> {
+  await api('/account/context/initial', { method: 'POST' })
+  await enterNewContext('/dashboard')
+}
+
+/**
  * زمینه‌ای که سرور اعلام کرد با آن‌چه رابط نشان می‌دهد نمی‌خواند (مرحلهٔ ۱۲ · فاز ۱) — ورودِ کامل به زمینه‌ی
- * تازه، همان راهِ تعویضِ مجتمع. ادمینِ کل و مهمان زمینه‌ی عضویتی ندارند.
+ * تازه، همان راهِ تعویضِ مجتمع. ادمینِ کل و مهمان زمینه‌ی عضویتی ندارند. دو زمینه‌ی بی‌مجتمعِ حسابِ عضو (۱۳/۳)
+ * نامِ خودشان را دارند: `0:choose` (صفحه‌ی انتخاب) و `0:initial` (داشبوردِ اولیه).
  */
 export function contextMismatch(
   declared: string,
-  user: { isSuperAdmin: boolean; role: string; complex: { id: number } | null } | null,
+  user: {
+    isSuperAdmin: boolean
+    role: string
+    dashboard?: string
+    complex: { id: number } | null
+  } | null,
 ): boolean {
   if (!user || user.isSuperAdmin) return false
-  return declared !== `${user.complex?.id ?? 0}:${user.role}`
+  return declared !== expectedContext(user)
+}
+
+function expectedContext(user: {
+  role: string
+  dashboard?: string
+  complex: { id: number } | null
+}) {
+  if (user.dashboard === 'select') return '0:choose'
+  if (user.dashboard === 'initial') return '0:initial'
+  return `${user.complex?.id ?? 0}:${user.role}`
 }

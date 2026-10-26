@@ -106,6 +106,39 @@ describe('تعویضِ مجتمع', () => {
     expect([cleared, announced.length, replace.mock.calls.length]).toEqual([0, 0, 0])
   })
 
+  it('«ایجادِ حسابِ جدید»: اول سرور (زمینه‌ی بی‌مجتمع)، بعد همان پاک‌سازی و ناوبریِ کامل', async () => {
+    vi.doMock('@/shared/lib/api', () => ({
+      api: (path: string, options: { body?: unknown }) => {
+        posted.push({ path, body: options.body })
+        return Promise.resolve({})
+      },
+    }))
+    const { enterInitialContext } = await import('@/shared/lib/accountContext')
+
+    await enterInitialContext()
+
+    expect(posted).toEqual([{ path: '/account/context/initial', body: undefined }])
+    expect([cleared, announced]).toEqual([1, [{ type: 'context' }]])
+    expect(replace).toHaveBeenCalledWith('/dashboard')
+  })
+
+  it('سربرگِ زمینه: دو حالتِ بی‌مجتمع نامِ خودشان را دارند', async () => {
+    const { contextMismatch } = await import('@/shared/lib/accountContext')
+    const base = { isSuperAdmin: false, role: 'owner', complex: null }
+
+    expect(contextMismatch('0:choose', { ...base, dashboard: 'select' })).toBe(false)
+    expect(contextMismatch('0:initial', { ...base, dashboard: 'initial' })).toBe(false)
+    // تبی که هنوز صفحه‌ی انتخاب است و سرور می‌گوید مجتمعی برگزیده شد ← بارِ دوباره
+    expect(contextMismatch('5:owner', { ...base, dashboard: 'select' })).toBe(true)
+    // داشبوردِ مجتمع و سرور می‌گوید «اولیه» (ایجادِ حسابِ جدید در تبِ دیگر) ← بارِ دوباره
+    expect(contextMismatch('0:initial', { ...base, dashboard: 'unit', complex: { id: 5 } })).toBe(
+      true,
+    )
+    expect(contextMismatch('5:owner', { ...base, dashboard: 'unit', complex: { id: 5 } })).toBe(
+      false,
+    )
+  })
+
   it('تب‌های دیگر پیامِ «context» را می‌شناسند', async () => {
     vi.doUnmock('@/shared/lib/authChannel')
     const { isAuthMessage } = await import('@/shared/lib/authChannel')
@@ -161,8 +194,15 @@ describe('کشِ وابسته به زمینه', () => {
   })
 })
 
-describe('«مجتمع‌های من» در منوی کاربر', () => {
+/*
+ * ③ از ۱۳/۳ (ایرادات ۱۰، بندهای ۳۷ و ۵۰–۵۱؛ ایرادات ۱۱، بندهای ۵.۳، ۵.۴ و ۵.۷؛ «داشبورد های آزمایشی» ۵.۲) — الزام عوض
+ * شد، نه ضعیف: پیش از این «مجتمع‌های من» همه را با ✓ برای فعلی نشان می‌داد و تک‌مجتمعی فهرستی نداشت. حالا مجتمعِ
+ * همین زمینه هرگز در فهرست نیست، «ایجادِ حسابِ جدید» در هر داشبوردِ مجتمع هست و در داشبوردِ اولیه نه، و سوپر ادمین
+ * فقط دو گزینه دارد.
+ */
+describe('منوی آدمک', () => {
   const switched: number[] = []
+  let entered = 0
   let menu: {
     useAuthStore: (typeof import('@/shared/stores/authStore'))['useAuthStore']
     createQueryClient: (typeof import('@/shared/lib/queryClient'))['createQueryClient']
@@ -181,6 +221,10 @@ describe('«مجتمع‌های من» در منوی کاربر', () => {
         switched.push(id)
         return Promise.resolve()
       },
+      enterInitialContext: () => {
+        entered++
+        return Promise.resolve()
+      },
     }))
     const [{ useAuthStore }, { createQueryClient }, { UserMenu }] = await Promise.all([
       import('@/shared/stores/authStore'),
@@ -192,6 +236,7 @@ describe('«مجتمع‌های من» در منوی کاربر', () => {
 
   beforeEach(() => {
     switched.length = 0
+    entered = 0
   })
 
   function renderMenu(current: CurrentUser) {
@@ -208,27 +253,103 @@ describe('«مجتمع‌های من» در منوی کاربر', () => {
     fireEvent.click(screen.getAllByRole('button')[0])
   }
 
-  it('حسابِ تک‌مجتمعی همان منوی قبلی را می‌بیند', async () => {
+  const labels = () =>
+    screen
+      .getAllByRole('button')
+      .slice(1)
+      .map((b) => b.textContent?.trim())
+
+  it('تک‌مجتمعی: اطلاعاتِ کاربری، «ایجادِ حسابِ جدید» و خروج — بی فهرستِ تعویض', async () => {
     renderMenu(user([membership(1, true)]))
 
-    expect(await screen.findByText('پروفایل من')).toBeInTheDocument()
-    expect(screen.queryByRole('group', { name: 'مجتمع‌های من' })).toBeNull()
+    await screen.findByText('اطلاعات کاربری')
+    expect(labels()).toEqual(['اطلاعات کاربری', 'ایجاد حساب جدید', 'خروج از حساب'])
+    expect(screen.queryByRole('group')).toBeNull()
   })
 
-  it('حسابِ چندمجتمعی فهرست و مجتمعِ فعال را می‌بیند و با کلیک می‌رود', async () => {
-    renderMenu(user([membership(1, true), membership(2, false, 'complex_admin')]))
+  it('چندمجتمعی: مجتمعِ همین زمینه در «مجتمع‌های دیگر» نیست و کلیک روی دیگری تعویض است', async () => {
+    renderMenu(
+      user([membership(1, true), membership(2, false, 'complex_admin'), membership(3, false)]),
+    )
 
-    const group = await screen.findByRole('group', { name: 'مجتمع‌های من' })
-    const current = group.querySelector('[aria-current="true"]')
-    expect(current?.textContent).toContain('مجتمع 1')
+    const group = await screen.findByRole('group', { name: 'مجتمع‌های دیگر' })
+    expect(group.textContent).not.toContain('مجتمع 1')
+    expect(group.textContent).toContain('مجتمع 2')
+    expect(group.textContent).toContain('مجتمع 3')
+    expect(screen.queryByText('مجتمع 1')).toBeNull()
 
     fireEvent.click(screen.getByText('مجتمع 2'))
     await waitFor(() => expect(switched).toEqual([2]))
+  })
 
-    // کلیک روی مجتمعِ فعال درخواستی نمی‌فرستد
-    fireEvent.click(screen.getAllByRole('button')[0])
-    fireEvent.click(await screen.findByText('مجتمع 1'))
-    expect(switched).toEqual([2])
+  it('مجتمعِ فعال حتی بی پرچمِ `current` (فقط از `complex`) کنار گذاشته می‌شود', async () => {
+    renderMenu(
+      user([{ ...membership(1, false), complexName: 'مجتمعِ همین‌جا' }, membership(2, false)]),
+    )
+
+    const group = await screen.findByRole('group', { name: 'مجتمع‌های دیگر' })
+    expect(group.textContent).not.toContain('مجتمعِ همین‌جا')
+  })
+
+  it('عضویتِ معلق در فهرستِ تعویض نیست — فقط دسترسیِ معتبر (بندِ ۵.۳)', async () => {
+    renderMenu(user([membership(1, true), { ...membership(2, false), status: 'suspended' }]))
+
+    await screen.findByText('اطلاعات کاربری')
+    expect(screen.queryByText('مجتمع 2')).toBeNull()
+    expect(screen.queryByRole('group')).toBeNull()
+  })
+
+  it('«ایجادِ حسابِ جدید» همان زمینه‌ی بی‌مجتمع است و بعد از استفاده هم سرِ جایش', async () => {
+    renderMenu(user([membership(1, true)]))
+
+    fireEvent.click(await screen.findByText('ایجاد حساب جدید'))
+    await waitFor(() => expect(entered).toBe(1))
+    expect(switched).toEqual([])
+  })
+
+  it('داشبوردِ اولیه: بی «ایجادِ حسابِ جدید»، با مجتمع‌های قبلی برای بازگشتِ بی خروج', async () => {
+    renderMenu(
+      user([membership(1, false), membership(2, false)], {
+        accountState: 'initial',
+        dashboard: 'initial',
+        complex: null,
+        canWrite: false,
+      }),
+    )
+
+    const group = await screen.findByRole('group', { name: 'مجتمع‌های من' })
+    expect(group.textContent).toContain('مجتمع 1')
+    expect(group.textContent).toContain('مجتمع 2')
+    expect(screen.queryByText('ایجاد حساب جدید')).toBeNull()
+
+    fireEvent.click(screen.getByText('مجتمع 1'))
+    await waitFor(() => expect(switched).toEqual([1]))
+  })
+
+  it('حسابِ اولیه‌ی بی‌عضویت: فقط اطلاعاتِ کاربری و خروج', async () => {
+    renderMenu(
+      user([], { accountState: 'initial', dashboard: 'initial', complex: null, canWrite: false }),
+    )
+
+    await screen.findByText('اطلاعات کاربری')
+    expect(labels()).toEqual(['اطلاعات کاربری', 'خروج از حساب'])
+  })
+
+  it('سوپر ادمین فقط «اطلاعات کاربری» و «خروج از حساب»', async () => {
+    renderMenu(
+      user([], {
+        role: 'super_admin',
+        isSuperAdmin: true,
+        isAdmin: true,
+        accountState: 'platform',
+        dashboard: 'platform',
+        complex: null,
+      }),
+    )
+
+    await screen.findByText('اطلاعات کاربری')
+    expect(labels()).toEqual(['اطلاعات کاربری', 'خروج از حساب'])
+    expect(screen.queryByText('تنظیمات حساب')).toBeNull()
   })
 
   it('عضوِ دعوت‌شده به پروفایل هدایت می‌شود', async () => {

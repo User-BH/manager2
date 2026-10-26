@@ -1,5 +1,6 @@
 import { Suspense, useEffect } from 'react'
 import { Outlet, useLocation } from 'react-router-dom'
+import { ActiveCommunityBar } from './ActiveCommunityBar'
 import { Sidebar } from './Sidebar'
 import { Header } from './Header'
 import { ErrorBoundary } from '@/shared/ui/ErrorBoundary'
@@ -29,6 +30,8 @@ export function DashboardLayout() {
       <Sidebar />
 
       <div className="flex min-w-0 flex-1 flex-col">
+        {/* نامِ مجتمعِ فعال **بالای** نوارِ اصلی (۱۳/۳، بندِ ۴۳) */}
+        <ActiveCommunityBar />
         <Header />
 
         <main

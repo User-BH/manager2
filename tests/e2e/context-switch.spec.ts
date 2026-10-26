@@ -61,6 +61,19 @@ async function unitNumbers(page: Page): Promise<{ status: number; numbers: strin
   })
 }
 
+/**
+ * ورودِ حسابِ چندمجتمعی به صفحه‌ی انتخاب است (مرحلهٔ ۱۳ · فاز ۳) — هیچ مجتمعی خودکار برگزیده نمی‌شود. از صفحه‌ای جز
+ * داشبورد، تا رسیدن به `/dashboard` همان ناوبریِ کاملِ تعویض باشد.
+ */
+async function chooseOnSelection(page: Page, complexName: string) {
+  await page.goto('/profile')
+  await expect(page.getByRole('heading', { name: 'انتخاب مجتمع' })).toBeVisible()
+  await Promise.all([
+    page.waitForURL(/\/dashboard$/, { waitUntil: 'load' }),
+    page.getByRole('list', { name: 'مجتمع‌های شما' }).getByText(complexName).click(),
+  ])
+}
+
 async function switchFromMenu(page: Page, complexName: string) {
   // از صفحه‌ای جز داشبورد، تا رسیدن به `/dashboard` همان ناوبریِ کاملِ تعویض باشد
   await page.goto('/profile')
@@ -68,7 +81,8 @@ async function switchFromMenu(page: Page, complexName: string) {
     .getByRole('button', { name: /چندمجتمعی/ })
     .first()
     .click()
-  const group = page.getByRole('group', { name: 'مجتمع‌های من' })
+  // مجتمعِ همین زمینه در فهرست نیست (۱۳/۳)
+  const group = page.getByRole('group', { name: 'مجتمع‌های دیگر' })
   await expect(group).toBeVisible()
   await Promise.all([
     page.waitForURL(/\/dashboard$/, { waitUntil: 'load' }),
@@ -82,7 +96,7 @@ test.describe('تعویضِ مجتمع', () => {
   test('نقش، داده و مسیرها با مجتمعِ فعال عوض می‌شوند؛ تبِ دوم هم', async ({ page }, testInfo) => {
     const phone = MULTI[testInfo.project.name] ?? MULTI.chromium
     await signIn(page, phone)
-    await page.goto('/dashboard')
+    await chooseOnSelection(page, 'مجتمع مسکونی آفتاب')
 
     // آفتاب: مستأجر — مسیرِ مدیریت بسته، سرور هم رد می‌کند
     expect((await me(page)).role).toBe('tenant')

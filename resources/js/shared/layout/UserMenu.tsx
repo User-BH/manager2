@@ -3,19 +3,19 @@ import { useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   Building2,
-  Check,
   ChevronDown,
   LogOut,
   Mail,
-  Settings,
+  UserPlus,
   UserRound,
   type LucideIcon,
 } from 'lucide-react'
 import { useToggle, useClickOutside } from '@/shared/hooks'
 import { useAction } from '@/shared/hooks/useAction'
-import { switchContext } from '@/shared/lib/accountContext'
+import { enterInitialContext, switchContext } from '@/shared/lib/accountContext'
 import { leaveToAuth } from '@/shared/lib/leaveToAuth'
 import { useAuth } from '@/shared/stores/authStore'
+import type { MembershipSummary } from '@/shared/types'
 import { UserAvatar } from '@/shared/ui/UserAvatar'
 
 export function UserMenu() {
@@ -28,15 +28,28 @@ export function UserMenu() {
   useClickOutside(menuRef, () => setOpen(false))
 
   /*
-   * مجتمع‌های من (مرحلهٔ ۱۰ · فاز ۴): فقط وقتی حساب در بیش از یک مجتمع عضو است دیده
-   * می‌شود — برای همه‌ی حساب‌های تک‌مجتمعی این منو همان قبلی است. رفتن به مجتمعِ دیگر
-   * را سرور از عضویت می‌سنجد و `switchContext` با ناوبریِ کامل همه‌ی دادهٔ مجتمعِ قبلی
-   * را از رابط بیرون می‌برد.
+   * منوی آدمک (مرحلهٔ ۱۳ · فاز ۳؛ ایرادات ۱۰، بندهای ۳۶–۳۸ و ۵۰–۵۱؛ ایرادات ۱۱، بندهای ۵.۳، ۵.۴ و ۵.۷؛ «داشبورد های
+   * آزمایشی» ۵.۲):
+   *
+   *   - داشبوردِ مجتمع: اطلاعاتِ کاربری · **مجتمع‌های دیگر** (فقط عضویتِ فعال، و هرگز مجتمعِ همین زمینه) ·
+   *     «ایجادِ حسابِ جدید» (همیشه، حتی تک‌مجتمعی) · خروج.
+   *   - داشبوردِ اولیه: اطلاعاتِ کاربری · مجتمع‌های قبلی برای بازگشتِ بی خروج · خروج — بی «ایجادِ حسابِ جدید».
+   *   - سوپر ادمین: فقط اطلاعاتِ کاربری و خروج؛ تنظیماتِ حساب در منوی کناری است.
+   *
+   * رفتن به مجتمعِ دیگر را سرور از عضویت می‌سنجد و `switchContext` با ناوبریِ کامل همه‌ی دادهٔ مجتمعِ قبلی را از
+   * رابط بیرون می‌برد؛ «ایجادِ حسابِ جدید» هم همان راه را به زمینه‌ی بی‌مجتمع می‌رود (`enterInitialContext`).
    */
-  const memberships = user?.memberships ?? []
-  const invitations = user?.accountState === 'member' ? user.pendingInvitations : 0
+  const platform = user?.isSuperAdmin === true
+  const inCommunity = user?.accountState === 'member'
+  const others = platform
+    ? []
+    : (user?.memberships ?? []).filter(
+        (m) => m.status === 'active' && !m.current && m.complexId !== user?.complex?.id,
+      )
+  const invitations = inCommunity ? (user?.pendingInvitations ?? 0) : 0
 
   const switchTo = (complexId: number) => run(() => switchContext(complexId), { key: complexId })
+  const createNewAccount = () => run(enterInitialContext, { key: 'new-account' })
 
   async function handleLogout() {
     /*
@@ -127,41 +140,28 @@ export function UserMenu() {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: -6, scale: 0.97 }}
             transition={{ duration: 0.16 }}
-            className={`absolute left-0 top-[calc(100%+8px)] z-40 overflow-hidden rounded-xl border shadow-lg ${memberships.length > 1 ? 'w-60' : 'w-48'}`}
+            className={`absolute left-0 top-[calc(100%+8px)] z-40 overflow-hidden rounded-xl border shadow-lg ${others.length > 0 ? 'w-60' : 'w-52'}`}
             style={{
               backgroundColor: 'var(--surface-raised)',
               borderColor: 'var(--border-subtle)',
             }}
           >
-            {memberships.length > 1 && (
-              <div role="group" aria-label="مجتمع‌های من">
-                <p className="px-3.5 pt-2.5 pb-1 text-xs" style={{ color: 'var(--text-tertiary)' }}>
-                  مجتمع‌های من
-                </p>
-                {memberships.map((m) => (
-                  <button
-                    key={m.complexId}
-                    onClick={() => (m.current ? setOpen(false) : void switchTo(m.complexId))}
-                    // عضویتِ معلق (۱۰/۶): دیده می‌شود، ولی سرور تعویض به آن را رد می‌کند و اینجا هم بسته است
-                    disabled={pendingKey !== null || m.status === 'suspended'}
-                    aria-current={m.current ? 'true' : undefined}
-                    className="flex w-full items-center gap-2.5 px-3.5 py-2 text-right text-sm transition-colors duration-150 hover:bg-(--surface-sunken) disabled:opacity-60"
-                    style={{ color: 'var(--text-secondary)' }}
-                  >
-                    <Building2 size={15} className="shrink-0" />
-                    <span className="min-w-0 flex-1">
-                      <span className="block truncate" style={{ color: 'var(--text-primary)' }}>
-                        {m.complexName}
-                      </span>
-                      <span className="block text-xs" style={{ color: 'var(--text-tertiary)' }}>
-                        {m.status === 'suspended' ? `${m.roleLabel} · معلق` : m.roleLabel}
-                      </span>
-                    </span>
-                    {m.current && <Check size={14} style={{ color: 'var(--color-brand-500)' }} />}
-                  </button>
-                ))}
-                <div className="h-px" style={{ backgroundColor: 'var(--border-subtle)' }} />
-              </div>
+            <UserMenuItem
+              icon={UserRound}
+              label="اطلاعات کاربری"
+              onClick={() => {
+                setOpen(false)
+                void navigate('/profile')
+              }}
+            />
+            {others.length > 0 && (
+              <OtherCommunities
+                // در داشبوردِ اولیه همه «قبلی»‌اند؛ در داشبوردِ مجتمع، مجتمعِ همین‌جا در فهرست نیست
+                label={inCommunity ? 'مجتمع‌های دیگر' : 'مجتمع‌های من'}
+                communities={others}
+                disabled={pendingKey !== null}
+                onPick={(complexId) => void switchTo(complexId)}
+              />
             )}
             {invitations > 0 && (
               <UserMenuItem
@@ -173,33 +173,18 @@ export function UserMenu() {
                 }}
               />
             )}
-            <UserMenuItem
-              icon={UserRound}
-              label="پروفایل من"
-              onClick={() => {
-                setOpen(false)
-                void navigate('/profile')
-              }}
-            />
-            {/* خریدِ مجتمعِ تازه با همین حساب (مرحلهٔ ۱۰ · فاز ۵؛ تصمیمِ کارفرما) — حسابِ اولیه در داشبوردِ خودش می‌خرد */}
-            {user?.accountState === 'member' && (
+            {/*
+              «ایجادِ حسابِ جدید» = همان داشبوردِ اولیه با همان Account (ایرادات ۱۱، بندِ ۵.۶): درخواستِ عضویت، دعوت‌ها،
+              خریدِ مجتمعِ تازه. فقط در داشبوردِ مجتمع، و بعد از هر بار استفاده هم سرِ جایش.
+            */}
+            {inCommunity && (
               <UserMenuItem
-                icon={Building2}
-                label="خریدِ مجتمعِ تازه"
-                onClick={() => {
-                  setOpen(false)
-                  void navigate('/new-complex')
-                }}
+                icon={UserPlus}
+                label="ایجاد حساب جدید"
+                disabled={pendingKey !== null}
+                onClick={() => void createNewAccount()}
               />
             )}
-            <UserMenuItem
-              icon={Settings}
-              label="تنظیمات حساب"
-              onClick={() => {
-                setOpen(false)
-                void navigate('/account')
-              }}
-            />
             <div className="h-px" style={{ backgroundColor: 'var(--border-subtle)' }} />
             <UserMenuItem icon={LogOut} label="خروج از حساب" danger onClick={handleLogout} />
           </motion.div>
@@ -209,21 +194,65 @@ export function UserMenu() {
   )
 }
 
+/** مجتمع‌هایی که حساب عضوِ فعالشان است، جز همین زمینه — کلیک یعنی تعویضِ واقعیِ زمینه در سرور. */
+function OtherCommunities({
+  label,
+  communities,
+  disabled,
+  onPick,
+}: {
+  label: string
+  communities: MembershipSummary[]
+  disabled: boolean
+  onPick: (complexId: number) => void
+}) {
+  return (
+    <div role="group" aria-label={label}>
+      <div className="h-px" style={{ backgroundColor: 'var(--border-subtle)' }} />
+      <p className="px-3.5 pt-2.5 pb-1 text-xs" style={{ color: 'var(--text-tertiary)' }}>
+        {label}
+      </p>
+      {communities.map((m) => (
+        <button
+          key={m.complexId}
+          onClick={() => onPick(m.complexId)}
+          disabled={disabled}
+          className="flex w-full items-center gap-2.5 px-3.5 py-2 text-right text-sm transition-colors duration-150 hover:bg-(--surface-sunken) disabled:opacity-60"
+          style={{ color: 'var(--text-secondary)' }}
+        >
+          <Building2 size={15} className="shrink-0" />
+          <span className="min-w-0 flex-1">
+            <span className="block truncate" style={{ color: 'var(--text-primary)' }}>
+              {m.complexName}
+            </span>
+            <span className="block text-xs" style={{ color: 'var(--text-tertiary)' }}>
+              {m.roleLabel}
+            </span>
+          </span>
+        </button>
+      ))}
+    </div>
+  )
+}
+
 function UserMenuItem({
   icon: Icon,
   label,
   danger,
+  disabled,
   onClick,
 }: {
   icon: LucideIcon
   label: string
   danger?: boolean
+  disabled?: boolean
   onClick?: () => void
 }) {
   return (
     <button
       onClick={onClick}
-      className="flex w-full items-center gap-2.5 px-3.5 py-2.5 text-[13px] transition-colors duration-150 hover:bg-(--surface-sunken)"
+      disabled={disabled}
+      className="flex w-full items-center gap-2.5 px-3.5 py-2.5 text-[13px] transition-colors duration-150 hover:bg-(--surface-sunken) disabled:opacity-60"
       style={{ color: danger ? 'var(--color-danger)' : 'var(--text-secondary)' }}
     >
       <Icon size={16} />

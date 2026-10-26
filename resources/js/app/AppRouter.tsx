@@ -19,6 +19,13 @@ const RegistrantRouter = lazy(() =>
   })),
 )
 
+/* صفحه‌ی انتخابِ مجتمعِ حسابِ چندمجتمعی پس از ورود (مرحلهٔ ۱۳ · فاز ۳) — فقط برای همان نشست بار می‌شود */
+const CommunitySelectPage = lazy(() =>
+  import('@/features/context/CommunitySelectPage').then((m) => ({
+    default: m.CommunitySelectPage,
+  })),
+)
+
 /**
  * با هر تغییرِ مسیر، صفحه از بالا شروع می‌شود.
  *
@@ -65,6 +72,19 @@ export function AppRouter() {
    * وصل نیست اصلاً مسیرهای داشبوردها را ندارد، و هر داشبورد فقط مسیرهای خودش را. حالت و نقش از سرور می‌آیند
    * (`accountState`، و نقشِ زمینه‌ی فعال) و قفلِ نوشتن هم همان‌جاست.
    */
+  /*
+   * حسابِ چندمجتمعی که تازه وارد شده و هنوز مجتمعی برنگزیده (۱۳/۳): هیچ داشبوردی، فقط انتخاب — هر نشانی‌ای که باز
+   * شود. سرور هم در این حالت هیچ داده‌ی مجتمعی نمی‌دهد؛ این‌جا فقط نمای همان است.
+   */
+  if (user?.dashboard === 'select') {
+    return (
+      <Suspense fallback={<RouteFallback />}>
+        <TrackPageViews />
+        <CommunitySelectPage />
+      </Suspense>
+    )
+  }
+
   if (user?.dashboard === 'initial' || user?.accountState === 'initial') {
     return (
       <Suspense fallback={<RouteFallback />}>

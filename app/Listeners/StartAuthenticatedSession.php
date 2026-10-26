@@ -3,6 +3,7 @@
 namespace App\Listeners;
 
 use App\Http\Middleware\EnforceSessionLifetime;
+use App\Models\ComplexMembership;
 use App\Models\LoginEvent;
 use App\Models\User;
 use App\Services\Auth\LoginRecorder;
@@ -38,7 +39,7 @@ class StartAuthenticatedSession
              * درخواستِ دلخواه: درخواستِ ورود تنهاست و پاسخش پیش از هر درخواستِ دیگری می‌رسد؛ سنجاق از درخواست‌های
              * هم‌زمان (CI ِ `69a7d21`) پاسخِ دیرِ یکی را روی تعویضِ بعدی می‌نشاند.
              */
-            SessionContext::pin($event->user, $event->user->isSuperAdmin() ? null : $event->user->complex_id);
+            SessionContext::pin($event->user, $this->landing($event->user));
 
             $this->recorder->success(
                 $event->user,
@@ -46,5 +47,21 @@ class StartAuthenticatedSession
                 (string) $request->attributes->get(self::EVENT_ATTRIBUTE, LoginEvent::SUCCESS),
             );
         }
+    }
+
+    /**
+     * کجا فرود می‌آید (مرحلهٔ ۱۳ · فاز ۳؛ ایرادات ۱۰، بندهای ۳۲ تا ۳۵): تک‌مجتمعی مستقیم به همان مجتمع؛ چندمجتمعی به
+     * صفحه‌ی انتخاب — **هر بار** که وارد می‌شود، و هیچ مجتمعی خودکار برگزیده نمی‌شود، حتی آخرین مجتمعِ ورودِ قبلی.
+     * حسابِ بی‌عضویت و سوپر ادمین سنجاقی ندارند.
+     */
+    private function landing(User $user): int|string|null
+    {
+        if ($user->isSuperAdmin()) {
+            return null;
+        }
+
+        $active = ComplexMembership::withoutGlobalScopes()->active()->where('user_id', $user->id)->limit(2)->count();
+
+        return $active > 1 ? SessionContext::CHOOSING : $user->complex_id;
     }
 }

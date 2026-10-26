@@ -116,6 +116,19 @@ describe('بازگشت از خریدِ مجتمعِ تازه', () => {
     expect(switched).toEqual([])
   })
 
+  it('عضوی که از «ایجادِ حسابِ جدید» (زمینه‌ی بی‌مجتمع) خرید، به مجتمعِ تازه می‌رود (۱۳/۳)', async () => {
+    await renderReturn(
+      user([membership(1, false), membership(3, false, 'complex_admin')], {
+        accountState: 'initial',
+        dashboard: 'initial',
+        canWrite: false,
+      }),
+      '/dashboard?checkout=success&tracking=9&complex=3',
+    )
+
+    await waitFor(() => expect(switched).toEqual([[3, '/dashboard?checkout=success']]))
+  })
+
   it('بی بازگشت از درگاه کاری نمی‌کند', async () => {
     await renderReturn(user([membership(1, true), membership(3, false)]), '/dashboard?complex=3')
 
@@ -158,18 +171,23 @@ describe('راهِ خرید در منوی کاربر', () => {
       </QueryClientProvider>,
     )
     fireEvent.click(screen.getAllByRole('button')[0])
-    await screen.findByText('پروفایل من')
+    await screen.findByText('اطلاعات کاربری')
   }
 
-  it('عضو — حتی تک‌مجتمعی و غیرِ مدیر — «خریدِ مجتمعِ تازه» را می‌بیند', async () => {
+  /*
+   * از ۱۳/۳ راهِ خریدِ عضو «ایجادِ حسابِ جدید» است — همان داشبوردِ اولیه با همان حساب (ایرادات ۱۱، بندهای ۵.۶ و
+   * ۵.۱۱)، نه صفحه‌ی موازیِ `/new-complex` درونِ داشبوردِ مجتمع.
+   */
+  it('عضو — حتی تک‌مجتمعی و غیرِ مدیر — «ایجادِ حسابِ جدید» را می‌بیند، نه خریدِ موازی', async () => {
     await renderMenu(user([membership(1, true, 'tenant')]))
 
-    expect(screen.getByText('خریدِ مجتمعِ تازه')).toBeInTheDocument()
+    expect(screen.getByText('ایجاد حساب جدید')).toBeInTheDocument()
+    expect(screen.queryByText('خریدِ مجتمعِ تازه')).toBeNull()
   })
 
-  it('ادمینِ کل و حسابِ اولیه نه (اولیه در داشبوردِ خودش می‌خرد)', async () => {
+  it('ادمینِ کل نه', async () => {
     await renderMenu(user([], { accountState: 'platform', isSuperAdmin: true }))
-    expect(screen.queryByText('خریدِ مجتمعِ تازه')).toBeNull()
+    expect(screen.queryByText('ایجاد حساب جدید')).toBeNull()
   })
 })
 

@@ -82,15 +82,11 @@ export const SHARED_ROUTES: DashboardRoute[] = [
     page: page(() => import('@/features/tools/calculator/CalculatorPage'), 'CalculatorPage'),
   },
   { path: '/profile', page: page(() => import('@/features/profile/ProfilePage'), 'ProfilePage') },
+  /*
+   * `/new-complex` (خریدِ عضو درونِ داشبوردِ مجتمع، ۱۰/۵) از ۱۳/۳ نیست: خریدِ مجتمعِ تازه از «ایجادِ حسابِ جدید» و
+   * همان داشبوردِ اولیه است (ایرادات ۱۱، بندِ ۵.۶ — «نه داشبوردِ موازی»)؛ سرور همان مسیرِ خرید را دارد.
+   */
   { path: '/account', page: page(() => import('@/features/account/AccountPage'), 'AccountPage') },
-  // خریدِ مجتمعِ تازه توسطِ عضو (مرحلهٔ ۱۰ · فاز ۵) — همان صفحه‌ی خریدِ حسابِ اولیه
-  {
-    path: '/new-complex',
-    page: page(
-      () => import('@/features/registrant/RegistrantPurchasePage'),
-      'RegistrantPurchasePage',
-    ),
-  },
   // مالک/مستأجرِ فعلی یا مدیر — مجوز در سرور (مرحلهٔ ۱۰ · فاز ۷)
   {
     path: '/units/:unitId/information',
@@ -223,10 +219,10 @@ export const DASHBOARD_ROUTES: Record<Dashboard, DashboardRoute[]> = {
 /** داشبوردِ هر نقش — نقشِ زمینه‌ی فعال، نه نقشِ ذخیره در حساب (۱۰/۳). */
 export function dashboardFor(
   role: UserRole | undefined,
-  declared?: 'initial' | Dashboard,
+  declared?: 'select' | 'initial' | Dashboard,
 ): Dashboard {
-  // ۱۲/۱: داشبورد را سرور اعلام می‌کند؛ نقش فقط برای پاسخِ سرورِ قدیمی‌تر
-  if (declared && declared !== 'initial') return declared
+  // ۱۲/۱: داشبورد را سرور اعلام می‌کند؛ نقش فقط برای پاسخِ سرورِ قدیمی‌تر. «انتخاب» و «اولیه» روترِ خودشان را دارند
+  if (declared && declared !== 'initial' && declared !== 'select') return declared
   if (role === 'super_admin') return 'platform'
   if (role === 'complex_admin') return 'manager'
   return 'unit'

@@ -5,6 +5,7 @@ import {
   BarChart3,
   Building,
   Building2,
+  CircleUserRound,
   ClipboardCheck,
   ClipboardList,
   Crown,
@@ -86,6 +87,11 @@ export const navSections: NavSection[] = [
       { label: 'اطلاعات مجتمع', path: '/settings/information', icon: Building2, roles: ADMINS },
       { label: 'تنظیمات مجتمع', path: '/settings/complex', icon: Settings2, roles: ADMINS },
       { label: 'بکاپ مجتمع', path: '/settings/backup', icon: DatabaseBackup, roles: ADMINS },
+      /*
+       * «تنظیماتِ حساب» در منوی کناری، نه منوی آدمک (۱۳/۳؛ ایرادات ۱۰، بندِ ۲ و «داشبورد های آزمایشی» ۵.۲): مدیر و
+       * سوپر ادمین — نه واحد. بازسازیِ خودِ صفحه و بستنِ سمتِ سرورِ واحد در ۱۳/۶.
+       */
+      { label: 'تنظیمات حساب', path: '/account', icon: CircleUserRound, roles: ADMINS },
     ],
   },
   {

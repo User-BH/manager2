@@ -9,6 +9,7 @@ use App\Models\ComplexMembership;
 use App\Models\User;
 use App\Services\Account\MembershipLedger;
 use App\Support\Jalali;
+use App\Support\SessionContext;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -45,7 +46,28 @@ class AccountContextController extends Controller
         return response()->json($this->present($user));
     }
 
-    /** @return array{current: int|null, memberships: list<array<string, mixed>>} */
+    /**
+     * «ایجادِ حسابِ جدید» (مرحلهٔ ۱۳ · فاز ۳؛ ایرادات ۱۱، بندهای ۵.۳ و ۵.۶ تا ۵.۸): رفتنِ همین مرورگر به همان داشبوردِ
+     * اولیه با **همان** Account — نه حسابِ تازه، نه مجتمعِ تصادفی. فقط سنجاقِ این مرورگر عوض می‌شود: پیش‌فرضِ حساب،
+     * عضویت‌ها و داده‌ی مجتمع‌ها دست نمی‌خورند و بازگشت با همان تعویضِ بالاست، بی خروج. از صفحه‌ی انتخاب بسته است
+     * (`LockInitialAccount`)؛ این دو جریان قاطی نمی‌شوند.
+     */
+    public function enterInitial(Request $request): JsonResponse
+    {
+        /** @var User $user */
+        $user = $request->user();
+
+        if ($user->isSuperAdmin()) {
+            throw DomainException::invalid('ادمینِ کل داشبوردِ اولیه ندارد.', 'membership.platform_account');
+        }
+
+        SessionContext::pin($user, SessionContext::DETACHED);
+        SessionContext::detach($user, SessionContext::DETACHED);
+
+        return response()->json($this->present($user));
+    }
+
+    /** @return array{current: int|null, mode: string|null, memberships: list<array<string, mixed>>} */
     private function present(User $user): array
     {
         /*
@@ -61,6 +83,8 @@ class AccountContextController extends Controller
 
         return [
             'current' => $user->complex_id,
+            // زمینه‌ی بی‌مجتمعِ همین مرورگر (۱۳/۳): `choose`، `initial`، یا null وقتی در مجتمعی است
+            'mode' => SessionContext::detachedAs(),
             'memberships' => $memberships->map(fn (ComplexMembership $m) => [
                 'complexId' => $m->complex_id,
                 'complexName' => $m->complex?->name,

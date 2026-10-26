@@ -68,9 +68,10 @@ export interface CurrentUser {
   accountState: AccountState
   /**
    * داشبوردِ همین نشست (مرحلهٔ ۱۲ · فاز ۱) — سرور از حالتِ حساب و نقشِ عضویتِ زمینه‌ی نشست می‌گوید.
-   * اختیاری فقط برای پاسخِ سرورِ پیش از ۱۲/۱.
+   * اختیاری فقط برای پاسخِ سرورِ پیش از ۱۲/۱. `select` (۱۳/۳): حسابِ چندمجتمعی که تازه وارد شده و هنوز مجتمعی
+   * برنگزیده — فقط صفحه‌ی انتخاب.
    */
-  dashboard?: 'initial' | 'manager' | 'unit' | 'platform'
+  dashboard?: 'select' | 'initial' | 'manager' | 'unit' | 'platform'
   canWrite: boolean
   pendingInvitations: number
 
@@ -84,6 +85,8 @@ export interface CurrentUser {
 export interface MembershipSummary {
   complexId: number
   complexName: string
+  /** «مسکونی» یا «تجاری» (۱۳/۳)؛ اختیاری فقط برای پاسخِ سرورِ پیشین */
+  complexTypeLabel?: string
   role: UserRole
   roleLabel: string
   /** معلق به دستِ مدیرِ همان مجتمع (۱۰/۶): دیده می‌شود ولی تعویض به آن ممکن نیست */

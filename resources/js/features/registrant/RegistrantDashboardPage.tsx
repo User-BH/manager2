@@ -1,6 +1,7 @@
 import { type ReactNode } from 'react'
 import { ArrowLeft, Building2, PlayCircle, ShieldAlert, UserRound, UserPlus } from 'lucide-react'
 import { useDocumentTitle } from '@/shared/hooks'
+import { useCheckoutReturn } from '@/shared/hooks/useCheckoutReturn'
 import { useAuth } from '@/shared/stores/authStore'
 import { JoinByManagerPhone } from './JoinByManagerPhone'
 import { RegistrantGuide } from './RegistrantGuide'
@@ -20,6 +21,11 @@ import { ReceivedInvitations } from '@/shared/ui/invitations/ReceivedInvitations
 export function RegistrantDashboardPage() {
   const { user } = useAuth()
   useDocumentTitle('داشبورد')
+  /*
+   * بازگشت از خریدِ مجتمعِ تازه در «ایجادِ حسابِ جدید» (۱۳/۳): عضوِ مجتمع‌های دیگر این‌جا فرود می‌آید (بازگشتِ بانک
+   * زمینه‌اش را جابه‌جا نمی‌کند) و همان هوکِ داشبوردِ مجتمع او را به مجتمعِ تازه می‌برد — سرور عضویت را می‌سنجد.
+   */
+  useCheckoutReturn()
 
   return (
     <div className="mx-auto flex max-w-3xl flex-col gap-5">
@@ -50,7 +56,37 @@ function StatusBanner() {
    * مجتمعی نیستید» برای او نادرست است؛ می‌گوییم کجا معلق است و با چه کسی صحبت کند.
    */
   const { user } = useAuth()
-  const suspended = (user?.memberships ?? []).filter((m) => m.status === 'suspended')
+  const memberships = user?.memberships ?? []
+  const suspended = memberships.filter((m) => m.status === 'suspended')
+  const active = memberships.filter((m) => m.status === 'active')
+
+  /*
+   * «ایجادِ حسابِ جدید» (۱۳/۳): عضوی که با همین حساب به داشبوردِ اولیه آمده. «هنوز عضو هیچ مجتمعی نیستید» برای او
+   * نادرست است؛ می‌گوییم کجا عضو است و راهِ بازگشت را — مجتمع‌هایش سرِ جایشان‌اند (ایرادات ۱۱، بندِ ۵.۸).
+   */
+  if (active.length > 0) {
+    return (
+      <div
+        className="flex items-start gap-3 rounded-2xl border p-4"
+        style={{ borderColor: 'var(--border-default)', backgroundColor: 'var(--surface-base)' }}
+        role="status"
+      >
+        <Building2
+          size={20}
+          className="mt-0.5 shrink-0"
+          style={{ color: 'var(--color-brand-500)' }}
+        />
+        <div>
+          <p className="text-sm font-bold" style={{ color: 'var(--text-primary)' }}>
+            مجتمعِ تازه با همین حساب
+          </p>
+          <p className="mt-1 text-body leading-6" style={{ color: 'var(--text-secondary)' }}>
+            {`با همین حساب در ${active.map((m) => `«${m.complexName}»`).join('، ')} عضو هستید و همه‌چیزِ آن‌جا سرِ جایش است. از این‌جا می‌توانید به مجتمعِ دیگری بپیوندید، دعوتِ مدیری را ببینید یا مجتمعِ تازه بسازید؛ برای بازگشت، مجتمع را از منوی حساب (بالای صفحه) انتخاب کنید.`}
+          </p>
+        </div>
+      </div>
+    )
+  }
 
   if (suspended.length > 0) {
     return (

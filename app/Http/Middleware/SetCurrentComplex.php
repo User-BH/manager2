@@ -97,9 +97,16 @@ class SetCurrentComplex
      *
      * هر دو نامزد (سنجاق و پیش‌فرض) با **یک** کوئری خوانده می‌شوند — همان یک کوئریِ مجتمعِ جاری که
      * `EnsureComplexActive` همیشه می‌زد؛ هزینه‌ی هر درخواست بیشتر نشد.
+     *
+     * - سنجاقِ بی‌مجتمع (۱۳/۳، `SessionContext::CHOOSING` و `DETACHED`): این درخواست هیچ مجتمعی ندارد (`detached`).
      */
     private function member(Request $request, Closure $next, User $user)
     {
+        $mode = SessionContext::mode($user);
+        if ($mode !== null && $this->staysDetached($user, $mode)) {
+            return $this->detached($request, $next, $user, $mode);
+        }
+
         $default = (int) $user->complex_id;
         $pinned = SessionContext::pinned($user);
 
@@ -163,6 +170,36 @@ class SetCurrentComplex
          */
         if (! ApiCacheHeaders::isPublic($request)) {
             $response->headers->set(self::CONTEXT_HEADER, $complex->id.':'.$role->value);
+        }
+
+        return $response;
+    }
+
+    /**
+     * «انتخاب» فقط تا وقتی که واقعاً چیزی برای انتخاب هست: حسابی که از دو عضویتِ فعال به یکی رسید (پایان یا تعلیقِ
+     * دیگری) صفحه‌ی انتخابِ یک‌کارتی نمی‌بیند و مثلِ ورودِ تک‌مجتمعی مستقیم به همان می‌رود (بندِ ۳۲). زمینه‌ی اولیه
+     * همیشه می‌ماند — خودِ کاربر آن را خواسته است.
+     */
+    private function staysDetached(User $user, string $mode): bool
+    {
+        return $mode === SessionContext::DETACHED
+            || ComplexMembership::withoutGlobalScopes()->active()->where('user_id', $user->id)->limit(2)->count() > 1;
+    }
+
+    /**
+     * درخواستِ بی‌مجتمعِ حسابِ عضو (۱۳/۳): حساب برای همین درخواست حسابِ اولیه است و از همه‌ی داده‌ی مجتمع محروم —
+     * همان دو قفلِ حالتِ اولیه (`TenantContext::denyAll` و `LockInitialAccount`). سنجاق نوشته نمی‌شود (همان قاعده‌ی
+     * بالا)؛ سربرگِ زمینه حالت را می‌گوید تا تبِ دیگری که هنوز داشبوردِ مجتمع را نشان می‌دهد از نو بار شود.
+     */
+    private function detached(Request $request, Closure $next, User $user, string $mode)
+    {
+        SessionContext::detach($user, $mode);
+        app(TenantContext::class)->denyAll();
+
+        $response = $next($request);
+
+        if (! ApiCacheHeaders::isPublic($request)) {
+            $response->headers->set(self::CONTEXT_HEADER, '0:'.$mode);
         }
 
         return $response;

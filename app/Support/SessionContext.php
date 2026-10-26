@@ -2,6 +2,7 @@
 
 namespace App\Support;
 
+use App\Enums\UserRole;
 use App\Models\User;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Cookie;
@@ -30,13 +31,31 @@ use Illuminate\Support\Facades\Cookie;
  * اختیار از سنجاق نمی‌آید: کوکی رمزنگاری‌شده است (`EncryptCookies`)، به شناسه‌ی حساب بسته است، و
  * `SetCurrentComplex` روی هر درخواست عضویتِ فعال را می‌سنجد و نقش را از **همان عضویت** می‌گیرد. سنجاقِ مجتمعی که
  * عضویتش پایان یافته یا معلق شده به پیش‌فرض برمی‌گردد.
+ *
+ * ─── دو زمینه‌ی بی‌مجتمع (مرحلهٔ ۱۳ · فاز ۳) ─────────────────────────────────────────────
+ * سنجاق جز مجتمع یکی از دو حالت هم می‌تواند باشد، هر دو برای حسابِ عضو و هر دو بی هیچ داده‌ی مجتمعی
+ * (`TenantContext::denyAll`، همان قفلِ حالتِ اولیه):
+ *
+ *   - `choose`: حسابِ چندمجتمعی تازه وارد شده و هنوز مجتمعی برنگزیده (ایرادات ۱۰، بندهای ۳۳ تا ۳۵). هیچ مجتمعی
+ *     خودکار انتخاب نمی‌شود؛ فقط گزینش (`POST account/context`) و خروج باز است.
+ *   - `initial`: «ایجادِ حسابِ جدید» از منوی آدمک (ایرادات ۱۱، بندهای ۵.۶ تا ۵.۸) — همان داشبوردِ اولیه با همان
+ *     Account. پیش‌فرضِ حساب دست نمی‌خورد و بازگشت به هر مجتمع بی خروج است.
  */
 final class SessionContext
 {
     public const COOKIE = 'sakena_context';
 
+    /** حسابِ چندمجتمعیِ تازه‌واردشده: صفحه‌ی انتخاب، بی مجتمعِ خودکار */
+    public const CHOOSING = 'choose';
+
+    /** زمینه‌ی بی‌مجتمعِ حسابِ عضو: داشبوردِ اولیه */
+    public const DETACHED = 'initial';
+
     /** سنجاقِ همین درخواست پس از تغییر — تا درخواستِ جاری مقدارِ تازه را ببیند، نه کوکیِ ورودی */
     private const CURRENT = 'sakena.context_pin';
+
+    /** حالتِ بی‌مجتمعی که همین درخواست واقعاً در آن است (`detach`) */
+    private const MODE = 'sakena.context_mode';
 
     /** یک ماه: مرورگری که هر روز باز می‌شود مجتمعِ آخرش را نگه می‌دارد؛ اعتبار همیشه از عضویت */
     private const MINUTES = 60 * 24 * 30;
@@ -44,26 +63,65 @@ final class SessionContext
     /** مجتمعِ سنجاق‌شده‌ی این مرورگر برای همین حساب، یا null */
     public static function pinned(User $user): ?int
     {
+        $match = self::match($user, '\d+');
+
+        return $match === null ? null : (int) $match;
+    }
+
+    /** حالتِ بی‌مجتمعِ سنجاق‌شده‌ی این مرورگر برای همین حساب (`choose` یا `initial`)، یا null */
+    public static function mode(User $user): ?string
+    {
+        return self::match($user, self::CHOOSING.'|'.self::DETACHED);
+    }
+
+    /** @param  int|self::CHOOSING|self::DETACHED|null  $target */
+    public static function pin(User $user, int|string|null $target): void
+    {
+        $value = $target === null ? null : $user->id.':'.$target;
+        $request = request();
+
+        // فراخواننده فقط وقتی صدا می‌زند که سنجاق عوض می‌شود (`SetCurrentComplex`، دفترِ عضویت) — همان دلیلِ جدا بودن
+        $request->attributes->set(self::CURRENT, $value);
+        // سنجاقِ تازه حالتِ بی‌مجتمعِ پیشینِ همین درخواست را هم می‌برد؛ رفتن به حالتِ تازه با `detach` است
+        $request->attributes->remove(self::MODE);
+        Cookie::queue($value === null ? Cookie::forget(self::COOKIE) : Cookie::make(self::COOKIE, $value, self::MINUTES));
+    }
+
+    /**
+     * همین درخواست بی مجتمع: حساب برای این درخواست مثلِ حسابِ اولیه است (نه نوشته در پایگاه‌داده؛ همان راهی که
+     * `SetCurrentComplex` مجتمعِ نشست را روی نمونه‌ی حساب می‌گذارد). قفلِ حالتِ اولیه و `TenantContext::denyAll`
+     * دامنه را می‌بندند؛ پیش‌فرضِ حساب (`users.complex_id`) دست نمی‌خورد.
+     */
+    public static function detach(User $user, string $mode): void
+    {
+        // نقشِ حسابِ بی‌مجتمع همان است که ثبت‌نام و پایانِ آخرین عضویت می‌دهند (`MembershipLedger::fallBack`)
+        $user->forceFill(['complex_id' => null, 'role' => UserRole::Owner]);
+        $user->syncOriginalAttributes(['complex_id', 'role']);
+        $user->setRelation('complex', null);
+
+        request()->attributes->set(self::MODE, $mode);
+    }
+
+    /** حالتِ بی‌مجتمعی که همین درخواست در آن است (`choose`، `initial`)، یا null */
+    public static function detachedAs(): ?string
+    {
+        $mode = request()->attributes->get(self::MODE);
+
+        return is_string($mode) ? $mode : null;
+    }
+
+    private static function match(User $user, string $target): ?string
+    {
         $request = request();
         $value = $request->attributes->has(self::CURRENT)
             ? $request->attributes->get(self::CURRENT)
             : $request->cookie(self::COOKIE);
 
-        if (! is_string($value) || preg_match('/^(\d+):(\d+)$/', $value, $m) !== 1 || (int) $m[1] !== $user->id) {
+        if (! is_string($value) || preg_match('/^(\d+):('.$target.')$/', $value, $m) !== 1 || (int) $m[1] !== $user->id) {
             return null;
         }
 
-        return (int) $m[2];
-    }
-
-    public static function pin(User $user, ?int $complexId): void
-    {
-        $value = $complexId === null ? null : $user->id.':'.$complexId;
-        $request = request();
-
-        // فراخواننده فقط وقتی صدا می‌زند که سنجاق عوض می‌شود (`SetCurrentComplex`، دفترِ عضویت) — همان دلیلِ جدا بودن
-        $request->attributes->set(self::CURRENT, $value);
-        Cookie::queue($value === null ? Cookie::forget(self::COOKIE) : Cookie::make(self::COOKIE, $value, self::MINUTES));
+        return $m[2];
     }
 
     /**

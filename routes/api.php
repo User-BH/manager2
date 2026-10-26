@@ -429,6 +429,8 @@ Route::middleware(['auth', 'presence'])->group(function () {
     // عضویت‌های خودِ حساب و تعویضِ مجتمعِ فعال (مرحلهٔ ۱۰ · فاز ۳)
     Route::get('account/memberships', [AccountContextController::class, 'index'])->name('account.memberships');
     Route::post('account/context', [AccountContextController::class, 'switch'])->name('account.context');
+    // «ایجادِ حسابِ جدید»: همین مرورگر به داشبوردِ اولیه با همان حساب (مرحلهٔ ۱۳ · فاز ۳)
+    Route::post('account/context/initial', [AccountContextController::class, 'enterInitial'])->name('account.context.initial');
 
     /*
      * امنیتِ حساب: نشست‌ها، دستگاه‌ها، تاریخچه‌ی ورود، تأییدِ دوباره

@@ -8,8 +8,9 @@ import type { CurrentUser, MembershipSummary } from '@/shared/types'
  * عضویتِ معلق در رابط — مرحلهٔ ۱۰ · فاز ۶.
  *
  * قاعده در سرور است (`MembershipSuspensionTest`): تعویض به مجتمعِ معلق رد می‌شود. اینجا رابط همان را می‌گوید —
- * مجتمعِ معلق دیده می‌شود ولی بسته است، حسابِ تنها‌معلق «هنوز عضو هیچ مجتمعی نیستید» نمی‌بیند، و بازگشت از
- * خرید هرگز به عضویتِ معلق تعویض نمی‌کند.
+ * مجتمعِ معلق در فهرستِ تعویضِ منوی آدمک نیست (از ۱۳/۳؛ ایرادات ۱۱، بندِ ۵.۳: «فقط مجتمع‌هایی که دسترسیِ معتبر
+ * دارد» — پیش از آن دیده و بسته بود)، حسابِ تنها‌معلق «هنوز عضو هیچ مجتمعی نیستید» نمی‌بیند و جای تعلیق را می‌خواند،
+ * و بازگشت از خرید هرگز به عضویتِ معلق تعویض نمی‌کند.
  */
 
 const membership = (
@@ -75,8 +76,8 @@ beforeEach(() => {
  * ماژولِ منوی کاربر (motion، آیکون‌ها، store) درونِ خودِ تست سرد بار می‌شود. زیرِ بارِ هوکِ pre-commit (eslint،
  * prettier و pint هم‌زمان) همین تست با ۵ ثانیه در ۵٫۳ ثانیه افتاد؛ تنها و بی بار ۲۵ میلی‌ثانیه است. ادعاها همان‌اند.
  */
-describe('«مجتمع‌های من» با عضویتِ معلق', { timeout: 20_000 }, () => {
-  it('مجتمعِ معلق دیده می‌شود، «معلق» می‌گوید و کلیک بر آن تعویضی نمی‌سازد', async () => {
+describe('«مجتمع‌های دیگر» با عضویتِ معلق', { timeout: 20_000 }, () => {
+  it('مجتمعِ معلق در فهرستِ تعویض نیست؛ مجتمعِ فعالِ دیگر هست و کلیک بر آن تعویض است', async () => {
     const { useAuthStore } = await import('@/shared/stores/authStore')
     const { createQueryClient } = await import('@/shared/lib/queryClient')
     const { UserMenu } = await import('@/shared/layout/UserMenu')
@@ -94,12 +95,9 @@ describe('«مجتمع‌های من» با عضویتِ معلق', { timeout: 2
     )
     fireEvent.click(screen.getAllByRole('button')[0])
 
-    const group = await screen.findByRole('group', { name: 'مجتمع‌های من' })
-    const suspended = screen.getByText('مجتمع 2').closest('button')!
-    expect(suspended).toBeDisabled()
-    expect(suspended.textContent).toContain('معلق')
+    const group = await screen.findByRole('group', { name: 'مجتمع‌های دیگر' })
+    expect(screen.queryByText('مجتمع 2')).toBeNull()
 
-    fireEvent.click(suspended)
     fireEvent.click(screen.getByText('مجتمع 3'))
     await waitFor(() => expect(switched).toEqual([3]))
     expect(group).toBeInTheDocument()

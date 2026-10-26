@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Enums\AccountState;
+use App\Enums\ComplexType;
 use App\Enums\UserRole;
 use App\Exceptions\DomainException;
 use App\Http\Controllers\Controller;
@@ -34,6 +35,7 @@ use App\Support\DemoData;
 use App\Support\Jalali;
 use App\Support\PersianName;
 use App\Support\Phone;
+use App\Support\SessionContext;
 use App\Support\SystemSettings;
 use App\Support\Username;
 use Illuminate\Http\JsonResponse;
@@ -727,6 +729,14 @@ class AuthController extends Controller
 
         Auth::login($user);
 
+        /*
+         * ورودِ حسابِ چندمجتمعی به صفحه‌ی انتخاب است (۱۳/۳، `StartAuthenticatedSession`) — پاسخِ همین ورود هم همان را
+         * می‌گوید، نه پیش‌فرضِ حساب؛ درخواست‌های بعدی را `SetCurrentComplex` به همین شکل می‌بیند.
+         */
+        if (($mode = SessionContext::mode($user)) !== null) {
+            SessionContext::detach($user, $mode);
+        }
+
         // جلوگیری از session fixation. توکن CSRF هم عوض می‌شود، پس تازه‌اش
         // باید در پاسخ برگردد وگرنه اولین درخواستِ نوشتنیِ بعدی ۴۱۹ می‌گیرد.
         $request->session()->regenerate();
@@ -803,6 +813,8 @@ class AuthController extends Controller
              */
             'dashboard' => match (true) {
                 AccountState::of($user) === AccountState::Platform => 'platform',
+                // حسابِ چندمجتمعی که هنوز مجتمعی برنگزیده (۱۳/۳): فقط صفحه‌ی انتخاب، نه داشبوردِ اولیه
+                SessionContext::detachedAs() === SessionContext::CHOOSING => 'select',
                 AccountState::of($user) === AccountState::Initial => 'initial',
                 $user->role === UserRole::ComplexAdmin => 'manager',
                 default => 'unit',
@@ -823,10 +835,12 @@ class AuthController extends Controller
                 // معلق‌ها هم، با وضعیت (۱۰/۶): کاربر می‌بیند کجا معلق است؛ تعویض به آن‌جا را سرور رد می‌کند
                 ->whereIn('cm.status', ComplexMembership::LIVE)
                 ->orderBy('cm.started_at')
-                ->get(['cm.complex_id', 'cm.role', 'cm.status', 'complexes.name'])
+                ->get(['cm.complex_id', 'cm.role', 'cm.status', 'complexes.name', 'complexes.type'])
                 ->map(fn (object $m) => [
                     'complexId' => (int) $m->complex_id,
                     'complexName' => $m->name,
+                    // کارتِ صفحه‌ی انتخاب (۱۳/۳): «مسکونی» یا «تجاری» کنارِ نام
+                    'complexTypeLabel' => ComplexType::from($m->type)->label(),
                     'role' => $m->role,
                     'roleLabel' => UserRole::from($m->role)->label(),
                     'status' => $m->status,

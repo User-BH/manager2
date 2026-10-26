@@ -4,6 +4,7 @@ namespace App\Http\Middleware;
 
 use App\Enums\AccountState;
 use App\Models\User;
+use App\Support\SessionContext;
 use Closure;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -70,6 +71,23 @@ class LockInitialAccount
          */
         '*/notifications/read-all',
         '*/notifications/personal/*/read',
+        /*
+         * بازگشت از داشبوردِ اولیه به مجتمعِ قبلی **بی خروج** (مرحلهٔ ۱۳ · فاز ۳؛ ایرادات ۱۱، بندِ ۵.۸) — برای حسابِ
+         * عضوی که «ایجادِ حسابِ جدید» را زده. اجازه را عضویتِ فعالِ همان مجتمع می‌دهد (`MembershipLedger::switchTo`)؛
+         * حسابِ بی‌عضویت با آن به جایی نمی‌رسد.
+         */
+        '*/account/context',
+    ];
+
+    /**
+     * صفحه‌ی انتخابِ مجتمع (۱۳/۳؛ ایرادات ۱۰، بندِ ۳۵): تا مجتمعی برگزیده نشده، فقط گزینش و خروج. نه درخواستِ عضویت،
+     * نه خرید، نه «ایجادِ حسابِ جدید» (ایرادات ۱۱، بندِ ۵.۵: این صفحه با آن جریان قاطی نمی‌شود) — نه فقط در رابط.
+     */
+    private const CHOOSING_ALLOWED = [
+        '*/account/context',
+        '*/logout',
+        '*/client-errors',
+        '*/web-vitals',
     ];
 
     public function handle(Request $request, Closure $next): Response
@@ -78,10 +96,20 @@ class LockInitialAccount
             return $next($request);
         }
 
-        foreach (self::ALLOWED as $pattern) {
+        $choosing = SessionContext::detachedAs() === SessionContext::CHOOSING;
+
+        foreach ($choosing ? self::CHOOSING_ALLOWED : self::ALLOWED as $pattern) {
             if ($request->is($pattern)) {
                 return $next($request);
             }
+        }
+
+        if ($choosing) {
+            return response()->json([
+                'success' => false,
+                'message' => 'ابتدا یکی از مجتمع‌هایتان را انتخاب کنید.',
+                'code' => 'account.choose_community',
+            ], 403);
         }
 
         return response()->json([

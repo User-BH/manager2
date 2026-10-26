@@ -66,6 +66,12 @@ class E2eSeeder extends Seeder
      */
     public const TWO_DEVICES = ['09120000065', '09120000066', '09120000067'];
 
+    /**
+     * صفحه‌ی انتخابِ مجتمع و «ایجادِ حسابِ جدید» (مرحلهٔ ۱۳ · فاز ۳) — مثلِ `MULTI`، ولی جدا: سفرِ `multi-community`
+     * سنجاقِ مرورگر را به زمینه‌ی بی‌مجتمع می‌برد و با سفرهای تعویض قاطی نمی‌شود.
+     */
+    public const CHOOSERS = ['09120000111', '09120000112', '09120000113'];
+
     /** مجتمعِ دومِ آزمون — فقط برای حساب‌های چندمجتمعی */
     public const SECOND_COMPLEX = 'مجتمع دوم سرتاسری';
 
@@ -164,45 +170,33 @@ class E2eSeeder extends Seeder
             ['floor' => 1, 'area' => 90, 'residents_count' => 1, 'coefficient' => 1, 'occupancy_status' => OccupancyStatus::Vacant],
         );
 
+        foreach (['چندمجتمعی' => self::MULTI, 'دودستگاهی' => self::TWO_DEVICES, 'انتخاب‌کننده' => self::CHOOSERS] as $firstName => $phones) {
+            foreach ($phones as $i => $phone) {
+                $this->inTwoCommunities($phone, $firstName, 'سرتاسری '.($i + 1), $second, $aftab);
+            }
+        }
+    }
+
+    /** یک حساب از نو در دو مجتمع: عضویت‌های قبلی پایان (تاریخچه می‌ماند)، سپس مدیرِ مجتمعِ دوم و مستأجرِ آفتاب */
+    private function inTwoCommunities(string $phone, string $firstName, string $lastName, Complex $second, Complex $aftab): void
+    {
         $ledger = app(MembershipLedger::class);
-
-        foreach (self::MULTI as $i => $phone) {
-            $user = User::withoutGlobalScopes()->firstOrNew(['phone' => $phone]);
-            while ($user->exists && $user->complex_id !== null) {
-                $ledger->end($user, ComplexMembership::END_REMOVED);
-            }
-            $user->fill([
-                'complex_id' => null,
-                'first_name' => 'چندمجتمعی',
-                'last_name' => 'سرتاسری '.($i + 1),
-                'password' => Hash::make('password'),
-                'role' => UserRole::Owner,
-                'is_active' => true,
-                'terms_accepted_at' => now(),
-            ])->save();
-
-            $ledger->start($user, $second, UserRole::ComplexAdmin, ComplexMembership::SOURCE_DIRECT);
-            $ledger->start($user, $aftab, UserRole::Tenant, ComplexMembership::SOURCE_DIRECT);
+        $user = User::withoutGlobalScopes()->firstOrNew(['phone' => $phone]);
+        while ($user->exists && $user->complex_id !== null) {
+            $ledger->end($user, ComplexMembership::END_REMOVED);
         }
+        $user->fill([
+            'complex_id' => null,
+            'first_name' => $firstName,
+            'last_name' => $lastName,
+            'password' => Hash::make('password'),
+            'role' => UserRole::Owner,
+            'is_active' => true,
+            'terms_accepted_at' => now(),
+        ])->save();
 
-        foreach (self::TWO_DEVICES as $i => $phone) {
-            $user = User::withoutGlobalScopes()->firstOrNew(['phone' => $phone]);
-            while ($user->exists && $user->complex_id !== null) {
-                $ledger->end($user, ComplexMembership::END_REMOVED);
-            }
-            $user->fill([
-                'complex_id' => null,
-                'first_name' => 'دودستگاهی',
-                'last_name' => 'سرتاسری '.($i + 1),
-                'password' => Hash::make('password'),
-                'role' => UserRole::Owner,
-                'is_active' => true,
-                'terms_accepted_at' => now(),
-            ])->save();
-
-            $ledger->start($user, $second, UserRole::ComplexAdmin, ComplexMembership::SOURCE_DIRECT);
-            $ledger->start($user, $aftab, UserRole::Tenant, ComplexMembership::SOURCE_DIRECT);
-        }
+        $ledger->start($user, $second, UserRole::ComplexAdmin, ComplexMembership::SOURCE_DIRECT);
+        $ledger->start($user, $aftab, UserRole::Tenant, ComplexMembership::SOURCE_DIRECT);
     }
 
     /**

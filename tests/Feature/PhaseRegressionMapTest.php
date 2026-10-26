@@ -1490,6 +1490,25 @@ class PhaseRegressionMapTest extends TestCase
             '🔴 ۱۳/۱: seed ِ دوباره رمزِ تغییرکرده را برنمی‌گرداند' => [
                 'DemoDataTest', 'test_seeding_again_creates_nothing_and_keeps_a_changed_password', '۱۳',
             ],
+            // مرحلهٔ ۱۳ · فاز ۳ — هسته‌ی چندمجتمعی: صفحه‌ی انتخاب، «ایجادِ حسابِ جدید»، بازگشتِ بی خروج
+            '🔴 ۱۳/۳: ورودِ چندمجتمعی هر بار به صفحه‌ی انتخاب، بی مجتمعِ خودکار' => [
+                'MultiCommunityContextTest', 'test_a_multi_community_account_lands_on_the_selection_page_every_time', '۱۳',
+            ],
+            '🔴 ۱۳/۳: صفحه‌ی انتخاب هیچ داده‌ی مجتمعی نمی‌دهد' => [
+                'MultiCommunityContextTest', 'test_leaving_the_selection_page_selects_nothing_and_shows_no_community_data', '۱۳',
+            ],
+            '🔴 ۱۳/۳: صفحه‌ی انتخاب جز گزینش و خروج هیچ نوشتنی نمی‌پذیرد' => [
+                'MultiCommunityContextTest', 'test_the_selection_page_accepts_only_choosing_and_signing_out', '۱۳',
+            ],
+            '🔴 ۱۳/۳: «ایجادِ حسابِ جدید» همان حساب و هیچ داده‌ی مجتمعی' => [
+                'MultiCommunityContextTest', 'test_create_new_account_opens_the_initial_dashboard_with_the_same_account', '۱۳',
+            ],
+            '🔴 ۱۳/۳: درخواستِ عضویت از داشبوردِ اولیه پیش از تأیید هیچ دسترسی نمی‌دهد' => [
+                'MultiCommunityContextTest', 'test_a_join_request_from_the_initial_dashboard_grants_nothing_until_approved', '۱۳',
+            ],
+            '🔴 ۱۳/۳: سنجاقِ بی‌مجتمعِ جعلی یا بیگانه هیچ اختیاری نمی‌سازد' => [
+                'MultiCommunityContextTest', 'test_forged_or_foreign_detached_pins_grant_nothing', '۱۳',
+            ],
         ];
     }
 
@@ -1628,8 +1647,8 @@ class PhaseRegressionMapTest extends TestCase
             'qrCode' => ['۱۰/۵', 'ماژول‌به‌ماژول همان OpenCV است'],
             'publicJoin' => ['۱۰/۵', 'درخواست فقط با کلیکِ خودش می‌رود'],
             'memberPurchase' => ['۱۰/۵', 'بی عضویتِ فعال هیچ تعویضی نمی‌سازد'],
-            // مرحلهٔ ۱۰ · فاز ۶: عضویتِ معلق دیده می‌شود، تعویض به آن بسته است
-            'membershipSuspension' => ['۱۰/۶', 'مجتمعِ معلق دیده می‌شود'],
+            // مرحلهٔ ۱۰ · فاز ۶: تعویض به عضویتِ معلق بسته است — از ۱۳/۳ (بندِ ۵.۳) در فهرستِ تعویض هم نیست
+            'membershipSuspension' => ['۱۰/۶', 'مجتمعِ معلق در فهرستِ تعویض نیست'],
             // مرحلهٔ ۱۰ · فاز ۷: تصویرِ canonical و دو صفحه‌ی «اطلاعات»
             'profileAndInformation' => ['۱۰/۷', 'هرگز فرستاده نمی‌شوند'],
             // مرحلهٔ ۱۰ · فاز ۸: گروهِ بریده راه به باقی دارد؛ تاریخچه‌ی جست‌وجو مالِ حساب و مجتمع
@@ -1656,6 +1675,8 @@ class PhaseRegressionMapTest extends TestCase
             'adminTwoFactor' => ['۱۳/۱', 'سوپر ادمینِ دارای Authenticator به گامِ کدِ برنامه می‌رود، نه کدِ پیامکی'],
             // مرحلهٔ ۱۳ · فاز ۲: دکمه‌ی نصبِ Hero — «نصب شد» فقط با رویدادِ مرورگر، یک رویداد یک بار
             'heroInstall' => ['۱۳/۲', '«نصب شد» فقط پس از `appinstalled`'],
+            // مرحلهٔ ۱۳ · فاز ۳: صفحه‌ی انتخاب بی «ایجادِ حسابِ جدید»؛ منوی آدمک بی مجتمعِ فعال
+            'multiCommunity' => ['۱۳/۳', '«ایجادِ حسابِ جدید» این‌جا نیست (بندِ ۵.۵)'],
         ];
 
         // 🔴 مثلِ ردیف‌های PHP، این فهرست هم فقط بزرگ می‌شود (خرابکاریِ فاز ۸)

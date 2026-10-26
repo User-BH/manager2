@@ -49,6 +49,16 @@ async function signedIn(browser: Browser, phone: string): Promise<Page> {
   return page
 }
 
+/** ورودِ حسابِ چندمجتمعی به صفحه‌ی انتخاب است (۱۳/۳)؛ هر «دستگاه» خودش مجتمعش را برمی‌گزیند. */
+async function choose(page: Page, complexName: string) {
+  await page.goto('/profile')
+  await expect(page.getByRole('heading', { name: 'انتخاب مجتمع' })).toBeVisible()
+  await Promise.all([
+    page.waitForURL(/\/dashboard$/, { waitUntil: 'load' }),
+    page.getByRole('list', { name: 'مجتمع‌های شما' }).getByText(complexName).click(),
+  ])
+}
+
 async function me(page: Page): Promise<{ user: Me; context: string | null }> {
   return page.evaluate(async () => {
     const res = await fetch('/api/v1/me', {
@@ -88,9 +98,9 @@ test('تعویضِ مجتمع روی یک دستگاه دستگاهِ دیگرِ
 
   // ── گوشی: آفتاب، مستأجر ──
   const phone = await signedIn(browser, phoneNumber)
+  await choose(phone, 'مجتمع مسکونی آفتاب')
   let reloads = 0
   phone.on('load', () => reloads++)
-  await phone.goto('/dashboard')
   await expect(phone.locator('#main-content')).toBeVisible()
   const start = await me(phone)
   expect(start.user.role).toBe('tenant')
@@ -102,7 +112,7 @@ test('تعویضِ مجتمع روی یک دستگاه دستگاهِ دیگرِ
 
   // ── لپ‌تاپ: همان حساب، به مجتمعِ دوم ──
   const laptop = await signedIn(browser, phoneNumber)
-  await laptop.goto('/dashboard')
+  await choose(laptop, 'مجتمع مسکونی آفتاب')
   expect(await switchTo(laptop, second!)).toBe(200)
   /*
    * تعویض این‌جا با fetch ِ خام است، نه از رابط؛ پس رابطِ لپ‌تاپ هنوز آفتاب را نشان می‌دهد و اولین پاسخِ برنامه با
