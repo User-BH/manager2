@@ -99,6 +99,14 @@ class E2eSeeder extends Seeder
      */
     public const LAYER_MEMBERS = ['09120000097', '09120000098', '09120000099'];
 
+    /**
+     * نوارِ بالا و پنلِ جست‌وجو (مرحلهٔ ۱۳ · فاز ۴) — برای هر موتور یک حسابِ اولیه و یک مستأجرِ آفتاب، جدا از سفرهای
+     * دیگر که همین حساب‌ها را عضو یا خریدار می‌کنند. تاریخچه‌ی جست‌وجو مالِ حساب است و با حسابِ مشترک قاطی می‌شد.
+     */
+    public const TOP_BAR_INITIAL = ['09120000121', '09120000122', '09120000123'];
+
+    public const TOP_BAR_UNITS = ['09120000124', '09120000125', '09120000126'];
+
     /** بیش از هر قبضِ نمایشی، تا کیف قبض را کامل بپردازد نه بخشی از آن. */
     public const CREDIT = 5_000_000;
 
@@ -125,7 +133,7 @@ class E2eSeeder extends Seeder
             $wallet->credit($owner, $unit, self::CREDIT, WalletTransaction::SOURCE_ADJUSTMENT, null, 'اعتبارِ آزمونِ سرتاسری');
         }
 
-        foreach (self::REGISTRANTS as $phone) {
+        foreach ([...self::REGISTRANTS, ...self::TOP_BAR_INITIAL] as $phone) {
             $this->freshRegistrant($phone);
         }
 
@@ -244,14 +252,14 @@ class E2eSeeder extends Seeder
         }
     }
 
-    /** حساب‌های تک‌موتوری (حضور و لایه): مستأجرِ آفتاب بی واحد (عضوِ گروهِ مجتمع)، آفلاین در آغاز */
+    /** حساب‌های تک‌موتوری (حضور، لایه و نوارِ بالا): مستأجرِ آفتاب بی واحد (عضوِ گروهِ مجتمع)، آفلاین در آغاز */
     private function perEngineMembers(): void
     {
         $aftab = Complex::where('slug', 'aftab')->firstOrFail();
         $ledger = app(MembershipLedger::class);
-        $names = ['حاضر', 'بیننده', 'لایه'];
+        $names = ['حاضر', 'بیننده', 'لایه', 'نوار'];
 
-        foreach ([...self::PRESENCE_SUBJECTS, ...self::PRESENCE_VIEWERS, ...self::LAYER_MEMBERS] as $i => $phone) {
+        foreach ([...self::PRESENCE_SUBJECTS, ...self::PRESENCE_VIEWERS, ...self::LAYER_MEMBERS, ...self::TOP_BAR_UNITS] as $i => $phone) {
             $user = User::withoutGlobalScopes()->firstOrNew(['phone' => $phone]);
             while ($user->exists && $user->complex_id !== null) {
                 $ledger->end($user, ComplexMembership::END_REMOVED);

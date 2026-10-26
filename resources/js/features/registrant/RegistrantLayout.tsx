@@ -2,9 +2,7 @@ import { Suspense } from 'react'
 import { NavLink, Outlet, useLocation } from 'react-router-dom'
 import { LogoMark } from '@/shared/common/LogoMark'
 import { BRAND_NAME } from '@/shared/config/brand'
-import { NotificationBell } from '@/shared/layout/NotificationBell'
-import { ThemeToggle } from '@/shared/layout/ThemeToggle'
-import { UserMenu } from '@/shared/layout/UserMenu'
+import { TopBarActions } from '@/shared/layout/TopBarActions'
 import { reportError } from '@/shared/lib/observability'
 import { ErrorBoundary } from '@/shared/ui/ErrorBoundary'
 import { InlineSpinner } from '@/shared/ui/PageState'
@@ -50,12 +48,8 @@ export function RegistrantLayout() {
             </div>
           </div>
 
-          <div className="flex items-center gap-2">
-            <NotificationBell />
-            <ThemeToggle />
-            <div className="mx-1 h-7 w-px" style={{ backgroundColor: 'var(--border-subtle)' }} />
-            <UserMenu />
-          </div>
+          {/* همان ابزارهای مشترکِ نوار، از ماتریسِ `topBar.ts`: آدمک، اعلان و تم — بی جست‌وجو (۱۳/۴، بندِ ۲.۴) */}
+          <TopBarActions dashboard="initial" />
         </div>
 
         <nav aria-label="منوی حساب" className="mx-auto max-w-3xl px-2">

@@ -22,7 +22,6 @@ import {
 import { Card } from '@/shared/ui/Card'
 import { ErrorState, LoadingState } from '@/shared/ui/PageState'
 import { useSearch } from '@/shared/stores/searchStore'
-import { MobileSearchField } from './MobileSearchField'
 import { useDocumentTitle } from '@/shared/hooks'
 import { api } from '@/shared/lib/api'
 import { formatNumber, formatRelative } from '@/shared/lib/format'
@@ -80,8 +79,6 @@ export function SearchResultsPage() {
   if (!urlQuery) {
     return (
       <div className="flex flex-col gap-4">
-        {/* موبایل (۱۲/۸): نوارِ بالا جای جعبه ندارد؛ همین‌جا */}
-        <MobileSearchField />
         <RecentSearchesView
           recent={recent}
           onOpen={(q) => {
@@ -108,7 +105,6 @@ export function SearchResultsPage() {
 
   return (
     <div className="flex flex-col gap-5">
-      <MobileSearchField />
       <header>
         <h1
           className="flex items-center gap-2 text-xl font-extrabold"
@@ -144,8 +140,9 @@ export function SearchResultsPage() {
               className="max-w-md text-[12.5px] leading-7"
               style={{ color: 'var(--text-tertiary)' }}
             >
-              می‌توانید شماره‌ی واحد، نام یا شماره‌ی تلفن ساکن، دوره‌ی قبض (مثل ۱۴۰۴-۰۳)، عنوان
-              اطلاعیه یا متن پیام را جستجو کنید.
+              {/* راهنمای سرور (سوپر ادمینِ بی مجتمعِ برگزیده، ۱۳/۴) بر راهنمای عمومی مقدم است */}
+              {results?.message ??
+                'می‌توانید شماره‌ی واحد، نام یا شماره‌ی تلفن ساکن، دوره‌ی قبض (مثل ۱۴۰۴-۰۳)، عنوان اطلاعیه یا متن پیام را جستجو کنید.'}
             </p>
           </div>
         </Card>

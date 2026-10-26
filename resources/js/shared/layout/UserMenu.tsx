@@ -87,6 +87,13 @@ export function UserMenu() {
     <div className="relative" ref={menuRef}>
       <button
         onClick={() => setOpen((prev) => !prev)}
+        /*
+         * نامِ دسترس‌پذیرِ ثابت (۱۳/۴، ایرادات ۱۱ بندِ ۲.۹): زیرِ `sm` نام و نقش پنهان‌اند و دکمه فقط آواتار بود — صفحه‌خوان
+         * «دکمه» ِ بی‌نام می‌خواند.
+         */
+        aria-label={`حساب کاربری: ${user?.name ?? 'کاربر'}`}
+        aria-expanded={open}
+        aria-haspopup="true"
         className="flex items-center gap-2 rounded-xl border py-1.5 pr-1.5 pl-2.5 transition-colors duration-200 hover:bg-(--surface-sunken)"
         style={{ borderColor: 'var(--border-subtle)' }}
       >

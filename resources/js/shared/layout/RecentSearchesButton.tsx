@@ -1,5 +1,5 @@
 import { Link, useLocation } from 'react-router-dom'
-import { History, Search } from 'lucide-react'
+import { History } from 'lucide-react'
 import { useSearch } from '@/shared/stores/searchStore'
 import { formatNumber } from '@/shared/lib/format'
 
@@ -10,8 +10,8 @@ import { formatNumber } from '@/shared/lib/format'
  * (`/search` بی عبارت — `SearchResultsPage`)، همان‌جا که نتیجه‌ی جست‌وجو هم می‌آید؛ نه در سایدبار و نه در پنجره‌ی
  * کوچک. حذفِ تکی، «پاک کردن همه» و حالتِ خالی همان صفحه است.
  *
- * موبایل (بندِ ۵۱): جعبه‌ی جست‌وجو در نوار جا نمی‌شود؛ همین پیوند با نشانِ ذره‌بین همان صفحه را باز می‌کند که جعبه‌ی
- * خودش را دارد. ⚠️ یک پیوند برای هر دو اندازه، نه دو: نوارِ بالا در باندلِ همه‌ی صفحه‌هاست (بودجه‌ی نشست).
+ * عرضِ کم (از ۱۳/۴): این پیوند پنهان است؛ آیکونِ «جستجو» پنلِ زیرِ سربرگ را باز می‌کند که چند جست‌وجوی آخر و پیوندِ
+ * همین صفحه را دارد (ایرادات ۱۰، بندهای ۵۴ تا ۶۰). تا ۱۳/۴ همین پیوند با نشانِ ذره‌بین به صفحه‌ی جست‌وجو می‌برد.
  */
 export function RecentSearchesButton() {
   const { recent } = useSearch()
@@ -25,17 +25,16 @@ export function RecentSearchesButton() {
       to="/search"
       aria-current={active ? 'page' : undefined}
       aria-label={count ? `جستجوهای اخیر (${count})` : 'جستجوهای اخیر'}
-      className="flex h-9 shrink-0 items-center gap-1.5 rounded-xl border px-2 text-[13px] font-semibold hover:bg-(--surface-sunken)"
+      className="hidden h-9 shrink-0 items-center gap-1.5 rounded-xl border px-2 text-[13px] font-semibold hover:bg-(--surface-sunken) sm:flex"
       style={{
         borderColor: active ? 'var(--color-brand-500)' : 'var(--border-subtle)',
         color: active ? 'var(--color-brand-600)' : 'var(--text-secondary)',
       }}
     >
-      <Search size={19} className="sm:hidden" aria-hidden="true" />
-      <History size={16} className="hidden sm:block" aria-hidden="true" />
-      <span className="hidden sm:block">جستجوهای اخیر</span>
+      <History size={16} aria-hidden="true" />
+      <span>جستجوهای اخیر</span>
       {count && (
-        <span className="hidden text-[10px] tabular-nums sm:block" aria-hidden="true">
+        <span className="text-[10px] tabular-nums" aria-hidden="true">
           {count}
         </span>
       )}

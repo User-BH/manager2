@@ -84,6 +84,21 @@ class SearchController extends Controller
          */
         $only = $request->string('group')->value();
 
+        /*
+         * 🔴 سوپر ادمینِ بی مجتمعِ برگزیده (مرحلهٔ ۱۳ · فاز ۴؛ ایرادات ۱۰، بندِ ۶۴ و ایرادات ۱۱، بندِ ۲.۷): زمینه‌ی
+         * مستأجرِ او `null` است و `ComplexScope` برای `null` فیلتری نمی‌گذارد — جست‌وجو واحد، قبض، هزینه و اطلاعیه‌ی
+         * **همه‌ی** مجتمع‌ها را برمی‌گرداند. همان قاعده‌ی فهرست‌های مدیریتی (`BolaSweepTest`): زمینه‌ی نامعتبر یعنی
+         * هیچ، نه «همه». جست‌وجو در داده‌ی یک مجتمع پس از برگزیدنِ آن در پنلِ سیستم است.
+         */
+        if ($user->isSuperAdmin() && $this->currentComplex() === null) {
+            return response()->json([
+                'query' => $term,
+                'total' => 0,
+                'groups' => [],
+                'message' => 'برای جستجو در داده‌ی یک مجتمع، ابتدا آن را از «مدیریت مجتمع‌ها» انتخاب کنید.',
+            ]);
+        }
+
         $text = $parsed->text;
 
         $groups = array_values(array_filter([

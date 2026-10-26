@@ -1509,6 +1509,13 @@ class PhaseRegressionMapTest extends TestCase
             '🔴 ۱۳/۳: سنجاقِ بی‌مجتمعِ جعلی یا بیگانه هیچ اختیاری نمی‌سازد' => [
                 'MultiCommunityContextTest', 'test_forged_or_foreign_detached_pins_grant_nothing', '۱۳',
             ],
+            // مرحلهٔ ۱۳ · فاز ۴ — نوارِ بالا و جست‌وجو
+            '🔴 ۱۳/۴: سوپر ادمینِ بی مجتمعِ برگزیده با جست‌وجو داده‌ی هیچ مجتمعی نمی‌گیرد' => [
+                'TopBarSearchTest', 'test_a_super_admin_without_a_selected_community_finds_no_community_data', '۱۳',
+            ],
+            '🔴 ۱۳/۴: داشبوردِ اولیه و زمینه‌های بی‌مجتمع با جست‌وجو هیچ داده‌ی مجتمعی نمی‌گیرند' => [
+                'TopBarSearchTest', 'test_the_initial_dashboard_and_detached_contexts_find_no_community_data', '۱۳',
+            ],
         ];
     }
 
@@ -1677,6 +1684,8 @@ class PhaseRegressionMapTest extends TestCase
             'heroInstall' => ['۱۳/۲', '«نصب شد» فقط پس از `appinstalled`'],
             // مرحلهٔ ۱۳ · فاز ۳: صفحه‌ی انتخاب بی «ایجادِ حسابِ جدید»؛ منوی آدمک بی مجتمعِ فعال
             'multiCommunity' => ['۱۳/۳', '«ایجادِ حسابِ جدید» این‌جا نیست (بندِ ۵.۵)'],
+            // مرحلهٔ ۱۳ · فاز ۴: ماتریسِ نوار و پنلِ جست‌وجوی زیرِ سربرگ
+            'topBar' => ['۱۳/۴', 'اولیه: آدمک، اعلان، تم — و هیچ جست‌وجو، اخیرها یا ماشین‌حسابی'],
         ];
 
         // 🔴 مثلِ ردیف‌های PHP، این فهرست هم فقط بزرگ می‌شود (خرابکاریِ فاز ۸)
