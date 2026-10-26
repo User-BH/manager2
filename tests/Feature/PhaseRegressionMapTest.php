@@ -1516,6 +1516,16 @@ class PhaseRegressionMapTest extends TestCase
             '🔴 ۱۳/۴: داشبوردِ اولیه و زمینه‌های بی‌مجتمع با جست‌وجو هیچ داده‌ی مجتمعی نمی‌گیرند' => [
                 'TopBarSearchTest', 'test_the_initial_dashboard_and_detached_contexts_find_no_community_data', '۱۳',
             ],
+            // مرحلهٔ ۱۳ · فاز ۵ — اعلانِ دعوت
+            '🔴 ۱۳/۵: دعوتِ مدیر فقط همان حساب را باخبر می‌کند' => [
+                'InvitationNotificationTest', 'test_a_managers_invitation_notifies_exactly_the_invited_account', '۱۳',
+            ],
+            '🔴 ۱۳/۵: خواندنِ اعلانِ دعوت عضویت نیست' => [
+                'InvitationNotificationTest', 'test_reading_the_notification_is_not_membership', '۱۳',
+            ],
+            '🔴 ۱۳/۵: اعلانِ دعوتِ کسِ دیگر نه دیده و نه خوانده می‌شود' => [
+                'InvitationNotificationTest', 'test_another_account_cannot_reach_the_notification', '۱۳',
+            ],
         ];
     }
 
@@ -1686,6 +1696,8 @@ class PhaseRegressionMapTest extends TestCase
             'multiCommunity' => ['۱۳/۳', '«ایجادِ حسابِ جدید» این‌جا نیست (بندِ ۵.۵)'],
             // مرحلهٔ ۱۳ · فاز ۴: ماتریسِ نوار و پنلِ جست‌وجوی زیرِ سربرگ
             'topBar' => ['۱۳/۴', 'اولیه: آدمک، اعلان، تم — و هیچ جست‌وجو، اخیرها یا ماشین‌حسابی'],
+            // مرحلهٔ ۱۳ · فاز ۵: نشانِ دعوت، رفتن به داشبوردِ اولیه، زنگوله‌ای که با ضربه باز می‌ماند
+            'invitationNotifications' => ['۱۳/۵', 'ضربه‌ی لمسی (focus سپس click) باز می‌کند، نه باز-و-بسته'],
         ];
 
         // 🔴 مثلِ ردیف‌های PHP، این فهرست هم فقط بزرگ می‌شود (خرابکاریِ فاز ۸)

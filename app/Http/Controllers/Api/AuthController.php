@@ -33,6 +33,7 @@ use App\Services\Messenger\Presence;
 use App\Support\Audit;
 use App\Support\DemoData;
 use App\Support\Jalali;
+use App\Support\Notifications;
 use App\Support\PersianName;
 use App\Support\Phone;
 use App\Support\SessionContext;
@@ -824,6 +825,8 @@ class AuthController extends Controller
             'pendingInvitations' => $user->isSuperAdmin()
                 ? 0
                 : ComplexInvitation::invites()->live()->where('phone', $user->phone)->count(),
+            // نشانِ آدمک (۱۳/۵): اعلان‌های دعوتِ خوانده‌نشده با دعوتِ زنده — حسابی، پس در هر زمینه همان عدد
+            'unreadInvitations' => Notifications::unreadInvitationCount($user),
 
             /*
              * عضویت‌های فعالِ خودِ حساب برای تعویضِ مجتمع (مرحلهٔ ۱۰ · فاز ۴). یک کوئری؛

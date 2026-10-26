@@ -4,6 +4,7 @@ namespace App\Support;
 
 use App\Models\Announcement;
 use App\Models\AnnouncementRead;
+use App\Models\ComplexInvitation;
 use App\Models\Message;
 use App\Models\User;
 use Illuminate\Support\Collection;
@@ -178,8 +179,32 @@ class Notifications
             isset($data['feedbackReplyId']) => '/notifications',
             // درخواستِ عضویت برای مدیر: صندوقِ درخواست‌ها در صفحه‌ی ساکنین (مرحلهٔ ۹ · اصلاحاتِ پس از فاز ۶)
             isset($data['joinRequestId']) => '/residents',
+            // دعوتِ مدیرِ مجتمعِ دیگر: جزئیات و پذیرش در داشبوردِ اولیه (مرحلهٔ ۱۳ · فاز ۵؛ ایرادات ۱۱، بندِ ۳.۴)
+            isset($data['invitationId']) => '/invitations',
             default => null,
         };
+    }
+
+    /**
+     * نشانِ آدمک (مرحلهٔ ۱۳ · فاز ۵؛ ایرادات ۱۱، بندِ ۳.۴): اعلان‌های دعوتِ **خوانده‌نشده** که دعوتشان هنوز زنده است —
+     * از ردیف‌های واقعی، نه عددِ ثابت. دعوتِ پذیرفته، ردشده، باطل یا منقضی دیگر نشان نمی‌سازد، هرچند اعلانش (مستقل از
+     * دعوت، بندِ ۳.۵) خوانده‌نشده بماند.
+     */
+    public static function unreadInvitationCount(User $user): int
+    {
+        if ($user->isSuperAdmin() || $user->phone === null) {
+            return 0;
+        }
+
+        $live = ComplexInvitation::query()->invites()->live()->where('phone', $user->phone)->pluck('id');
+        if ($live->isEmpty()) {
+            return 0;
+        }
+
+        return $user->unreadNotifications()
+            ->where('data->type', 'invitation.received')
+            ->whereIn('data->invitationId', $live->all())
+            ->count();
     }
 
     /** خواندنِ همه‌ی اعلان‌های شخصی. */

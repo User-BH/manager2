@@ -652,6 +652,8 @@ class AuthorizationAttackTest extends TestCase
         'app/Services/Subscription/ComplexPurchase.php' => [3, 'خریدار هنوز عضوِ هیچ مجتمعی نیست؛ قفل و بازخوانیِ همان کاربرِ خودش (۱۲/۲: تکمیلِ دوباره‌ی قصدِ پرداخت‌شده هم)'],
         'app/Http/Middleware/EnsureComplexActive.php' => [1, 'خودِ مجتمع را می‌خواند تا زمینه ساخته شود'],
         'app/Http/Middleware/SetCurrentComplex.php' => [2, 'مجتمعِ جاری به‌همراهِ سنجشِ عضویتِ فعال — پیش از ساختنِ زمینه (مرحلهٔ ۱۰ · فاز ۳)؛ + شمارِ عضویت‌های فعالِ خودِ حساب برای «انتخاب» (۱۳/۳)'],
+        // مرحلهٔ ۱۳ · فاز ۵: متنِ اعلانِ دعوت — واحد و دعوت‌کننده‌ی مجتمعِ مقصد، که هنوز زمینه‌ی گیرنده نیست
+        'app/Notifications/InvitationReceivedNotification.php' => [2, 'واحد و نامِ دعوت‌کننده‌ی همان دعوت (مجتمعِ مقصد بیرون از زمینه‌ی گیرنده)؛ همان قاعده‌ی `InvitationController::index`'],
         // مرحلهٔ ۱۳ · فاز ۳: فرودِ ورود — شمارِ عضویت‌های فعالِ خودِ حساب، پیش از هر زمینه
         'app/Listeners/StartAuthenticatedSession.php' => [1, 'شمارِ عضویت‌های فعالِ همان حسابِ تازه‌واردشده: تک‌مجتمعی مستقیم، چندمجتمعی صفحه‌ی انتخاب'],
 

@@ -43,9 +43,29 @@ export async function switchContext(complexId: number, path = '/dashboard'): Pro
  * این مرورگر را عوض می‌کند؛ مجتمع‌ها سرِ جایشان‌اند و بازگشت با `switchContext` است، بی خروج. ناوبریِ کامل به همان
  * دلیلِ تعویض: هیچ چیزِ مجتمعِ قبلی در رابط نمی‌ماند.
  */
-export async function enterInitialContext(): Promise<void> {
+export async function enterInitialContext(path = '/dashboard'): Promise<void> {
   await api('/account/context/initial', { method: 'POST' })
-  await enterNewContext('/dashboard')
+  await enterNewContext(path)
+}
+
+/**
+ * مقصدی که فقط داشبوردِ اولیه دارد (۱۳/۵): دعوت‌های مدیرانِ مجتمع‌های دیگر. از داشبوردِ مجتمع با همان راهِ «ایجادِ حسابِ
+ * جدید» (`enterInitialContext`) به آن می‌رسیم (ایرادات ۱۱، بندِ ۳.۴: «کاربر وارد داشبوردِ ثبت‌نامِ اولیه می‌شود و درخواست
+ * را بررسی می‌کند»).
+ */
+export const INVITATIONS_PATH = '/invitations'
+
+/** رفتن به مقصدِ یک اعلان یا گزینه: دعوت‌ها از داشبوردِ مجتمع با زمینه‌ی اولیه، بقیه با ناوبریِ درونِ همین داشبورد */
+export function openTarget(
+  path: string,
+  user: { dashboard?: string } | null,
+  navigate: (path: string) => void,
+): void {
+  if (path === INVITATIONS_PATH && user?.dashboard !== 'initial') {
+    void enterInitialContext(path)
+    return
+  }
+  navigate(path)
 }
 
 /**

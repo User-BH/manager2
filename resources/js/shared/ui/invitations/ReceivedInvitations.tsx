@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, type ReactNode } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { Building2, Check, X } from 'lucide-react'
 import { api } from '@/shared/lib/api'
@@ -21,7 +21,14 @@ interface CodeStep {
   devCode: string | null
 }
 
-export function ReceivedInvitations() {
+export function ReceivedInvitations({
+  empty = null,
+  showTitle = true,
+}: {
+  /** نمای «دعوتی نیست» — صفحه‌ی دعوت‌ها (۱۳/۵) آن را می‌دهد؛ داشبورد و پروفایل بی دعوت چیزی نشان نمی‌دهند */
+  empty?: ReactNode
+  showTitle?: boolean
+} = {}) {
   const { run, pendingKey } = useAction()
   const [codeStep, setCodeStep] = useState<CodeStep | null>(null)
 
@@ -60,13 +67,16 @@ export function ReceivedInvitations() {
       invalidate: [queryKeys.invitations.all()],
     })
 
-  if (isLoading || !data?.data.length) return null
+  if (isLoading) return null
+  if (!data?.data.length) return empty
 
   return (
     <section className="flex flex-col gap-3">
-      <h2 className="text-sm font-bold" style={{ color: 'var(--text-primary)' }}>
-        دعوت‌های شما
-      </h2>
+      {showTitle && (
+        <h2 className="text-sm font-bold" style={{ color: 'var(--text-primary)' }}>
+          دعوت‌های شما
+        </h2>
+      )}
 
       {data.data.map((invitation) => (
         <div

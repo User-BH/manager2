@@ -74,6 +74,11 @@ export interface CurrentUser {
   dashboard?: 'select' | 'initial' | 'manager' | 'unit' | 'platform'
   canWrite: boolean
   pendingInvitations: number
+  /**
+   * نشانِ آدمک (۱۳/۵): اعلان‌های دعوتِ خوانده‌نشده که دعوتشان هنوز زنده است — از سرور، در هر زمینه همان عدد.
+   * اختیاری فقط برای پاسخِ سرورِ پیشین.
+   */
+  unreadInvitations?: number
 
   /**
    * عضویت‌های فعالِ حساب (مرحلهٔ ۱۰ · فاز ۴) — یکی برای هر مجتمع؛ `current` زمینه‌ی
@@ -196,6 +201,8 @@ export interface NotificationItem {
 
 export interface NotificationsResponse {
   unreadCount: number
+  /** نشانِ آدمک (۱۳/۵) */
+  unreadInvitations?: number
   items: NotificationItem[]
 }
 

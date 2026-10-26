@@ -18,6 +18,7 @@ use App\Models\Unit;
 use App\Models\User;
 use App\Notifications\BillDueReminderNotification;
 use App\Notifications\FeedbackReplyNotification;
+use App\Notifications\InvitationReceivedNotification;
 use App\Notifications\JoinRequestNotification;
 use App\Notifications\NewDeviceLoginNotification;
 use App\Notifications\PaymentReviewedNotification;
@@ -126,6 +127,8 @@ class CommunityIsolationTest extends TestCase
             SystemHealthNotification::class => new SystemHealthNotification('ok', []),
             // پاسخِ بازخورد: سکو به حساب پاسخ می‌دهد، نه مجتمع — بی نمونه‌سازی چون مدلِ بازخورد لازم دارد
             FeedbackReplyNotification::class => null,
+            // دعوتِ مدیرِ مجتمعِ دیگر (۱۳/۵): مجتمعِ مقصد هنوز زمینه‌ی گیرنده نیست — حسابی، در هر زمینه
+            InvitationReceivedNotification::class => new InvitationReceivedNotification($this->joinA),
         ];
 
         foreach ($community as $class => [$notification, $complexId]) {

@@ -12,9 +12,16 @@ import {
 } from 'lucide-react'
 import { useToggle, useClickOutside } from '@/shared/hooks'
 import { useAction } from '@/shared/hooks/useAction'
-import { enterInitialContext, switchContext } from '@/shared/lib/accountContext'
+import {
+  INVITATIONS_PATH,
+  enterInitialContext,
+  openTarget,
+  switchContext,
+} from '@/shared/lib/accountContext'
+import { formatNumber } from '@/shared/lib/format'
 import { leaveToAuth } from '@/shared/lib/leaveToAuth'
 import { useAuth } from '@/shared/stores/authStore'
+import { useNotificationStore } from '@/shared/stores/notificationStore'
 import type { MembershipSummary } from '@/shared/types'
 import { UserAvatar } from '@/shared/ui/UserAvatar'
 
@@ -46,7 +53,15 @@ export function UserMenu() {
     : (user?.memberships ?? []).filter(
         (m) => m.status === 'active' && !m.current && m.complexId !== user?.complex?.id,
       )
-  const invitations = inCommunity ? (user?.pendingInvitations ?? 0) : 0
+  /*
+   * دعوت‌ها (۱۳/۵؛ ایرادات ۱۱، بندهای ۳.۴ و ۵.۱۳): pendingInvitations همه‌ی دعوت‌های زنده برای گزینه‌ی منو، و
+   * unreadInvitations اعلان‌های دعوتِ **خوانده‌نشده** برای نشانِ آدمک — هر دو از سرور و حسابی، پس در داشبوردِ مجتمع و
+   * داشبوردِ اولیه همان عدد. گزینه به صفحه‌ی دعوت‌های داشبوردِ اولیه می‌برد (از داشبوردِ مجتمع با زمینه‌ی اولیه).
+   */
+  const invitations = platform ? 0 : (user?.pendingInvitations ?? 0)
+  // از نظرسنجیِ زنگوله وقتی آمد (خواندنِ اعلان و دعوتِ تازه بی بارگذاریِ دوباره)، وگرنه از /me
+  const polled = useNotificationStore((state) => state.unreadInvitations)
+  const freshInvitations = platform ? 0 : (polled ?? user?.unreadInvitations ?? 0)
 
   const switchTo = (complexId: number) => run(() => switchContext(complexId), { key: complexId })
   const createNewAccount = () => run(enterInitialContext, { key: 'new-account' })
@@ -91,7 +106,7 @@ export function UserMenu() {
          * نامِ دسترس‌پذیرِ ثابت (۱۳/۴، ایرادات ۱۱ بندِ ۲.۹): زیرِ `sm` نام و نقش پنهان‌اند و دکمه فقط آواتار بود — صفحه‌خوان
          * «دکمه» ِ بی‌نام می‌خواند.
          */
-        aria-label={`حساب کاربری: ${user?.name ?? 'کاربر'}`}
+        aria-label={`حساب کاربری: ${user?.name ?? 'کاربر'}${freshInvitations > 0 ? `، ${formatNumber(freshInvitations)} دعوتِ تازه` : ''}`}
         aria-expanded={open}
         aria-haspopup="true"
         className="flex items-center gap-2 rounded-xl border py-1.5 pr-1.5 pl-2.5 transition-colors duration-200 hover:bg-(--surface-sunken)"
@@ -120,16 +135,29 @@ export function UserMenu() {
         </div>
 
         {/* تصویرِ canonical ِ حساب (مرحلهٔ ۱۰ · فاز ۷)؛ بی تصویر همان شمایلِ قبلی */}
-        {user?.avatarUrl ? (
-          <UserAvatar name={user.name} url={user.avatarUrl} size={32} />
-        ) : (
-          <div
-            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-white"
-            style={{ backgroundColor: 'var(--color-brand-500)' }}
-          >
-            <UserRound size={16} />
-          </div>
-        )}
+        <span className="relative shrink-0">
+          {user?.avatarUrl ? (
+            <UserAvatar name={user.name} url={user.avatarUrl} size={32} />
+          ) : (
+            <div
+              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-white"
+              style={{ backgroundColor: 'var(--color-brand-500)' }}
+            >
+              <UserRound size={16} />
+            </div>
+          )}
+          {/* نشانِ دعوتِ تازه (۱۳/۵) — همان اندازه و رنگِ نشانِ زنگوله؛ عدد در نامِ دسترس‌پذیرِ دکمه هم هست */}
+          {freshInvitations > 0 && (
+            <span
+              data-testid="invitation-badge"
+              aria-hidden="true"
+              className="absolute -top-1 -left-1 flex h-4 min-w-4 items-center justify-center rounded-full px-1 text-micro font-bold text-white tabular-nums"
+              style={{ backgroundColor: 'var(--color-danger)' }}
+            >
+              {freshInvitations > 9 ? '۹+' : formatNumber(freshInvitations)}
+            </span>
+          )}
+        </span>
 
         <motion.span
           animate={{ rotate: open ? 180 : 0 }}
@@ -176,7 +204,7 @@ export function UserMenu() {
                 label={`دعوت‌ها (${invitations})`}
                 onClick={() => {
                   setOpen(false)
-                  void navigate('/profile')
+                  openTarget(INVITATIONS_PATH, user, (path) => void navigate(path))
                 }}
               />
             )}

@@ -1,7 +1,13 @@
 import { lazy } from 'react'
 import { Navigate, Route, Routes } from 'react-router-dom'
+/*
+ * صفحه‌ی دعوت‌ها (۱۳/۵) ایستا، درونِ چانکِ همین روتر که خودش تنبل است: جدا، چانکِ ریزِ بیست‌وششم می‌ساخت و از سقفِ
+ * فایل‌های ریزِ باندل (`bundleBudget.test.ts`) می‌گذشت. بیشترِ وزنش (`ReceivedInvitations`) از پیش چانکِ مشترکِ خودش را دارد.
+ */
+import { RegistrantInvitationsPage } from '@/features/registrant/RegistrantInvitationsPage'
 import { RegistrantLayout } from '@/features/registrant/RegistrantLayout'
 import { REGISTRANT_NAV } from '@/features/registrant/navigation'
+import { INVITATIONS_PATH } from '@/shared/lib/accountContext'
 import { ProtectedRoute } from './ProtectedRoute'
 
 /**
@@ -69,6 +75,8 @@ export function RegistrantRouter() {
           {REGISTRANT_NAV.map((item) => (
             <Route key={item.to} path={item.to} element={PAGES[item.to]} />
           ))}
+          {/* مقصدِ اعلانِ دعوت و گزینه‌ی «دعوت‌ها» ِ منوی آدمک (۱۳/۵) — زبانه‌ی جدا نیست؛ داشبورد هم دعوت‌ها را دارد */}
+          <Route path={INVITATIONS_PATH} element={<RegistrantInvitationsPage />} />
         </Route>
       </Route>
 

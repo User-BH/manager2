@@ -11,6 +11,7 @@ use App\Models\ComplexMembership;
 use App\Models\Unit;
 use App\Models\User;
 use App\Models\WalletTransaction;
+use App\Services\Account\Membership;
 use App\Services\Account\MembershipLedger;
 use App\Services\Blog\BlogImporter;
 use App\Services\Units\TenureService;
@@ -107,6 +108,12 @@ class E2eSeeder extends Seeder
 
     public const TOP_BAR_UNITS = ['09120000124', '09120000125', '09120000126'];
 
+    /**
+     * اعلانِ دعوت (مرحلهٔ ۱۳ · فاز ۵) — برای هر موتور مستأجرِ آفتاب که مدیرِ «مجتمع دوم سرتاسری» دعوتش کرده، با همان
+     * `Membership::invite` ِ واقعی (و همان اعلانِ حسابی). هر اجرا دعوت و اعلان را از نو می‌سازد.
+     */
+    public const INVITEES = ['09120000127', '09120000128', '09120000129'];
+
     /** بیش از هر قبضِ نمایشی، تا کیف قبض را کامل بپردازد نه بخشی از آن. */
     public const CREDIT = 5_000_000;
 
@@ -154,6 +161,7 @@ class E2eSeeder extends Seeder
         $this->multiMembers();
         $this->qrComplexes();
         $this->perEngineMembers();
+        $this->invitees();
 
         $importer->import();
     }
@@ -257,9 +265,9 @@ class E2eSeeder extends Seeder
     {
         $aftab = Complex::where('slug', 'aftab')->firstOrFail();
         $ledger = app(MembershipLedger::class);
-        $names = ['حاضر', 'بیننده', 'لایه', 'نوار'];
+        $names = ['حاضر', 'بیننده', 'لایه', 'نوار', 'دعوت‌شده'];
 
-        foreach ([...self::PRESENCE_SUBJECTS, ...self::PRESENCE_VIEWERS, ...self::LAYER_MEMBERS, ...self::TOP_BAR_UNITS] as $i => $phone) {
+        foreach ([...self::PRESENCE_SUBJECTS, ...self::PRESENCE_VIEWERS, ...self::LAYER_MEMBERS, ...self::TOP_BAR_UNITS, ...self::INVITEES] as $i => $phone) {
             $user = User::withoutGlobalScopes()->firstOrNew(['phone' => $phone]);
             while ($user->exists && $user->complex_id !== null) {
                 $ledger->end($user, ComplexMembership::END_REMOVED);
@@ -276,6 +284,21 @@ class E2eSeeder extends Seeder
             $user->forceFill(['last_seen_at' => null])->save();
 
             $ledger->start($user, $aftab, UserRole::Tenant, ComplexMembership::SOURCE_DIRECT);
+        }
+    }
+
+    /** دعوتِ تازه‌ی مدیرِ مجتمعِ دوم برای حساب‌های `INVITEES` — بی اعلان و دعوتِ اجرای قبلی */
+    private function invitees(): void
+    {
+        $second = Complex::where('slug', 'e2e-second')->firstOrFail();
+        $inviter = User::withoutGlobalScopes()->where('phone', self::MULTI[0])->firstOrFail();
+
+        foreach (self::INVITEES as $phone) {
+            $user = User::withoutGlobalScopes()->where('phone', $phone)->firstOrFail();
+            $user->notifications()->delete();
+            ComplexInvitation::withoutGlobalScopes()->where('phone', $phone)->delete();
+
+            app(Membership::class)->invite($second, $phone, UserRole::ComplexAdmin, null, $inviter);
         }
     }
 

@@ -13,11 +13,28 @@ import type { NotificationItem, NotificationsResponse } from '@/shared/types'
  * شکست بخورد، بازخوانیِ بی‌صدا مقدارِ درستِ سرور را برمی‌گرداند.
  */
 
+interface Counts {
+  unreadCount: number
+  unreadInvitations?: number
+}
+
+/** شمارنده‌های پاسخِ «خوانده شد» — نشانِ آدمک فقط وقتی سرور گفت عوض می‌شود */
+function counts(response: Counts): Partial<NotificationState> {
+  return response.unreadInvitations === undefined
+    ? { unreadCount: response.unreadCount }
+    : { unreadCount: response.unreadCount, unreadInvitations: response.unreadInvitations }
+}
+
 /** هر چند وقت یک‌بار شمارنده دوباره خوانده شود. */
 const POLL_MS = 60_000
 
 interface NotificationState {
   unreadCount: number
+  /**
+   * نشانِ آدمک (۱۳/۵): اعلان‌های دعوتِ خوانده‌نشده با دعوتِ زنده، از همان پاسخ‌های زنگوله — تا خواندنِ اعلان و نظرسنجی
+   * نشان را هم به‌روز کنند. null یعنی هنوز پاسخی نیامده (آدمک تا آن وقت عددِ /me را نشان می‌دهد).
+   */
+  unreadInvitations: number | null
   items: NotificationItem[]
   isLoading: boolean
   refresh: () => Promise<void>
@@ -32,13 +49,19 @@ interface NotificationState {
 
 export const useNotificationStore = create<NotificationState>((set, get) => ({
   unreadCount: 0,
+  unreadInvitations: null,
   items: [],
   isLoading: true,
 
   refresh: async () => {
     try {
       const response = await api<NotificationsResponse>('/notifications?limit=3')
-      set({ unreadCount: response.unreadCount, items: response.items, isLoading: false })
+      set({
+        unreadCount: response.unreadCount,
+        unreadInvitations: response.unreadInvitations ?? null,
+        items: response.items,
+        isLoading: false,
+      })
     } catch {
       // خطای شبکه نباید هدر را بشکند؛ شمارنده همان مقدار قبلی می‌ماند
       set({ isLoading: false })
@@ -63,10 +86,10 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
     }))
 
     try {
-      const response = await api<{ unreadCount: number }>(`/notifications/${id}/read`, {
+      const response = await api<Counts>(`/notifications/${id}/read`, {
         method: 'POST',
       })
-      set({ unreadCount: response.unreadCount })
+      set(counts(response))
     } catch {
       void get().refresh()
     }
@@ -79,10 +102,10 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
     }))
 
     try {
-      const response = await api<{ unreadCount: number }>(`/notifications/personal/${id}/read`, {
+      const response = await api<Counts>(`/notifications/personal/${id}/read`, {
         method: 'POST',
       })
-      set({ unreadCount: response.unreadCount })
+      set(counts(response))
     } catch {
       void get().refresh()
     }
@@ -105,10 +128,10 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
     }))
 
     try {
-      const response = await api<{ unreadCount: number }>('/notifications/read-all', {
+      const response = await api<Counts>('/notifications/read-all', {
         method: 'POST',
       })
-      set({ unreadCount: response.unreadCount })
+      set(counts(response))
     } catch {
       void get().refresh()
     }

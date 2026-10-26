@@ -10,6 +10,7 @@ use App\Models\ComplexInvitation;
 use App\Models\ComplexMembership;
 use App\Models\Unit;
 use App\Models\User;
+use App\Notifications\InvitationReceivedNotification;
 use App\Services\Units\TenureService;
 use App\Support\Phone;
 use Illuminate\Database\UniqueConstraintViolationException;
@@ -69,7 +70,7 @@ class Membership
         }
 
         try {
-            return DB::transaction(function () use ($complex, $phone, $role, $unit, $inviter): array {
+            $issued = DB::transaction(function () use ($complex, $phone, $role, $unit, $inviter): array {
                 // `live_key` یکتاست: حداکثر یک دعوتِ زنده، که زیرِ قفل باطل می‌شود
                 $old = ComplexInvitation::where('live_key', ComplexInvitation::liveKey($complex->id, $phone))->lockForUpdate()->first();
                 $old?->close(ComplexInvitation::REVOKED);
@@ -89,6 +90,15 @@ class Membership
              */
             throw DomainException::conflict('برای این شماره همین حالا دعوتی ساخته شد.', 'invitation.concurrent');
         }
+
+        /*
+         * اعلانِ حسابی برای گیرنده‌ای که حساب دارد (مرحلهٔ ۱۳ · فاز ۵؛ ایرادات ۱۱، بندِ ۳.۳) — پس از ثبتِ دعوت، به همان
+         * حسابِ صاحبِ شماره و نه کسِ دیگر. شماره‌ی بی‌حساب اعلانی نمی‌گیرد: دعوتش با پیوند و پس از ثبت‌نام در
+         * داشبوردِ اولیه دیده می‌شود. اعلان فقط خبر است؛ پذیرش همچنان کد و دعوتِ زنده می‌خواهد.
+         */
+        $account?->notify(new InvitationReceivedNotification($issued[0]));
+
+        return $issued;
     }
 
     /** ابطال؛ فقط دعوتِ زنده. */

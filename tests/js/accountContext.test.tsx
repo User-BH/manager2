@@ -203,6 +203,7 @@ describe('کشِ وابسته به زمینه', () => {
 describe('منوی آدمک', () => {
   const switched: number[] = []
   let entered = 0
+  const enteredAt: string[] = []
   let menu: {
     useAuthStore: (typeof import('@/shared/stores/authStore'))['useAuthStore']
     createQueryClient: (typeof import('@/shared/lib/queryClient'))['createQueryClient']
@@ -221,9 +222,18 @@ describe('منوی آدمک', () => {
         switched.push(id)
         return Promise.resolve()
       },
-      enterInitialContext: () => {
+      enterInitialContext: (path = '/dashboard') => {
         entered++
+        enteredAt.push(path)
         return Promise.resolve()
+      },
+      INVITATIONS_PATH: '/invitations',
+      // همان قاعده‌ی واقعی: دعوت‌ها از داشبوردِ مجتمع با زمینه‌ی اولیه
+      openTarget: (path: string, who: { dashboard?: string } | null, go: (p: string) => void) => {
+        if (path === '/invitations' && who?.dashboard !== 'initial') {
+          entered++
+          enteredAt.push(path)
+        } else go(path)
       },
     }))
     const [{ useAuthStore }, { createQueryClient }, { UserMenu }] = await Promise.all([
@@ -237,6 +247,7 @@ describe('منوی آدمک', () => {
   beforeEach(() => {
     switched.length = 0
     entered = 0
+    enteredAt.length = 0
   })
 
   function renderMenu(current: CurrentUser) {
@@ -352,9 +363,10 @@ describe('منوی آدمک', () => {
     expect(screen.queryByText('تنظیمات حساب')).toBeNull()
   })
 
-  it('عضوِ دعوت‌شده به پروفایل هدایت می‌شود', async () => {
+  it('«دعوت‌ها» از داشبوردِ مجتمع به صفحه‌ی دعوت‌های داشبوردِ اولیه می‌برد (۱۳/۵)', async () => {
     renderMenu(user([membership(1, true)], { pendingInvitations: 2 }))
 
-    expect(await screen.findByText('دعوت‌ها (2)')).toBeInTheDocument()
+    fireEvent.click(await screen.findByText('دعوت‌ها (2)'))
+    expect(enteredAt).toEqual(['/invitations'])
   })
 })

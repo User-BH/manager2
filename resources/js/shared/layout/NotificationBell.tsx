@@ -5,11 +5,16 @@ import { Bell, BellOff, CheckCheck, ChevronLeft, Pin } from 'lucide-react'
 import { IconButton } from '@/shared/ui/IconButton'
 import { useNotifications } from '@/shared/stores/notificationStore'
 import { useClickOutside } from '@/shared/hooks'
+import { openTarget } from '@/shared/lib/accountContext'
 import { formatNumber } from '@/shared/lib/format'
+import { useAuth } from '@/shared/stores/authStore'
 import type { NotificationItem } from '@/shared/types'
 
 /** بعد از بیرون رفتن نشانگر، چقدر صبر شود تا باکس بسته شود. */
 const CLOSE_DELAY_MS = 220
+
+/** کلیکی که این‌قدر پس از بازشدن (با hover یا focus) برسد، همان بازکردن است نه بستن */
+const JUST_OPENED_MS = 400
 
 /**
  * زنگوله‌ی اعلان‌ها.
@@ -20,12 +25,31 @@ const CLOSE_DELAY_MS = 220
  * روی فاصله‌ی بینشان رد می‌شود) باعث بسته شدن ناگهانی می‌شد.
  */
 export function NotificationBell() {
-  const [open, setOpen] = useState(false)
+  const [open, setOpenState] = useState(false)
   const closeTimer = useRef<number | null>(null)
+  /*
+   * 🔴 ۱۳/۵: باز شدن با hover و focus، و کلیکی که فقط 	oggle بود، با هم می‌جنگیدند. کلیکِ پس از hover (دسکتاپ) و ضربه‌ی
+   * لمسی (focus پیش از click) همان باکسی را که لحظه‌ای پیش باز شده بود می‌بستند — روی موبایل زنگوله با ضربه باز نمی‌ماند.
+   * حالا کلیکِ کمتر از JUST_OPENED_MS پس از بازشدن آن را باز نگه می‌دارد؛ کلیکِ بعدی می‌بندد.
+   */
+  const isOpen = useRef(false)
+  const openedAt = useRef(0)
   const wrapperRef = useRef<HTMLDivElement>(null)
   const navigate = useNavigate()
+  const { user } = useAuth()
 
   const { unreadCount, items, markRead, markAllRead } = useNotifications()
+
+  function setOpen(value: boolean) {
+    if (value && !isOpen.current) openedAt.current = Date.now()
+    isOpen.current = value
+    setOpenState(value)
+  }
+
+  function toggle() {
+    if (isOpen.current && Date.now() - openedAt.current < JUST_OPENED_MS) return
+    setOpen(!isOpen.current)
+  }
 
   useClickOutside(wrapperRef, () => setOpen(false))
 
@@ -55,7 +79,8 @@ export function NotificationBell() {
     if (item.kind === 'announcement') {
       void navigate(`/announcements?focus=${item.announcementId}`)
     } else if (item.link) {
-      void navigate(item.link)
+      // دعوت (۱۳/۵) در داشبوردِ اولیه است؛ از داشبوردِ مجتمع با زمینه‌ی اولیه، نه نشانیِ بی‌صاحب
+      openTarget(item.link, user, (path) => void navigate(path))
     }
   }
 
@@ -73,7 +98,7 @@ export function NotificationBell() {
         variant="outline"
         aria-label={unreadCount > 0 ? `${unreadCount} اعلان خوانده‌نشده` : 'اعلان‌ها'}
         aria-expanded={open}
-        onClick={() => setOpen((prev) => !prev)}
+        onClick={toggle}
         onFocus={() => setOpen(true)}
         className="relative"
       >

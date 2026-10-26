@@ -3,6 +3,8 @@ import { Link } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { Bell, Megaphone, Settings2 } from 'lucide-react'
 import { api } from '@/shared/lib/api'
+import { INVITATIONS_PATH, enterInitialContext } from '@/shared/lib/accountContext'
+import { useAuth } from '@/shared/stores/authStore'
 import { queryKeys } from '@/shared/lib/queryKeys'
 import { useDocumentTitle } from '@/shared/hooks'
 import { Card } from '@/shared/ui/Card'
@@ -42,6 +44,7 @@ export function NotificationsPage() {
   const [tab, setTab] = useState<'history' | 'settings'>('history')
 
   useDocumentTitle('اعلان‌ها')
+  const { user } = useAuth()
 
   const { data, error, isLoading, refetch } = useQuery({
     queryKey: queryKeys.notifications.history(page),
@@ -154,7 +157,16 @@ export function NotificationsPage() {
                   }}
                 >
                   {/* اعلانی که مقصد ندارد نباید شبیهِ لینک دیده شود */}
-                  {item.link ? (
+                  {item.link === INVITATIONS_PATH && user?.dashboard !== 'initial' ? (
+                    // دعوت (۱۳/۵) در داشبوردِ اولیه است: از داشبوردِ مجتمع با زمینه‌ی اولیه، نه پیوندِ بی‌صاحب
+                    <button
+                      type="button"
+                      onClick={() => void enterInitialContext(INVITATIONS_PATH)}
+                      className="block w-full text-right"
+                    >
+                      {body}
+                    </button>
+                  ) : item.link ? (
                     <Link to={item.link} className="block">
                       {body}
                     </Link>

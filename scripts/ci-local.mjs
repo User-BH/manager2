@@ -82,8 +82,9 @@ function run(command, { env = {}, log, label }) {
 }
 
 /** یک کار: چند فرمان پشتِ هم؛ نخستین شکست کار را می‌بندد (همان رفتارِ گام‌های یک job) */
-async function job(name, steps, { env = {}, note } = {}) {
-  const log = join(LOGS, `${name.replace(/[^\w-]+/g, '_')}.log`)
+async function job(name, steps, { env = {}, note, slug } = {}) {
+  // نامِ فایل لاتین: نامِ فارسیِ کار در `\w` نمی‌گنجید و همه‌ی گزارش‌ها در یک `_.log` می‌ریختند
+  const log = join(LOGS, `${slug}.log`)
   const started = Date.now()
   process.stdout.write(`▶ ${name}\n`)
   for (const [label, command] of steps) {
@@ -137,19 +138,27 @@ async function dockerRuns() {
 /* ── کارها ─────────────────────────────────────────────────────────────────────────────────────── */
 
 const build = () =>
-  job('بیلد', [
-    // نماهای کامپایل‌شده‌ی محلی CSS را چاق می‌کنند و بودجه‌ی باندل را می‌شکنند (CI این‌ها را ندارد)
-    ['پاکسازیِ نماهای کامپایل‌شده', 'php artisan view:clear'],
-    ['vite build', 'npm run build'],
-  ])
+  job(
+    'بیلد',
+    [
+      // نماهای کامپایل‌شده‌ی محلی CSS را چاق می‌کنند و بودجه‌ی باندل را می‌شکنند (CI این‌ها را ندارد)
+      ['پاکسازیِ نماهای کامپایل‌شده', 'php artisan view:clear'],
+      ['vite build', 'npm run build'],
+    ],
+    { slug: 'build' },
+  )
 
 const frontend = () =>
-  job('فرانت', [
-    ['قالب‌بندی', 'npm run format:check'],
-    ['تایپ', 'npm run typecheck'],
-    ['لینت', 'npm run lint'],
-    ['Vitest (با بودجه‌ی باندل)', 'npm run test'],
-  ])
+  job(
+    'فرانت',
+    [
+      ['قالب‌بندی', 'npm run format:check'],
+      ['تایپ', 'npm run typecheck'],
+      ['لینت', 'npm run lint'],
+      ['Vitest (با بودجه‌ی باندل)', 'npm run test'],
+    ],
+    { slug: 'frontend' },
+  )
 
 const backend = () =>
   job(
@@ -159,16 +168,20 @@ const backend = () =>
       ['PHPStan', 'composer analyse'],
       ['PHPUnit', `php artisan test --exclude-filter "${DEFENDER_SKIP}"`],
     ],
-    { note: 'دو آزمونِ فایلِ ساختگیِ PHP (Defender) فقط در CI' },
+    { slug: 'backend', note: 'دو آزمونِ فایلِ ساختگیِ PHP (Defender) فقط در CI' },
   )
 
 const security = () =>
-  job('امنیت', [
-    ['composer audit', 'composer audit --locked --no-interaction'],
-    ['npm audit (محصول، از «بالا»)', 'npm audit --omit=dev --audit-level=high'],
-    ['npm audit (ابزارِ توسعه، «بحرانی»)', 'npm audit --audit-level=critical'],
-    ['امضای پکیج‌ها', 'npm audit signatures'],
-  ])
+  job(
+    'امنیت',
+    [
+      ['composer audit', 'composer audit --locked --no-interaction'],
+      ['npm audit (محصول، از «بالا»)', 'npm audit --omit=dev --audit-level=high'],
+      ['npm audit (ابزارِ توسعه، «بحرانی»)', 'npm audit --audit-level=critical'],
+      ['امضای پکیج‌ها', 'npm audit signatures'],
+    ],
+    { slug: 'security' },
+  )
 
 async function mysqlConstraints() {
   if (!(await dockerRuns())) {
@@ -207,6 +220,7 @@ async function mysqlConstraints() {
     const filter =
       'SchemaConstraintTest|SecretHandlingTest|ChaosTest|CheckoutConcurrencyTest|WalletConcurrencyTest|InvitationConcurrencyTest|PhoneChangeConcurrencyTest'
     await job('قیدهای MySQL', [['PHPUnit روی MySQL', `php artisan test --filter="${filter}"`]], {
+      slug: 'mysql',
       env: {
         DB_CONNECTION: 'mysql',
         DB_HOST: '127.0.0.1',
@@ -262,7 +276,7 @@ async function e2e() {
         ['E2eSeeder', 'php artisan db:seed --class=E2eSeeder --force --no-interaction'],
         ['Playwright', `npx playwright test${only} ${list} --reporter=line`],
       ],
-      { env, note: engines },
+      { slug: 'e2e', env, note: engines },
     )
   } finally {
     rmSync(db, { force: true })

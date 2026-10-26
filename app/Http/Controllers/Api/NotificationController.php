@@ -84,6 +84,8 @@ class NotificationController extends Controller
             // ⚠️ `$messenger` بالاتر حساب شده؛ بدونِ پاس‌دادنش همان کوئری
             // دوباره اجرا می‌شد (اندازه‌گیریِ R65)
             'unreadCount' => Notifications::unreadCount($user, $messenger),
+            // نشانِ آدمک (۱۳/۵) با همان پاسخ به‌روز می‌شود: نظرسنجیِ زنگوله و هر «خوانده شد»
+            'unreadInvitations' => Notifications::unreadInvitationCount($user),
             'items' => $items,
         ]);
     }
@@ -140,6 +142,8 @@ class NotificationController extends Controller
             'currentPage' => $page,
             'lastPage' => max(1, (int) ceil($items->count() / $perPage)),
             'unreadCount' => Notifications::unreadCount($user),
+            // نشانِ آدمک (۱۳/۵) با همان پاسخ به‌روز می‌شود: نظرسنجیِ زنگوله و هر «خوانده شد»
+            'unreadInvitations' => Notifications::unreadInvitationCount($user),
         ]);
     }
 
@@ -170,7 +174,10 @@ class NotificationController extends Controller
 
         Notifications::markRead($announcement, $user);
 
-        return response()->json(['unreadCount' => Notifications::unreadCount($user)]);
+        return response()->json([
+            'unreadCount' => Notifications::unreadCount($user),
+            'unreadInvitations' => Notifications::unreadInvitationCount($user),
+        ]);
     }
 
     /**
@@ -187,7 +194,10 @@ class NotificationController extends Controller
         $notification = Notifications::inContext($user->notifications(), $user)->whereKey($id)->firstOrFail();
         $notification->markAsRead();
 
-        return response()->json(['unreadCount' => Notifications::unreadCount($user)]);
+        return response()->json([
+            'unreadCount' => Notifications::unreadCount($user),
+            'unreadInvitations' => Notifications::unreadInvitationCount($user),
+        ]);
     }
 
     public function readAll(): JsonResponse
@@ -201,6 +211,8 @@ class NotificationController extends Controller
         return response()->json([
             'marked' => $marked,
             'unreadCount' => Notifications::unreadCount($user),
+            // نشانِ آدمک (۱۳/۵) با همان پاسخ به‌روز می‌شود: نظرسنجیِ زنگوله و هر «خوانده شد»
+            'unreadInvitations' => Notifications::unreadInvitationCount($user),
         ]);
     }
 }
