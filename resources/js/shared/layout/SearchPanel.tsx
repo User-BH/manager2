@@ -71,6 +71,25 @@ export function SearchPanel({
       className="absolute inset-x-0 top-full border-b px-4 pt-3 pb-4 shadow-lg sm:hidden"
       style={{ backgroundColor: 'var(--surface-raised)', borderColor: 'var(--border-subtle)' }}
     >
+      {/*
+        × در سرِ پنل، نه کنارِ ورودی: در ۳۷۵px ِ Firefox (CI ِ `a9da951`) سه کنترل در یک ردیف جای placeholder را تنگ
+        می‌کرد و بریده می‌شد (بندِ ۶۳). ردیفِ ورودی حالا فقط ورودی و «جستجو» است.
+      */}
+      <div className="mb-2 flex items-center justify-between">
+        <p className="text-sm font-bold" style={{ color: 'var(--text-primary)' }}>
+          جستجو
+        </p>
+        <button
+          type="button"
+          onClick={() => onClose(true)}
+          aria-label="بستن جستجو"
+          className="-ml-2 flex h-10 w-10 shrink-0 items-center justify-center rounded-xl transition-colors hover:bg-(--surface-sunken)"
+          style={{ color: 'var(--text-tertiary)' }}
+        >
+          <X size={18} aria-hidden="true" />
+        </button>
+      </div>
+
       <form
         role="search"
         className="flex items-center gap-2"
@@ -86,7 +105,7 @@ export function SearchPanel({
           autoFocus
           value={query}
           onChange={(event) => setQuery(event.target.value)}
-          // کوتاه: در ۳۲۰ تا ۴۰۰px کنارِ دو دکمه جا می‌شود و بریده نمی‌شود (بندِ ۶۳)؛ نامِ کامل در `aria-label`
+          // کوتاه: در ۳۲۰ تا ۴۰۰px کنارِ «جستجو» جا می‌شود و بریده نمی‌شود (بندِ ۶۳)؛ نامِ کامل در `aria-label`
           placeholder="واحد، ساکن یا قبض…"
           aria-label="جستجو در واحدها، ساکنین و قبوض"
           enterKeyHint="search"
@@ -102,15 +121,6 @@ export function SearchPanel({
         >
           <Search size={16} aria-hidden="true" />
           جستجو
-        </button>
-        <button
-          type="button"
-          onClick={() => onClose(true)}
-          aria-label="بستن جستجو"
-          className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl transition-colors hover:bg-(--surface-sunken)"
-          style={{ color: 'var(--text-tertiary)' }}
-        >
-          <X size={18} aria-hidden="true" />
         </button>
       </form>
 
