@@ -8,10 +8,12 @@ use App\Enums\UserRole;
 use App\Models\AuditLog;
 use App\Models\CheckoutIntent;
 use App\Models\Complex;
+use App\Models\ComplexMembership;
 use App\Models\Plan;
 use App\Models\PlanPrice;
 use App\Models\Subscription;
 use App\Models\User;
+use App\Services\Account\MembershipLedger;
 use App\Services\Subscription\SubscriptionRenewal;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Testing\TestResponse;
@@ -206,6 +208,27 @@ class AccountPlansTest extends TestCase
         $this->assertEquals($leftUntil, $renewal->starts_at, 'دوره‌ی تازه پس از باقی‌مانده شروع نشد.');
         $this->assertEquals($leftUntil->copy()->addMonths(6), $renewal->ends_at);
         $this->assertGreaterThan(45 + 170, $this->actingAs($this->manager)->getJson('/api/v1/subscription')->json('current.daysLeftTotal'));
+    }
+
+    /**
+     * ایرادات ۱۰، بندِ ۱۰۵ («مجتمعِ دیگر»؛ آشتیِ ماتریس در ۱۳/۹): مدیرِ دو مجتمع که در الف کار می‌کند با نامِ ب در درخواست
+     * تمدیدِ ب را نمی‌خرد — تمدید مالِ مجتمعِ فعالِ سرور است، مبلغ از سرور، و ب هیچ اشتراکی نمی‌گیرد.
+     */
+    public function test_a_manager_of_two_complexes_cannot_renew_the_other_one_by_naming_it(): void
+    {
+        $other = Complex::factory()->create(['type' => ComplexType::Residential, 'name' => 'مجتمع نفیس']);
+        app(MembershipLedger::class)->start($this->manager, $other, UserRole::ComplexAdmin, ComplexMembership::SOURCE_DIRECT, activate: false);
+        $this->activate($this->pro, 3);
+
+        $renewal = $this->checkout([
+            'plan' => 'res-pro', 'months' => 3,
+            'complex_id' => $other->id, 'complex' => $other->id, 'community_id' => $other->id, 'amount' => 1,
+        ]);
+
+        $this->assertSame($this->complex->id, $renewal->complex_id, 'تمدید به مجتمعِ نام‌برده در درخواست رفت.');
+        $this->assertEquals(550_000, (float) $renewal->amount, 'مبلغِ درخواست جای قیمتِ سرور نشست.');
+        $this->pay($renewal);
+        $this->assertSame(0, Subscription::withoutGlobalScopes()->where('complex_id', $other->id)->count());
     }
 
     /* ── بندهای ۲۲ تا ۲۴: تغییرِ پلن ───────────────────────────────────── */

@@ -11,6 +11,7 @@ use App\Models\User;
 use App\Services\Backup\BackupBuilder;
 use App\Services\Backup\BackupManifest;
 use App\Support\Jalali;
+use App\Support\Preview;
 use App\Support\PrivateFiles;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
@@ -186,6 +187,28 @@ class DisasterRecoveryTest extends TestCase
             'total_amount' => 250000,
             'paid_amount' => 50000,
         ]);
+    }
+
+    /**
+     * سیاستِ بکاپِ داده‌ی آزمایشی (سندِ آزمایشی، بندِ ۴.۳؛ آشتیِ ماتریس در ۱۳/۹؛ docs/PREVIEW.md): برچسبِ پایگاه‌داده‌ی
+     * Preview درونِ هر بکاپ است. اگر بکاپِ Preview روی محصول بازیابی شود، برچسب با آن می‌آید و محصول سرویس نمی‌دهد —
+     * شکست به‌سوی امن، نه دادهٔ آزمایشی در محصول.
+     */
+    public function test_a_preview_snapshot_restored_onto_production_brings_its_marker_and_production_refuses(): void
+    {
+        $this->seedRealData();
+        Preview::markDatabase();
+        $file = $this->buildRealBackupFile();
+
+        // محصولِ بی‌برچسب پیش از بازیابی سرویس می‌دهد
+        DB::table('settings')->whereNull('complex_id')->where('key', Preview::ROLE_KEY)->delete();
+        $this->assertNull(Preview::databaseRole());
+
+        $this->restore($file)->assertOk();
+
+        $this->assertSame(Preview::ENVIRONMENT, Preview::databaseRole(), 'برچسبِ Preview با بکاپ بازنگشت.');
+        $this->app['env'] = 'production';
+        $this->getJson('/api/v1/features')->assertStatus(503)->assertJsonPath('code', 'preview.refused');
     }
 
     /**

@@ -3,10 +3,13 @@
 namespace Tests\Feature;
 
 use App\Enums\ComplexType;
+use App\Enums\PlanTier;
 use App\Enums\UserRole;
+use App\Models\Announcement;
 use App\Models\Bill;
 use App\Models\Complex;
 use App\Models\ComplexMembership;
+use App\Models\Message;
 use App\Models\Plan;
 use App\Models\Subscription;
 use App\Models\Unit;
@@ -143,6 +146,47 @@ class DemoDataTest extends TestCase
         $me = $this->inContext($single, PreviewSeeder::SINGLE_CONTEXT)->getJson('/api/v1/me')->assertOk()->json('user');
         $this->assertSame('unit', $me['dashboard']);
         $this->assertCount(1, $me['memberships']);
+
+        // «دستکاری رد؛ بی زمینه‌ی دوم» (سندِ آزمایشی، بندِ ۲.۲؛ آشتیِ ماتریس در ۱۳/۹): تعویض به مجتمعِ آزمایشیِ دیگر رد،
+        // و هیچ عضویتی ساخته نمی‌شود
+        $other = Complex::where('slug', 'demo-com-advanced')->firstOrFail();
+        $this->inContext($single, PreviewSeeder::SINGLE_CONTEXT)->postJson('/api/v1/account/context', ['complex_id' => $other->id])
+            ->assertUnprocessable();
+        $this->assertCount(1, $this->live($single)->get());
+        $this->assertSame(PreviewSeeder::SINGLE_CONTEXT, Complex::findOrFail($this->live($single)->sole()->complex_id)->slug);
+    }
+
+    /**
+     * سندِ آزمایشی، بندِ ۳ (آشتیِ ماتریس در ۱۳/۹): هر شش ترکیبِ نوع × سطح در دو حسابِ آزمایشی هست، و قاعده‌ی **واقعیِ**
+     * پلن در هر زمینه اعمال می‌شود — دستیارِ پلنِ پیشرفته (۱۳/۸) فقط در زمینه‌های پیشرفته، از همان `/me` ِ سرور.
+     */
+    public function test_the_six_type_and_tier_combinations_are_covered_and_the_plan_rules_apply(): void
+    {
+        // عضویت‌ها پیش از هر درخواست: درخواست زمینه‌ی مستأجر را می‌نشاند و `ComplexMembership` دامنه‌ی مستأجر دارد
+        $contexts = [];
+        foreach ([PreviewSeeder::SINGLE, PreviewSeeder::MULTI] as $username) {
+            $account = $this->account($username);
+            foreach ($this->live($account)->get() as $membership) {
+                $contexts[] = [$account, $membership];
+            }
+        }
+
+        $combinations = [];
+        foreach ($contexts as [$account, $membership]) {
+            $complex = Complex::findOrFail($membership->complex_id);
+            // `value()` cast نمی‌کند؛ سطح از مدل
+            $tier = Plan::where('slug', $this->planOf($complex))->firstOrFail()->tier;
+            $combinations[] = $complex->type->value.'·'.$tier?->value;
+
+            $assistant = $this->inContext($account, (string) $complex->slug)->getJson('/api/v1/me')->assertOk()->json('user.assistant');
+            $this->assertSame($tier === PlanTier::Advanced, $assistant, "قاعده‌ی پلن در «{$complex->slug}» اعمال نشد.");
+        }
+
+        sort($combinations);
+        $this->assertSame([
+            'commercial·advanced', 'commercial·basic', 'commercial·professional',
+            'residential·advanced', 'residential·basic', 'residential·professional',
+        ], $combinations);
     }
 
     /** بندِ ۱.۲: یک Account، دقیقاً پنج عضویت، دقیقاً جدول — نه شش، نه پنج حساب، نه ترکیبِ دیگر */
@@ -210,6 +254,14 @@ class DemoDataTest extends TestCase
         $this->assertSame(0, (int) Subscription::sum('amount'), 'اشتراکِ نمونه مبلغ دارد.');
         // شش مجتمع: پنج زمینه‌ی جدول و مجتمعِ تک‌مجتمعی — بی مجتمعِ اضافه
         $this->assertSame(6, Complex::where('is_demo', true)->count());
+
+        // «داده‌ی نمونه‌ی کافی در هر زمینه» (سندِ آزمایشی، بندِ ۶.۱؛ آشتیِ ماتریس در ۱۳/۹): هر شش مجتمع واحد، قبض،
+        // اطلاعیه و پیام دارد — قابلیت‌های واقعی چیزی برای نشان‌دادن دارند
+        foreach (Complex::where('is_demo', true)->get() as $complex) {
+            foreach ([Unit::class, Bill::class, Announcement::class, Message::class] as $model) {
+                $this->assertGreaterThan(0, $model::withoutGlobalScopes()->where('complex_id', $complex->id)->count(), "«{$complex->slug}» هیچ ".class_basename($model).' ِ نمونه‌ای ندارد.');
+            }
+        }
     }
 
     /* ── idempotent، بی بازنشانیِ رمز، و کنارگذاشتنِ ساختارِ پیشین ────── */
@@ -262,13 +314,15 @@ class DemoDataTest extends TestCase
             $account = $this->account($username);
             $others = User::withoutGlobalScopes()->whereIn('username', array_diff($usernames, [$username]))->pluck('password', 'id');
 
-            $this->actingAs($account)->putJson('/api/v1/profile/password', [
+            $response = $this->actingAs($account)->putJson('/api/v1/profile/password', [
                 'current_password' => 'Initial123',
                 'password' => "Changed{$i}99",
                 'password_confirmation' => "Changed{$i}99",
                 // شناسه‌ی حسابِ دیگر در بدنه هیچ اثری ندارد
                 'user_id' => $others->keys()->first(),
             ])->assertOk();
+            // رمزِ ساده در پاسخ هم نه (سندِ آزمایشی، بندِ ۸.۳)؛ ابطالِ نشست‌ها همان مسیر است: `SessionLifecycleTest`
+            $this->assertStringNotContainsString("Changed{$i}99", (string) $response->getContent());
 
             $fresh = $account->fresh();
             $this->assertTrue(Hash::check("Changed{$i}99", $fresh->password));

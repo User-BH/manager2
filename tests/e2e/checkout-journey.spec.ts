@@ -79,6 +79,27 @@ async function submitCheckout(page: Page, complexName: string) {
   await page.getByRole('button', { name: /^پایه/ }).first().click()
   await page.getByRole('button', { name: /^۱ ماهه/ }).click()
   await expect(page.getByRole('heading', { name: 'تأییدِ نهایی' })).toBeVisible()
+
+  /*
+   * ایرادات ۱۰، بندِ ۱۹ و DoD ِ بندِ ۱۱۰ («Navigation و Breadcrumb»؛ آشتیِ ماتریس در ۱۳/۹): نوارِ راهنمای مراحلِ خرید
+   * در عرضِ گوشی هم کامل دیده می‌شود، مرحله‌ی جاری مشخص است و صفحه افقی سرریز نمی‌کند.
+   */
+  const viewport = page.viewportSize()
+  await page.setViewportSize({ width: 375, height: 812 })
+  const steps = page.getByRole('navigation', { name: 'مراحلِ خرید' })
+  await expect(steps.locator('[aria-current="step"]')).toHaveText(/تأیید/)
+  for (const step of ['نوع مجتمع', 'پلن', 'مدت اشتراک', 'تأیید', 'پرداخت']) {
+    await expect(steps.getByText(step, { exact: true })).toBeVisible()
+  }
+  const box = (await steps.boundingBox())!
+  expect(box.x).toBeGreaterThanOrEqual(0)
+  expect(box.x + box.width, 'نوارِ راهنما از عرضِ گوشی بیرون زد').toBeLessThanOrEqual(375)
+  const overflow = await page.evaluate(
+    () => document.documentElement.scrollWidth - document.documentElement.clientWidth,
+  )
+  expect(overflow, 'صفحه‌ی خرید در عرضِ گوشی افقی سرریز کرد').toBeLessThanOrEqual(0)
+  if (viewport) await page.setViewportSize(viewport)
+
   await page.getByLabel(/نامِ مجتمع/).fill(complexName)
 
   /*

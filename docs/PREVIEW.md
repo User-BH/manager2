@@ -123,6 +123,12 @@ php artisan preview:reset-account demo.multi --password   # به‌علاوه‌
 - ترتیب: آزمون (CI، SQLite و MySQL) ← Preview (همان مهاجرت روی دادهٔ نمونه) ← تأیید ← محصول.
 - ⚠️ «دادهٔ مشابهِ محصول» در Preview نیست: محصول خالی است (اصلاحِ قطعیِ کارفرما پس از ۹/۲) و
   دادهٔ محصول هرگز به Preview نمی‌رود. Preview دادهٔ نمونه‌ی `DemoSeeder` دارد.
+- **سیاستِ بکاپ و بازیابیِ دادهٔ آزمایشی** (سندِ آزمایشی، بندِ ۴.۳): دادهٔ آزمایشی فقط از `preview:seed`/`preview:reset`
+  روی پایگاه‌داده‌ی جدای Preview ساخته می‌شود و هر ردیفش نشانگرِ سمتِ سرورِ `is_demo` دارد. بکاپِ هر محیط فقط پایگاه‌داده‌ی
+  خودش را دارد. برچسبِ پایگاه‌داده (`settings.database_role = preview`) **درونِ** هر بکاپِ Preview است؛ پس اگر بکاپِ Preview
+  به‌اشتباه روی محصول بازیابی شود، برچسب با آن می‌آید و محصول سرویس نمی‌دهد (۵۰۳ `preview.refused`) — شکست به‌سوی امن، نه
+  دادهٔ آزمایشی در محصول. مدرک: `DisasterRecoveryTest::test_a_preview_snapshot_restored_onto_production_brings_its_marker_and_production_refuses`،
+  `PreviewEnvironmentTest::test_production_on_a_preview_database_serves_nothing`.
 
 ## نیازمندی‌های محیط (کارِ سرور — بی‌اجازه انجام نمی‌شود)
 

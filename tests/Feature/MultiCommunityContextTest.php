@@ -293,6 +293,12 @@ class MultiCommunityContextTest extends TestCase
         $this->device($this->sara, $initial)->postJson('/api/v1/account/context', ['complex_id' => $new->id])->assertOk();
         $me = $this->device($this->sara, $this->sara->id.':'.$new->id)->getJson('/api/v1/me')->assertJsonPath('user.dashboard', 'manager');
         $this->assertEqualsCanonicalizing([$this->a->id, $this->b->id, $new->id], collect($me->json('user.memberships'))->pluck('complexId')->all());
+
+        // بندِ ۵.۱۱ و آزمونِ ۲۲ ِ بندِ ۵.۱۹: گزینه پس از استفاده می‌ماند — از مجتمعِ تازه دوباره به داشبوردِ اولیه، با همان Account
+        $this->device($this->sara, $this->sara->id.':'.$new->id)->postJson('/api/v1/account/context/initial')
+            ->assertOk()->assertJsonPath('mode', SessionContext::DETACHED);
+        $this->device($this->sara, $initial)->getJson('/api/v1/me')
+            ->assertJsonPath('user.dashboard', 'initial')->assertJsonPath('user.id', $this->sara->id);
     }
 
     public function test_the_super_admin_has_no_initial_dashboard_to_enter(): void
