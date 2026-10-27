@@ -122,31 +122,23 @@ test.describe('دستیارِ داخلی', () => {
       page.getByRole('dialog').getByText('هزینه‌های این ماه چقدر بوده است؟'),
     ).toBeVisible()
 
+    // در ۳۷۵ پیکسل همان پنلِ باز: بی سرریزِ افقی و درونِ صفحه — در همین سفر، تا هر موتور یک بار وارد شود
+    await page.setViewportSize({ width: 375, height: 812 })
+    const mobile = page.getByRole('dialog', { name: LAUNCHER })
+    await expect(mobile.getByLabel('پرسش از دستیار')).toBeVisible()
+    const overflow = await page.evaluate(
+      () => document.documentElement.scrollWidth - document.documentElement.clientWidth,
+    )
+    expect(overflow, 'پنل صفحه را افقی سرریز کرد').toBeLessThanOrEqual(0)
+    const panel = (await mobile.boundingBox())!
+    expect(panel.x).toBeGreaterThanOrEqual(0)
+    expect(panel.x + panel.width).toBeLessThanOrEqual(375)
+
     // بندِ ۵.۱۸ و آزمونِ ۴۴: بازگشت به آفتاب — دکمه نیست و گفت‌وگوی مجتمعِ دیگر هم نه
     await switchTo(page, 'مجتمع مسکونی آفتاب')
     await page.goto('/dashboard')
     await expect(page.getByRole('banner')).toBeVisible()
     await expect(page.getByRole('button', { name: LAUNCHER })).toHaveCount(0)
     expect(await historyStatus(page)).toBe(403)
-  })
-
-  test('در ۳۷۵ پیکسل: دکمه و پنل بی سرریزِ افقی', async ({ page }, testInfo) => {
-    await page.setViewportSize({ width: 375, height: 812 })
-    await signIn(page, ACCOUNTS[testInfo.project.name] ?? ACCOUNTS.chromium)
-    await enterAftab(page)
-    await switchTo(page, ASSISTANT_COMPLEX)
-    await page.goto('/dashboard')
-
-    await page.getByRole('button', { name: LAUNCHER }).click()
-    const dialog = page.getByRole('dialog', { name: LAUNCHER })
-    await expect(dialog.getByLabel('پرسش از دستیار')).toBeVisible()
-
-    const overflow = await page.evaluate(
-      () => document.documentElement.scrollWidth - document.documentElement.clientWidth,
-    )
-    expect(overflow, 'پنل صفحه را افقی سرریز کرد').toBeLessThanOrEqual(0)
-    const panel = (await dialog.boundingBox())!
-    expect(panel.x).toBeGreaterThanOrEqual(0)
-    expect(panel.x + panel.width).toBeLessThanOrEqual(375)
   })
 })
