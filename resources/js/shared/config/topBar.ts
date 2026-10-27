@@ -15,6 +15,8 @@ export type TopBarItem =
   /** «جستجوهای اخیر» کنارِ کادر — مدیریتِ کامل در محتوای اصلی (ایرادات ۹، بندهای ۵۰ تا ۵۵) */
   | 'recentSearches'
   | 'calculator'
+  /** تقویمِ شمسی و یادآورها (۱۳/۷) — همیشه آیکون، در هر عرض (ایرادات ۱۰، بندِ ۶۷) */
+  | 'calendar'
   | 'notifications'
   | 'theme'
   | 'account'
@@ -23,13 +25,14 @@ const MEMBER: readonly TopBarItem[] = [
   'search',
   'recentSearches',
   'calculator',
+  'calendar',
   'notifications',
   'theme',
   'account',
 ]
 
 export const TOP_BAR: Record<TopBarDashboard, readonly TopBarItem[]> = {
-  // بندِ ۲.۴: فقط آدمک، اعلان و تم — جست‌وجو و ماشین‌حساب روی داده‌ی مجتمع‌اند و این داشبورد مجتمعی ندارد
+  // بندِ ۲.۴: فقط آدمک، اعلان و تم — جست‌وجو، ماشین‌حساب و تقویم (بندِ ۶۹ ِ ایرادات ۱۰) این‌جا نیستند
   initial: ['notifications', 'theme', 'account'],
   unit: MEMBER,
   manager: MEMBER,
@@ -41,10 +44,10 @@ export const TOP_BAR: Record<TopBarDashboard, readonly TopBarItem[]> = {
 }
 
 /**
- * جای تقویم (۱۳/۷) و دستیار (۱۳/۸) در همه جز داشبوردِ اولیه (تصمیم‌های ۲.۳-۲ و ۲.۳-۳). تا خودِ قابلیت ساخته نشده،
- * آیکونی نیست — «آیکونی که هیچ عملکرد واقعی ندارد» نه (بندِ ۲.۵). هر کدام وقتی آمد، کنارِ اعلان به `MEMBER` می‌پیوندد.
+ * جای دستیار (۱۳/۸) در همه جز داشبوردِ اولیه (تصمیمِ ۲.۳-۳). تا خودِ قابلیت ساخته نشده، آیکونی نیست — «آیکونی که هیچ
+ * عملکرد واقعی ندارد» نه (بندِ ۲.۵). تقویم (۱۳/۷) آمد و کنارِ اعلان به `MEMBER` پیوست.
  */
-export const PLANNED_TOP_BAR = { calendar: '۱۳/۷', assistant: '۱۳/۸' } as const
+export const PLANNED_TOP_BAR = { assistant: '۱۳/۸' } as const
 
 /** ابزارهای نوارِ بالای این داشبورد. */
 export function topBarItems(dashboard: TopBarDashboard): readonly TopBarItem[] {

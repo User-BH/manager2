@@ -8125,6 +8125,571 @@
                 }
             }
         },
+        "/api/v1/reminders": {
+            "get": {
+                "summary": "api.reminders.index",
+                "tags": [
+                    "reminders"
+                ],
+                "parameters": [],
+                "responses": {
+                    "200": {
+                        "description": "موفق"
+                    },
+                    "422": {
+                        "description": "خطای اعتبارسنجی",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    },
+                    "429": {
+                        "description": "عبور از محدودیتِ نرخ",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "وارد نشده‌اید",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "دسترسی ندارید",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    }
+                },
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "from": {
+                                        "type": "string",
+                                        "description": "آغازِ بازه"
+                                    },
+                                    "to": {
+                                        "type": "string",
+                                        "description": "پایانِ بازه"
+                                    }
+                                },
+                                "required": [
+                                    "from",
+                                    "to"
+                                ]
+                            }
+                        }
+                    }
+                }
+            },
+            "post": {
+                "summary": "api.reminders.store",
+                "tags": [
+                    "reminders"
+                ],
+                "parameters": [],
+                "responses": {
+                    "200": {
+                        "description": "موفق"
+                    },
+                    "422": {
+                        "description": "خطای اعتبارسنجی",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    },
+                    "429": {
+                        "description": "عبور از محدودیتِ نرخ",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "وارد نشده‌اید",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "دسترسی ندارید",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    }
+                },
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "title": {
+                                        "type": "string",
+                                        "description": "موضوع"
+                                    },
+                                    "description": {
+                                        "type": "string",
+                                        "description": "توضیحات"
+                                    },
+                                    "target_date": {
+                                        "type": "string",
+                                        "description": "تاریخِ رویداد"
+                                    },
+                                    "lead_days": {
+                                        "type": "number",
+                                        "description": "زمانِ یادآوری"
+                                    },
+                                    "remind_on": {
+                                        "type": "string",
+                                        "description": "تاریخِ یادآوری"
+                                    },
+                                    "remind_time": {
+                                        "type": "string",
+                                        "description": "ساعتِ یادآوری"
+                                    },
+                                    "repeat_every_days": {
+                                        "type": "number",
+                                        "description": "فاصله‌ی تکرار"
+                                    },
+                                    "repeat_end": {
+                                        "type": "string"
+                                    },
+                                    "repeat_until": {
+                                        "type": "string",
+                                        "description": "پایانِ تکرار"
+                                    },
+                                    "repeat_count": {
+                                        "type": "number",
+                                        "description": "تعدادِ تکرار"
+                                    },
+                                    "scope": {
+                                        "type": "string"
+                                    },
+                                    "occurrence": {
+                                        "type": "string",
+                                        "description": "نمونه"
+                                    }
+                                },
+                                "required": [
+                                    "title",
+                                    "target_date",
+                                    "remind_time"
+                                ]
+                            }
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "summary": "api.reminders.destroy-all",
+                "tags": [
+                    "reminders"
+                ],
+                "parameters": [],
+                "responses": {
+                    "200": {
+                        "description": "موفق"
+                    },
+                    "422": {
+                        "description": "خطای اعتبارسنجی",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    },
+                    "429": {
+                        "description": "عبور از محدودیتِ نرخ",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "وارد نشده‌اید",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "دسترسی ندارید",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/reminders/history": {
+            "get": {
+                "summary": "api.reminders.history",
+                "tags": [
+                    "reminders"
+                ],
+                "parameters": [],
+                "responses": {
+                    "200": {
+                        "description": "موفق"
+                    },
+                    "422": {
+                        "description": "خطای اعتبارسنجی",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    },
+                    "429": {
+                        "description": "عبور از محدودیتِ نرخ",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "وارد نشده‌اید",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "دسترسی ندارید",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/reminders/{reminder}": {
+            "get": {
+                "summary": "api.reminders.show",
+                "tags": [
+                    "reminders"
+                ],
+                "parameters": [
+                    {
+                        "name": "reminder",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "موفق"
+                    },
+                    "422": {
+                        "description": "خطای اعتبارسنجی",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    },
+                    "429": {
+                        "description": "عبور از محدودیتِ نرخ",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "وارد نشده‌اید",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "دسترسی ندارید",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "put": {
+                "summary": "api.reminders.update",
+                "tags": [
+                    "reminders"
+                ],
+                "parameters": [
+                    {
+                        "name": "reminder",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "موفق"
+                    },
+                    "422": {
+                        "description": "خطای اعتبارسنجی",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    },
+                    "429": {
+                        "description": "عبور از محدودیتِ نرخ",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "وارد نشده‌اید",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "دسترسی ندارید",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    }
+                },
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "title": {
+                                        "type": "string",
+                                        "description": "موضوع"
+                                    },
+                                    "description": {
+                                        "type": "string",
+                                        "description": "توضیحات"
+                                    },
+                                    "target_date": {
+                                        "type": "string",
+                                        "description": "تاریخِ رویداد"
+                                    },
+                                    "lead_days": {
+                                        "type": "number",
+                                        "description": "زمانِ یادآوری"
+                                    },
+                                    "remind_on": {
+                                        "type": "string",
+                                        "description": "تاریخِ یادآوری"
+                                    },
+                                    "remind_time": {
+                                        "type": "string",
+                                        "description": "ساعتِ یادآوری"
+                                    },
+                                    "repeat_every_days": {
+                                        "type": "number",
+                                        "description": "فاصله‌ی تکرار"
+                                    },
+                                    "repeat_end": {
+                                        "type": "string"
+                                    },
+                                    "repeat_until": {
+                                        "type": "string",
+                                        "description": "پایانِ تکرار"
+                                    },
+                                    "repeat_count": {
+                                        "type": "number",
+                                        "description": "تعدادِ تکرار"
+                                    },
+                                    "scope": {
+                                        "type": "string"
+                                    },
+                                    "occurrence": {
+                                        "type": "string",
+                                        "description": "نمونه"
+                                    }
+                                },
+                                "required": [
+                                    "title",
+                                    "target_date",
+                                    "remind_time"
+                                ]
+                            }
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "summary": "api.reminders.destroy",
+                "tags": [
+                    "reminders"
+                ],
+                "parameters": [
+                    {
+                        "name": "reminder",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "موفق"
+                    },
+                    "422": {
+                        "description": "خطای اعتبارسنجی",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    },
+                    "429": {
+                        "description": "عبور از محدودیتِ نرخ",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "وارد نشده‌اید",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "دسترسی ندارید",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    }
+                },
+                "requestBody": {
+                    "required": false,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "scope": {
+                                        "type": "string"
+                                    },
+                                    "occurrence": {
+                                        "type": "string"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/api/v1/residents": {
             "get": {
                 "summary": "api.residents.index",

@@ -48,6 +48,7 @@ return [
     'boolean' => 'مقدار :attribute باید درست یا نادرست باشد.',
     'confirmed' => ':attribute با تکرارش یکسان نیست.',
     'date' => ':attribute یک تاریخ معتبر نیست.',
+    'date_format' => 'قالبِ :attribute با :format هم‌خوان نیست.',
     'different' => ':attribute و :other نباید یکسان باشند.',
     'email' => 'قالب :attribute معتبر نیست.',
     'exists' => ':attribute انتخاب‌شده معتبر نیست.',

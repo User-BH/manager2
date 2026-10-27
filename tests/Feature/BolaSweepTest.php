@@ -26,6 +26,7 @@ use App\Models\MessagePoll;
 use App\Models\MessageReport;
 use App\Models\Payment;
 use App\Models\PollOption;
+use App\Models\Reminder;
 use App\Models\ServiceRequest;
 use App\Models\Subscription;
 use App\Models\TrustedDevice;
@@ -434,6 +435,13 @@ class BolaSweepTest extends TestCase
         $backup = Backup::create(['complex_id' => $complex->id, 'type' => 'complex', 'status' => 'completed', 'disk' => 'local', 'path' => "backups/{$tag}.zip", 'size' => 10, 'created_by' => $manager->id]);
         Storage::disk('local')->put("backups/{$tag}.zip", "{$tag}-BACKUP");
         $tenure = UnitTenure::where('unit_id', $unit->id)->where('user_id', $resident->id)->firstOrFail();
+        // یادآورِ شخصیِ قربانی در همان مجتمع (۱۳/۷): نه مدیرِ مجتمع، نه همسایه، نه مجتمعِ دیگر
+        $reminder = Reminder::forceCreate([
+            'user_id' => $resident->id, 'complex_id' => $complex->id, 'title' => "{$tag}-REMINDER", 'description' => "{$tag}-REMINDER-NOTE",
+            'target_date' => now()->addDays(20)->toDateString(), 'lead_days' => 1, 'remind_time' => '09:00', 'repeat_every_days' => 7,
+        ]);
+        $reminder->reschedule();
+        $reminder->save();
 
         return [
             'targets' => [
@@ -444,12 +452,12 @@ class BolaSweepTest extends TestCase
                 'report' => $report->id, 'id' => $notificationId, 'bill' => $bill->id, 'payment' => $payment->id,
                 'device' => $device->id, 'session' => 'unknown-'.$tag, 'resident' => $resident->id,
                 'serviceRequest' => $request->id, 'subscription' => $subscription->id, 'unit' => $unit->id,
-                'tenure' => $tenure->id, 'member' => $resident->id, 'option' => $option->id,
+                'tenure' => $tenure->id, 'member' => $resident->id, 'option' => $option->id, 'reminder' => $reminder->id,
             ],
             'markers' => [
                 "{$tag}-PRIVATE-MESSAGE", "{$tag}-SERVICE-TITLE", "{$tag}-SERVICE-BODY", "{$tag}-REPORT-REASON",
                 "{$tag}-NOTICE", "{$tag}-WALLET-NOTE", "{$tag}-RECEIPT", "{$tag}-ATTACHMENT", "{$tag}-REQUEST-FILE",
-                "{$tag}-BACKUP", "{$tag}-APPLICANT",
+                "{$tag}-BACKUP", "{$tag}-APPLICANT", "{$tag}-REMINDER",
                 ...($tag === 'ZQB' ? ["{$tag}-ANNOUNCEMENT", "{$tag}-RULE", "{$tag}-DISCOUNT", "{$tag}-EXPENSE", "{$tag}-INCOME"] : []),
             ],
             'children' => [
@@ -562,7 +570,7 @@ class BolaSweepTest extends TestCase
             return $actor !== 'managerA' && in_array('GET', $route->methods(), true);
         }
 
-        $personal = ['device', 'session', 'id', 'invitation'];
+        $personal = ['device', 'session', 'id', 'invitation', 'reminder'];
         if ($actor === 'managerA') {
             return array_diff($params, $personal) === [] && ! str_starts_with($route->uri(), 'api/v1/sent-invitations')
                 && ! str_starts_with($route->uri(), 'api/v1/join-requests');

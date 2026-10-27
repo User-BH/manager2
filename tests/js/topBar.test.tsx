@@ -99,12 +99,13 @@ const TOOL = {
   searchBox: 'جستجو در واحدها، ساکنین و قبوض',
   recent: /^جستجوهای اخیر/,
   calculator: 'ماشین حساب',
+  calendar: 'تقویم',
   notifications: /اعلان/,
   theme: /حالت (تاریک|روشن)/,
 }
 
 describe('ماتریسِ آیکون‌ها (پیکربندی)', () => {
-  it('اولیه: آدمک، اعلان، تم — بی جست‌وجو و ماشین‌حساب؛ سه داشبوردِ عضو همه‌ی ابزارها', () => {
+  it('اولیه: آدمک، اعلان، تم — بی جست‌وجو، ماشین‌حساب و تقویم؛ سه داشبوردِ عضو همه‌ی ابزارها', () => {
     const { TOP_BAR } = m.topBar
 
     expect(TOP_BAR.initial).toEqual(['notifications', 'theme', 'account'])
@@ -113,6 +114,7 @@ describe('ماتریسِ آیکون‌ها (پیکربندی)', () => {
         'search',
         'recentSearches',
         'calculator',
+        'calendar',
         'notifications',
         'theme',
         'account',
@@ -120,12 +122,11 @@ describe('ماتریسِ آیکون‌ها (پیکربندی)', () => {
     }
   })
 
-  it('تقویم و دستیار تا ساخته‌شدنشان آیکون ندارند (بی آیکونِ بی‌کارکرد)', () => {
+  it('دستیار تا ساخته‌شدنش آیکون ندارد (بی آیکونِ بی‌کارکرد)؛ تقویم (۱۳/۷) آمد', () => {
     const all = Object.values(m.topBar.TOP_BAR).flat() as string[]
 
-    expect(all).not.toContain('calendar')
     expect(all).not.toContain('assistant')
-    expect(Object.keys(m.topBar.PLANNED_TOP_BAR)).toEqual(['calendar', 'assistant'])
+    expect(Object.keys(m.topBar.PLANNED_TOP_BAR)).toEqual(['assistant'])
   })
 
   it('داشبوردِ نوار از پاسخِ سرور، نه از حدس', () => {
@@ -171,6 +172,15 @@ describe('هر چهار داشبورد در رابط', () => {
     expect(within(bar).queryByRole('searchbox')).toBeNull()
     expect(within(bar).queryByRole('link', { name: TOOL.recent })).toBeNull()
     expect(within(bar).queryByRole('link', { name: TOOL.calculator })).toBeNull()
+    // بندِ ۶۹ ِ ایرادات ۱۰: داشبوردِ اولیه تقویم ندارد
+    expect(within(bar).queryByRole('link', { name: TOOL.calendar })).toBeNull()
+  })
+
+  it('آیکونِ تقویم در هر داشبوردِ عضو و همیشه — تقویم در محتوای اصلی', () => {
+    show(<m.Header />, user('owner', 'unit'))
+
+    fireEvent.click(screen.getByRole('link', { name: TOOL.calendar }))
+    expect(where).toBe('/calendar')
   })
 
   it('کلیک روی ماشین‌حساب کارِ واقعی است: همان صفحه در محتوای اصلی', () => {

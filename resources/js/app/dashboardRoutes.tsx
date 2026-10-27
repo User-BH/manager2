@@ -29,6 +29,8 @@ export interface DashboardRoute {
   page: LazyExoticComponent<ComponentType>
 }
 
+const CalendarPage = page(() => import('@/features/calendar/CalendarPage'), 'CalendarPage')
+
 /** مشترکِ هر سه: هر عضوِ واردشده — مدیر و ادمینِ کل هم واحدِ شخصی و کیف دارند. */
 export const SHARED_ROUTES: DashboardRoute[] = [
   {
@@ -82,6 +84,12 @@ export const SHARED_ROUTES: DashboardRoute[] = [
     page: page(() => import('@/features/tools/calculator/CalculatorPage'), 'CalculatorPage'),
   },
   { path: '/profile', page: page(() => import('@/features/profile/ProfilePage'), 'ProfilePage') },
+  /*
+   * تقویم و یادآورها (۱۳/۷؛ ایرادات ۱۰، بندهای ۶۸ و ۶۹): واحد، مدیر و سوپر ادمین — نه داشبوردِ اولیه (روترِ خودش آن را
+   * ندارد و سرور هم رد می‌کند). تاریخچه همان صفحه با محتوای دیگر.
+   */
+  { path: '/calendar', page: CalendarPage },
+  { path: '/calendar/history', page: CalendarPage },
   // مالک/مستأجرِ فعلی یا مدیر — مجوز در سرور (مرحلهٔ ۱۰ · فاز ۷)
   {
     path: '/units/:unitId/information',

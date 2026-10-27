@@ -34,6 +34,7 @@ use App\Http\Controllers\Api\PaymentReviewController;
 use App\Http\Controllers\Api\PhoneChangeController;
 use App\Http\Controllers\Api\PresenceController;
 use App\Http\Controllers\Api\ProfileController;
+use App\Http\Controllers\Api\ReminderController;
 use App\Http\Controllers\Api\ResidentController;
 use App\Http\Controllers\Api\RetiredEndpointController;
 use App\Http\Controllers\Api\SearchController;
@@ -468,6 +469,18 @@ Route::middleware(['auth', 'presence'])->group(function () {
     Route::get('subscription', [SubscriptionController::class, 'show'])->name('subscription.show');
     // «تاریخچه‌ی پرداخت‌ها» ِ تنظیماتِ حساب (۱۳/۶، بندهای ۲۶ تا ۲۸) — مدیرِ مجتمعِ فعال یا حسابِ اولیه
     Route::get('subscription/history', [SubscriptionController::class, 'history'])->name('subscription.history');
+
+    /*
+     * تقویم و یادآورها (۱۳/۷؛ ایرادات ۱۰، بخشِ چهارم): یادآورِ شخصیِ همین حساب در همین زمینه — مجتمعِ فعال، یا سکو برای
+     * سوپر ادمین؛ داشبوردِ اولیه ندارد (`ReminderController::context`).
+     */
+    Route::get('reminders', [ReminderController::class, 'index'])->name('reminders.index');
+    Route::get('reminders/history', [ReminderController::class, 'history'])->name('reminders.history');
+    Route::post('reminders', [ReminderController::class, 'store'])->middleware('throttle:60,1')->name('reminders.store');
+    Route::delete('reminders', [ReminderController::class, 'destroyAll'])->name('reminders.destroy-all');
+    Route::get('reminders/{reminder}', [ReminderController::class, 'show'])->whereNumber('reminder')->name('reminders.show');
+    Route::put('reminders/{reminder}', [ReminderController::class, 'update'])->whereNumber('reminder')->name('reminders.update');
+    Route::delete('reminders/{reminder}', [ReminderController::class, 'destroy'])->whereNumber('reminder')->name('reminders.destroy');
     // ۱۲/۲: خرید و تمدید فقط آنلاین — رسیدِ اشتراک یک چرخه‌ی استقرار ۴۱۰ می‌دهد، بعد برداشته می‌شود
     Route::post('subscription/receipt', [RetiredEndpointController::class, 'onlineOnly'])
         ->name('subscription.receipt');

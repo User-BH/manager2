@@ -181,6 +181,8 @@ class Notifications
             isset($data['joinRequestId']) => '/residents',
             // دعوتِ مدیرِ مجتمعِ دیگر: جزئیات و پذیرش در داشبوردِ اولیه (مرحلهٔ ۱۳ · فاز ۵؛ ایرادات ۱۱، بندِ ۳.۴)
             isset($data['invitationId']) => '/invitations',
+            // یادآورِ تقویم: همان روزِ رویداد در تقویم (مرحلهٔ ۱۳ · فاز ۷)
+            isset($data['reminderId']) => '/calendar?date='.($data['occurrence'] ?? ''),
             default => null,
         };
     }

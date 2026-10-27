@@ -115,6 +115,14 @@ export const queryKeys = {
     loginHistory: () => ['profile', 'login-history'] as const,
   },
 
+  // تقویم و یادآورها (۱۳/۷)
+  reminders: {
+    all: () => ['reminders'] as const,
+    range: (from: string, to: string) => ['reminders', 'range', from, to] as const,
+    detail: (id: number) => ['reminders', 'detail', id] as const,
+    history: (page: number) => ['reminders', 'history', page] as const,
+  },
+
   subscription: {
     all: () => ['subscription'] as const,
     // «تاریخچه‌ی پرداخت‌ها» ِ تنظیماتِ حساب (۱۳/۶)

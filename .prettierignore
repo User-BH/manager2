@@ -9,6 +9,8 @@ bootstrap/cache/
 package-lock.json
 composer.lock
 phpstan-baseline.neon
+# فهرستِ مرجعِ تقویم را `JalaliAnchorsTest` از `morilog/jalali` می‌سازد
+tests/fixtures/jalali-anchors.json
 
 # PHP را Pint قالب‌بندی می‌کند، نه Prettier
 *.php

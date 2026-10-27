@@ -13,6 +13,7 @@ use App\Models\Complex;
 use App\Models\ComplexInvitation;
 use App\Models\ComplexMembership;
 use App\Models\Payment;
+use App\Models\Reminder;
 use App\Models\ServiceRequest;
 use App\Models\Unit;
 use App\Models\User;
@@ -23,6 +24,7 @@ use App\Notifications\JoinRequestNotification;
 use App\Notifications\NewDeviceLoginNotification;
 use App\Notifications\PaymentReviewedNotification;
 use App\Notifications\PhoneChangedNotification;
+use App\Notifications\ReminderDueNotification;
 use App\Notifications\ServiceRequestNotification;
 use App\Notifications\SystemHealthNotification;
 use App\Services\Account\MembershipLedger;
@@ -120,6 +122,8 @@ class CommunityIsolationTest extends TestCase
             JoinRequestNotification::class => [new JoinRequestNotification($this->joinA, 'م'), $this->a->id],
             PaymentReviewedNotification::class => [new PaymentReviewedNotification($payment, true), $this->b->id],
             ServiceRequestNotification::class => [new ServiceRequestNotification($request, 'ت', 'ش'), $this->a->id],
+            // یادآور (۱۳/۷): مالِ زمینه‌ای که در آن ساخته شد
+            ReminderDueNotification::class => [new ReminderDueNotification((new Reminder)->forceFill(['complex_id' => $this->b->id, 'title' => 'ی', 'target_date' => '2031-01-01']), '2031-01-01'), $this->b->id],
         ];
         $account = [
             NewDeviceLoginNotification::class => new NewDeviceLoginNotification('Firefox', null),

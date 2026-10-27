@@ -1,6 +1,6 @@
 import type { Ref } from 'react'
 import { NavLink } from 'react-router-dom'
-import { Calculator, Search, X } from 'lucide-react'
+import { Calculator, CalendarDays, Search, X } from 'lucide-react'
 import { NotificationBell } from './NotificationBell'
 import { ThemeToggle } from './ThemeToggle'
 import { UserMenu } from './UserMenu'
@@ -81,6 +81,30 @@ export function TopBarActions({
           >
             {({ isActive }) => (
               <Calculator
+                size={17}
+                style={{ color: isActive ? 'var(--color-brand-600)' : 'var(--text-secondary)' }}
+              />
+            )}
+          </NavLink>
+        </Tooltip>
+      )}
+
+      {/* تقویم (۱۳/۷؛ ایرادات ۱۰، بندهای ۶۷ و ۷۰): آیکونِ همیشگی در هر عرض؛ تقویم در محتوای اصلی باز می‌شود */}
+      {items.includes('calendar') && (
+        <Tooltip label="تقویم و یادآورها">
+          <NavLink
+            to="/calendar"
+            aria-label="تقویم"
+            className="flex h-9 w-9 items-center justify-center rounded-full border transition-colors hover:bg-(--surface-sunken)"
+            style={({ isActive }) => ({
+              borderColor: isActive ? 'var(--color-brand-500)' : 'var(--border-subtle)',
+              backgroundColor: isActive
+                ? 'color-mix(in srgb, var(--color-brand-500) 12%, transparent)'
+                : undefined,
+            })}
+          >
+            {({ isActive }) => (
+              <CalendarDays
                 size={17}
                 style={{ color: isActive ? 'var(--color-brand-600)' : 'var(--text-secondary)' }}
               />

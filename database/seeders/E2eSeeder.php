@@ -8,6 +8,7 @@ use App\Enums\UserRole;
 use App\Models\Complex;
 use App\Models\ComplexInvitation;
 use App\Models\ComplexMembership;
+use App\Models\Reminder;
 use App\Models\Unit;
 use App\Models\User;
 use App\Models\WalletTransaction;
@@ -72,6 +73,12 @@ class E2eSeeder extends Seeder
      * سنجاقِ مرورگر را به زمینه‌ی بی‌مجتمع می‌برد و با سفرهای تعویض قاطی نمی‌شود.
      */
     public const CHOOSERS = ['09120000111', '09120000112', '09120000113'];
+
+    /**
+     * تقویم و یادآور (مرحلهٔ ۱۳ · فاز ۷) — مثلِ `MULTI`، ولی جدا: سفرِ `calendar` یادآور می‌سازد و زمینه را عوض می‌کند. هر
+     * اجرای seeder یادآورهای همین حساب‌ها را پاک می‌کند تا سفر از تقویمِ خالی شروع شود.
+     */
+    public const CALENDAR = ['09120000131', '09120000132', '09120000133'];
 
     /** مجتمعِ دومِ آزمون — فقط برای حساب‌های چندمجتمعی */
     public const SECOND_COMPLEX = 'مجتمع دوم سرتاسری';
@@ -186,11 +193,12 @@ class E2eSeeder extends Seeder
             ['floor' => 1, 'area' => 90, 'residents_count' => 1, 'coefficient' => 1, 'occupancy_status' => OccupancyStatus::Vacant],
         );
 
-        foreach (['چندمجتمعی' => self::MULTI, 'دودستگاهی' => self::TWO_DEVICES, 'انتخاب‌کننده' => self::CHOOSERS] as $firstName => $phones) {
+        foreach (['چندمجتمعی' => self::MULTI, 'دودستگاهی' => self::TWO_DEVICES, 'انتخاب‌کننده' => self::CHOOSERS, 'تقویمی' => self::CALENDAR] as $firstName => $phones) {
             foreach ($phones as $i => $phone) {
                 $this->inTwoCommunities($phone, $firstName, 'سرتاسری '.($i + 1), $second, $aftab);
             }
         }
+        Reminder::whereIn('user_id', User::withoutGlobalScopes()->whereIn('phone', self::CALENDAR)->select('id'))->delete();
     }
 
     /** یک حساب از نو در دو مجتمع: عضویت‌های قبلی پایان (تاریخچه می‌ماند)، سپس مدیرِ مجتمعِ دوم و مستأجرِ آفتاب */

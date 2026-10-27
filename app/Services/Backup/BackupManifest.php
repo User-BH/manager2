@@ -98,6 +98,9 @@ final class BackupManifest
         'feedback_replies',
         'notification_settings',
         'notifications',
+        // یادآورهای تقویم (۱۳/۷) — نوشته‌ی کاربر
+        'reminders',
+        'reminder_skips',
         'audit_logs',
     ];
 

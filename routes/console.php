@@ -20,6 +20,13 @@ Artisan::command('inspire', function () {
 */
 Schedule::command('bills:remind')->dailyAt('09:00');
 
+/*
+| یادآورهای تقویم (مرحلهٔ ۱۳ · فاز ۷): هر دقیقه، تا یادآورِ ساعتِ ۱۰:۳۰ در ۱۰:۳۰ برسد نه فردا. کارش فقط ردیف‌های
+| سررسیده‌ی ستونِ ایندکس‌دارِ `next_remind_at` است؛ اجرای هم‌پوشان رد می‌شود و اجرای تکراری هم چیزی را دو بار
+| نمی‌فرستد (`ReminderDispatcher` زیرِ قفلِ ردیف).
+*/
+Schedule::command('reminders:dispatch')->everyMinute()->withoutOverlapping();
+
 // اشتراک‌های سررسیدشده را منقضی و تراکنش‌های آنلاینِ رهاشده را می‌بندد
 Schedule::command('subscriptions:maintain')->dailyAt('02:00');
 
