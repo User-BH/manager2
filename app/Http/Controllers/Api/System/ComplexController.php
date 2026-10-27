@@ -12,12 +12,14 @@ use App\Http\Requests\UpdateComplexTypeRequest;
 use App\Http\Resources\InvitationPresenter;
 use App\Models\Complex;
 use App\Services\Account\Membership;
+use App\Services\Assistant\AssistantCache;
 use App\Services\Subscription\PlanGate;
 use App\Support\Audit;
 use App\Support\DemoData;
 use App\Support\Jalali;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
@@ -213,6 +215,8 @@ class ComplexController extends Controller
     public function select(Complex $complex): JsonResponse
     {
         session(['active_complex_id' => $complex->id]);
+        // دستیارِ سوپر ادمین از سکو به این مجتمع می‌رود؛ کشِ زمینه‌ی قبلی دیگر خوانده نمی‌شود
+        AssistantCache::forget(Auth::user());
 
         return response()->json([
             'message' => 'مجتمع «'.$complex->name.'» انتخاب شد.',
@@ -223,6 +227,7 @@ class ComplexController extends Controller
     public function clear(): JsonResponse
     {
         session()->forget('active_complex_id');
+        AssistantCache::forget(Auth::user());
 
         return response()->json(['message' => 'از حالت مدیریت مجتمع خارج شدید.', 'activeId' => null]);
     }

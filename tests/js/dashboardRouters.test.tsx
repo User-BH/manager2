@@ -31,6 +31,9 @@ vi.mock('@/features/system/PlatformStatsPage', () => ({
 }))
 vi.mock('@/features/error/ForbiddenPage', () => ({ ForbiddenPage: () => <p>دسترسی ندارید</p> }))
 vi.mock('@/features/error/NotFoundPage', () => ({ NotFoundPage: () => <p>یافت نشد</p> }))
+vi.mock('@/features/assistant/AssistantDock', () => ({
+  AssistantDock: () => <button type="button">دستیارِ هوشمندِ ساکنا</button>,
+}))
 
 type Modules = {
   AppRouter: (typeof import('@/app/AppRouter'))['AppRouter']
@@ -120,6 +123,17 @@ describe('هر نقش روترِ داشبوردِ خودش را می‌گیرد'
     visit('/no-such-page', user('owner'))
     expect(await screen.findByText('یافت نشد')).toBeInTheDocument()
     expect(currentPath).toBe('/no-such-page')
+  })
+
+  it('دستیار (۱۳/۸) فقط وقتی سرور گفته — نه با نقش و نه برای همه', async () => {
+    visit('/units', user('complex_admin'))
+    expect(await screen.findByText('واحدها')).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'دستیارِ هوشمندِ ساکنا' })).toBeNull()
+  })
+
+  it('دستیار با `user.assistant` ِ سرور بار می‌شود', async () => {
+    visit('/units', { ...user('complex_admin'), assistant: true })
+    expect(await screen.findByRole('button', { name: 'دستیارِ هوشمندِ ساکنا' })).toBeInTheDocument()
   })
 
   it('بیرون از نشست، مسیرِ هر داشبورد به ورود می‌رود', async () => {

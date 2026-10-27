@@ -4,6 +4,7 @@ use App\Http\Controllers\Api\AccountContextController;
 use App\Http\Controllers\Api\AccountRecoveryController;
 use App\Http\Controllers\Api\AdvertisementController;
 use App\Http\Controllers\Api\AnnouncementController;
+use App\Http\Controllers\Api\AssistantController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\AvatarController;
 use App\Http\Controllers\Api\BackupController;
@@ -481,6 +482,14 @@ Route::middleware(['auth', 'presence'])->group(function () {
     Route::get('reminders/{reminder}', [ReminderController::class, 'show'])->whereNumber('reminder')->name('reminders.show');
     Route::put('reminders/{reminder}', [ReminderController::class, 'update'])->whereNumber('reminder')->name('reminders.update');
     Route::delete('reminders/{reminder}', [ReminderController::class, 'destroy'])->whereNumber('reminder')->name('reminders.destroy');
+
+    /*
+     * دستیارِ داخلیِ داشبورد (۱۳/۸؛ ایرادات ۱۱، بخشِ ۴): واحد، مدیر و سوپر ادمین؛ نه داشبوردِ اولیه و نه مجتمعِ بی پلنِ
+     * پیشرفته — دروازه در `AssistantAccess`، برای هر سه مسیر. فقط خواندن؛ زمینه از نشستِ سرور.
+     */
+    Route::post('assistant/ask', [AssistantController::class, 'ask'])->middleware('throttle:20,1')->name('assistant.ask');
+    Route::get('assistant/history', [AssistantController::class, 'history'])->name('assistant.history');
+    Route::delete('assistant/history', [AssistantController::class, 'clear'])->name('assistant.clear');
     // ۱۲/۲: خرید و تمدید فقط آنلاین — رسیدِ اشتراک یک چرخه‌ی استقرار ۴۱۰ می‌دهد، بعد برداشته می‌شود
     Route::post('subscription/receipt', [RetiredEndpointController::class, 'onlineOnly'])
         ->name('subscription.receipt');

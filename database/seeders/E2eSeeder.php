@@ -4,11 +4,17 @@ namespace Database\Seeders;
 
 use App\Enums\ComplexType;
 use App\Enums\OccupancyStatus;
+use App\Enums\PlanTier;
+use App\Enums\SubscriptionPlan;
 use App\Enums\UserRole;
+use App\Models\AssistantMessage;
 use App\Models\Complex;
 use App\Models\ComplexInvitation;
 use App\Models\ComplexMembership;
+use App\Models\Expense;
+use App\Models\Plan;
 use App\Models\Reminder;
+use App\Models\Subscription;
 use App\Models\Unit;
 use App\Models\User;
 use App\Models\WalletTransaction;
@@ -17,6 +23,7 @@ use App\Services\Account\MembershipLedger;
 use App\Services\Blog\BlogImporter;
 use App\Services\Units\TenureService;
 use App\Services\Wallet\WalletService;
+use App\Support\Jalali;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
 use RuntimeException;
@@ -82,6 +89,14 @@ class E2eSeeder extends Seeder
 
     /** مجتمعِ دومِ آزمون — فقط برای حساب‌های چندمجتمعی */
     public const SECOND_COMPLEX = 'مجتمع دوم سرتاسری';
+
+    /**
+     * دستیارِ داخلی (مرحلهٔ ۱۳ · فاز ۸) — مستأجرِ «آفتاب» (بی پلنِ پیشرفته: بی دستیار) و مدیرِ «مجتمع دستیار سرتاسری» با
+     * اشتراکِ فعالِ پیشرفته و یک هزینه‌ی این ماه، تا سفر هر دو سوی دروازه و یک پاسخِ واقعی را ببیند. گفت‌وگوی قبلی پاک.
+     */
+    public const ASSISTANT = ['09120000141', '09120000142', '09120000143'];
+
+    public const ASSISTANT_COMPLEX = 'مجتمع دستیار سرتاسری';
 
     /**
      * QR ِ ورودِ عمومی (مرحلهٔ ۱۰ · فاز ۵) — برای هر موتور یک مجتمعِ جدا با مدیرِ خودش، و یک حسابِ اولیه که
@@ -199,6 +214,37 @@ class E2eSeeder extends Seeder
             }
         }
         Reminder::whereIn('user_id', User::withoutGlobalScopes()->whereIn('phone', self::CALENDAR)->select('id'))->delete();
+
+        $assistant = $this->assistantComplex();
+        foreach (self::ASSISTANT as $i => $phone) {
+            $this->inTwoCommunities($phone, 'دستیاری', 'سرتاسری '.($i + 1), $assistant, $aftab);
+        }
+        AssistantMessage::whereIn('user_id', User::withoutGlobalScopes()->whereIn('phone', self::ASSISTANT)->select('id'))->delete();
+    }
+
+    /** مجتمعی با اشتراکِ فعالِ پیشرفته (همان پلنِ پیش‌فرضِ مهاجرتِ ۱۳/۶) و یک هزینه‌ی ماهِ جاری */
+    private function assistantComplex(): Complex
+    {
+        $complex = Complex::firstOrCreate(['slug' => 'e2e-assistant'], [
+            'name' => self::ASSISTANT_COMPLEX,
+            'type' => ComplexType::Residential,
+            'address' => 'نشانیِ آزمونِ سرتاسری',
+            'payment_gateway' => 'none',
+        ]);
+        $plan = Plan::where('tier', PlanTier::Advanced->value)->where('is_active', true)->orderBy('id')->first()
+            ?? throw new RuntimeException('پلنِ پیشرفته نیست؛ مهاجرت‌های ۱۳/۶ را اجرا کنید.');
+
+        Subscription::withoutGlobalScopes()->updateOrCreate(
+            ['complex_id' => $complex->id, 'review_note' => 'اشتراکِ آزمونِ سرتاسری'],
+            ['plan' => SubscriptionPlan::Pro->value, 'plan_id' => $plan->id, 'status' => 'active', 'method' => 'manual', 'amount' => 0,
+                'months' => 12, 'starts_at' => now()->subDay(), 'ends_at' => now()->addYear(), 'paid_at' => now()],
+        );
+        Expense::withoutGlobalScopes()->updateOrCreate(
+            ['complex_id' => $complex->id, 'title' => 'هزینه‌ی آزمونِ دستیار'],
+            ['amount' => 420_000, 'category' => 'owner', 'period' => Jalali::currentPeriod(), 'spend_date' => now(), 'is_distributed' => false],
+        );
+
+        return $complex;
     }
 
     /** یک حساب از نو در دو مجتمع: عضویت‌های قبلی پایان (تاریخچه می‌ماند)، سپس مدیرِ مجتمعِ دوم و مستأجرِ آفتاب */

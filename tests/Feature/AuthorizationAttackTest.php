@@ -657,6 +657,8 @@ class AuthorizationAttackTest extends TestCase
         'app/Notifications/InvitationReceivedNotification.php' => [2, 'واحد و نامِ دعوت‌کننده‌ی همان دعوت (مجتمعِ مقصد بیرون از زمینه‌ی گیرنده)؛ همان قاعده‌ی `InvitationController::index`'],
         // مرحلهٔ ۱۳ · فاز ۳: فرودِ ورود — شمارِ عضویت‌های فعالِ خودِ حساب، پیش از هر زمینه
         'app/Listeners/StartAuthenticatedSession.php' => [1, 'شمارِ عضویت‌های فعالِ همان حسابِ تازه‌واردشده: تک‌مجتمعی مستقیم، چندمجتمعی صفحه‌ی انتخاب'],
+        // مرحلهٔ ۱۳ · فاز ۸: «مجتمعِ X» در پرسشِ دستیار — فقط نامِ مجتمع‌های عضویت‌های خودِ حساب، تا راهنمای تعویض بدهد نه داده
+        'app/Services/Assistant/ComplexMention.php' => [1, 'نامِ مجتمع‌های عضویتِ زنده‌ی خودِ حساب (مرز `user_id`)؛ هیچ داده‌ای از آن مجتمع‌ها خوانده نمی‌شود'],
 
         // ── قفل و بازخوانی، **پس از** اینکه مجوز سنجیده شده ──
         'app/Http/Controllers/Api/PaymentController.php' => [1, 'بازخوانیِ قبض داخلِ قفل؛ مجوزش بالاتر سنجیده شده'],

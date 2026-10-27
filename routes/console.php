@@ -27,6 +27,9 @@ Schedule::command('bills:remind')->dailyAt('09:00');
 */
 Schedule::command('reminders:dispatch')->everyMinute()->withoutOverlapping();
 
+// تاریخچه‌ی دستیار (مرحلهٔ ۱۳ · فاز ۸): سیاستِ نگه‌داریِ ۳۰ روزه (ایرادات ۱۱، بندِ ۴.۱۴)
+Schedule::command('assistant:prune')->dailyAt('04:10');
+
 // اشتراک‌های سررسیدشده را منقضی و تراکنش‌های آنلاینِ رهاشده را می‌بندد
 Schedule::command('subscriptions:maintain')->dailyAt('02:00');
 

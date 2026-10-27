@@ -123,6 +123,11 @@ export const queryKeys = {
     history: (page: number) => ['reminders', 'history', page] as const,
   },
 
+  // دستیارِ داخلی (۱۳/۸): گفت‌وگوی همین حساب در همین زمینه
+  assistant: {
+    history: () => ['assistant', 'history'] as const,
+  },
+
   subscription: {
     all: () => ['subscription'] as const,
     // «تاریخچه‌ی پرداخت‌ها» ِ تنظیماتِ حساب (۱۳/۶)

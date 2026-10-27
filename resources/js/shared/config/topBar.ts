@@ -43,11 +43,11 @@ export const TOP_BAR: Record<TopBarDashboard, readonly TopBarItem[]> = {
   platform: MEMBER,
 }
 
-/**
- * جای دستیار (۱۳/۸) در همه جز داشبوردِ اولیه (تصمیمِ ۲.۳-۳). تا خودِ قابلیت ساخته نشده، آیکونی نیست — «آیکونی که هیچ
- * عملکرد واقعی ندارد» نه (بندِ ۲.۵). تقویم (۱۳/۷) آمد و کنارِ اعلان به `MEMBER` پیوست.
+/*
+ * دستیار (۱۳/۸) عمداً در این نوار نیست: ایرادات ۱۱، بندِ ۴.۳ دکمه‌ی دایره‌ایِ شناورِ **پایینِ چپ** می‌خواهد، مستقل از
+ * نوار و منوی کناری (`features/assistant/AssistantDock`). نمایشش را سرور می‌گوید (`user.assistant` ← `AssistantAccess`):
+ * داشبوردِ اولیه هرگز، مجتمع فقط با پلنِ پیشرفته.
  */
-export const PLANNED_TOP_BAR = { assistant: '۱۳/۸' } as const
 
 /** ابزارهای نوارِ بالای این داشبورد. */
 export function topBarItems(dashboard: TopBarDashboard): readonly TopBarItem[] {

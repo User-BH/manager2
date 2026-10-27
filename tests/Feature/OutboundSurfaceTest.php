@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Services\Assistant\Phrasing\LocalModelPhraser;
 use Tests\TestCase;
 
 /**
@@ -156,6 +157,13 @@ class OutboundSurfaceTest extends TestCase
                 if (basename($path) === 'HealthAlerter.php' && $argument === '$url') {
                     continue;
                 }
+                /*
+                 * موتورِ مدلِ محلیِ دستیار (۱۳/۸) هم از `.env` ِ اپراتور می‌آید و سخت‌تر سنجیده می‌شود: فقط http(s) و فقط
+                 * loopback یا IP ِ شبکه‌ی خصوصی (`test_the_local_model_url_is_local_only`).
+                 */
+                if (basename($path) === 'LocalModelPhraser.php' && str_starts_with($argument, 'rtrim($this->url')) {
+                    continue;
+                }
 
                 $dynamic[] = basename($path).' → '.$argument;
             }
@@ -167,6 +175,20 @@ class OutboundSurfaceTest extends TestCase
             "مقصدِ این تماس‌ها ثابت نیست و می‌تواند SSRF بسازد:\n  "
             .implode("\n  ", array_unique($dynamic)),
         );
+    }
+
+    /** و نشانیِ مدلِ دستیار فقط محلی: نشانیِ بیرونی، نامِ میزبان و link-local هنگامِ ساخت رد می‌شوند. */
+    public function test_the_local_model_url_is_local_only(): void
+    {
+        foreach (['http://127.0.0.1:11434', 'http://localhost:11434', 'http://10.0.0.5:8080', 'http://192.168.1.9', 'http://[::1]:11434'] as $url) {
+            $this->assertTrue(LocalModelPhraser::isLocal($url), $url);
+        }
+        foreach (['http://8.8.8.8', 'https://api.openai.com', 'http://model.internal', 'http://169.254.169.254', 'ftp://127.0.0.1', 'file:///etc/passwd', ''] as $url) {
+            $this->assertFalse(LocalModelPhraser::isLocal($url), $url);
+        }
+
+        $this->expectException(\InvalidArgumentException::class);
+        new LocalModelPhraser('https://api.example.com', 'x', 5);
     }
 
     /** ⚠️ و آدرسِ وب‌هوک باید پروتکلش سنجیده شود، نه فقط تهی نبودنش. */

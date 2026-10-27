@@ -26,6 +26,14 @@ const CommunitySelectPage = lazy(() =>
   })),
 )
 
+/*
+ * دستیارِ داخلی (مرحلهٔ ۱۳ · فاز ۸): دکمه و پنل یک چانکِ تنبل‌اند و فقط وقتی بار می‌شوند که سرور گفته این حساب در این
+ * زمینه دستیار دارد (`user.assistant`) — داشبوردِ اولیه و صفحه‌ی انتخاب اصلاً به این شاخه نمی‌رسند.
+ */
+const AssistantDock = lazy(() =>
+  import('@/features/assistant/AssistantDock').then((m) => ({ default: m.AssistantDock })),
+)
+
 /**
  * با هر تغییرِ مسیر، صفحه از بالا شروع می‌شود.
  *
@@ -100,6 +108,11 @@ export function AppRouter() {
       <ScrollToTop />
       <TrackPageViews />
       <DashboardRouter dashboard={dashboardFor(user?.role, user?.dashboard)} />
+      {user?.assistant && (
+        <Suspense fallback={null}>
+          <AssistantDock />
+        </Suspense>
+      )}
     </Suspense>
   )
 }

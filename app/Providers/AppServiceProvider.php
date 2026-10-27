@@ -13,6 +13,10 @@ use App\Models\Income;
 use App\Models\Plan;
 use App\Models\Unit;
 use App\Observers\AuditObserver;
+use App\Services\Assistant\Phrasing\LocalModelPhraser;
+use App\Services\Assistant\Phrasing\NoModelPhraser;
+use App\Services\Assistant\Phrasing\Phraser;
+use App\Services\Assistant\ToolRegistry;
 use App\Support\EnvironmentGuard;
 use App\Support\Jalali;
 use App\Support\Phone;
@@ -36,6 +40,16 @@ class AppServiceProvider extends ServiceProvider
         // Active complex for the multi-tenant query scope. A null id means
         // "no scoping" (super-admin or console). Middleware sets it per request.
         $this->app->singleton(TenantContext::class);
+
+        // دستیارِ داخلی (۱۳/۸): ماژول‌ها از پیکربندی، و مدلِ زبانی فقط محلی و فقط اگر روشن شده باشد
+        $this->app->bind(ToolRegistry::class, fn () => ToolRegistry::fromConfig());
+        $this->app->bind(Phraser::class, fn () => config('assistant.model.driver') === 'local'
+            ? new LocalModelPhraser(
+                (string) config('assistant.model.url'),
+                (string) config('assistant.model.name'),
+                (int) config('assistant.model.timeout', 8),
+            )
+            : new NoModelPhraser);
     }
 
     public function boot(): void

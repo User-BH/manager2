@@ -8,6 +8,7 @@ use App\Http\Requests\SwitchContextRequest;
 use App\Models\ComplexMembership;
 use App\Models\User;
 use App\Services\Account\MembershipLedger;
+use App\Services\Assistant\AssistantCache;
 use App\Support\Jalali;
 use App\Support\SessionContext;
 use Illuminate\Http\JsonResponse;
@@ -42,6 +43,8 @@ class AccountContextController extends Controller
         }
 
         $this->ledger->switchTo($user, (int) $request->validated()['complex_id']);
+        // کشِ دستیار مالِ زمینه‌ی قبلی است (ایرادات ۱۱، بندهای ۴.۱۳ و ۵.۱۸)
+        AssistantCache::forget($user);
 
         return response()->json($this->present($user));
     }
@@ -63,6 +66,7 @@ class AccountContextController extends Controller
 
         SessionContext::pin($user, SessionContext::DETACHED);
         SessionContext::detach($user, SessionContext::DETACHED);
+        AssistantCache::forget($user);
 
         return response()->json($this->present($user));
     }

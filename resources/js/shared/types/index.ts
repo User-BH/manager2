@@ -57,6 +57,8 @@ export interface CurrentUser {
   demoData?: boolean
   /** سوپر ادمینِ Production بی Authenticator: فقط راه‌اندازیِ عاملِ دوم باز است (سرور بقیه را می‌بندد) */
   twoFactorSetupRequired?: boolean
+  /** دستیارِ داخلی (۱۳/۸) — همان دروازه‌ی API: داشبوردِ اولیه هرگز، مجتمع فقط با پلنِ پیشرفته */
+  assistant?: boolean
   complex: ComplexSummary | null
 
   /**

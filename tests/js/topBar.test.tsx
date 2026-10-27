@@ -122,11 +122,12 @@ describe('ماتریسِ آیکون‌ها (پیکربندی)', () => {
     }
   })
 
-  it('دستیار تا ساخته‌شدنش آیکون ندارد (بی آیکونِ بی‌کارکرد)؛ تقویم (۱۳/۷) آمد', () => {
+  it('دستیار (۱۳/۸) در نوار نیست — دکمه‌ی شناورِ پایینِ چپ است (ایرادات ۱۱، بندِ ۴.۳)؛ تقویم (۱۳/۷) هست', () => {
     const all = Object.values(m.topBar.TOP_BAR).flat() as string[]
 
     expect(all).not.toContain('assistant')
-    expect(Object.keys(m.topBar.PLANNED_TOP_BAR)).toEqual(['assistant'])
+    expect(all).toContain('calendar')
+    expect('PLANNED_TOP_BAR' in m.topBar).toBe(false)
   })
 
   it('داشبوردِ نوار از پاسخِ سرور، نه از حدس', () => {

@@ -23,6 +23,7 @@ use App\Models\LoginEvent;
 use App\Models\User;
 use App\Services\Account\Membership;
 use App\Services\Account\ProfilePhoto;
+use App\Services\Assistant\AssistantAccess;
 use App\Services\Auth\AdminTwoFactor;
 use App\Services\Auth\LoginRecorder;
 use App\Services\Auth\OtpService;
@@ -791,6 +792,8 @@ class AuthController extends Controller
             'demoData' => $user->isSuperAdmin() && DemoData::allowedHere(),
             // نشستِ سوپر ادمینِ Production بی TOTP: رابط فقط راه‌اندازیِ عاملِ دوم را پیش می‌گذارد (`EnsureAdminTwoFactor`)
             'twoFactorSetupRequired' => $this->twoFactor->setupRequired($user),
+            // دکمه‌ی دستیار (۱۳/۸): همان دروازه‌ی API — اولیه هرگز، مجتمع فقط با پلنِ پیشرفته (`AssistantAccess`)
+            'assistant' => app(AssistantAccess::class)->allows($user),
             'complex' => $complex ? [
                 'id' => $complex->id,
                 'name' => $complex->name,
