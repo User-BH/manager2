@@ -131,6 +131,13 @@ class MemberComplexPurchaseTest extends TestCase
         $this->as($this->member->fresh())->getJson('/api/v1/residents')->assertOk();
         $units = $this->as($this->member->fresh())->getJson('/api/v1/units')->assertOk()->json('data');
         $this->assertNotContains($this->unitA->id, collect($units)->pluck('id')->all());
+        // داشبوردِ تازه هم مجتمع‌های قبلی را برای منوی آدمک دارد (ایرادات ۱۱، آزمونِ ۲۱ ِ بندِ ۵.۱۹)
+        $me = $this->as($this->member->fresh())->getJson('/api/v1/me')->json('user');
+        $this->assertSame($c->id, $me['complex']['id']);
+        $this->assertSame(
+            [[$this->a->id, 'owner', false], [$this->b->id, 'tenant', false], [$c->id, 'complex_admin', true]],
+            collect($me['memberships'])->sortBy('complexId')->map(fn ($m) => [$m['complexId'], $m['role'], $m['current']])->values()->all(),
+        );
 
         // به B برمی‌گردد: مستأجر — مدیر بودن در C هیچ دسترسی‌ای در B نمی‌دهد
         $this->as($this->member->fresh())->postJson('/api/v1/account/context', ['complex_id' => $this->b->id])->assertOk();

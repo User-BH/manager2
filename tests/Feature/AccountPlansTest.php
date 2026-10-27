@@ -163,6 +163,15 @@ class AccountPlansTest extends TestCase
         $pending = $this->checkout(['plan' => 'res-pro', 'months' => 3, 'amount' => 1, 'price' => 1]);
         $this->assertSame(777_000, (int) $pending->amount);
 
+        // داشبوردِ اولیه هم همان قیمتِ تازه را می‌بیند و می‌پردازد (DoD ِ ایرادات ۱۰ بندِ ۱۱۰: «در همه‌ی داشبوردها»)
+        $initial = User::factory()->create(['complex_id' => null, 'role' => UserRole::Owner, 'is_active' => true]);
+        $cards = $this->actingAs($initial)->getJson('/api/v1/subscription')->assertOk()->json('catalog.residential');
+        $this->assertSame(777_000, collect($cards)->firstWhere('slug', 'res-pro')['prices'][1]['price']);
+        $this->actingAs($initial)->post('/subscription/checkout', [
+            'plan' => 'res-pro', 'months' => 3, 'complex_name' => 'مجتمع نفیس', 'complex_type' => 'residential', 'amount' => 1,
+        ]);
+        $this->assertSame(777_000, (int) CheckoutIntent::where('user_id', $initial->id)->sole()->amount);
+
         // و تغییرِ قیمت در audit با قبل و بعد
         $log = AuditLog::where('action', 'plan.updated')->sole();
         $this->assertSame([550_000, true], $log->properties['before']['prices'][3]);

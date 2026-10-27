@@ -21,6 +21,19 @@ class Stage13MatrixTest extends TestCase
 
     private const RECONCILIATION = 'docs/STAGE13_RECONCILIATION.md';
 
+    private const DOD = 'docs/STAGE13_DOD.md';
+
+    /** شمارِ بندهای هر بخشِ سندِ DoD، از خودِ اسنادِ کارفرما — بندِ افتاده یا ادغام‌شده همین‌جا گرفته می‌شود */
+    private const DOD_SECTIONS = ['۱' => 58, '۲' => 9, '۳' => 12, '۴' => 31, '۵' => 13, '۶' => 5, '۷' => 47];
+
+    /** ترتیبِ تجمیع: بدترین وضعیتِ بخش، وضعیتِ ردیفِ ماتریسِ آن است؛ بندِ جایگزین‌شده خنثی */
+    private const SEVERITY = [
+        'OPEN' => 4,
+        'BLOCKED BY EXTERNAL ENVIRONMENT' => 3,
+        'IMPLEMENTATION READY — ENVIRONMENT VERIFICATION REQUIRED' => 2,
+        'VERIFIED' => 1,
+    ];
+
     public const STATUSES = [
         'IMPLEMENTATION READY — ENVIRONMENT VERIFICATION REQUIRED',
         'INTENTIONALLY NOT BUILT',
@@ -48,15 +61,80 @@ class Stage13MatrixTest extends TestCase
         return $rows;
     }
 
+    /** @return array<string, array{heading: string, rows: list<array{line: int, section: string, key: string, text: string, status: string}>}> */
+    private function dodSections(): array
+    {
+        $sections = [];
+        foreach ($this->tables(self::DOD) as $table) {
+            if (preg_match('/^([۰-۹]+)\. /u', $table['section'], $m)) {
+                $sections[$m[1]] = ['heading' => $table['section'], 'rows' => [...($sections[$m[1]]['rows'] ?? []), ...$table['rows']]];
+            }
+        }
+
+        return $sections;
+    }
+
+    /** @return list<array{line: int, section: string, key: string, text: string, status: string}> */
+    private function dodRows(): array
+    {
+        return array_merge(...array_values(array_map(fn (array $s) => $s['rows'], $this->dodSections())));
+    }
+
     public function test_the_matrix_is_parsed(): void
     {
         // ⚠️ بی این، خرابیِ خواندنِ جدول‌ها نگهبان را بی‌صدا پوچ می‌کرد
         $this->assertGreaterThan(110, count($this->statusRows()));
     }
 
+    /** ۱۳/۹-ب: هر بندِ چهار DoD یک ردیف دارد — نه کمتر، نه ادغام‌شده */
+    public function test_every_item_of_the_four_definitions_of_done_has_its_own_row(): void
+    {
+        $sections = $this->dodSections();
+        $this->assertSame(array_keys(self::DOD_SECTIONS), array_keys($sections), 'بخش‌های سندِ DoD عوض شده‌اند.');
+        foreach (self::DOD_SECTIONS as $n => $count) {
+            $this->assertCount($count, $sections[$n]['rows'], "بخشِ {$n} ِ سندِ DoD باید {$count} بند داشته باشد.");
+            $this->assertSame(count($sections[$n]['rows']), count(array_unique(array_column($sections[$n]['rows'], 'key'))), "بخشِ {$n}: شماره‌ی بند تکراری است.");
+        }
+    }
+
+    /** وضعیتِ ردیفِ ماتریس از بندهای DoD ِ همان بخش می‌آید؛ تغییرِ وضعیتِ ماتریس به‌تنهایی DoD را کامل نمی‌کند */
+    public function test_a_definition_of_done_sets_the_status_of_its_matrix_row(): void
+    {
+        $linked = 0;
+        foreach ($this->dodSections() as $n => $section) {
+            if (! preg_match('/ماتریس: (§[۰-۹.]+ · .+?)\)$/u', $section['heading'], $m)) {
+                continue;
+            }
+            $linked++;
+            $worst = 'VERIFIED';
+            foreach ($section['rows'] as $row) {
+                $status = $this->leadingStatus($row['status']);
+                if (isset(self::SEVERITY[$status]) && self::SEVERITY[$status] > self::SEVERITY[$worst]) {
+                    $worst = $status;
+                }
+            }
+            $matrix = $this->matrixRowFor($m[1]);
+            $this->assertNotNull($matrix, "بخشِ {$n}: ردیفِ «{$m[1]}» در نقشه‌ی راه نیست.");
+            $this->assertSame($worst, $this->leadingStatus($matrix['status']), "بخشِ {$n}: ردیفِ ماتریسِ «{$m[1]}» باید {$worst} باشد.");
+        }
+        $this->assertSame(5, $linked, 'پنج بخشِ DoD به ردیفِ ماتریس گره خورده‌اند.');
+    }
+
+    /** سندِ آزمایشی بندِ ۸.۵: عددِ coverage فقط با اندازه‌گیریِ واقعی — هیچ سندِ مرحلهٔ ۱۳ چنین عددی ندارد */
+    public function test_no_coverage_number_is_claimed(): void
+    {
+        foreach ([...glob(base_path('docs/STAGE13_*.md')) ?: [], base_path('README.md')] as $file) {
+            $this->assertDoesNotMatchRegularExpression(
+                '/(coverage|پوشش)[^\n|]{0,30}[0-9۰-۹]+(?:[.٫][0-9۰-۹]+)?\s*[%٪]|[0-9۰-۹]+\s*[%٪][^\n|]{0,20}(coverage|پوشش)/iu',
+                (string) file_get_contents($file),
+                basename($file).' عددِ coverage ادعا می‌کند.',
+            );
+        }
+    }
+
     public function test_every_row_carries_exactly_one_of_the_five_statuses_without_stale_qualifiers(): void
     {
-        foreach ($this->statusRows() as $row) {
+        foreach ([...$this->statusRows(), ...$this->dodRows()] as $row) {
             $where = "ردیفِ {$row['key']} (سطرِ {$row['line']})";
             $this->assertSame(1, $this->tokenCount($row['status']), "{$where}: دقیقاً یکی از پنج وضعیت نیست — «{$row['status']}».");
             $this->assertNotNull($this->leadingStatus($row['status']), "{$where}: وضعیت با یکی از پنج برچسب شروع نمی‌شود — «{$row['status']}».");
@@ -68,7 +146,7 @@ class Stage13MatrixTest extends TestCase
 
     public function test_nothing_is_verified_without_an_existing_named_test(): void
     {
-        foreach ($this->statusRows() as $row) {
+        foreach ([...$this->statusRows(), ...$this->dodRows()] as $row) {
             if ($this->leadingStatus($row['status']) !== 'VERIFIED') {
                 continue;
             }
@@ -78,7 +156,7 @@ class Stage13MatrixTest extends TestCase
 
     public function test_every_test_and_file_named_in_the_matrix_and_the_reconciliation_exists(): void
     {
-        foreach ([self::ROADMAP, self::RECONCILIATION] as $doc) {
+        foreach ([self::ROADMAP, self::RECONCILIATION, self::DOD] as $doc) {
             $text = $this->read($doc);
             $this->assertDoesNotMatchRegularExpression('/`[A-Za-z_:.\/-]*(?:Test|test_\w*|\.tsx?|\.ts)…`?/u', $text, "{$doc}: نامِ آزمونِ بریده‌شده («…») قابلِ سنجش نیست.");
             foreach ($this->namedTests($text) as $reference) {
@@ -93,7 +171,7 @@ class Stage13MatrixTest extends TestCase
 
     public function test_an_open_row_carries_its_reason_and_plan(): void
     {
-        foreach ($this->statusRows() as $row) {
+        foreach ([...$this->statusRows(), ...$this->dodRows()] as $row) {
             if ($this->leadingStatus($row['status']) === 'OPEN') {
                 $this->assertMatchesRegularExpression('/^OPEN \(→ (?:۱۳\/۹-(?:الف|ب|ج|د|ه|و|ز)|مرحلهٔ ۱۴)[^)]*\)/u', $row['status'], "ردیفِ OPEN ِ {$row['key']} (سطرِ {$row['line']}) دلیل و برنامه ندارد.");
             }
@@ -106,7 +184,7 @@ class Stage13MatrixTest extends TestCase
         $this->assertContains('۲.۳-۱', $known);
         $this->assertContains('پ-۱', $known);
 
-        foreach ([...$this->statusRows(), ...$this->reconciliation()] as $row) {
+        foreach ([...$this->statusRows(), ...$this->dodRows(), ...$this->reconciliation()] as $row) {
             if (! str_contains($row['text'], 'جایگزین')) {
                 continue;
             }

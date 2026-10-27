@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Enums\UserRole;
 use App\Models\Complex;
+use App\Models\ComplexMembership;
 use App\Models\User;
 use App\Support\SystemSettings;
 use Database\Seeders\PreviewSeeder;
@@ -197,6 +198,27 @@ class UsernameLoginTest extends TestCase
             'first_name' => 'علی', 'last_name' => 'محمدی', 'phone' => '09125555555',
             'password' => 'Secret123', 'password_confirmation' => 'Secret123', 'accept_terms' => true,
         ])->assertOk();
+    }
+
+    /**
+     * اصلاحیه، بخش ۳ و DoD: ثبت‌نامِ عمومی همیشه حسابِ واقعی است و به داشبوردِ اولیه می‌رسد — نشانگرِ آزمایشی، نام کاربری
+     * و نقشی که در بدنه‌ی درخواست جاسازی شود هیچ اثری ندارد.
+     */
+    public function test_a_public_signup_is_always_a_real_initial_account(): void
+    {
+        $code = $this->postJson('/api/v1/register', [
+            'first_name' => 'سارا', 'last_name' => 'کریمی', 'phone' => '09125555556',
+            'password' => 'Secret123', 'password_confirmation' => 'Secret123', 'accept_terms' => true,
+            'is_demo' => true, 'username' => 'demo.hijack', 'role' => UserRole::SuperAdmin->value,
+        ])->assertOk()->json('dev_code');
+        $this->postJson('/api/v1/register/verify', ['code' => $code])->assertStatus(201);
+
+        $user = User::withoutGlobalScopes()->where('phone', '09125555556')->sole();
+        $this->assertFalse($user->is_demo);
+        $this->assertNull($user->username);
+        $this->assertFalse($user->isAdmin());
+        $this->assertSame(0, ComplexMembership::withoutGlobalScopes()->where('user_id', $user->id)->count());
+        $this->actingAs($user)->getJson('/api/v1/me')->assertOk()->assertJsonPath('user.dashboard', 'initial');
     }
 
     /* ── ۶ ─────────────────────────────────────────────────────────────── */

@@ -136,8 +136,28 @@ for (const role of ['unit', 'manager', 'platform'] as const) {
     await account.click()
     await expect(signOut).toBeHidden()
 
-    // ── عرضِ کم: پنل زیرِ سربرگ، روی محتوا ──
-    await t.searchToggle.click()
+    // ── عرضِ کم: پنل زیرِ سربرگ، روی محتوا؛ ورود با انیمیشن (ایرادات ۱۰ بندِ ۵۶، DoD ِ بندِ ۱۱۰) ──
+    // کدری ِ پنل در هر فریم از لحظه‌ی کلیک: باید از کمتر از ۱ شروع شود و به ۱ برسد — ظاهرشدنِ ناگهانی رد است
+    const frames = await t.searchToggle.evaluate(
+      (toggle: HTMLElement) =>
+        new Promise<number[]>((resolve) => {
+          const seen: number[] = []
+          const started = performance.now()
+          toggle.click()
+          const sample = () => {
+            const el = document.getElementById(toggle.getAttribute('aria-controls') ?? '')
+            if (el) seen.push(Number(getComputedStyle(el).opacity))
+            if (seen.at(-1) === 1 || performance.now() - started > 2000) resolve(seen)
+            else requestAnimationFrame(sample)
+          }
+          requestAnimationFrame(sample)
+        }),
+    )
+    expect(
+      frames.some((o) => o < 1),
+      `پنل بی انیمیشن ظاهر شد: ${frames.join('، ')}`,
+    ).toBe(true)
+    expect(frames.at(-1), 'انیمیشنِ ورود به کدریِ کامل نرسید').toBe(1)
     const panel = page.getByRole('region', { name: 'جستجو' })
     await expect(panel).toBeVisible()
     const header = (await bar.boundingBox())!

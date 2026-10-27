@@ -23,6 +23,8 @@ use Database\Seeders\PreviewSeeder;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\Request;
+use Illuminate\Log\Events\MessageLogged;
+use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Hash;
 use RuntimeException;
 use Tests\TestCase;
@@ -309,6 +311,11 @@ class DemoDataTest extends TestCase
         foreach ($usernames as $username) {
             $this->account($username)->forceFill(['password' => Hash::make('Initial123')])->save();
         }
+        // هر چه در این آزمون log شود (پیام و context) — رمزِ ساده نباید در log هم باشد (سندِ آزمایشی، بندِ ۸.۳)
+        $logged = [];
+        Event::listen(MessageLogged::class, function (MessageLogged $e) use (&$logged): void {
+            $logged[] = $e->message.' '.json_encode($e->context, JSON_UNESCAPED_UNICODE);
+        });
 
         foreach ($usernames as $i => $username) {
             $account = $this->account($username);
@@ -335,6 +342,9 @@ class DemoDataTest extends TestCase
             $this->postJson('/api/v1/login', ['identifier_type' => 'username', 'username' => $username, 'password' => "Changed{$i}99"])
                 ->assertOk()->assertJsonPath('user.id', $account->id);
             $this->postJson('/api/v1/logout')->assertOk();
+        }
+        foreach ($usernames as $i => $username) {
+            $this->assertStringNotContainsString("Changed{$i}99", implode("\n", $logged), 'رمزِ ساده در log آمد.');
         }
     }
 
