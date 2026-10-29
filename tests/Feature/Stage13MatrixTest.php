@@ -23,6 +23,14 @@ class Stage13MatrixTest extends TestCase
 
     private const DOD = 'docs/STAGE13_DOD.md';
 
+    private const REPORT = 'docs/STAGE13_REPORT.md';
+
+    /** نُه پرسشِ «گزارش نهایی مورد انتظار» ِ ایرادات ۱۱ برای هر بخش */
+    private const REPORT_POINTS = [
+        'از پیش بود', 'اصلاح شد', 'تازه ساخته شد', 'آزمون‌های نوشته‌شده', 'آزمون‌های واقعاً اجراشده',
+        'مشکل‌های پیداشده', 'محدودیت‌های مانده', 'تأییدِ محیطِ واقعی لازم است؟', 'وضعیتِ نهایی',
+    ];
+
     /** شمارِ بندهای هر بخشِ سندِ DoD، از خودِ اسنادِ کارفرما — بندِ افتاده یا ادغام‌شده همین‌جا گرفته می‌شود */
     private const DOD_SECTIONS = ['۱' => 58, '۲' => 9, '۳' => 12, '۴' => 31, '۵' => 13, '۶' => 5, '۷' => 47];
 
@@ -120,6 +128,59 @@ class Stage13MatrixTest extends TestCase
         $this->assertSame(5, $linked, 'پنج بخشِ DoD به ردیفِ ماتریس گره خورده‌اند.');
     }
 
+    /** ۱۳/۹-ز: گزارش برای هر پنج بخشِ ایرادات ۱۱ همان نُه پرسشِ سند را جواب می‌دهد و وضعیتِ هر بخش یکی از پنج است */
+    public function test_the_final_report_answers_the_nine_points_for_each_part_of_stage_11(): void
+    {
+        preg_match_all('/^### ۲\.([۱-۵]) .*?(?=^### |^## )/msu', $this->read(self::REPORT), $parts, PREG_SET_ORDER);
+        $this->assertCount(5, $parts, 'گزارش باید پنج بخشِ ایرادات ۱۱ را داشته باشد.');
+        foreach ($parts as [$body, $n]) {
+            foreach (self::REPORT_POINTS as $point) {
+                $this->assertMatchesRegularExpression('/^- \*\*'.preg_quote($point, '/').':?\*\* \S/mu', $body, "بخشِ ۲.{$n}: «{$point}» جواب ندارد.");
+            }
+            preg_match('/^- \*\*وضعیتِ نهایی:\*\* (.+)$/mu', $body, $final);
+            $this->assertNotNull($this->firstToken($final[1]), "بخشِ ۲.{$n}: وضعیتِ نهایی یکی از پنج وضعیت نیست.");
+        }
+    }
+
+    /**
+     * سطحِ آمادگی فقط وقتی اعلام می‌شود که شواهد اجازه دهد: ENVIRONMENT VERIFIED بی هیچ ردیفِ محیطی یا مسدود،
+     * CODE READY بی هیچ ردیفِ OPEN و بی نقصِ باز، PRODUCTION READY فقط با هر دو.
+     */
+    public function test_a_readiness_level_is_declared_only_when_the_evidence_allows_it(): void
+    {
+        $decision = [];
+        foreach (['CODE READY', 'ENVIRONMENT VERIFIED', 'PRODUCTION READY'] as $level) {
+            $this->assertMatchesRegularExpression('/^\| \*\*'.$level.'\*\*\s*\| (اعلام می‌شود|اعلام نمی‌شود)\s*\|/mu', $this->read(self::REPORT), "سطحِ «{$level}» تصمیمِ صریح ندارد.");
+            preg_match('/^\| \*\*'.$level.'\*\*\s*\| (اعلام می‌شود|اعلام نمی‌شود)/mu', $this->read(self::REPORT), $m);
+            $decision[$level] = $m[1] === 'اعلام می‌شود';
+        }
+
+        $statuses = array_map(fn (array $r) => $this->leadingStatus($r['status']) ?? $this->firstToken($r['status']), [...$this->statusRows(), ...$this->dodRows()]);
+        if ($decision['ENVIRONMENT VERIFIED']) {
+            $this->assertNotContains('IMPLEMENTATION READY — ENVIRONMENT VERIFICATION REQUIRED', $statuses, 'ردیفِ محیطی هست؛ ENVIRONMENT VERIFIED اعلام نمی‌شود.');
+            $this->assertNotContains('BLOCKED BY EXTERNAL ENVIRONMENT', $statuses, 'ردیفِ مسدود هست؛ ENVIRONMENT VERIFIED اعلام نمی‌شود.');
+        }
+        if ($decision['CODE READY']) {
+            $this->assertNotContains('OPEN', $statuses, 'ردیفِ OPEN هست؛ CODE READY اعلام نمی‌شود.');
+            preg_match('/^### ۵\.۱ .*?\n(.*?)\n### /msu', $this->read(self::REPORT), $open);
+            $this->assertDoesNotMatchRegularExpression('/^\| (?!—|نقص|-)/mu', $open[1] ?? '', 'نقصِ باز هست؛ CODE READY اعلام نمی‌شود.');
+        }
+        if ($decision['PRODUCTION READY']) {
+            $this->assertTrue($decision['CODE READY'] && $decision['ENVIRONMENT VERIFIED'], 'PRODUCTION READY بی دو سطحِ دیگر.');
+        }
+    }
+
+    /** «شکست‌های flaky، محیطی و assertion جداگانه گزارش شوند» (سندِ آزمایشی، ۸.۵): هر ناپایداری تاریخ و سابقه‌ی اجرا دارد */
+    public function test_every_flaky_run_in_the_report_carries_its_dated_history(): void
+    {
+        preg_match('/^### ۶\.۲ .*?\n(.*?)\n### /msu', $this->read(self::REPORT), $section);
+        $rows = array_filter(explode("\n", $section[1] ?? ''), fn (string $l) => preg_match('/^\| `/u', $l) === 1);
+        $this->assertNotSame([], $rows, 'جدولِ ناپایداری‌ها خالی یا ناخواناست.');
+        foreach ($rows as $row) {
+            $this->assertMatchesRegularExpression('/۲۰[۰-۹]{2}-[۰-۹]{2}-[۰-۹]{2}.*(جدا|اجرای)/u', $row, "ناپایداری بی تاریخ یا بی سابقه‌ی اجرا: {$row}");
+        }
+    }
+
     /** سندِ آزمایشی بندِ ۸.۵: عددِ coverage فقط با اندازه‌گیریِ واقعی — هیچ سندِ مرحلهٔ ۱۳ چنین عددی ندارد */
     public function test_no_coverage_number_is_claimed(): void
     {
@@ -156,7 +217,7 @@ class Stage13MatrixTest extends TestCase
 
     public function test_every_test_and_file_named_in_the_matrix_and_the_reconciliation_exists(): void
     {
-        foreach ([self::ROADMAP, self::RECONCILIATION, self::DOD] as $doc) {
+        foreach ([self::ROADMAP, self::RECONCILIATION, self::DOD, self::REPORT] as $doc) {
             $text = $this->read($doc);
             $this->assertDoesNotMatchRegularExpression('/`[A-Za-z_:.\/-]*(?:Test|test_\w*|\.tsx?|\.ts)…`?/u', $text, "{$doc}: نامِ آزمونِ بریده‌شده («…») قابلِ سنجش نیست.");
             foreach ($this->namedTests($text) as $reference) {
