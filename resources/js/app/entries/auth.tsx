@@ -2,7 +2,7 @@ import { StrictMode, Suspense, lazy } from 'react'
 import { MotionConfig } from 'framer-motion'
 import { createRoot } from 'react-dom/client'
 import { initObservability, trackPageView } from '@/shared/lib/observability'
-import { BrowserRouter, Route, Routes } from 'react-router-dom'
+import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
 import { AuthPage } from '@/features/auth/AuthPage'
 import { VerifyOtpPage } from '@/features/auth/VerifyOtpPage'
 import { ForgotPasswordPage } from '@/features/auth/ForgotPasswordPage'
@@ -10,10 +10,11 @@ import { InvitePage } from '@/features/auth/InvitePage'
 import { takeInviteTokenFromUrl } from '@/features/auth/inviteToken'
 import { JoinPage } from '@/features/auth/JoinPage'
 import { takeJoinCodeFromUrl } from '@/features/auth/joinCode'
+import { isUsernameLogin } from '@/features/auth/loginMode'
 
 /*
- * بازیابیِ حساب بی شماره‌ی قبلی (مرحلهٔ ۹) و ورود با نام کاربری (مرحلهٔ ۱۳ · فاز ۱؛ فقط سوپر ادمین و حساب‌های
- * آزمایشیِ Preview) نادرند: تنبل، و هر دو از **یک** ماژول، تا وزن و چانک‌هایشان به هر ورودِ معمولی تحمیل نشود
+ * بازیابیِ حساب بی شماره‌ی قبلی (مرحلهٔ ۹) و ورود با نام کاربری (مرحلهٔ ۱۳ · فاز ۱؛ فقط حساب‌های آزمایشیِ Preview)
+ * نادرند: تنبل، و هر دو از **یک** ماژول، تا وزن و چانک‌هایشان به هر ورودِ معمولی تحمیل نشود
  * (بودجه‌ی باندلِ نشست).
  */
 const loadRare = () => import('@/features/auth/rarePages')
@@ -41,6 +42,13 @@ initObservability()
 trackPageView(window.location.pathname)
 
 /*
+ * یک نشانی برای ورود (۲۰۲۶-۱۰-۲۹، بندِ ۴): در Preview همان `/auth` فرمِ نام کاربری است و هر مسیرِ شماره‌ای به آن
+ * برمی‌گردد؛ بیرون از Preview `/auth/username` دیگر صفحه‌ای نیست (سوپر ادمین هم با شماره وارد می‌شود).
+ */
+const usernameOnly = isUsernameLogin()
+const toLogin = <Navigate to="/auth" replace />
+
+/*
  * ⚠️ بازگشت از bfcache (مرحلهٔ ۷ · فاز ۱).
  *
  * سرور این صفحه را `no-store` می‌فرستد تا مرورگر نسخه‌ی کهنه‌اش را نگه
@@ -66,13 +74,13 @@ createRoot(document.getElementById('root')!).render(
         {/* یک Suspense برای صفحه‌های تنبل؛ بقیه‌ی مسیرها هرگز معلق نمی‌شوند */}
         <Suspense fallback={null}>
           <Routes>
-            <Route path="/auth" element={<AuthPage />} />
-            <Route path="/auth/verify" element={<VerifyOtpPage />} />
-            <Route path="/auth/forgot" element={<ForgotPasswordPage />} />
+            <Route path="/auth" element={usernameOnly ? <UsernameLoginPage /> : <AuthPage />} />
+            <Route path="/auth/verify" element={usernameOnly ? toLogin : <VerifyOtpPage />} />
+            <Route path="/auth/forgot" element={usernameOnly ? toLogin : <ForgotPasswordPage />} />
             {/* بازیابیِ حساب بی شماره‌ی قبلی (مرحلهٔ ۹): فقط ثبتِ درخواست برای ادمینِ کل */}
-            <Route path="/auth/recover" element={<RecoverAccountPage />} />
-            {/* ورود با نام کاربری (۱۳/۱): فقط سوپر ادمین و حساب‌های آزمایشیِ Preview */}
-            <Route path="/auth/username" element={<UsernameLoginPage />} />
+            <Route path="/auth/recover" element={usernameOnly ? toLogin : <RecoverAccountPage />} />
+            {/* نشانیِ قدیمیِ ورود با نام کاربری (۱۳/۱) — حالا همان `/auth` */}
+            <Route path="/auth/username" element={toLogin} />
             {/* گامِ دومِ سوپر ادمین: کدِ Authenticator یا کدِ بازیابی (۲۰۲۶-۱۰-۲۵) */}
             <Route path="/auth/two-factor" element={<TwoFactorLoginPage />} />
             {/* پیوندِ دعوت (مرحلهٔ ۹ · فاز ۶): فقط پیش‌نمایش؛ توکن پس از # */}

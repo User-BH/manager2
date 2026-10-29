@@ -3,7 +3,9 @@
 namespace Tests\Feature;
 
 use App\Enums\UserRole;
+use App\Http\Controllers\Api\AuthController;
 use App\Models\Complex;
+use App\Models\OtpCode;
 use App\Models\User;
 use App\Services\Auth\OtpService;
 use App\Services\Payment\FakeGateway;
@@ -14,6 +16,7 @@ use App\Services\Subscription\SubscriptionGatewayManager;
 use App\Support\Observability;
 use App\Support\Preview;
 use App\Support\SystemSettings;
+use Illuminate\Foundation\Http\Middleware\PreventRequestForgery;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\Request;
 use Illuminate\Log\Events\MessageLogged;
@@ -214,6 +217,60 @@ class PreviewEnvironmentTest extends TestCase
         Preview::markDatabase();
         \DB::table('settings')->where('key', Preview::ROLE_KEY)->delete();
         $this->get('/')->assertOk()->assertDontSee('preview-banner', false);
+    }
+
+    /** نسخه‌ی بازبینی‌شده روی نوار (۲۰۲۶-۱۰-۲۹، بندِ ۵) — همان که `deploy.sh --ref` به محصول می‌برد. */
+    public function test_the_banner_names_the_deployed_commit(): void
+    {
+        $file = storage_path('app/deployed-commit');
+        $had = is_file($file) ? file_get_contents($file) : null;
+
+        try {
+            file_put_contents($file, "631b047\n");
+            $this->asPreview();
+            $this->withCookie(Preview::ACCESS_COOKIE, Preview::accessToken())->get('/')->assertOk()
+                ->assertSee('data-testid="preview-commit">· 631b047', false);
+
+            // محتوای ناهنجار نشان داده نمی‌شود
+            file_put_contents($file, '<script>');
+            $this->assertNull(Preview::deployedCommit());
+        } finally {
+            $had === null ? @unlink($file) : file_put_contents($file, $had);
+        }
+    }
+
+    /**
+     * یک درِ ورود در Preview (۲۰۲۶-۱۰-۲۹، بندِ ۴): `/auth` فرمِ نام کاربری است، نشانیِ قدیمی به آن می‌رود، و ورود،
+     * ثبت‌نام و بازیابیِ رمز با شماره در سرور رد می‌شوند — نه فقط در رابط پنهان.
+     */
+    public function test_preview_has_one_login_door_by_username(): void
+    {
+        $demo = (new User)->forceFill(['name' => 'حسابِ نمونه', 'username' => 'demo.single', 'phone' => null, 'role' => UserRole::Owner,
+            'password' => bcrypt('secret123'), 'is_active' => true, 'is_demo' => true]);
+        $demo->save();
+        $real = User::factory()->create(['phone' => '09121234567', 'password' => bcrypt('secret123')]);
+        $this->asPreview();
+        $this->withoutMiddleware(PreventRequestForgery::class);
+        // درخواستِ JSON ِ آزمون کوکی را فقط با `withCredentials` می‌فرستد
+        $access = fn () => $this->withCredentials()->withCookie(Preview::ACCESS_COOKIE, Preview::accessToken());
+
+        $access()->get('/auth')->assertOk()->assertSee('<meta name="login-mode" content="username">', false);
+        $access()->get('/auth/username')->assertRedirect('/auth');
+
+        $access()->postJson('/api/v1/login', ['phone' => '09121234567', 'password' => 'secret123'])
+            ->assertStatus(422)->assertJsonPath('errors.phone.0', AuthController::PREVIEW_USERNAME_ONLY);
+        $access()->postJson('/api/v1/register', ['phone' => '09129876543', 'first_name' => 'مریم', 'last_name' => 'کاظمی',
+            'password' => 'secret123', 'password_confirmation' => 'secret123', 'accept_terms' => true])
+            ->assertStatus(422)->assertJsonPath('errors.phone.0', AuthController::PREVIEW_USERNAME_ONLY);
+        $access()->postJson('/api/v1/password/forgot', ['phone' => '09121234567'])
+            ->assertStatus(422)->assertJsonPath('errors.phone.0', AuthController::PREVIEW_USERNAME_ONLY);
+        $this->assertGuest();
+        $this->assertSame(0, OtpCode::count(), 'Preview برای شماره کد ساخت.');
+        $this->assertSame(1, User::withoutGlobalScopes()->where('is_demo', false)->count(), 'Preview حسابِ واقعی ساخت.');
+
+        $access()->postJson('/api/v1/login', ['identifier_type' => 'username', 'username' => 'demo.single', 'password' => 'secret123'])
+            ->assertOk()->assertJsonPath('user.id', $demo->id);
+        $this->assertNotSame($real->id, auth()->id());
     }
 
     /* ── preview:reset (قفل‌ها؛ ساختنِ واقعی در `PreviewResetTest`) ─────────── */

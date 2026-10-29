@@ -31,7 +31,7 @@
 - همه‌ی بکاپ‌های رمزشده‌ی موجود
 - نشست‌ها و کوکی‌های امضاشده (کاربران بیرون می‌افتند — این یکی بی‌خطر است)
 - عاملِ دومِ سوپر ادمین: `users.two_factor_secret` (رمزنگاری‌شده) و HMAC ِ کدهای بازیابی (با همین کلید) — پس از
-  چرخش، `php artisan admin:two-factor <نام کاربری> --reset` و راه‌اندازیِ دوباره ([ADMIN_TWO_FACTOR.md](ADMIN_TWO_FACTOR.md))
+  چرخش، `php artisan admin:two-factor <شماره> --reset` و راه‌اندازیِ دوباره برای هر مدیر ([ADMIN_TWO_FACTOR.md](ADMIN_TWO_FACTOR.md))
 
 پس چرخشش یک **مهاجرتِ داده** است، نه عوض‌کردنِ یک خط در `.env`.
 
@@ -60,8 +60,8 @@ php artisan migrate:rollback --step=1 --force
 php artisan migrate --force
 ```
 
-۶. عاملِ دومِ سوپر ادمین را بازنشانی و دوباره راه‌اندازی کنید (کلیدِ قدیمی دیگر خوانده نمی‌شود):
-`php artisan admin:two-factor <نام کاربری> --reset --force` و سپس `php artisan admin:two-factor <نام کاربری>`.
+۶. عاملِ دومِ هر دو مدیر را بازنشانی و دوباره راه‌اندازی کنید (کلیدِ قدیمی دیگر خوانده نمی‌شود):
+برای هر مدیر: `php artisan admin:two-factor <شماره> --reset --force` و سپس `php artisan admin:two-factor <شماره>`.
 
 ۷. `php artisan config:cache && php artisan up`
 

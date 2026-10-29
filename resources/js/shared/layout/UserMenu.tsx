@@ -3,9 +3,12 @@ import { useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   Building2,
+  Calculator,
   ChevronDown,
   LogOut,
   Mail,
+  Moon,
+  Sun,
   UserPlus,
   UserRound,
   type LucideIcon,
@@ -22,11 +25,22 @@ import { formatNumber } from '@/shared/lib/format'
 import { leaveToAuth } from '@/shared/lib/leaveToAuth'
 import { useAuth } from '@/shared/stores/authStore'
 import { useNotificationStore } from '@/shared/stores/notificationStore'
+import { useTheme } from '@/shared/stores/themeStore'
 import type { MembershipSummary } from '@/shared/types'
 import { UserAvatar } from '@/shared/ui/UserAvatar'
 
-export function UserMenu() {
+/**
+ * ابزارهایی که زیرِ `sm` از نوارِ بالا به این منو می‌آیند (`TopBarActions`؛ ۲۰۲۶-۱۰-۲۹، بندِ ۸) — در عرضِ بزرگ‌تر همان
+ * آیکون‌های نوارند و این‌جا پنهان.
+ */
+interface NarrowTools {
+  calculator: boolean
+  theme: boolean
+}
+
+export function UserMenu({ narrowTools }: { narrowTools?: NarrowTools } = {}) {
   const [open, , setOpen] = useToggle(false)
+  const { theme, toggleTheme } = useTheme()
   const menuRef = useRef<HTMLDivElement>(null)
   const navigate = useNavigate()
   const { user, logout } = useAuth()
@@ -159,9 +173,11 @@ export function UserMenu() {
           )}
         </span>
 
+        {/* زیرِ ‎۴۰۰px فلش نه: جای آن در نوارِ پُرِ گوشی لازم است و خودِ آواتار نشانِ منوست */}
         <motion.span
           animate={{ rotate: open ? 180 : 0 }}
           transition={{ duration: 0.2 }}
+          className="hidden min-[400px]:inline-flex"
           style={{ color: 'var(--text-tertiary)' }}
         >
           <ChevronDown size={15} />
@@ -189,6 +205,27 @@ export function UserMenu() {
                 void navigate('/profile')
               }}
             />
+            {narrowTools && (narrowTools.calculator || narrowTools.theme) && (
+              <div className="sm:hidden" data-testid="narrow-tools">
+                {narrowTools.calculator && (
+                  <UserMenuItem
+                    icon={Calculator}
+                    label="ماشین حساب"
+                    onClick={() => {
+                      setOpen(false)
+                      void navigate('/calculator')
+                    }}
+                  />
+                )}
+                {narrowTools.theme && (
+                  <UserMenuItem
+                    icon={theme === 'dark' ? Sun : Moon}
+                    label={theme === 'dark' ? 'حالت روشن' : 'حالت تاریک'}
+                    onClick={toggleTheme}
+                  />
+                )}
+              </div>
+            )}
             {others.length > 0 && (
               <OtherCommunities
                 // در داشبوردِ اولیه همه «قبلی»‌اند؛ در داشبوردِ مجتمع، مجتمعِ همین‌جا در فهرست نیست

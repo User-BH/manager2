@@ -9,6 +9,7 @@ use App\Http\Controllers\SeoController;
 use App\Http\Controllers\SubscriptionCheckoutController;
 use App\Http\Middleware\SetCurrentComplex;
 use Illuminate\Foundation\Http\Middleware\PreventRequestForgery;
+use Illuminate\Routing\RedirectController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -100,8 +101,6 @@ Route::middleware(['guest', 'cache.headers:no_store;private'])->group(function (
     Route::view('/auth/verify', 'public.auth', $authView);
     Route::view('/auth/forgot', 'public.auth', $authView);
     Route::view('/auth/recover', 'public.auth', $authView);
-    // ورود با نام کاربری (مرحلهٔ ۱۳ · فاز ۱): همان island؛ فقط سوپر ادمین و حساب‌های آزمایشیِ Preview وارد می‌شوند
-    Route::view('/auth/username', 'public.auth', $authView);
     // پیوندِ دعوت (مرحلهٔ ۹ · فاز ۶): همان island؛ توکن پس از `#` و هرگز به سرور نمی‌رسد.
     // کاربرِ واردشده با `guest` به داشبورد می‌رود — دعوت همان‌جا منتظر است.
     Route::view('/invite', 'public.auth', $authView);
@@ -115,6 +114,10 @@ Route::middleware(['guest', 'cache.headers:no_store;private'])->group(function (
 | صفحه هیچ دسترسی‌ای نمی‌دهد: نامِ مجتمع از `join-link/preview` و درخواست از `join-requests`، هر دو در سرور.
 */
 Route::view('/join', 'public.auth', $authView)->middleware('cache.headers:no_store;private');
+
+// نشانیِ قدیمیِ ورود با نام کاربری (۱۳/۱): یک نشانی برای ورود، `/auth` — در Preview همان فرمِ نام کاربری (۲۰۲۶-۱۰-۲۹)
+// فقط GET (نه `Route::redirect` که همه‌ی فعل‌ها را می‌پذیرد و مسیرِ تغییردهنده‌ی بی‌سقف می‌ساخت — `AbusePreventionTest`)
+Route::get('/auth/username', RedirectController::class)->defaults('destination', '/auth')->defaults('status', 302);
 
 /*
 |--------------------------------------------------------------------------

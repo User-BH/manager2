@@ -3,7 +3,9 @@
 namespace Tests\Feature;
 
 use App\Enums\UserRole;
+use App\Http\Controllers\Api\AuthController;
 use App\Models\AuditLog;
+use App\Models\OtpCode;
 use App\Models\User;
 use App\Services\Auth\AdminTwoFactor;
 use App\Services\Auth\OtpService;
@@ -57,7 +59,7 @@ class AdminTwoFactorTest extends TestCase
 
         $setup = $this->confirmed($admin)->postJson('/api/v1/profile/two-factor/setup')->assertOk()->json();
         $this->assertSame(32, strlen($setup['secret']));
-        $this->assertStringStartsWith('otpauth://totp/Sakena:sakena.admin?', $setup['uri']);
+        $this->assertStringStartsWith('otpauth://totp/Sakena:09120000001?', $setup['uri']);
 
         // کدِ نادرست فعال نمی‌کند
         $this->confirmed($admin)->postJson('/api/v1/profile/two-factor/confirm', ['code' => $this->wrong($setup['secret'])])->assertStatus(422);
@@ -103,14 +105,20 @@ class AdminTwoFactorTest extends TestCase
 
     /* ── ورود ──────────────────────────────────────────────────────────── */
 
-    public function test_login_by_username_or_phone_always_asks_for_the_app_code_and_sends_no_sms(): void
+    /**
+     * ۲۰۲۶-۱۰-۲۹، بندِ ۲: هر مدیر با **شماره‌ی خودش** و رمزِ شخصی، سپس کدِ برنامه — نه پیامک. نام کاربری راهِ ورودِ سوپر
+     * ادمینِ واقعی نیست (پاسخش همان «نادرست» است).
+     */
+    public function test_login_by_phone_always_asks_for_the_app_code_and_sends_no_sms(): void
     {
         [$admin, $secret] = $this->enrolled();
+        $admin->forceFill(['username' => 'sakena.admin'])->save();
 
-        foreach ([
-            ['identifier_type' => 'username', 'username' => 'sakena.admin'],
-            ['phone' => '09120000001'],
-        ] as $i => $identifier) {
+        $this->postJson('/api/v1/login', ['identifier_type' => 'username', 'username' => 'sakena.admin', 'password' => self::PASSWORD])
+            ->assertStatus(422)->assertJsonValidationErrors(['username' => AuthController::WRONG_USERNAME]);
+        $this->assertGuest();
+
+        foreach ([['phone' => '09120000001'], ['phone' => '۰۹۱۲۰۰۰۰۰۰۱']] as $i => $identifier) {
             $this->flushSession();
             $this->app['auth']->forgetGuards();
 
@@ -135,7 +143,7 @@ class AdminTwoFactorTest extends TestCase
         [, $secret] = $this->enrolled();
         SystemSettings::set('otp_disabled', true);
 
-        $this->postJson('/api/v1/login', ['identifier_type' => 'username', 'username' => 'sakena.admin', 'password' => self::PASSWORD])
+        $this->postJson('/api/v1/login', ['phone' => '09120000001', 'password' => self::PASSWORD])
             ->assertOk()->assertJson(['twoFactorRequired' => true]);
         $this->assertGuest();
 
@@ -254,7 +262,7 @@ class AdminTwoFactorTest extends TestCase
         $this->assertGuest();
         $this->assertTrue(Hash::check('Changed123', $admin->fresh()->password));
         // ورود با رمزِ تازه باز هم کدِ برنامه می‌خواهد
-        $this->postJson('/api/v1/login', ['identifier_type' => 'username', 'username' => 'sakena.admin', 'password' => 'Changed123'])
+        $this->postJson('/api/v1/login', ['phone' => '09120000001', 'password' => 'Changed123'])
             ->assertOk()->assertJson(['twoFactorRequired' => true]);
         $this->assertGuest();
     }
@@ -313,8 +321,8 @@ class AdminTwoFactorTest extends TestCase
     /* ── Production ────────────────────────────────────────────────────── */
 
     /**
-     * سوپر ادمینِ Production بی TOTP: با پیامک وارد می‌شود ولی تا راه‌اندازی به هیچ مسیرِ مدیریتی یا داده‌ای نمی‌رسد؛
-     * پس از فعال‌سازی همه‌چیز باز است.
+     * نشستِ سوپر ادمینِ Production بی TOTP (مثلاً پس از `--reset` روی حسابی که وارد بود): تا راه‌اندازی به هیچ مسیرِ
+     * مدیریتی یا داده‌ای نمی‌رسد؛ پس از فعال‌سازی همه‌چیز باز است. ورودِ تازه‌اش کلاً بسته است (آزمونِ بعدی).
      */
     public function test_on_production_an_unenrolled_admin_session_reaches_only_the_setup(): void
     {
@@ -343,17 +351,16 @@ class AdminTwoFactorTest extends TestCase
         $this->admin();
         $this->production();
 
-        // با پیامک: فقط کدِ پیامکی، نه ورودِ مستقیم
-        $this->postJson('/api/v1/login', ['identifier_type' => 'username', 'username' => 'sakena.admin', 'password' => self::PASSWORD])
-            ->assertOk()->assertJson(['otpRequired' => true]);
-        $this->assertGuest();
-
-        // پیامک خاموش: ورود رد، نه «بی کد»
-        $this->flushSession();
-        SystemSettings::set('otp_disabled', true);
-        $this->postJson('/api/v1/login', ['identifier_type' => 'username', 'username' => 'sakena.admin', 'password' => self::PASSWORD])
-            ->assertStatus(422);
-        $this->assertGuest();
+        // ۲۰۲۶-۱۰-۲۹، بندِ ۲: نه کدِ پیامکی (حتی با پیامکِ روشن)، نه «بی کد» با پیامکِ خاموش — فقط راهنمای فرمانِ سرور
+        foreach ([false, true] as $smsOff) {
+            $this->flushSession();
+            SystemSettings::set('otp_disabled', $smsOff);
+            $response = $this->postJson('/api/v1/login', ['phone' => '09120000001', 'password' => self::PASSWORD])->assertStatus(422);
+            $this->assertStringContainsString('admin:two-factor', (string) $response->json('errors.phone.0'));
+            $this->assertNull($response->json('dev_code'));
+            $this->assertGuest();
+        }
+        $this->assertSame(0, OtpCode::count(), 'برای سوپر ادمین پیامکِ ورود ساخته شد.');
     }
 
     /**
@@ -380,9 +387,9 @@ class AdminTwoFactorTest extends TestCase
 
         $this->flushSession();
         $this->app['auth']->forgetGuards();
-        $this->postJson('/api/v1/login', ['identifier_type' => 'username', 'username' => 'sakena.admin', 'password' => self::PASSWORD])
+        $this->postJson('/api/v1/login', ['phone' => '09120000001', 'password' => self::PASSWORD])
             ->assertStatus(422);
-        $this->postJson('/api/v1/login', ['identifier_type' => 'username', 'username' => 'sakena.admin', 'password' => 'NewSecret456'])
+        $this->postJson('/api/v1/login', ['phone' => '09120000001', 'password' => 'NewSecret456'])
             ->assertOk()->assertJson(['twoFactorRequired' => true]);
         $this->assertGuest();
     }
@@ -393,24 +400,25 @@ class AdminTwoFactorTest extends TestCase
     {
         $admin = $this->admin();
 
-        $this->artisan('admin:two-factor', ['username' => 'sakena.admin', '--force' => true])
+        $this->artisan('admin:two-factor', ['phone' => '۰۹۱۲۰۰۰۰۰۰۱', '--force' => true])
             ->expectsOutputToContain('کلیدِ Authenticator')
             ->assertSuccessful();
         $this->assertTrue(app(AdminTwoFactor::class)->enabled($admin->fresh()));
         $this->assertSame(10, app(AdminTwoFactor::class)->remainingRecoveryCodes($admin->fresh()));
 
         // دوباره نه — اول بازنشانی
-        $this->artisan('admin:two-factor', ['username' => 'sakena.admin', '--force' => true])->assertFailed();
+        $this->artisan('admin:two-factor', ['phone' => '09120000001', '--force' => true])->assertFailed();
 
-        $this->artisan('admin:two-factor', ['username' => 'sakena.admin', '--reset' => true, '--force' => true])->assertSuccessful();
+        $this->artisan('admin:two-factor', ['phone' => '09120000001', '--reset' => true, '--force' => true])->assertSuccessful();
         $this->assertFalse(app(AdminTwoFactor::class)->enabled($admin->fresh()));
         $this->assertNull($admin->fresh()->two_factor_secret);
         $this->assertTrue(AuditLog::where('action', 'two_factor.reset')->exists());
 
         // فقط سوپر ادمین
-        (new User)->forceFill(['name' => 'ساکن', 'username' => 'not.admin', 'phone' => '09121234567', 'role' => UserRole::Owner,
+        (new User)->forceFill(['name' => 'ساکن', 'phone' => '09121234567', 'role' => UserRole::Owner,
             'password' => Hash::make(self::PASSWORD), 'is_active' => true])->save();
-        $this->artisan('admin:two-factor', ['username' => 'not.admin', '--force' => true])->assertFailed();
+        $this->artisan('admin:two-factor', ['phone' => '09121234567', '--force' => true])->assertFailed();
+        $this->artisan('admin:two-factor', ['phone' => '09129999999', '--force' => true])->assertFailed();
     }
 
     /* ── کمکی ─────────────────────────────────────────────────────────── */
@@ -418,7 +426,7 @@ class AdminTwoFactorTest extends TestCase
     private function admin(): User
     {
         $admin = (new User)->forceFill([
-            'name' => 'سوپر ادمین', 'username' => 'sakena.admin', 'phone' => '09120000001', 'role' => UserRole::SuperAdmin,
+            'name' => 'سوپر ادمین', 'phone' => '09120000001', 'role' => UserRole::SuperAdmin,
             'password' => Hash::make(self::PASSWORD), 'is_active' => true,
         ]);
         $admin->save();
@@ -442,7 +450,7 @@ class AdminTwoFactorTest extends TestCase
     {
         $this->flushSession();
         $this->app['auth']->forgetGuards();
-        $this->postJson('/api/v1/login', ['identifier_type' => 'username', 'username' => 'sakena.admin', 'password' => self::PASSWORD])
+        $this->postJson('/api/v1/login', ['phone' => '09120000001', 'password' => self::PASSWORD])
             ->assertOk()->assertJson(['twoFactorRequired' => true]);
     }
 

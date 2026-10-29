@@ -6,7 +6,6 @@ use App\Enums\UserRole;
 use App\Models\User;
 use App\Support\PersianName;
 use App\Support\Phone;
-use App\Support\Username;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Validator;
@@ -25,8 +24,7 @@ class CreateAdmin extends Command
         {--phone= : شماره موبایل (۰۹xxxxxxxxx)}
         {--first-name= : نام (فارسی)}
         {--last-name= : نام خانوادگی (فارسی)}
-        {--password= : رمز عبور؛ اگر ندهید پرسیده می‌شود}
-        {--username= : نام کاربری برای ورود با نام کاربری + رمز + Authenticator (اختیاری؛ بعداً: admin:username)}
+        {--password= : رمز عبور؛ اگر ندهید پنهان پرسیده می‌شود (ترجیحاً ندهید تا در تاریخچه‌ی شل نماند)}
         {--email= : ایمیل (اختیاری)}';
 
     protected $description = 'ساخت کاربر ادمین کل سیستم برای ورود به پنل';
@@ -82,13 +80,6 @@ class CreateAdmin extends Command
             return self::FAILURE;
         }
 
-        $username = $this->option('username');
-        if ($username !== null && ($error = SetAdminUsername::problem(Username::normalize($username))) !== null) {
-            $this->error($error);
-
-            return self::FAILURE;
-        }
-
         $user = User::create([
             // `name` را مدل از این دو می‌سازد
             'first_name' => $first,
@@ -100,22 +91,16 @@ class CreateAdmin extends Command
             'role' => UserRole::SuperAdmin,
             'is_active' => true,
         ]);
-        // نام کاربری `fillable` نیست: فقط از فرمانِ سرور، نه از درخواست
-        if ($username !== null) {
-            $user->forceFill(['username' => Username::normalize($username)])->save();
-        }
 
         $this->newLine();
         $this->info('کاربر ادمین کل ساخته شد.');
         $this->line("  نام:   {$user->name}");
         $this->line("  شماره: {$user->phone}");
-        if ($user->username !== null) {
-            $this->line("  نام کاربری: {$user->username}");
-        }
         $this->line('  نقش:   '.$user->role->label());
         $this->newLine();
-        $this->line('حالا می‌توانید با همین شماره و رمز وارد پنل شوید.');
-        $this->line('عاملِ دوم (Authenticator): پس از ورود از «اطلاعاتِ کاربری»، یا php artisan admin:two-factor <نام کاربری> — docs/ADMIN_TWO_FACTOR.md');
+        // ورودِ سوپر ادمین روی Production بی Authenticator بسته است (۲۰۲۶-۱۰-۲۹، بندِ ۲) — گامِ بعدی همین است
+        $this->line('گامِ بعد (پیش از نخستین ورود): php artisan admin:two-factor '.$user->phone.' — docs/ADMIN_TWO_FACTOR.md');
+        $this->line('ورود: صفحه‌ی /auth با همین شماره و رمز، سپس کدِ شش‌رقمیِ برنامه‌ی Authenticator (بی پیامک).');
 
         return self::SUCCESS;
     }

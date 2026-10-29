@@ -211,16 +211,6 @@ export function LoginForm() {
         </Link>
       </div>
 
-      {/* فقط سوپر ادمین و حساب‌های آزمایشیِ Preview (۱۳/۱)؛ صفحه‌ی جدا و تنبل‌بار */}
-      <Link
-        to="/auth/username"
-        replace
-        className="text-xs font-medium"
-        style={{ color: 'var(--color-brand-600)' }}
-      >
-        ورود با نام کاربری
-      </Link>
-
       <button
         type="submit"
         disabled={submitting}

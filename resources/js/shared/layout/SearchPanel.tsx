@@ -68,7 +68,7 @@ export function SearchPanel({
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: -8 }}
       transition={{ duration: 0.18, ease: [0.22, 1, 0.36, 1] }}
-      className="absolute inset-x-0 top-full border-b px-4 pt-3 pb-4 shadow-lg sm:hidden"
+      className="absolute inset-x-0 top-full border-b px-4 pt-3 pb-4 shadow-lg lg:hidden"
       style={{ backgroundColor: 'var(--surface-raised)', borderColor: 'var(--border-subtle)' }}
     >
       {/*

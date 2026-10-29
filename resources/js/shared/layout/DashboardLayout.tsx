@@ -7,6 +7,17 @@ import { ErrorBoundary } from '@/shared/ui/ErrorBoundary'
 import { reportError } from '@/shared/lib/observability'
 import { InlineSpinner } from '@/shared/ui/PageState'
 import { registerPresenceBeacon } from '@/shared/lib/presenceBeacon'
+import type { NavSection } from '@/shared/types'
+
+interface DashboardLayoutProps {
+  /** منوی سایدبار؛ بی آن، منوی نقش (`navigation.ts`) */
+  sections?: NavSection[]
+  navLabel?: string
+  /** نشانِ پوسته برای آزمون‌ها و CSS (`data-experience`) */
+  experience?: string
+  /** «آفلاین شدم» هنگامِ بستن — فقط داشبوردهای عضو؛ داشبوردِ اولیه پیام‌رسان و حضور ندارد */
+  presence?: boolean
+}
 
 /**
  * پوسته‌ی ثابت داشبورد.
@@ -15,19 +26,27 @@ import { registerPresenceBeacon } from '@/shared/lib/presenceBeacon'
  * <Outlet /> هستند، پس با جابه‌جایی بین صفحه‌ها اصلاً unmount نمی‌شوند و فقط
  * وسط صفحه عوض می‌شود. حالتِ سایدبار/جستجو/اعلان حالا store‌های zustand‌اند
  * (بدون Provider)؛ نظرسنجیِ اعلان‌ها هم فقط وقتی همین پوسته mount است زنده می‌ماند.
+ *
+ * هر چهار داشبورد همین پوسته‌اند (۲۰۲۶-۱۰-۲۹، بندِ ۷): داشبوردِ اولیه فقط منوی خودش را می‌دهد (`RegistrantLayout`).
  */
-export function DashboardLayout() {
+export function DashboardLayout({
+  sections,
+  navLabel,
+  experience,
+  presence = true,
+}: DashboardLayoutProps = {}) {
   const { pathname } = useLocation()
   // بستنِ داشبورد همان لحظه «آفلاین» است، نه ۹۰ ثانیه بعد («چند نکته»، بندِ ۳)
-  useEffect(() => registerPresenceBeacon(), [])
+  useEffect(() => (presence ? registerPresenceBeacon() : undefined), [presence])
 
   return (
     <div
       className="flex h-screen overflow-hidden"
       dir="rtl"
       style={{ backgroundColor: 'var(--surface-canvas)' }}
+      data-experience={experience}
     >
-      <Sidebar />
+      <Sidebar sections={sections} navLabel={navLabel} />
 
       <div className="flex min-w-0 flex-1 flex-col">
         {/* نامِ مجتمعِ فعال **بالای** نوارِ اصلی (۱۳/۳، بندِ ۴۳) */}

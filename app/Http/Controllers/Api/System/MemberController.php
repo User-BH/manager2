@@ -116,7 +116,7 @@ class MemberController extends Controller
          */
         $after = ['role' => $target->role->value, 'is_active' => (bool) $target->is_active];
         if ($after !== $before) {
-            Audit::log('member.updated', 'تغییرِ نقش یا وضعیتِ عضو سامانه', $target, [
+            Audit::log('member.updated', 'تغییرِ نقش یا وضعیتِ «'.$target->name.'»', $target, [
                 'before' => $before,
                 'after' => $after,
             ], $target->complex_id);
@@ -150,7 +150,7 @@ class MemberController extends Controller
             ]);
         }
 
-        Audit::log('member.deactivated', 'غیرفعال‌سازیِ عضو سامانه', $target, [
+        Audit::log('member.deactivated', 'حذف (غیرفعال‌سازیِ) کاربرِ «'.$target->name.'»', $target, [
             'name' => $target->name,
             'phone' => $target->phone,
             'role' => $target->role->value,

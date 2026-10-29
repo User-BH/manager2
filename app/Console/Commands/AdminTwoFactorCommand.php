@@ -5,7 +5,7 @@ namespace App\Console\Commands;
 use App\Models\User;
 use App\Services\Auth\AdminTwoFactor;
 use App\Services\Auth\Totp;
-use App\Support\Username;
+use App\Support\Phone;
 use Illuminate\Console\Command;
 
 /**
@@ -24,7 +24,7 @@ use Illuminate\Console\Command;
 class AdminTwoFactorCommand extends Command
 {
     protected $signature = 'admin:two-factor
-        {username : نام کاربریِ سوپر ادمین}
+        {phone : شماره موبایلِ سوپر ادمین}
         {--reset : پاک‌کردنِ کاملِ عاملِ دوم (گوشی و کدهای بازیابی از دست رفته‌اند)}
         {--force : بی پرسیدن}';
 
@@ -32,24 +32,24 @@ class AdminTwoFactorCommand extends Command
 
     public function handle(AdminTwoFactor $twoFactor): int
     {
-        $username = Username::normalize((string) $this->argument('username'));
-        $user = User::withoutGlobalScopes()->where('username', $username)->first();
+        $phone = Phone::normalize((string) $this->argument('phone'));
+        $user = User::withoutGlobalScopes()->where('phone', $phone)->first();
 
-        if (! $user || ! $user->isSuperAdmin()) {
-            $this->error("سوپر ادمینی با نام کاربریِ «{$username}» پیدا نشد.");
+        if (! $user || ! $user->isSuperAdmin() || $user->is_demo) {
+            $this->error("سوپر ادمینی با شمارهٔ «{$phone}» پیدا نشد.");
 
             return self::FAILURE;
         }
 
         if ($this->option('reset')) {
-            if (! $this->option('force') && ! $this->confirm("عاملِ دومِ «{$username}» کاملاً پاک شود؟ تا راه‌اندازیِ دوباره ورودِ این حساب روی Production بسته است.")) {
+            if (! $this->option('force') && ! $this->confirm("عاملِ دومِ «{$user->name}» ({$phone}) کاملاً پاک شود؟ تا راه‌اندازیِ دوباره ورودِ این حساب روی Production بسته است.")) {
                 $this->line('لغو شد.');
 
                 return self::SUCCESS;
             }
 
             $twoFactor->reset($user);
-            $this->info('عاملِ دوم پاک شد. اکنون دوباره راه‌اندازی کنید: php artisan admin:two-factor '.$username);
+            $this->info('عاملِ دوم پاک شد. اکنون دوباره راه‌اندازی کنید: php artisan admin:two-factor '.$phone);
 
             return self::SUCCESS;
         }

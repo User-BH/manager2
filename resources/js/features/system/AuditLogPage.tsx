@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { motion } from 'framer-motion'
-import { ChevronDown, ChevronUp, ScrollText } from 'lucide-react'
+import { ChevronDown, ChevronUp, ScrollText, ShieldCheck } from 'lucide-react'
 import { Card } from '@/shared/ui/Card'
 import { SelectField } from '@/shared/ui/Field'
 import { EmptyState, ErrorState } from '@/shared/ui/PageState'
@@ -17,6 +17,8 @@ interface AuditEntry {
   description: string | null
   userName: string
   userPhone: string | null
+  /** کارِ یکی از مدیرانِ سامانه (سوپر ادمین) */
+  byAdmin?: boolean
   ip: string | null
   properties: Record<string, unknown> | null
   at: string
@@ -33,7 +35,11 @@ interface AuditResponse {
   hasMore: boolean
   nextCursor: number | null
   actions: { value: string; label: string }[]
+  /** مدیرانِ سامانه، برای فیلترِ «کدام مدیر» */
+  admins?: { id: number; name: string }[]
 }
+
+type Scope = 'admins' | 'all'
 
 /** رویدادهایی که برگشت‌ناپذیرند و باید در فهرست برجسته باشند. */
 const DESTRUCTIVE = ['deleted', 'restored', 'deactivated', 'rejected', 'blocked']
@@ -42,10 +48,16 @@ const DESTRUCTIVE = ['deleted', 'restored', 'deactivated', 'rejected', 'blocked'
  * لاگ فعالیت.
  *
  * جدولش از ابتدا پر می‌شد ولی هیچ راهی برای دیدنش نبود، پس عملاً وجود نداشت.
+ *
+ * «فعالیتِ مدیران» (۲۰۲۶-۱۰-۲۹، بندِ ۳) نمای پیش‌فرض است: پروژه دو مدیر دارد و هر رویداد با نامِ همان مدیر — کدام
+ * مدیر به کدام بازخورد پاسخ داد، کدام کاربر را حذف کرد، کی وارد شد یا رمزش را عوض کرد. فقط همین پنل (و فقط سوپر ادمین)
+ * این را می‌بیند؛ فیلترها سمتِ سرورند (`scope`، `admin_id`).
  */
 export function AuditLogPage() {
   useDocumentTitle('لاگ فعالیت')
 
+  const [scope, setScope] = useState<Scope>('admins')
+  const [adminId, setAdminId] = useState('')
   const [action, setAction] = useState('')
   const [expanded, setExpanded] = useState<number | null>(null)
 
@@ -59,7 +71,11 @@ export function AuditLogPage() {
    */
   const { items, hasMore, isLoading, isLoadingMore, error, loadMore } = useCursorList<AuditEntry>(
     '/system/audit-logs',
-    action ? { action } : {},
+    {
+      ...(action ? { action } : {}),
+      ...(scope === 'admins' ? { scope } : {}),
+      ...(scope === 'admins' && adminId ? { admin_id: adminId } : {}),
+    },
   )
 
   const { data: meta } = useQuery({
@@ -72,6 +88,7 @@ export function AuditLogPage() {
   if (error) return <ErrorState message={error} onRetry={() => window.location.reload()} />
 
   const entries = items
+  const admins = meta?.admins ?? []
 
   return (
     <div className="flex flex-col gap-5">
@@ -79,20 +96,67 @@ export function AuditLogPage() {
         title="لاگ فعالیت"
         subtitle="تازه‌ترین رویدادها اول — این فهرست فقط خواندنی است"
         actions={
-          <div className="w-56">
-            <SelectField
-              label=""
-              options={meta?.actions ?? []}
-              placeholder="همه‌ی رویدادها"
-              value={action}
-              // با تغییرِ فیلتر، قلابِ نشانگری خودش از ابتدا می‌خواند
-              onChange={(e) => setAction(e.target.value)}
-            />
+          <div className="flex flex-wrap items-center gap-2">
+            <div
+              role="tablist"
+              aria-label="دامنه‌ی لاگ"
+              className="flex rounded-xl border p-0.5"
+              style={{ borderColor: 'var(--border-subtle)' }}
+            >
+              {(
+                [
+                  ['admins', 'فعالیت مدیران'],
+                  ['all', 'همه‌ی رویدادها'],
+                ] as const
+              ).map(([value, label]) => (
+                <button
+                  key={value}
+                  type="button"
+                  role="tab"
+                  aria-selected={scope === value}
+                  onClick={() => setScope(value)}
+                  className="rounded-lg px-3 py-1.5 text-[12.5px] font-semibold transition-colors"
+                  style={{
+                    backgroundColor: scope === value ? 'var(--color-brand-500)' : 'transparent',
+                    color: scope === value ? '#fff' : 'var(--text-secondary)',
+                  }}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+            {scope === 'admins' && admins.length > 1 && (
+              <div className="w-44">
+                <SelectField
+                  label=""
+                  aria-label="کدام مدیر"
+                  options={admins.map((a) => ({ value: String(a.id), label: a.name }))}
+                  placeholder="هر دو مدیر"
+                  value={adminId}
+                  onChange={(e) => setAdminId(e.target.value)}
+                />
+              </div>
+            )}
+            <div className="w-56">
+              <SelectField
+                label=""
+                aria-label="نوعِ رویداد"
+                options={meta?.actions ?? []}
+                placeholder="همه‌ی رویدادها"
+                value={action}
+                // با تغییرِ فیلتر، قلابِ نشانگری خودش از ابتدا می‌خواند
+                onChange={(e) => setAction(e.target.value)}
+              />
+            </div>
           </div>
         }
       >
         {entries.length === 0 ? (
-          <EmptyState message="رویدادی ثبت نشده است." />
+          <EmptyState
+            message={
+              scope === 'admins' ? 'هنوز فعالیتی از مدیران ثبت نشده است.' : 'رویدادی ثبت نشده است.'
+            }
+          />
         ) : (
           <ul className="flex flex-col gap-2">
             {entries.map((entry, index) => {
@@ -139,7 +203,17 @@ export function AuditLogPage() {
                     className="mt-1.5 flex flex-wrap items-center gap-x-4 gap-y-1 text-[11px]"
                     style={{ color: 'var(--text-tertiary)' }}
                   >
-                    <span>{entry.userName}</span>
+                    {entry.byAdmin ? (
+                      <span
+                        className="inline-flex items-center gap-1 font-semibold"
+                        style={{ color: 'var(--text-secondary)' }}
+                      >
+                        <ShieldCheck size={12} aria-hidden="true" />
+                        مدیر: {entry.userName}
+                      </span>
+                    ) : (
+                      <span>{entry.userName}</span>
+                    )}
                     {entry.userPhone && <span dir="ltr">{entry.userPhone}</span>}
                     {entry.ip && <span dir="ltr">IP: {entry.ip}</span>}
 

@@ -30,7 +30,10 @@ export function SidebarBrand({ collapsed }: { collapsed: boolean }) {
               {BRAND_NAME}
             </p>
             <p className="truncate text-xs" style={{ color: 'var(--text-tertiary)' }}>
-              {user?.complex?.name ?? 'پنل مدیریتی ساکنین'}
+              {user?.complex?.name ??
+                (user?.accountState === 'initial'
+                  ? 'حساب ثبت‌شده · بدون مجتمع'
+                  : 'پنل مدیریتی ساکنین')}
             </p>
           </motion.div>
         )}

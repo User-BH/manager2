@@ -1,5 +1,4 @@
 import { useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
@@ -15,11 +14,11 @@ import { useDocumentTitle } from '@/shared/hooks'
 import { afterSignIn } from './joinCode'
 
 /**
- * ورود با نام کاربری (مرحلهٔ ۱۳ · فاز ۱؛ پیامِ کارفرما ۲۰۲۶-۱۰-۱۹، بخش ۳) — فقط سوپر ادمین و حساب‌های آزمایشیِ
- * Preview. کاربرِ عادی همیشه با شماره وارد می‌شود (`LoginForm`).
+ * ورود با نام کاربری (مرحلهٔ ۱۳ · فاز ۱؛ پیامِ کارفرما ۲۰۲۶-۱۰-۱۹، بخش ۳) — فقط حساب‌های آزمایشیِ Preview. کاربرِ
+ * واقعی و سوپر ادمین همیشه با شماره وارد می‌شوند (`LoginForm`).
  *
- * صفحه‌ی جدا و تنبل‌بار (`/auth/username`): در بارگذاریِ اولِ صفحه‌ی ورود نیست و باندلِ همه‌ی کاربران را سنگین
- * نمی‌کند — همان الگوی `/auth/recover`. نوعِ شناسه
+ * تنها فرمِ ورودِ Preview، روی همان `/auth` (۲۰۲۶-۱۰-۲۹، بندِ ۴: یک نشانی)؛ تنبل‌بار تا باندلِ ورودِ محصول را سنگین
+ * نکند — همان الگوی `/auth/recover`. نوعِ شناسه
  * صریح به سرور می‌رود (`identifier_type`)؛ سرور از شکلِ ورودی حدس نمی‌زند و قالب را هم خودش نمی‌سنجد تا پاسخِ
  * «نادرست» برای هر نام کاربری یکی باشد.
  */
@@ -45,16 +44,11 @@ function filterUsername(value: string) {
 }
 
 interface LoginResponse {
-  otpRequired?: boolean
-  twoFactorRequired?: boolean
-  phone?: string
-  dev_code?: string | null
   user?: CurrentUser
 }
 
 export default function UsernameLoginPage() {
-  useDocumentTitle('ورود با نام کاربری')
-  const navigate = useNavigate()
+  useDocumentTitle('ورود به محیط آزمایشی')
   const [submitting, setSubmitting] = useState(false)
   const [human, setHuman] = useState(false)
   const [credError, setCredError] = useState(false)
@@ -84,24 +78,8 @@ export default function UsernameLoginPage() {
         body: { identifier_type: 'username', ...values },
       })
 
-      if (data.user) {
-        window.location.replace(afterSignIn())
-        return
-      }
-
-      // سوپر ادمین با Authenticator: گامِ دوم کدِ برنامه است، نه پیامک (۲۰۲۶-۱۰-۲۵)
-      if (data.twoFactorRequired) {
-        void navigate('/auth/two-factor', { replace: true, state: { fromPassword: true } })
-        return
-      }
-
-      // سوپر ادمینِ بی Authenticator کدِ پیامکی می‌گیرد؛ سرور فقط شماره‌ی پوشیده را برمی‌گرداند
-      if (data.otpRequired) {
-        void navigate('/auth/verify', {
-          replace: true,
-          state: { phone: data.phone, devCode: data.dev_code ?? null },
-        })
-      }
+      // حسابِ نمونه شماره و عاملِ دوم ندارد: پاسخِ موفق همیشه خودِ کاربر است
+      if (data.user) window.location.replace(afterSignIn())
     } catch (error) {
       setHuman(false)
       setPuzzleReset((n) => n + 1)
@@ -120,7 +98,7 @@ export default function UsernameLoginPage() {
   }
 
   return (
-    <AuthScreen title="ورود با نام کاربری" subtitle="ویژه‌ی مدیریتِ سامانه و حساب‌های آزمایشی">
+    <AuthScreen title="ورود به محیط آزمایشی" subtitle="با نام کاربری و رمزِ حساب‌های نمونه">
       <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-3">
         <RestrictedField
           control={control}
@@ -159,15 +137,6 @@ export default function UsernameLoginPage() {
         >
           <SlidePuzzle onSolved={setHuman} resetSignal={puzzleReset} />
         </div>
-
-        <Link
-          to="/auth"
-          replace
-          className="self-start text-xs font-medium"
-          style={{ color: 'var(--text-secondary)' }}
-        >
-          ورود با شماره موبایل
-        </Link>
 
         <button
           type="submit"

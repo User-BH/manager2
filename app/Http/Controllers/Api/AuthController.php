@@ -37,6 +37,7 @@ use App\Support\Jalali;
 use App\Support\Notifications;
 use App\Support\PersianName;
 use App\Support\Phone;
+use App\Support\Preview;
 use App\Support\SessionContext;
 use App\Support\SystemSettings;
 use App\Support\Username;
@@ -61,6 +62,9 @@ class AuthController extends Controller
     public const WRONG_PHONE = 'شماره تلفن یا رمز عبور نادرست است.';
 
     public const WRONG_USERNAME = 'نام کاربری یا رمز عبور نادرست است.';
+
+    /** Preview فقط حساب‌های نمونه را دارد و آن‌ها شماره ندارند (۲۰۲۶-۱۰-۲۹، بندِ ۴) */
+    public const PREVIEW_USERNAME_ONLY = 'در محیطِ آزمایشی ورود فقط با نام کاربریِ حساب‌های نمونه است.';
 
     /** مرحله‌ی دومِ ورودِ در انتظار: کدِ پیامکی یا کدِ برنامه‌ی Authenticator ِ سوپر ادمین */
     private const FACTOR_SMS = 'sms';
@@ -112,12 +116,16 @@ class AuthController extends Controller
         $request->validated();
 
         /*
-         * نوعِ شناسه را درخواست صریح می‌گوید (مرحلهٔ ۱۳ · فاز ۱): شماره برای کاربرِ واقعی، نام کاربری فقط برای سوپر
-         * ادمین و حسابِ آزمایشیِ Preview. هیچ‌کدام از شکلِ دیگری حدس زده نمی‌شود.
+         * نوعِ شناسه را درخواست صریح می‌گوید (مرحلهٔ ۱۳ · فاز ۱): شماره برای کاربرِ واقعی و سوپر ادمین، نام کاربری فقط
+         * برای حسابِ آزمایشیِ Preview (۲۰۲۶-۱۰-۲۹). هیچ‌کدام از شکلِ دیگری حدس زده نمی‌شود.
          */
         $byUsername = $request->byUsername();
         $field = $request->identifierField();
         $wrong = $byUsername ? self::WRONG_USERNAME : self::WRONG_PHONE;
+
+        if (! $byUsername) {
+            $this->refusePhoneFlowsInPreview($field);
+        }
 
         $user = $byUsername
             ? User::where('username', Username::normalize($request->input('username')))->first()
@@ -134,7 +142,7 @@ class AuthController extends Controller
 
         /*
          * 🔴 همان پیام و همان زمان برای دو حالتِ دیگر هم (مرحلهٔ ۱۳ · فاز ۱):
-         * - نام کاربری فقط مالِ سوپر ادمین و حسابِ آزمایشی است؛ کاربرِ واقعی با آن وارد نمی‌شود؛
+         * - نام کاربری فقط مالِ حسابِ آزمایشی است (۲۰۲۶-۱۰-۲۹: سوپر ادمین هم با شماره)؛ کاربرِ واقعی با آن وارد نمی‌شود؛
          * - حسابِ آزمایشی روی Production هرگز وارد نمی‌شود (`DemoData`)؛ پاسخ نمی‌گوید چنین حسابی هست.
          */
         $eligible = $user !== null
@@ -164,10 +172,13 @@ class AuthController extends Controller
             return $this->startTwoFactor($request, $user);
         }
 
-        // سوپر ادمینِ Production بی TOTP فقط با کدِ پیامکی تا راه‌اندازی؛ بی پیامک، ورود فقط با رمز هرگز
-        if ($this->twoFactor->setupRequired($user) && ($user->phone === null || SystemSettings::get('otp_disabled', false))) {
+        /*
+         * سوپر ادمینِ Production بی TOTP وارد نمی‌شود — نه با پیامک، نه فقط با رمز (۲۰۲۶-۱۰-۲۹، بندِ ۲: «هر دو مدیر
+         * بجای پیامک با TOTP»). راه‌اندازی از شل ِ سرور است.
+         */
+        if ($this->twoFactor->setupRequired($user)) {
             throw ValidationException::withMessages([
-                $field => 'ورودِ دومرحله‌ایِ این حساب هنوز راه‌اندازی نشده و کدِ پیامکی هم در دسترس نیست. عاملِ دوم را با فرمانِ «php artisan admin:two-factor» روی سرور فعال کنید.',
+                $field => 'ورودِ دومرحله‌ایِ (Authenticator) این حساب هنوز راه‌اندازی نشده. روی سرور اجرا کنید: php artisan admin:two-factor <شماره موبایل>',
             ]);
         }
 
@@ -330,6 +341,17 @@ class AuthController extends Controller
         return $remaining === null ? $response : $response->setData([...$response->getData(true), 'recoveryCodesRemaining' => $remaining]);
     }
 
+    /**
+     * Preview یک درِ ورود دارد: نام کاربریِ حساب‌های نمونه (۲۰۲۶-۱۰-۲۹، بندِ ۴). ورود، ثبت‌نام و بازیابیِ رمز با شماره
+     * آن‌جا بسته‌اند — حساب‌های نمونه شماره ندارند و پیامکِ واقعی هم آن‌جا خاموش است.
+     */
+    private function refusePhoneFlowsInPreview(string $field): void
+    {
+        if (Preview::active()) {
+            throw ValidationException::withMessages([$field => self::PREVIEW_USERNAME_ONLY]);
+        }
+    }
+
     /** آغازِ چالشِ TOTP ِ سوپر ادمین؛ هیچ پیامکی نمی‌رود */
     private function startTwoFactor(Request $request, User $user): JsonResponse
     {
@@ -399,6 +421,8 @@ class AuthController extends Controller
     public function forgotPassword(ForgotPasswordRequest $request, OtpService $otp): JsonResponse
     {
         $data = $request->validated();
+
+        $this->refusePhoneFlowsInPreview('phone');
 
         $phone = Phone::normalize($data['phone']);
 
@@ -559,6 +583,8 @@ class AuthController extends Controller
     public function register(RegisterRequest $request, OtpService $otp): JsonResponse
     {
         $data = $request->validated();
+
+        $this->refusePhoneFlowsInPreview('phone');
 
         $phone = Phone::normalize($data['phone']);
 
@@ -730,6 +756,11 @@ class AuthController extends Controller
         }
 
         Auth::login($user);
+
+        // ورودِ هر مدیرِ سامانه با نامش در «فعالیتِ مدیران» (۲۰۲۶-۱۰-۲۹، بندِ ۳)
+        if ($user->isSuperAdmin()) {
+            Audit::log('admin.signed_in', 'ورود به پنلِ مدیریتِ سامانه', $user, [], null);
+        }
 
         /*
          * ورودِ حسابِ چندمجتمعی به صفحه‌ی انتخاب است (۱۳/۳، `StartAuthenticatedSession`) — پاسخِ همین ورود هم همان را

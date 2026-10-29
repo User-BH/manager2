@@ -87,10 +87,10 @@ describe('جست‌وجوهای اخیر', () => {
 
     const link = screen.getByRole('link', { name: 'جستجوهای اخیر (۲)' })
     expect(link.getAttribute('href')).toBe('/search')
-    // یک پیوند، فقط از `sm`؛ در عرضِ کم پنلِ زیرِ سربرگ جایش است (۱۳/۴، `topBar.test.tsx`)
+    // یک پیوند، فقط از `lg` (۲۰۲۶-۱۰-۲۹)؛ پایین‌تر پنلِ زیرِ سربرگ جایش است (۱۳/۴، `topBar.test.tsx`)
     expect(screen.getAllByRole('link')).toHaveLength(1)
     expect(link.className).toMatch(/(^|\s)hidden(\s|$)/)
-    expect(link.className).toMatch(/(^|\s)sm:flex(\s|$)/)
+    expect(link.className).toMatch(/(^|\s)lg:flex(\s|$)/)
   })
 
   it('سایدبار دیگر «جستجوهای اخیر» ندارد', () => {

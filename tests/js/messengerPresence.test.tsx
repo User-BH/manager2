@@ -222,6 +222,10 @@ describe('بستنِ صفحه', () => {
       join(__dirname, '../../resources/js/shared/layout/DashboardLayout.tsx'),
       'utf8',
     )
-    expect(layout).toMatch(/useEffect\(\(\) => registerPresenceBeacon\(\), \[\]\)/)
+    // پیش‌فرض روشن برای هر داشبوردِ عضو؛ فقط داشبوردِ اولیه (بی پیام‌رسان و حضور) خاموشش می‌کند (۲۰۲۶-۱۰-۲۹، بندِ ۷)
+    expect(layout).toMatch(/presence = true,/)
+    expect(layout).toMatch(
+      /useEffect\(\(\) => \(presence \? registerPresenceBeacon\(\) : undefined\), \[presence\]\)/,
+    )
   })
 })

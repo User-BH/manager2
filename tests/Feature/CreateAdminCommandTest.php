@@ -47,54 +47,43 @@ class CreateAdminCommandTest extends TestCase
     }
 
     /**
-     * «حفره ها۲» بندِ ۵.۱: ورودِ سوپر ادمینِ اصلی «نام کاربری + رمز + Authenticator» است، ولی تا این‌جا راهی برای دادنِ
-     * نام کاربری به او نبود (`username` نه `fillable` است نه در هیچ API). حالا فقط از فرمانِ سرور — و با همان نام کاربری
-     * چالشِ TOTP می‌آید، نه ورودِ مستقیم.
+     * ۲۰۲۶-۱۰-۲۹، بندِ ۲: دو مدیر، هر کدام با شماره و رمزِ شخصیِ خودش؛ ورود با شماره + رمز + Authenticator. فرمان
+     * نام کاربری نمی‌گیرد و گامِ بعد (`admin:two-factor <شماره>`) را خودش می‌گوید؛ رمز از ورودیِ پنهان.
      */
-    public function test_the_main_admin_gets_a_username_only_from_the_server_and_then_signs_in_with_it(): void
+    public function test_two_admins_each_with_their_own_phone_and_password_sign_in_with_the_authenticator(): void
     {
-        $this->artisan('admin:create', [
-            '--phone' => '09121234567', '--first-name' => 'مریم', '--last-name' => 'کاظمی', '--password' => 'strong1234',
-            '--username' => 'Sakena.Admin',
-        ])->assertSuccessful();
-        $admin = User::where('phone', '09121234567')->sole();
-        $this->assertSame('sakena.admin', $admin->username);
+        $this->artisan('admin:create', ['--phone' => '09121234567', '--first-name' => 'مریم', '--last-name' => 'کاظمی'])
+            ->expectsQuestion('رمز عبور', 'first-pass-1')
+            ->expectsOutputToContain('php artisan admin:two-factor 09121234567')
+            ->assertSuccessful();
+        $this->artisan('admin:create', ['--phone' => '09121234568', '--first-name' => 'علی', '--last-name' => 'رضایی'])
+            ->expectsQuestion('رمز عبور', 'second-pass-2')
+            ->assertSuccessful();
 
-        $this->artisan('admin:username', ['username' => 'sakena.ops', '--phone' => '09121234567'])->assertSuccessful();
-        $this->assertSame('sakena.ops', $admin->fresh()->username);
-        $this->assertTrue(AuditLog::where('action', 'admin.username_set')->exists());
+        // شماره‌ی تکراری حسابِ دوم نمی‌سازد
+        $this->artisan('admin:create', ['--phone' => '09121234567', '--first-name' => 'سارا', '--last-name' => 'نوری', '--password' => 'third-pass-3'])
+            ->assertFailed();
 
-        $secret = app(AdminTwoFactor::class)->begin($admin->fresh())['secret'];
-        app(AdminTwoFactor::class)->confirm($admin->fresh(), Totp::at($secret, Totp::step() - 1));
-        $this->postJson('/api/v1/login', ['identifier_type' => 'username', 'username' => 'sakena.ops', 'password' => 'strong1234'])
-            ->assertOk()->assertJson(['twoFactorRequired' => true]);
-        $this->assertGuest();
-    }
+        $admins = User::where('role', UserRole::SuperAdmin)->orderBy('phone')->get();
+        $this->assertSame(['09121234567', '09121234568'], $admins->pluck('phone')->all());
+        $this->assertSame([null, null], $admins->pluck('username')->all());
 
-    /** دشمنانه: نامِ نامعتبر، گرفته‌شده، با پیشوندِ حساب‌های آزمایشی، برای کاربرِ عادی یا حسابِ آزمایشی — همه رد */
-    public function test_a_username_is_refused_when_invalid_taken_demo_or_not_a_real_admin(): void
-    {
-        $admin = (new User)->forceFill(['name' => 'سوپر ادمین', 'phone' => '09121234567', 'role' => UserRole::SuperAdmin,
-            'password' => Hash::make('strong1234'), 'is_active' => true]);
-        $admin->save();
-        $owner = User::factory()->create(['phone' => '09121234568', 'role' => UserRole::Owner]);
-        $demo = (new User)->forceFill(['name' => 'آزمایشی', 'phone' => '09121234569', 'role' => UserRole::SuperAdmin,
-            'username' => 'taken.name', 'password' => Hash::make('x'), 'is_active' => true, 'is_demo' => true]);
-        $demo->save();
+        foreach ([[$admins[0], 'first-pass-1', 'second-pass-2'], [$admins[1], 'second-pass-2', 'first-pass-1']] as [$admin, $password, $other]) {
+            $this->assertTrue(Hash::check($password, $admin->password));
+            $secret = app(AdminTwoFactor::class)->begin($admin)['secret'];
+            app(AdminTwoFactor::class)->confirm($admin->fresh(), Totp::at($secret, Totp::step() - 1));
 
-        foreach (['9admin', 'ab', 'سوپر', 'taken.name', 'demo.admin'] as $bad) {
-            $this->artisan('admin:username', ['username' => $bad, '--phone' => '09121234567'])->assertFailed();
+            $this->flushSession();
+            $this->app['auth']->forgetGuards();
+            // رمزِ مدیرِ دیگر با شماره‌ی این مدیر وارد نمی‌کند
+            $this->postJson('/api/v1/login', ['phone' => $admin->phone, 'password' => $other])->assertStatus(422);
+            $this->postJson('/api/v1/login', ['phone' => $admin->phone, 'password' => $password])
+                ->assertOk()->assertJson(['twoFactorRequired' => true])->assertJsonMissing(['otpRequired' => true]);
+            $this->postJson('/api/v1/login/two-factor', ['code' => Totp::at($secret, Totp::step())])
+                ->assertOk()->assertJsonPath('user.id', $admin->id);
+            $this->postJson('/api/v1/logout')->assertOk();
         }
-        $this->artisan('admin:username', ['username' => 'owner.name', '--phone' => '09121234568'])->assertFailed();
-        $this->artisan('admin:username', ['username' => 'demo.name2', '--phone' => '09121234569'])->assertFailed();
-        $this->artisan('admin:username', ['username' => 'fresh.name', '--phone' => '09121234569'])->assertFailed();
-        $this->artisan('admin:create', [
-            '--phone' => '09121234570', '--first-name' => 'مریم', '--last-name' => 'کاظمی', '--password' => 'strong1234', '--username' => 'taken.name',
-        ])->assertFailed();
 
-        $this->assertNull($admin->fresh()->username);
-        $this->assertNull($owner->fresh()->username);
-        $this->assertSame('taken.name', $demo->fresh()->username);
-        $this->assertDatabaseMissing('users', ['phone' => '09121234570']);
+        $this->assertStringNotContainsString('pass-', (string) json_encode(AuditLog::all()->toArray()));
     }
 }

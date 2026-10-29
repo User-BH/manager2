@@ -16,6 +16,7 @@ use App\Services\Account\ComplexMembers;
 use App\Services\Auth\SessionRegistry;
 use App\Services\Auth\TrustedDeviceService;
 use App\Services\Finance\ResidentDebt;
+use App\Support\Audit;
 use App\Support\Jalali;
 use App\Support\Phone;
 use App\Support\SessionContext;
@@ -85,6 +86,8 @@ class ProfileController extends Controller
         }
 
         $user->update(['password' => Hash::make($data['password'])]);
+        // «کدام مدیر رمزش را عوض کرد» (۲۰۲۶-۱۰-۲۹، بندِ ۳) — فقط رویداد؛ رمز هرگز در لاگ نیست
+        Audit::log('profile.password_changed', 'تغییرِ رمزِ عبور از «اطلاعاتِ کاربری»', $user);
 
         /*
          * تغییر رمز باید اعتمادِ دستگاه‌های قبلی را هم باطل کند (R18).

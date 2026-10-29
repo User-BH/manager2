@@ -626,14 +626,21 @@ cd /var/www/sakena
 `migrate` فقط جدول می‌سازد؛ داده وارد نمی‌کند. یکی از این دو را انجام دهید:
 
 ```bash
-php artisan admin:create --username=<نام کاربری>   # ساخت ادمین کل واقعی (برای سرویس واقعی)
+php artisan admin:create --phone=09xxxxxxxxx   # ساخت ادمین کل واقعی (برای سرویس واقعی؛ رمز پنهان پرسیده می‌شود)
 ./scripts/setup.sh --demo     # دادهٔ نمونه: مجتمع، واحدها و قبوض ساختگی
 ```
 
-نام کاربریِ ادمینِ کلِ موجود (ورود با نام کاربری + رمز + Authenticator — [docs/ADMIN_TWO_FACTOR.md](docs/ADMIN_TWO_FACTOR.md)):
+سپس Authenticator ِ همان ادمین (ورود با شماره + رمز + کدِ برنامه، بی پیامک — [docs/ADMIN_TWO_FACTOR.md](docs/ADMIN_TWO_FACTOR.md)):
 
 ```bash
-php artisan admin:username <نام کاربری> --phone=09xxxxxxxxx
+php artisan admin:two-factor 09xxxxxxxxx
+```
+
+دادهٔ نمونه‌ای که پیش‌تر روی سرورِ واقعی ساخته شده (رمزِ «password») را کنار بگذارید — اول فقط گزارش، بعد اجرا:
+
+```bash
+php artisan sample-data:retire
+php artisan sample-data:retire --force
 ```
 
 اگر رمز ادمین را فراموش کردید:

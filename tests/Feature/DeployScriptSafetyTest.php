@@ -63,6 +63,22 @@ class DeployScriptSafetyTest extends TestCase
         $this->assertMatchesRegularExpression('/WITH_DEMO" = "1" \] && is_production; then\s+die /', $this->script('setup.sh'));
     }
 
+    /**
+     * «اول Preview، بعد محصول» (۲۰۲۶-۱۰-۲۹، بندِ ۵): `--ref` فقط تا همان commit ِ بازبینی‌شده پیش می‌رود — بی بازنویسیِ
+     * تاریخچه و بی پریدن به کدِ تازه‌تر — و نسخه‌ی مستقرشده برای نوارِ Preview نوشته می‌شود.
+     */
+    public function test_production_can_be_pinned_to_the_commit_reviewed_on_preview(): void
+    {
+        $script = $this->script('deploy.sh');
+
+        $this->assertStringContainsString('--ref=*) REF="${arg#--ref=}" ;;', $script);
+        $this->assertStringContainsString('git merge --ff-only "$REF" || die ', $script);
+        $this->assertStringContainsString('git rev-parse --short HEAD > storage/app/deployed-commit', $script);
+        foreach (['reset --hard', 'push --force', 'checkout -f'] as $unsafe) {
+            $this->assertStringNotContainsString($unsafe, $script, $unsafe);
+        }
+    }
+
     private function script(string $name): string
     {
         return (string) file_get_contents(base_path('scripts/'.$name));

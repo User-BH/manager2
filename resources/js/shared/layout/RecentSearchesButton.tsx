@@ -25,7 +25,7 @@ export function RecentSearchesButton() {
       to="/search"
       aria-current={active ? 'page' : undefined}
       aria-label={count ? `جستجوهای اخیر (${count})` : 'جستجوهای اخیر'}
-      className="hidden h-9 shrink-0 items-center gap-1.5 rounded-xl border px-2 text-[13px] font-semibold hover:bg-(--surface-sunken) sm:flex"
+      className="hidden h-9 shrink-0 items-center gap-1.5 rounded-xl border px-2 text-[13px] font-semibold hover:bg-(--surface-sunken) lg:flex"
       style={{
         borderColor: active ? 'var(--color-brand-500)' : 'var(--border-subtle)',
         color: active ? 'var(--color-brand-600)' : 'var(--text-secondary)',

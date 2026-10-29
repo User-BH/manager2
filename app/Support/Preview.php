@@ -109,6 +109,18 @@ final class Preview
         return $problems;
     }
 
+    /**
+     * commit ِ مستقرشده (`deploy.sh` می‌نویسدش) — روی نوارِ Preview، تا همان نسخه‌ی بازبینی‌شده با
+     * `deploy.sh --ref=<commit>` به محصول برود (۲۰۲۶-۱۰-۲۹، بندِ ۵). بی فایل (توسعه، آزمون) `null`.
+     */
+    public static function deployedCommit(): ?string
+    {
+        $path = storage_path('app/deployed-commit');
+        $commit = is_file($path) ? trim((string) file_get_contents($path)) : '';
+
+        return preg_match('/^[0-9a-f]{7,40}$/', $commit) === 1 ? $commit : null;
+    }
+
     /** کوکیِ دسترسی: هش از کلید، تا خودِ کلید در مرورگر نماند. */
     public static function accessToken(): string
     {

@@ -5,7 +5,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 /**
- * رابطِ عاملِ دومِ سوپر ادمین (دستورِ یکپارچه‌ی ۲۰۲۶-۱۰-۲۵، بخشِ ۵): گامِ دومِ ورود، رفتن به آن از فرمِ نام کاربری، و
+ * رابطِ عاملِ دومِ سوپر ادمین (دستورِ یکپارچه‌ی ۲۰۲۶-۱۰-۲۵، بخشِ ۵): گامِ دومِ ورود، رفتن به آن از فرمِ شماره (۲۰۲۶-۱۰-۲۹)، و
  * کارتِ راه‌اندازی در «اطلاعاتِ کاربری». قاعده‌ها در سرورند (`AdminTwoFactorTest`)؛ این‌جا فقط این‌که رابط همان را
  * بفرستد و نشان دهد که باید — و کلید و کدها جایی جز همان گام نمانند.
  */
@@ -62,7 +62,7 @@ Object.defineProperty(window, 'location', {
 })
 
 const { default: TwoFactorLoginPage } = await import('@/features/auth/TwoFactorLoginPage')
-const { default: UsernameLoginPage } = await import('@/features/auth/UsernameLoginPage')
+const { LoginForm } = await import('@/features/auth/components/LoginForm')
 const { default: TwoFactorCard } = await import('@/features/profile/TwoFactorCard')
 
 function renderLogin(state: unknown) {
@@ -70,7 +70,7 @@ function renderLogin(state: unknown) {
     <MemoryRouter initialEntries={[{ pathname: '/auth/two-factor', state }]}>
       <Routes>
         <Route path="/auth/two-factor" element={<TwoFactorLoginPage />} />
-        <Route path="/auth/username" element={<p>صفحه‌ی نام کاربری</p>} />
+        <Route path="/auth" element={<p>صفحه‌ی ورود</p>} />
       </Routes>
     </MemoryRouter>,
   )
@@ -91,10 +91,10 @@ beforeEach(() => {
 })
 
 describe('گامِ دومِ ورود (TOTP)', () => {
-  it('بی گامِ رمز به صفحه‌ی نام کاربری برمی‌گردد', () => {
+  it('بی گامِ رمز به صفحه‌ی ورود برمی‌گردد', () => {
     renderLogin(null)
 
-    expect(screen.getByText('صفحه‌ی نام کاربری')).toBeInTheDocument()
+    expect(screen.getByText('صفحه‌ی ورود')).toBeInTheDocument()
     expect(apiMock).not.toHaveBeenCalled()
   })
 
@@ -132,21 +132,21 @@ describe('گامِ دومِ ورود (TOTP)', () => {
   })
 })
 
-describe('فرمِ نام کاربری', () => {
-  it('سوپر ادمینِ دارای Authenticator به گامِ کدِ برنامه می‌رود، نه کدِ پیامکی', async () => {
+describe('فرمِ شماره', () => {
+  it('سوپر ادمین با شماره و رمز به گامِ کدِ برنامه می‌رود، نه کدِ پیامکی (۲۰۲۶-۱۰-۲۹، بندِ ۲)', async () => {
     const user = userEvent.setup()
     apiMock.mockResolvedValue({ twoFactorRequired: true })
     render(
-      <MemoryRouter initialEntries={['/auth/username']}>
+      <MemoryRouter initialEntries={['/auth']}>
         <Routes>
-          <Route path="/auth/username" element={<UsernameLoginPage />} />
+          <Route path="/auth" element={<LoginForm />} />
           <Route path="/auth/two-factor" element={<p>گام-کد-برنامه</p>} />
           <Route path="/auth/verify" element={<p>گام-پیامک</p>} />
         </Routes>
       </MemoryRouter>,
     )
 
-    await user.type(screen.getByPlaceholderText('نام کاربری'), 'sakena.admin')
+    await user.type(screen.getByPlaceholderText('۰۹xxxxxxxxx'), '09120000001')
     await user.type(screen.getByPlaceholderText('رمز عبور خود را وارد کنید'), 'secret123')
     await user.click(screen.getByText('حل-پازل'))
     await user.click(screen.getByRole('button', { name: /ورود به پنل/ }))

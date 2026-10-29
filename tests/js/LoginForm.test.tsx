@@ -229,13 +229,11 @@ describe('LoginForm', () => {
     await waitFor(() => expect(screen.getByTestId('puzzle-reset')).toHaveTextContent('1'))
   })
 
-  it('پیوندِ «ورود با نام کاربری» به صفحه‌ی جدایش می‌رود (۱۳/۱)', () => {
+  it('یک درِ ورود: پیوندِ «ورود با نام کاربری» دیگر نیست (۲۰۲۶-۱۰-۲۹، بندِ ۴)', () => {
     render(<LoginForm />)
 
-    expect(screen.getByRole('link', { name: 'ورود با نام کاربری' })).toHaveAttribute(
-      'href',
-      '/auth/username',
-    )
+    expect(screen.queryByRole('link', { name: 'ورود با نام کاربری' })).toBeNull()
+    expect(document.querySelector('a[href="/auth/username"]')).toBeNull()
   })
 
   it('کپی‌کردن از فیلد رمز مسدود است', async () => {

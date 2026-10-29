@@ -58,7 +58,16 @@ class FeedbackController extends Controller
 
     public function update(UpdateFeedbackStatusRequest $request, Feedback $feedback): JsonResponse
     {
+        $before = $feedback->status;
         $feedback->update(['status' => $request->validated('status')]);
+
+        if ($feedback->status !== $before) {
+            Audit::log('feedback.status_changed', 'وضعیتِ بازخوردِ «'.$this->sender($feedback).'» شد «'.$feedback->status->label().'»', null, [
+                'feedback' => $feedback->id,
+                'from' => $before->value,
+                'to' => $feedback->status->value,
+            ]);
+        }
 
         return response()->json(['feedback' => $this->present($feedback->load('replies.author:id,name'), $this->membership->recipientFor($feedback))]);
     }
@@ -94,7 +103,7 @@ class FeedbackController extends Controller
              * می‌رفت (E2E گرفت). «پاسخ داده شد» از خودِ پاسخ‌ها خوانده می‌شود.
              */
 
-            Audit::log('feedback.replied', 'پاسخ به بازخوردِ کاربر', null, [
+            Audit::log('feedback.replied', 'پاسخ به بازخوردِ «'.$this->sender($feedback).'»', null, [
                 'feedback' => $feedback->id,
                 'reply' => $reply->id,
                 'recipient' => $member['user']->id,
@@ -110,6 +119,12 @@ class FeedbackController extends Controller
             'message' => 'پاسخ فرستاده شد و در اعلان‌های کاربر می‌نشیند.',
             'feedback' => $this->present($feedback->fresh(['replies.author:id,name']) ?? $feedback, $member),
         ], 201);
+    }
+
+    /** نامِ فرستنده برای متنِ لاگ — بی‌نام، شماره‌ی ثبت‌شده‌ی خودِ بازخورد */
+    private function sender(Feedback $feedback): string
+    {
+        return filled($feedback->name) ? (string) $feedback->name : 'بازخوردِ #'.$feedback->id;
     }
 
     /**

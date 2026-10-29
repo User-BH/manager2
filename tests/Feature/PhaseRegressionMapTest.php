@@ -1445,7 +1445,7 @@ class PhaseRegressionMapTest extends TestCase
                 'UsernameLoginTest', 'test_a_real_user_cannot_sign_in_with_a_username_even_if_one_is_set', '۱۳',
             ],
             '🔴 ۱۳/۱: سوپر ادمین با نام کاربری هم کدِ ورود می‌خواهد' => [
-                'UsernameLoginTest', 'test_the_super_admin_signs_in_by_username_and_still_needs_the_code', '۱۳',
+                'UsernameLoginTest', 'test_a_real_super_admin_signs_in_by_phone_not_by_username', '۱۳',
             ],
             '🔴 ۱۳/۱: نشانگرِ آزمایشی از درخواست نوشته نمی‌شود' => [
                 'UsernameLoginTest', 'test_the_demo_marker_cannot_be_set_from_a_request', '۱۳',
@@ -1467,7 +1467,7 @@ class PhaseRegressionMapTest extends TestCase
                 'SystemMemberSearchTest', 'test_a_name_search_returns_only_matching_names', '۱۳',
             ],
             '🔴 ۱۳/۱: سوپر ادمین با TOTP همیشه کدِ برنامه می‌خواهد، بی پیامک' => [
-                'AdminTwoFactorTest', 'test_login_by_username_or_phone_always_asks_for_the_app_code_and_sends_no_sms', '۱۳',
+                'AdminTwoFactorTest', 'test_login_by_phone_always_asks_for_the_app_code_and_sends_no_sms', '۱۳',
             ],
             '🔴 ۱۳/۱: خاموشیِ پیامک عاملِ دومِ سوپر ادمین را خاموش نمی‌کند' => [
                 'AdminTwoFactorTest', 'test_disabling_sms_codes_does_not_disable_the_admin_second_factor', '۱۳',
@@ -1721,7 +1721,7 @@ class PhaseRegressionMapTest extends TestCase
             'sessionContext' => ['۱۲/۱', 'سربرگ از پاسخِ موفق و پاسخِ خطا هر دو خوانده می‌شود'],
             // مرحلهٔ ۱۳ («دستورِ یکپارچه»): هم‌ارزیِ zod/mini، گامِ TOTP ِ سوپر ادمین
             'zodMiniParity' => ['۱۳/۱', 'موفقیت، داده و هر پیامِ خطا برای کلِ پیکره یکی است'],
-            'adminTwoFactor' => ['۱۳/۱', 'سوپر ادمینِ دارای Authenticator به گامِ کدِ برنامه می‌رود، نه کدِ پیامکی'],
+            'adminTwoFactor' => ['۱۳/۱', 'سوپر ادمین با شماره و رمز به گامِ کدِ برنامه می‌رود، نه کدِ پیامکی'],
             // مرحلهٔ ۱۳ · فاز ۲: دکمه‌ی نصبِ Hero — «نصب شد» فقط با رویدادِ مرورگر، یک رویداد یک بار
             'heroInstall' => ['۱۳/۲', '«نصب شد» فقط پس از `appinstalled`'],
             // مرحلهٔ ۱۳ · فاز ۳: صفحه‌ی انتخاب بی «ایجادِ حسابِ جدید»؛ منوی آدمک بی مجتمعِ فعال

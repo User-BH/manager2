@@ -5,6 +5,9 @@
 #   ./scripts/deploy.sh              اگر پوشه مخزن git باشد pull می‌کند، وگرنه رد می‌شود
 #   ./scripts/deploy.sh --no-pull    حتی اگر git باشد pull نکن (فایل‌ها را خودتان آپلود کرده‌اید)
 #   ./scripts/deploy.sh --no-down    بدون حالت تعمیرات (سایت لحظه‌ای هم قطع نشود)
+#   ./scripts/deploy.sh --ref=<commit>
+#                                    به‌جای آخرین کد، دقیقاً همین commit (فقط پیش‌روی، بی تغییرِ تاریخچه).
+#                                    روی محصول: همان commit ای که در نوارِ Preview بازبینی و تأیید شد
 #   ./scripts/deploy.sh --reset-preview
 #                                    فقط روی Preview (APP_ENV=preview): پایگاه‌داده‌ی Preview را
 #                                    پاک و با دادهٔ نمونه از نو می‌سازد (php artisan preview:reset)
@@ -19,9 +22,11 @@ source "$(dirname "${BASH_SOURCE[0]}")/lib.sh"
 DO_PULL=auto
 MAINTENANCE=1
 RESET_PREVIEW=0
+REF=""
 for arg in "$@"; do
     case "$arg" in
         --no-pull) DO_PULL=0 ;;
+        --ref=*) REF="${arg#--ref=}" ;;
         --no-down) MAINTENANCE=0 ;;
         --reset-preview) RESET_PREVIEW=1 ;;
         -h|--help) sed -n '2,16p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
@@ -57,7 +62,13 @@ if [ "$DO_PULL" != "0" ] && [ -d .git ] && command -v git >/dev/null 2>&1; then
     fi
 
     before="$(git rev-parse --short HEAD)"
-    git pull --ff-only
+    if [ -n "$REF" ]; then
+        # فقط commit ای که روی Preview بازبینی شد (۲۰۲۶-۱۰-۲۹، بندِ ۵): پیش‌روی تا همان، نه بیشتر و نه بازنویسیِ تاریخچه
+        git fetch --quiet origin
+        git merge --ff-only "$REF" || die "به $REF نمی‌شود پیش رفت (نیست، یا پیش‌روی نیست). نخست همان را روی Preview مستقر کنید."
+    else
+        git pull --ff-only
+    fi
     after="$(git rev-parse --short HEAD)"
 
     if [ "$before" = "$after" ]; then
@@ -65,6 +76,8 @@ if [ "$DO_PULL" != "0" ] && [ -d .git ] && command -v git >/dev/null 2>&1; then
     else
         ok "به‌روزرسانی شد: $before → $after"
     fi
+    # نسخه‌ی مستقرشده: نوارِ Preview همین را نشان می‌دهد تا محصول با --ref به همان برسد
+    git rev-parse --short HEAD > storage/app/deployed-commit 2>/dev/null || true
 else
     if [ "$DO_PULL" = "0" ]; then
         ok "pull رد شد (--no-pull)"

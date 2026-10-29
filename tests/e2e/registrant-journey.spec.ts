@@ -92,7 +92,7 @@ test.describe('ثبت‌نام‌کننده‌ی اولیه', () => {
     await page.goto('/dashboard')
 
     await expect(page.getByText(NOT_A_MEMBER)).toBeVisible()
-    // تجربه‌ی جدا: منوی خودش، نه سایدبارِ ساکن
+    // تجربه‌ی جدا: منوی خودش، نه منوی ساکن — در همان سایدبارِ سمتِ راستِ بقیه‌ی داشبوردها (۲۰۲۶-۱۰-۲۹، بندِ ۷)
     const menu = page.getByRole('navigation', { name: 'منوی حساب' })
     await expect(menu.getByRole('link')).toHaveText([
       'داشبورد',
@@ -101,7 +101,8 @@ test.describe('ثبت‌نام‌کننده‌ی اولیه', () => {
       'حساب و اشتراک',
       'کیف پول',
     ])
-    await expect(page.locator('aside')).toHaveCount(0)
+    await expect(page.locator('aside').filter({ has: menu })).toHaveCount(1)
+    await expect(page.locator('a[href="/my-bills"]')).toHaveCount(0)
 
     /*
      * کیف مالِ حساب است (مرحلهٔ ۹ · اصلاحاتِ پس از فاز ۶): حسابِ اولیه هم — مثلاً
@@ -115,12 +116,21 @@ test.describe('ثبت‌نام‌کننده‌ی اولیه', () => {
     await expect(page.getByText('هنوز تراکنشی ثبت نشده است.')).toBeVisible()
     await page.goto('/dashboard')
 
-    // هر پنج زبانه در گوشیِ باریک هم بی‌اسکرولِ پنهان جا می‌شوند
+    // گوشیِ باریک: همان کشوی منوی بقیه‌ی داشبوردها، هر پنج مقصد دیده‌شدنی و بی سرریزِ افقی (۲۰۲۶-۱۰-۲۹، بندِ ۷)
     for (const width of [320, 360, 430]) {
       await page.setViewportSize({ width, height: 800 })
-      const fit = await menu.locator('ul').evaluate((ul) => ul.scrollWidth - ul.clientWidth)
-      expect(fit, `${width}px: زبانه‌ای پشتِ اسکرول است`).toBeLessThanOrEqual(1)
+      await page.getByRole('button', { name: 'باز کردن منو' }).click()
+      const drawer = page.getByRole('dialog', { name: 'منوی اصلی' })
+      for (const label of ['داشبورد', 'اعلان‌ها', 'پروفایل', 'حساب و اشتراک', 'کیف پول'])
+        await expect(drawer.getByRole('link', { name: label })).toBeInViewport()
+      await page.keyboard.press('Escape')
+      await expect(drawer).toBeHidden()
+      const overflow = await page.evaluate(
+        () => document.documentElement.scrollWidth - window.innerWidth,
+      )
+      expect(overflow, `${width}px: سرریزِ افقی`).toBeLessThanOrEqual(0)
     }
+    await page.setViewportSize({ width: 1280, height: 800 })
 
     // صفحه‌ی ساکن مالِ این حالت نیست
     await page.goto('/my-bills')

@@ -1,88 +1,32 @@
-import { Suspense } from 'react'
-import { NavLink, Outlet, useLocation } from 'react-router-dom'
-import { LogoMark } from '@/shared/common/LogoMark'
-import { BRAND_NAME } from '@/shared/config/brand'
-import { TopBarActions } from '@/shared/layout/TopBarActions'
-import { reportError } from '@/shared/lib/observability'
-import { ErrorBoundary } from '@/shared/ui/ErrorBoundary'
-import { InlineSpinner } from '@/shared/ui/PageState'
+import { DashboardLayout } from '@/shared/layout/DashboardLayout'
+import type { NavSection } from '@/shared/types'
 import { REGISTRANT_NAV } from './navigation'
+
+/** منوی سایدبارِ همین حالت — همان پنج مقصد، به شکلِ بخشِ سایدبار */
+const SECTIONS: NavSection[] = [
+  {
+    id: 'registrant',
+    title: 'حساب من',
+    items: REGISTRANT_NAV.map(({ to, label, icon }) => ({ label, path: to, icon })),
+  },
+]
 
 /**
  * پوسته‌ی تجربه‌ی «ثبت‌نام‌کننده‌ی اولیه» (مرحلهٔ ۸ · فاز ۱).
  *
- * سایدبارِ ساکن و مدیر را ندارد — چیزی برای مدیریت نیست — و جست‌وجو و
- * ماشین‌حساب هم نه (هر دو روی داده‌ی مجتمع کار می‌کنند). یک سرصفحه با نشان،
- * اعلان، تم و منوی کاربر، و زیرش چهار مقصدِ همین حالت.
+ * از ۲۰۲۶-۱۰-۲۹ (بندِ ۷) همان پوسته‌ی سه داشبوردِ دیگر است: آیتم‌ها در سایدبارِ سمتِ راست (و کشوی موبایل)، نه
+ * زبانه‌های زیرِ سرصفحه — همان رفتار، همان جمع‌شدن و همان نوارِ بالا. فقط منو مالِ خودش است (پنج مقصدِ همین حالت)،
+ * و ابزارهای نوار از ماتریسِ `topBar.ts` (`initial`: آدمک، اعلان و تم — بی جست‌وجو، ماشین‌حساب و تقویم).
  *
- * Suspense و ErrorBoundary به همان دلیلِ `DashboardLayout`: کرشِ یک صفحه
- * پوسته را نمی‌اندازد و `resetKey` با رفتن به صفحه‌ی دیگر خطا را پاک می‌کند.
+ * ⚠️ مرزِ اصلی سمتِ سرور است، نه این منو: `LockInitialAccount` و `RegistrantRouter`.
  */
 export function RegistrantLayout() {
-  const { pathname } = useLocation()
-
   return (
-    <div
-      className="flex min-h-screen flex-col"
-      dir="rtl"
-      style={{ backgroundColor: 'var(--surface-canvas)' }}
-      data-experience="registrant"
-    >
-      <header
-        className="sticky top-0 z-20 border-b backdrop-blur"
-        style={{
-          backgroundColor: 'color-mix(in srgb, var(--surface-base) 92%, transparent)',
-          borderColor: 'var(--border-subtle)',
-        }}
-      >
-        <div className="mx-auto flex h-16 max-w-3xl items-center gap-3 px-4">
-          <div className="flex flex-1 items-center gap-2.5">
-            <LogoMark size={32} className="shrink-0" />
-            <div className="leading-tight">
-              <p className="text-sm font-bold" style={{ color: 'var(--text-primary)' }}>
-                {BRAND_NAME}
-              </p>
-              <p className="text-xs" style={{ color: 'var(--text-tertiary)' }}>
-                حساب ثبت‌شده · بدون مجتمع
-              </p>
-            </div>
-          </div>
-
-          {/* همان ابزارهای مشترکِ نوار، از ماتریسِ `topBar.ts`: آدمک، اعلان و تم — بی جست‌وجو (۱۳/۴، بندِ ۲.۴) */}
-          <TopBarActions dashboard="initial" />
-        </div>
-
-        <nav aria-label="منوی حساب" className="mx-auto max-w-3xl px-2">
-          <ul className="scrollbar-thin flex gap-0 overflow-x-auto min-[420px]:gap-1">
-            {REGISTRANT_NAV.map(({ to, label, icon: Icon }) => (
-              <li key={to} className="shrink-0">
-                <NavLink
-                  to={to}
-                  className="flex items-center gap-1.5 border-b-2 px-1.5 py-2.5 text-xs font-semibold transition-colors min-[360px]:px-2 min-[360px]:text-[13px] min-[420px]:px-3"
-                  style={({ isActive }) => ({
-                    borderColor: isActive ? 'var(--color-brand-500)' : 'transparent',
-                    color: isActive ? 'var(--color-brand-600)' : 'var(--text-secondary)',
-                  })}
-                >
-                  {/* زبانه‌ها با آیکون فقط از ‎۵۶۰px جا می‌شوند؛ پایین‌تر فقط متن، زیرِ
-                      ‎۴۲۰px فاصله‌ها تنگ‌تر و زیرِ ‎۳۶۰px متن هم ریزتر — وگرنه زبانه‌ی پنجم («کیف پول»، مرحلهٔ ۹ ·
-                      اصلاحاتِ پس از فاز ۶) در ‎۳۶۰px پشتِ اسکرول پنهان می‌ماند (‎۵۱px سرریز) */}
-                  <Icon size={16} aria-hidden="true" className="hidden min-[560px]:block" />
-                  {label}
-                </NavLink>
-              </li>
-            ))}
-          </ul>
-        </nav>
-      </header>
-
-      <main id="main-content" tabIndex={-1} className="flex-1 p-4 sm:p-6">
-        <ErrorBoundary resetKey={pathname} onError={reportError}>
-          <Suspense fallback={<InlineSpinner />}>
-            <Outlet />
-          </Suspense>
-        </ErrorBoundary>
-      </main>
-    </div>
+    <DashboardLayout
+      sections={SECTIONS}
+      navLabel="منوی حساب"
+      experience="registrant"
+      presence={false}
+    />
   )
 }

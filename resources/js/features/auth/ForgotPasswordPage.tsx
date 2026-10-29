@@ -156,7 +156,7 @@ export function ForgotPasswordPage() {
        */
       if (!user) {
         toastSuccess('رمز عبور تغییر کرد. با رمزِ تازه و کدِ برنامه‌ی Authenticator وارد شوید.')
-        void navigate('/auth/username', { replace: true })
+        void navigate('/auth', { replace: true })
         return
       }
 

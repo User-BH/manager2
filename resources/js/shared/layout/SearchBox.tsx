@@ -43,7 +43,7 @@ export function SearchBox() {
         event.preventDefault()
         submit()
       }}
-      className="relative hidden w-full max-w-sm sm:block"
+      className="relative hidden w-full max-w-sm lg:block"
     >
       <button
         type="submit"

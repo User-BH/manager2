@@ -4,11 +4,12 @@ import { ChevronsRight, X } from 'lucide-react'
 import { useFocusTrap } from '@/shared/hooks/useFocusTrap'
 import { useSidebar } from '@/shared/stores/sidebarStore'
 import { SidebarContent } from './SidebarContent'
+import type { NavSection } from '@/shared/types'
 
 const EXPANDED_WIDTH = 272
 const COLLAPSED_WIDTH = 76
 
-export function Sidebar() {
+export function Sidebar({ sections, navLabel }: { sections?: NavSection[]; navLabel?: string }) {
   const { collapsed, toggleCollapsed, mobileOpen, setMobileOpen } = useSidebar()
   const drawerRef = useRef<HTMLElement>(null)
 
@@ -62,7 +63,7 @@ export function Sidebar() {
         className="relative z-30 hidden h-screen shrink-0 flex-col border-l lg:flex"
         style={{ backgroundColor: 'var(--surface-base)', borderColor: 'var(--border-subtle)' }}
       >
-        <SidebarContent collapsed={collapsed} />
+        <SidebarContent collapsed={collapsed} sections={sections} navLabel={navLabel} />
 
         <button
           onClick={toggleCollapsed}
@@ -109,7 +110,12 @@ export function Sidebar() {
                 <X size={18} />
               </button>
             </div>
-            <SidebarContent collapsed={false} onNavigate={() => setMobileOpen(false)} />
+            <SidebarContent
+              collapsed={false}
+              onNavigate={() => setMobileOpen(false)}
+              sections={sections}
+              navLabel={navLabel}
+            />
           </motion.aside>
         )}
       </AnimatePresence>

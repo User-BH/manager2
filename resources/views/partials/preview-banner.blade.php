@@ -12,5 +12,8 @@
                 color:#1f1300;background:repeating-linear-gradient(135deg,#fbbf24 0 14px,#f59e0b 14px 28px);
                 box-shadow:0 -1px 0 rgba(0,0,0,.25)">
         محیطِ آزمایشیِ Preview — داده‌ها نمونه‌اند، پیامک و پرداختِ واقعی خاموش است.
+        @if ($commit = \App\Support\Preview::deployedCommit())
+            <span dir="ltr" data-testid="preview-commit">· {{ $commit }}</span>
+        @endif
     </div>
 @endif

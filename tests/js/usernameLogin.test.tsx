@@ -4,8 +4,9 @@ import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 /**
- * ورود با نام کاربری (مرحلهٔ ۱۳ · فاز ۱؛ پیامِ کارفرما ۲۰۲۶-۱۰-۱۹، بخش ۳) — فقط سوپر ادمین و حساب‌های آزمایشیِ
- * Preview. نوعِ شناسه صریح به سرور می‌رود، شماره در بدنه نیست، و «نادرست» همان رفتارِ فرمِ شماره را دارد.
+ * ورود با نام کاربری (مرحلهٔ ۱۳ · فاز ۱؛ پیامِ کارفرما ۲۰۲۶-۱۰-۱۹، بخش ۳) — فقط حساب‌های آزمایشیِ Preview، روی
+ * همان `/auth` (۲۰۲۶-۱۰-۲۹، بندِ ۴). نوعِ شناسه صریح به سرور می‌رود، شماره در بدنه نیست، و «نادرست» همان رفتارِ فرمِ
+ * شماره را دارد.
  */
 
 const apiMock = vi.fn()
@@ -52,7 +53,7 @@ const { default: UsernameLoginPage } = await import('@/features/auth/UsernameLog
 
 function renderPage() {
   return render(
-    <MemoryRouter initialEntries={['/auth/username']}>
+    <MemoryRouter initialEntries={['/auth']}>
       <UsernameLoginPage />
     </MemoryRouter>,
   )
@@ -66,7 +67,7 @@ describe('UsernameLoginPage', () => {
 
   it('نوعِ شناسه را صریح می‌فرستد، شماره نمی‌فرستد و ورودی را پالوده می‌کند', async () => {
     const user = userEvent.setup()
-    apiMock.mockResolvedValue({ otpRequired: true, phone: '0912•••0001' })
+    apiMock.mockResolvedValue({})
     renderPage()
 
     // حرفِ بزرگ و نویسه‌ی نامجاز همان لحظه پالوده می‌شود
@@ -123,12 +124,12 @@ describe('UsernameLoginPage', () => {
     })
   })
 
-  it('بازگشت به ورود با شماره در دسترس است', () => {
+  it('تنها فرمِ ورودِ Preview است: نه پیوندِ ورود با شماره، نه ثبت‌نام', () => {
     renderPage()
 
-    expect(screen.getByRole('link', { name: 'ورود با شماره موبایل' })).toHaveAttribute(
-      'href',
-      '/auth',
-    )
+    expect(screen.getByRole('heading', { name: 'ورود به محیط آزمایشی' })).toBeInTheDocument()
+    expect(screen.queryByRole('link', { name: 'ورود با شماره موبایل' })).toBeNull()
+    expect(screen.queryByPlaceholderText('۰۹xxxxxxxxx')).toBeNull()
+    expect(screen.queryByText(/ثبت‌نام/)).toBeNull()
   })
 })

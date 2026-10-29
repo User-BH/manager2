@@ -617,13 +617,14 @@ class AuthorizationAttackTest extends TestCase
         'app/Console/Commands/RaceCheckout.php' => [7, 'آزمونِ همزمانیِ واقعیِ خرید (مرحلهٔ ۹ · فاز ۵)؛ فقط داده‌ی ساخته‌ی خودش را می‌خواند و پاک می‌کند'],
         // مرحلهٔ ۹ · فاز ۸: «پایگاه‌داده کاربر دارد؟» پیش از پاک‌سازی — بی مجتمع، در کلِ پایگاه‌داده
         'app/Console/Commands/PreviewReset.php' => [1, 'پیش از پاک‌سازی می‌سنجد پایگاه‌داده‌ی بی‌برچسب هیچ کاربری ندارد'],
-        // ۲۰۲۶-۱۰-۲۵: فرمانِ سرورِ عاملِ دومِ سوپر ادمین — سوپر ادمین مجتمع ندارد؛ پیدا کردنش با نام کاربری در کلِ سکو
-        'app/Console/Commands/AdminTwoFactorCommand.php' => [1, 'سوپر ادمین با نام کاربری، بی مجتمع؛ فقط همان حساب و فقط اگر نقشش سوپر ادمین است'],
+        // ۲۰۲۶-۱۰-۲۵: فرمانِ سرورِ عاملِ دومِ سوپر ادمین — سوپر ادمین مجتمع ندارد؛ پیدا کردنش با شماره در کلِ سکو (۲۰۲۶-۱۰-۲۹)
+        'app/Console/Commands/AdminTwoFactorCommand.php' => [1, 'سوپر ادمین با شماره، بی مجتمع؛ فقط همان حساب و فقط اگر نقشش سوپر ادمین است'],
         'app/Console/Commands/PruneGeneratedDocuments.php' => [1, 'پاک‌سازیِ زمان‌بندی‌شده روی همه‌ی مجتمع‌ها'],
         'app/Console/Commands/PruneOrphanUploads.php' => [5, 'فایل‌های یتیم در همه‌ی مجتمع‌ها — پنج نوع پیوست از R58'],
         'app/Console/Commands/ResetUserPassword.php' => [2, 'بازیابیِ رمز از کنسول، پیش از هر نشستی'],
+        // ۲۰۲۶-۱۰-۲۹: کنار گذاشتنِ دادهٔ نمونه‌ی DemoSeeder از محصول — حساب‌ها و مجتمعِ نمونه با اثرانگشت، در کلِ سکو
+        'app/Console/Commands/RetireSampleData.php' => [4, 'فرمانِ سرور: حساب و مجتمعِ نمونه را با اثرانگشتِ seeder در کلِ سکو می‌یابد و اعضای مجتمع را می‌شمارد'],
         'app/Console/Commands/SendBillReminders.php' => [1, 'یادآوریِ زمان‌بندی‌شده برای همه‌ی مجتمع‌ها'],
-        'app/Console/Commands/SetAdminUsername.php' => [2, 'نام کاربریِ سوپر ادمین از کنسول: یافتنِ حساب و یکتاییِ نام در کلِ سامانه («حفره ها۲»)'],
         'app/Console/Commands/StalePayments.php' => [2, 'گزارشِ اپراتور از پرداخت‌های بلاتکلیفِ همه‌ی مجتمع‌ها (R59)'],
         'app/Jobs/BuildBillsBundleJob.php' => [3, 'صف؛ زمینه‌ی مستأجری در worker وجود ندارد'],
 
@@ -631,6 +632,8 @@ class AuthorizationAttackTest extends TestCase
         // ۱۳/۱: +۱ برای زیرپرسشِ «مجتمع‌های آزمایشی» که از همه‌ی آمارها کنار گذاشته می‌شوند
         'app/Services/System/PlatformStats.php' => [15, 'آمارِ کلِ پلتفرم؛ فقط ادمینِ کل'],
         // ۱۳/۱: +۱ برای بخشِ «حساب‌های آزمایشی» (حساب‌های نشان‌دارِ همه‌ی مجتمع‌ها)
+        // ۲۰۲۶-۱۰-۲۹: «فعالیتِ مدیران» — فهرستِ سوپر ادمین‌ها (بی مجتمع) برای فیلترِ «کدام مدیر»
+        'app/Http/Controllers/Api/System/AuditLogController.php' => [1, 'مدیرانِ سامانه (سوپر ادمین، بی مجتمع) برای فیلترِ لاگ؛ role:super_admin'],
         'app/Http/Controllers/Api/System/MemberController.php' => [4, 'فهرستِ کاربرانِ همه‌ی مجتمع‌ها؛ role:super_admin'],
         // ۱۲/۴: پکیجِ فروخته‌شده حذف نمی‌شود — «فروخته شده؟» در همه‌ی مجتمع‌ها سنجیده می‌شود؛ پنلِ ادمینِ کل زمینه‌ی مجتمع ندارد
         'app/Http/Controllers/Api/System/PlanController.php' => [2, 'آیا پکیج در هیچ مجتمعی اشتراک یا قصدِ خرید دارد؛ role:super_admin، فقط exists'],

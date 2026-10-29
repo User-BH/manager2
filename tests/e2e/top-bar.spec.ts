@@ -25,6 +25,8 @@ const MANAGER = '09120000000'
 const SUPER_ADMIN = '09120000001'
 
 const WIDTHS = [1280, 1024, 768, 375] as const
+/** گوشی‌های باریک‌تر — آدمک و منویش در ‎۳۶۰px از لبه‌ی چپ بیرون می‌زدند (۲۰۲۶-۱۰-۲۹، بندِ ۸) */
+const MEMBER_WIDTHS = [...WIDTHS, 360, 320] as const
 
 async function signedIn(browser: Browser, phone: string): Promise<Page> {
   const page = await (await browser.newContext()).newPage()
@@ -55,6 +57,7 @@ function tools(bar: Locator) {
     searchToggle: bar.locator('[aria-controls="top-bar-search-panel"]'),
     recent: bar.getByRole('link', { name: /^جستجوهای اخیر/ }),
     calculator: bar.getByRole('link', { name: 'ماشین حساب' }),
+    calendar: bar.getByRole('link', { name: 'تقویم' }),
     notifications: bar.getByRole('button', { name: /اعلان/ }),
     theme: bar.getByRole('button', { name: /حالت (تاریک|روشن)/ }),
   }
@@ -107,13 +110,36 @@ for (const role of ['unit', 'manager', 'platform'] as const) {
     const bar = page.getByRole('banner')
     const t = tools(bar)
 
-    for (const width of WIDTHS) {
+    for (const width of MEMBER_WIDTHS) {
       await page.setViewportSize({ width, height: 800 })
+      const account = bar.getByRole('button', { name: /^حساب کاربری/ })
       await expect(t.notifications).toBeVisible()
-      await expect(t.theme).toBeVisible()
-      await expect(t.calculator).toBeVisible()
-      await expect(bar.getByRole('button', { name: /^حساب کاربری/ })).toBeVisible()
+      await expect(t.calendar).toBeVisible()
+      await expect(account).toBeVisible()
+      /*
+       * ۲۰۲۶-۱۰-۲۹، بندِ ۸: زیرِ ‎۶۴۰px ماشین‌حساب و تم در منوی آدمک‌اند (هفت کنترلِ ۴۴ پیکسلی جا نمی‌شد)؛ کادرِ کامل و
+       * «اخیر» از ‎۱۰۲۴px — پایین‌تر روی ماشین‌حساب و تقویم می‌افتادند و پنل همان «اخیر» را دارد.
+       */
       if (width >= 640) {
+        await expect(t.theme).toBeVisible()
+        await expect(t.calculator).toBeVisible()
+      } else {
+        await expect(t.theme).toBeHidden()
+        await expect(t.calculator).toBeHidden()
+        await account.click()
+        await expect(bar.getByRole('button', { name: 'ماشین حساب' })).toBeVisible()
+        await expect(bar.getByRole('button', { name: /^حالت (تاریک|روشن)$/ })).toBeVisible()
+        const menu = (await page
+          .getByRole('button', { name: 'خروج از حساب' })
+          .locator('xpath=..')
+          .boundingBox())!
+        expect(menu.x, `${width}px: منوی آدمک از لبه‌ی چپ بیرون زد`).toBeGreaterThanOrEqual(0)
+        expect(menu.x + menu.width, `${width}px: منو از لبه‌ی راست بیرون زد`).toBeLessThanOrEqual(
+          width,
+        )
+        await account.click()
+      }
+      if (width >= 1024) {
         await expect(t.searchBox).toBeVisible()
         await expect(t.recent).toBeVisible()
         await expect(t.searchToggle).toBeHidden()
@@ -122,8 +148,12 @@ for (const role of ['unit', 'manager', 'platform'] as const) {
         await expect(t.recent).toBeHidden()
         await expect(t.searchToggle).toBeVisible()
       }
+      // آدمک تمام‌قد درونِ صفحه
+      const box = (await account.boundingBox())!
+      expect(box.x, `${width}px: آدمک بیرون از صفحه`).toBeGreaterThanOrEqual(0)
       await assertTidy(page, width)
     }
+    await page.setViewportSize({ width: 375, height: 800 })
 
     // ── منوی آدمک در لبه‌ی صفحه بیرون نمی‌زند (بندِ ۲.۹) ──
     const account = bar.getByRole('button', { name: /^حساب کاربری/ })
