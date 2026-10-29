@@ -12,9 +12,11 @@ use App\Enums\ServiceRequestPriority;
 use App\Enums\ServiceRequestStatus;
 use App\Enums\UserRole;
 use App\Models\Announcement;
+use App\Models\AssistantMessage;
 use App\Models\Backup;
 use App\Models\Bill;
 use App\Models\ChargeRule;
+use App\Models\CheckoutIntent;
 use App\Models\Complex;
 use App\Models\ComplexInvitation;
 use App\Models\ComplexMembership;
@@ -442,6 +444,18 @@ class BolaSweepTest extends TestCase
         ]);
         $reminder->reschedule();
         $reminder->save();
+        // ۱۳/۹-ه: گفت‌وگوی دستیارِ قربانی (۱۳/۸) — نه مدیرش، نه همسایه، نه مجتمعِ دیگر آن را نمی‌خوانند یا پاک نمی‌کنند
+        AssistantMessage::create([
+            'user_id' => $resident->id, 'complex_id' => $complex->id, 'context_key' => $complex->id.':'.UserRole::Owner->value,
+            'question' => "{$tag}-ASSISTANT-QUESTION", 'answer' => "{$tag}-ASSISTANT-ANSWER", 'status' => 'found', 'tool' => 'complex', 'redacted' => false,
+        ]);
+        // و قصدِ خریدِ مدیرِ قربانی (۱۳/۶) — فقط در مجموعه‌ی «ب»؛ در «الف۲» مدیرِ الف خودِ مهاجم است
+        if ($tag === 'ZQB') {
+            CheckoutIntent::create([
+                'user_id' => $manager->id, 'plan_name' => 'res-pro', 'amount' => 550000, 'months' => 3,
+                'complex_name' => "{$tag}-INTENT", 'complex_type' => 'residential',
+            ]);
+        }
 
         return [
             'targets' => [
@@ -457,8 +471,8 @@ class BolaSweepTest extends TestCase
             'markers' => [
                 "{$tag}-PRIVATE-MESSAGE", "{$tag}-SERVICE-TITLE", "{$tag}-SERVICE-BODY", "{$tag}-REPORT-REASON",
                 "{$tag}-NOTICE", "{$tag}-WALLET-NOTE", "{$tag}-RECEIPT", "{$tag}-ATTACHMENT", "{$tag}-REQUEST-FILE",
-                "{$tag}-BACKUP", "{$tag}-APPLICANT", "{$tag}-REMINDER",
-                ...($tag === 'ZQB' ? ["{$tag}-ANNOUNCEMENT", "{$tag}-RULE", "{$tag}-DISCOUNT", "{$tag}-EXPENSE", "{$tag}-INCOME"] : []),
+                "{$tag}-BACKUP", "{$tag}-APPLICANT", "{$tag}-REMINDER", "{$tag}-ASSISTANT-QUESTION", "{$tag}-ASSISTANT-ANSWER",
+                ...($tag === 'ZQB' ? ["{$tag}-ANNOUNCEMENT", "{$tag}-RULE", "{$tag}-DISCOUNT", "{$tag}-EXPENSE", "{$tag}-INCOME", "{$tag}-INTENT"] : []),
             ],
             'children' => [
                 'bill_id' => [$bill->id], 'payment_id' => [$payment->id], 'message_id' => [$message->id, $channelMessage->id],
