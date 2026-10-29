@@ -30,7 +30,7 @@ class GuestReadsKeepTheSession
     {
         $response = $next($request);
 
-        if (! $request->isMethodCacheable() || ! $request->is('api/*') || $request->routeIs('csrf-token', 'api.csrf-token')) {
+        if (! $request->isMethodCacheable() || ! $request->is('api/*') || $request->routeIs('*csrf-token')) {
             return $response;
         }
         if (Auth::guard('web')->check()) {

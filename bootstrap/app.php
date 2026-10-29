@@ -74,8 +74,13 @@ return Application::configure(basePath: dirname(__DIR__))
                 ->name('api.')
                 ->group(__DIR__.'/../routes/api.php');
 
+            /*
+            | ⚠️ نامِ مستعارِ بی‌نسخه پیشوندِ `legacy.` دارد: بی آن `login` ِ این گروه با `login` ِ وب (`/auth`)
+            | هم‌نام بود و `route:cache` روی سرور شکست می‌خورد (Preview، ۲۰۲۶-۱۰-۲۹) — `RouteNamesTest`.
+            */
             Route::middleware(['web', 'throttle:api'])
                 ->prefix('api')
+                ->name('legacy.')
                 ->group(__DIR__.'/../routes/api.php');
         },
     )
