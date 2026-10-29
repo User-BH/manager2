@@ -8,10 +8,14 @@ use App\Models\Setting;
 use App\Models\User;
 use App\Services\ErrorRecorder;
 use App\Support\Observability;
+use Illuminate\Console\Events\CommandFinished;
+use Illuminate\Console\Events\CommandStarting;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Validation\ValidationException;
 use RuntimeException;
+use Symfony\Component\Console\Input\ArrayInput;
+use Symfony\Component\Console\Output\NullOutput;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use Tests\TestCase;
 
@@ -179,6 +183,22 @@ class ObservabilityTest extends TestCase
         // دو رخدادِ یکسان ⇒ یک ردیف با شمارنده‌ی ۲، نه دو ردیف
         $this->assertSame(1, ErrorEvent::count());
         $this->assertSame(2, ErrorEvent::first()->occurrences);
+    }
+
+    /** ۱۳/۹-ج: `db:seed` ِ دوم در پنل «GET http://localhost، ۵۰۰» ثبت شد — درخواستِ ساختگیِ کنسول، نه درخواستی واقعی */
+    public function test_an_artisan_failure_is_recorded_as_the_command_not_as_a_fake_request(): void
+    {
+        $input = new ArrayInput([]);
+        $output = new NullOutput;
+        event(new CommandStarting('db:seed', $input, $output));
+        report(new RuntimeException('در فرمان'));
+        event(new CommandFinished('db:seed', $input, $output, 1));
+        report(new RuntimeException('پس از فرمان'));
+
+        $inCommand = ErrorEvent::where('message', 'در فرمان')->sole();
+        $this->assertSame(['artisan db:seed', 'CLI'], [$inCommand->url, $inCommand->method]);
+        // پس از پایانِ فرمان، دوباره همان درخواستِ جاری
+        $this->assertNotSame('CLI', ErrorEvent::where('message', 'پس از فرمان')->sole()->method);
     }
 
     public function test_same_message_from_different_places_stays_separate(): void

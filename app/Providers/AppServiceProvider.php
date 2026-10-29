@@ -17,6 +17,7 @@ use App\Services\Assistant\Phrasing\LocalModelPhraser;
 use App\Services\Assistant\Phrasing\NoModelPhraser;
 use App\Services\Assistant\Phrasing\Phraser;
 use App\Services\Assistant\ToolRegistry;
+use App\Services\ErrorRecorder;
 use App\Support\EnvironmentGuard;
 use App\Support\Jalali;
 use App\Support\Phone;
@@ -24,11 +25,14 @@ use App\Support\RequestId;
 use App\Support\TenantContext;
 use App\Support\Username;
 use Illuminate\Cache\RateLimiting\Limit;
+use Illuminate\Console\Events\CommandFinished;
+use Illuminate\Console\Events\CommandStarting;
 use Illuminate\Http\Request;
 use Illuminate\Pagination\Paginator;
 use Illuminate\Queue\Events\JobProcessing;
 use Illuminate\Support\Facades\Blade;
 use Illuminate\Support\Facades\Date;
+use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
@@ -71,6 +75,12 @@ class AppServiceProvider extends ServiceProvider
         $this->registerRateLimiters();
         $this->registerAuditObservers();
         $this->propagateRequestId();
+
+        // خطای یک فرمانِ artisan با نامِ همان فرمان ثبت می‌شود، نه با درخواستِ ساختگیِ کنسول (۱۳/۹-ج).
+        // فرمانی که پرتاب کند `CommandFinished` نمی‌فرستد؛ پاک‌کردن در بوت نمی‌گذارد نامش به برنامه‌ی بعدی (آزمونِ بعدی) برسد
+        ErrorRecorder::commandFinished();
+        Event::listen(CommandStarting::class, fn (CommandStarting $e) => ErrorRecorder::commandStarted($e->command));
+        Event::listen(CommandFinished::class, fn () => ErrorRecorder::commandFinished());
 
         /*
          * `@csp` در Blade به `nonce="..."` تبدیل می‌شود.

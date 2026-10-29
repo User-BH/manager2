@@ -41,6 +41,30 @@ class ErrorRecorder
         ThrottleRequestsException::class,
     ];
 
+    /**
+     * فرمانِ artisan ِ در حالِ اجرا. در کنسول `request()` درخواستِ ساختگیِ `GET http://localhost` است؛ بی این، خطای
+     * یک فرمان در پنل مثلِ خطای یک صفحه‌ی وب دیده می‌شد (۱۳/۹-ج).
+     */
+    private static ?string $command = null;
+
+    public static function commandStarted(?string $command): void
+    {
+        self::$command = $command;
+    }
+
+    public static function commandFinished(): void
+    {
+        self::$command = null;
+    }
+
+    /** @return array{0: string, 1: string} جای خطا: فرمانِ artisan، یا درخواستِ HTTP ِ واقعی */
+    public static function origin(): array
+    {
+        return self::$command !== null
+            ? ['artisan '.self::$command, 'CLI']
+            : [request()->fullUrl(), request()->method()];
+    }
+
     public static function fromException(Throwable $e, ?string $url = null, ?string $method = null): void
     {
         if (! config('observability.error_log.enabled')) {

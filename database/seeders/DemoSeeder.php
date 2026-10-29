@@ -43,6 +43,11 @@ class DemoSeeder extends Seeder
             throw new RuntimeException('DemoSeeder روی محصول اجرا نمی‌شود: رمزِ همه‌ی حساب‌هایش «password» است.');
         }
 
+        // اجرای دوباره روی همان پایگاه‌داده چیزی نمی‌سازد و نمی‌شکند (۱۳/۹-ج: پیش از این با UNIQUE ِ `users.phone` می‌افتاد)
+        if (User::withoutGlobalScopes()->where('phone', '09120000001')->exists()) {
+            return;
+        }
+
         $period = Jalali::currentPeriod();
         $prevPeriod = Jalali::shiftPeriod($period, -1);
 

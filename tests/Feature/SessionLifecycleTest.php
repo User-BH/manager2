@@ -136,6 +136,29 @@ class SessionLifecycleTest extends TestCase
      *
      * پیش از اصلاح، مرورگرِ مهاجم پس از تغییرِ رمز هنوز کاربر را می‌دید.
      */
+    /**
+     * 🔴 ۱۳/۹-ج (مشاهده‌ی بازِ ۱۳/۳): تبی با نشستِ منقضی درخواستی فرستاده که پاسخش **پس از** ورودِ تازه در تبِ دیگر
+     * می‌رسد. مرورگر کوکی‌های آن پاسخِ مهمان را روی همان ظرف می‌نشاند؛ اگر آن پاسخ نشستِ مهمانِ تازه یا XSRF ِ تازه بفرستد،
+     * ورودِ تازه بی‌صدا از دست می‌رود.
+     */
+    public function test_a_late_guest_response_from_a_stale_tab_does_not_sign_out_a_fresh_login(): void
+    {
+        $user = $this->user;
+        $jar = [config('session.cookie') => Str::random(40)];
+        $inFlight = $jar; // درخواستِ تبِ کهنه پیش از ورود رفته است
+
+        $this->browse($jar, 'POST', '/api/login', ['phone' => $user->phone, 'password' => 'secret123'])->assertOk();
+        // پاسخِ مهمان (`/api/me` برای نشستِ ناشناخته کاربر ندارد) — همان چیزی که تبِ کهنه می‌گیرد
+        $late = $this->browse($inFlight, 'GET', '/api/me');
+        $this->assertNull($late->json('user.id'));
+        // مرورگر فقط کوکی‌هایی را که همان پاسخِ دیررس فرستاد روی ظرفِ مشترک می‌نشاند
+        foreach ($late->baseResponse->headers->getCookies() as $cookie) {
+            $jar[$cookie->getName()] = $inFlight[$cookie->getName()] ?? '';
+        }
+
+        $this->assertSame($user->id, $this->whoIs($jar), 'پاسخِ دیررسِ مهمان ورودِ تازه را بیرون انداخت.');
+    }
+
     public function test_changing_the_password_signs_out_a_stolen_session(): void
     {
         $victim = $this->signIn($this->user);
@@ -309,9 +332,10 @@ class SessionLifecycleTest extends TestCase
             'expires_at' => now()->addDays(10),
         ]);
 
-        // مرورگری با شناسه‌ی نشستِ مهمانی که «کسی از پیش کاشته»
+        // مرورگری با شناسه‌ی نشستِ مهمانی که «کسی از پیش کاشته» — شناسه‌ای که خودِ سرور صادر کرده، از صفحه‌ی وب
+        // (از ۱۳/۹-ج خواندنِ مهمان در API کوکی نمی‌نویسد: `GuestReadsKeepTheSession`)
         $browser = [];
-        $this->browse($browser, 'GET', '/api/me');
+        $this->browse($browser, 'GET', '/login');
         $planted = $this->sessionId($browser);
 
         $browser[TrustedDeviceService::COOKIE] = $device->id.':'.$plain;

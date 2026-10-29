@@ -6,6 +6,7 @@ use App\Models\User;
 use App\Support\SystemSettings;
 use Database\Seeders\DemoSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
 use PHPUnit\Framework\Attributes\DataProvider;
 use RuntimeException;
 use Tests\TestCase;
@@ -57,6 +58,17 @@ class DemoSeederTest extends TestCase
         $this->assertTrue($user->is_active);
         $this->assertNotNull($user->terms_accepted_at);
         $this->assertSame(0, $user->units()->withoutGlobalScopes()->count());
+    }
+
+    /** ۱۳/۹-ج: `db:seed` ِ دوم روی همان پایگاه‌داده با UNIQUE ِ `users.phone` می‌شکست */
+    public function test_seeding_twice_creates_nothing_and_does_not_fail(): void
+    {
+        $this->seed(DemoSeeder::class);
+        $before = [User::withoutGlobalScopes()->count(), DB::table('complexes')->count(), DB::table('units')->count(), DB::table('bills')->count()];
+
+        $this->seed(DemoSeeder::class);
+
+        $this->assertSame($before, [User::withoutGlobalScopes()->count(), DB::table('complexes')->count(), DB::table('units')->count(), DB::table('bills')->count()]);
     }
 
     public function test_it_refuses_to_run_in_production(): void

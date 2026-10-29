@@ -13,6 +13,7 @@ use App\Http\Middleware\EnsureFeatureEnabled;
 use App\Http\Middleware\EnsureNotInMaintenance;
 use App\Http\Middleware\EnsurePreviewSafety;
 use App\Http\Middleware\EnsureRole;
+use App\Http\Middleware\GuestReadsKeepTheSession;
 use App\Http\Middleware\LockInitialAccount;
 use App\Http\Middleware\RecordSlowRequests;
 use App\Http\Middleware\RequirePasswordConfirmation;
@@ -153,6 +154,12 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->encryptCookies(except: [
             TrustedDeviceService::COOKIE,
         ]);
+
+        /*
+         * بیرونی‌ترین لایه‌ی گروهِ web، پیش از `EncryptCookies` (۱۳/۹-ج): کوکی‌هایی را که `StartSession` و
+         * `VerifyCsrfToken` در بازگشت می‌گذارند فقط لایه‌ای بیرون از هر دو می‌تواند از پاسخِ خواندنیِ مهمان بردارد.
+         */
+        $middleware->web(prepend: [GuestReadsKeepTheSession::class]);
 
         $middleware->web(append: [
             /*
@@ -295,7 +302,7 @@ return Application::configure(basePath: dirname(__DIR__))
         | بترکاند.
         */
         $exceptions->report(function (Throwable $e): void {
-            ErrorRecorder::fromException($e, request()->fullUrl(), request()->method());
+            ErrorRecorder::fromException($e, ...ErrorRecorder::origin());
         });
 
         /*
