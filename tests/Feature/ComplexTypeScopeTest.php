@@ -57,6 +57,15 @@ class ComplexTypeScopeTest extends TestCase
             $files++;
             $this->assertEqualsCanonicalizing(ComplexType::values(), array_values(array_unique($m[1])),
                 "«{$file->getRelativePathname()}» فقط بخشی از نوع‌های مجتمع را نام می‌برد.");
+
+            // ۱۳/۹-د: هر **فهرستِ** نوع (آرایه یا `z.enum`) کامل است — نامِ نوع جای دیگرِ همان فایل کافی نیست؛ بی این،
+            // `z.enum(['residential'])` ِ فرمِ مجتمعِ سوپر ادمین زنده ماند
+            preg_match_all("/\[([^\[\]]*'(?:residential|commercial)'[^\[\]]*)\]/", $source, $lists);
+            foreach ($lists[1] as $list) {
+                preg_match_all("/'(residential|commercial)'/", $list, $named);
+                $this->assertEqualsCanonicalizing(ComplexType::values(), array_values(array_unique($named[1])),
+                    "«{$file->getRelativePathname()}»: فهرستِ [{$list}] همه‌ی نوع‌های مجتمع را ندارد.");
+            }
         }
 
         $this->assertGreaterThan(0, $files);

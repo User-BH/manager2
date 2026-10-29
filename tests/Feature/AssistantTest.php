@@ -638,13 +638,16 @@ class AssistantTest extends TestCase
     {
         $this->in($this->aftab, $this->reza)->postJson('/api/v1/assistant/ask', ['question' => 'امروز چندم است؟'])->assertOk();
         $this->in($this->aftab, $this->leila)->postJson('/api/v1/assistant/ask', ['question' => 'امروز چندم است؟'])->assertOk();
+        // ۱۳/۹-د: حسن هم مالکِ همین مجتمع است — همان کلیدِ زمینه (`aftab:owner`)؛ بی او جهشِ «تاریخچه بی شرطِ مالکیت» زنده ماند
+        $this->in($this->aftab, $this->hasan)->postJson('/api/v1/assistant/ask', ['question' => 'امروز چه روزی است؟'])->assertOk();
 
         $history = $this->in($this->aftab, $this->reza)->getJson('/api/v1/assistant/history')->assertOk();
         $this->assertCount(1, $history->json('messages'));
         $this->assertSame('امروز چندم است؟', $history->json('messages.0.question'));
 
         $this->in($this->aftab, $this->reza)->deleteJson('/api/v1/assistant/history')->assertOk()->assertJsonPath('deleted', 1);
-        $this->assertSame(1, AssistantMessage::count(), 'گفت‌وگوی دیگران دست نخورد.');
+        $this->assertSame(2, AssistantMessage::count(), 'گفت‌وگوی دیگران دست نخورد.');
+        $this->assertCount(1, $this->in($this->aftab, $this->hasan)->getJson('/api/v1/assistant/history')->json('messages'));
 
         // نگه‌داری: کهنه‌تر از ۳۰ روز پاک می‌شود
         AssistantMessage::query()->update(['created_at' => now()->subDays(31)]);
