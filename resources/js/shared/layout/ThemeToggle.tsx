@@ -4,7 +4,7 @@ import { useTheme } from '@/shared/stores/themeStore'
 import { IconButton } from '@/shared/ui/IconButton'
 import { Tooltip } from '@/shared/ui/Tooltip'
 
-export function ThemeToggle() {
+export function ThemeToggle({ sizeClass }: { sizeClass?: string } = {}) {
   const { theme, toggleTheme } = useTheme()
   const isDark = theme === 'dark'
 
@@ -12,6 +12,7 @@ export function ThemeToggle() {
     <Tooltip label={isDark ? 'حالت روشن' : 'حالت تاریک'}>
       <IconButton
         variant="outline"
+        sizeClass={sizeClass}
         onClick={toggleTheme}
         aria-label={isDark ? 'تغییر به حالت روشن' : 'تغییر به حالت تاریک'}
         className="overflow-hidden"

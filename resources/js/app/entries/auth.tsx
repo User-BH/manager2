@@ -5,7 +5,6 @@ import { initObservability, trackPageView } from '@/shared/lib/observability'
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
 import { AuthPage } from '@/features/auth/AuthPage'
 import { VerifyOtpPage } from '@/features/auth/VerifyOtpPage'
-import { ForgotPasswordPage } from '@/features/auth/ForgotPasswordPage'
 import { InvitePage } from '@/features/auth/InvitePage'
 import { takeInviteTokenFromUrl } from '@/features/auth/inviteToken'
 import { JoinPage } from '@/features/auth/JoinPage'
@@ -76,7 +75,13 @@ createRoot(document.getElementById('root')!).render(
           <Routes>
             <Route path="/auth" element={usernameOnly ? <UsernameLoginPage /> : <AuthPage />} />
             <Route path="/auth/verify" element={usernameOnly ? toLogin : <VerifyOtpPage />} />
-            <Route path="/auth/forgot" element={usernameOnly ? toLogin : <ForgotPasswordPage />} />
+            {/* «فراموشیِ رمز» دیگر نیست (۲۰۲۶-۱۰-۳۰): کاربران رمز ندارند */}
+            <Route path="/auth/forgot" element={toLogin} />
+            {/* درِ ورودِ دو مدیرِ سامانه (۲۰۲۶-۱۰-۳۰)؛ Preview یک در دارد — `/auth` */}
+            <Route
+              path="/auth/admin"
+              element={usernameOnly ? toLogin : <UsernameLoginPage variant="admin" />}
+            />
             {/* بازیابیِ حساب بی شماره‌ی قبلی (مرحلهٔ ۹): فقط ثبتِ درخواست برای ادمینِ کل */}
             <Route path="/auth/recover" element={usernameOnly ? toLogin : <RecoverAccountPage />} />
             {/* نشانیِ قدیمیِ ورود با نام کاربری (۱۳/۱) — حالا همان `/auth` */}

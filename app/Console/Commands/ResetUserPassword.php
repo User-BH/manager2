@@ -3,6 +3,7 @@
 namespace App\Console\Commands;
 
 use App\Models\User;
+use App\Services\Auth\SessionRegistry;
 use App\Support\Phone;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Hash;
@@ -22,7 +23,7 @@ class ResetUserPassword extends Command
 
     protected $description = 'تغییر رمز عبور یک کاربر (مثلاً ادمین فراموش‌کرده)';
 
-    public function handle(): int
+    public function handle(SessionRegistry $sessions): int
     {
         $phone = Phone::normalize($this->option('phone') ?: $this->ask('شماره موبایل کاربر'));
 
@@ -53,6 +54,9 @@ class ResetUserPassword extends Command
         }
 
         $user->update(['password' => Hash::make($password)]);
+        // جای «فراموشیِ رمز» را گرفته (۲۰۲۶-۱۰-۳۰)، پس همان تضمین: رمزِ تازه یعنی هیچ نشست و دستگاهِ قبلی معتبر نیست
+        $user->trustedDevices()->delete();
+        $sessions->endAll($user);
 
         $this->info("رمز عبور «{$user->name}» ({$user->phone}) تغییر کرد.");
 

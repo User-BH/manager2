@@ -90,7 +90,7 @@ class PhoneChangeTest extends TestCase
         $this->assertSame(1, $this->resident->fresh()->notifications()->count());
     }
 
-    /** ورود، کدِ ورود و بازیابیِ رمز پس از تغییر با شماره‌ی تازه کار می‌کنند؛ شماره‌ی قدیم دیگر نه. */
+    /** ورود و کدِ ورود پس از تغییر با شماره‌ی تازه کار می‌کنند؛ شماره‌ی قدیم دیگر نه. */
     public function test_login_and_recovery_follow_the_new_phone(): void
     {
         $this->changeTo(self::NEW);
@@ -98,11 +98,17 @@ class PhoneChangeTest extends TestCase
         $this->flushSession();
         app(OtpService::class)->clear(self::NEW);
 
-        $this->postJson('/api/v1/login', ['phone' => self::OLD, 'password' => 'secret123'])->assertStatus(422);
-        $this->postJson('/api/v1/login', ['phone' => self::NEW, 'password' => 'secret123'])
-            ->assertOk()->assertJsonPath('otpRequired', true)->assertJsonPath('phone', self::NEW);
-        $this->assertSame(1, OtpCode::where('phone', self::NEW)->count(), 'کدِ ورود به شماره‌ی تازه نرفت.');
-        $this->assertSame(0, OtpCode::where('phone', self::OLD)->count());
+        // شماره‌ی قدیم: همان پاسخِ یکسان، ولی کدی فرستاده نمی‌شود و هیچ کدی وارد نمی‌کند (ورود بی رمز، ۲۰۲۶-۱۰-۳۰)
+        $this->assertNull($this->postJson('/api/v1/login', ['phone' => self::OLD])->assertOk()->json('dev_code'));
+        $this->postJson('/api/v1/login/verify', ['code' => '000000'])->assertStatus(422);
+        $this->assertGuest();
+
+        $this->flushSession();
+        $code = $this->postJson('/api/v1/login', ['phone' => self::NEW])
+            ->assertOk()->assertJsonPath('otpRequired', true)->assertJsonPath('phone', self::NEW)->json('dev_code');
+        $this->assertNotNull($code, 'کدِ ورود به شماره‌ی تازه نرفت.');
+        $this->assertSame(1, OtpCode::where('phone', self::NEW)->count());
+        $this->postJson('/api/v1/login/verify', ['code' => $code])->assertOk()->assertJsonPath('user.id', $this->resident->id);
     }
 
     /** کیف، دفتر، عضویت، دوره و نویسنده‌ی پیام‌ها به حساب بسته‌اند، نه به شماره. */

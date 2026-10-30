@@ -10,8 +10,8 @@ use Illuminate\Validation\Rule;
  * از `Api/AuthController.php::login()` بیرون کشیده شد (R9b).
  *
  * شناسه دو نوع دارد و نوعش را **خودِ درخواست** می‌گوید، نه شکلِ ورودی (مرحلهٔ ۱۳ · فاز ۱):
- * - `phone` (پیش‌فرض، همان قرارِ قبلی): کاربرِ واقعی و سوپر ادمین با شماره‌ی موبایل؛
- * - `username`: فقط حساب‌های آزمایشیِ Preview (۲۰۲۶-۱۰-۲۹). قالبش در کنترلر سنجیده نمی‌شود تا پاسخِ نام کاربریِ
+ * - `phone` (پیش‌فرض): کاربرانِ سایت اصلی با شماره و کدِ پیامکی، بی رمز (۲۰۲۶-۱۰-۳۰)؛
+ * - `username`: فقط حساب‌های آزمایشیِ Preview، با رمز. دو مدیرِ سامانه از `AdminLoginRequest` (`/auth/admin`). قالبش در کنترلر سنجیده نمی‌شود تا پاسخِ نام کاربریِ
  *   بدقالب با «نام کاربری یا رمزِ نادرست» یکی بماند و چیزی درباره‌ی وجودِ حساب نگوید.
  */
 class LoginRequest extends BaseFormRequest
@@ -30,7 +30,8 @@ class LoginRequest extends BaseFormRequest
             'identifier_type' => ['sometimes', 'string', Rule::in([self::PHONE, self::USERNAME])],
             'phone' => ['required_unless:identifier_type,'.self::USERNAME, 'nullable', 'string'],
             'username' => ['required_if:identifier_type,'.self::USERNAME, 'nullable', 'string', 'max:64'],
-            'password' => ['required', 'string'],
+            // رمز فقط برای حسابِ نمونه‌ی Preview (نام کاربری)؛ کاربرانِ سایت اصلی با شماره و کدِ پیامکی، بی رمز (۲۰۲۶-۱۰-۳۰)
+            'password' => ['required_if:identifier_type,'.self::USERNAME, 'nullable', 'string'],
         ];
     }
 

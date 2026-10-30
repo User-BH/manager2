@@ -625,6 +625,8 @@ class AuthorizationAttackTest extends TestCase
         // ۲۰۲۶-۱۰-۲۹: کنار گذاشتنِ دادهٔ نمونه‌ی DemoSeeder از محصول — حساب‌ها و مجتمعِ نمونه با اثرانگشت، در کلِ سکو
         'app/Console/Commands/RetireSampleData.php' => [4, 'فرمانِ سرور: حساب و مجتمعِ نمونه را با اثرانگشتِ seeder در کلِ سکو می‌یابد و اعضای مجتمع را می‌شمارد'],
         'app/Console/Commands/SendBillReminders.php' => [1, 'یادآوریِ زمان‌بندی‌شده برای همه‌ی مجتمع‌ها'],
+        // ۲۰۲۶-۱۰-۳۰: نام کاربریِ ورودِ دو مدیرِ سامانه (/auth/admin) از کنسول — یافتنِ حساب با شماره و یکتاییِ نام در کلِ سکو
+        'app/Console/Commands/SetAdminUsername.php' => [2, 'فرمانِ سرور: سوپر ادمین با شماره، بی مجتمع؛ یکتاییِ نام کاربری در کلِ سکو'],
         'app/Console/Commands/StalePayments.php' => [2, 'گزارشِ اپراتور از پرداخت‌های بلاتکلیفِ همه‌ی مجتمع‌ها (R59)'],
         'app/Jobs/BuildBillsBundleJob.php' => [3, 'صف؛ زمینه‌ی مستأجری در worker وجود ندارد'],
 

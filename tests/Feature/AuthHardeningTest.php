@@ -48,21 +48,19 @@ class AuthHardeningTest extends TestCase
     /* ── تغییر رمز باید اعتماد را باطل کند ──────────────────────────────── */
 
     /**
-     * رایج‌ترین واکنش به «رمزم لو رفته» تغییر رمز است.
-     *
-     * اگر آن کار دستگاه‌های مورداعتماد را باطل نکند، مهاجمی که کوکی دارد تا
-     * ۱۰ روز واردشده می‌ماند — یعنی همان کاری که کاربر برای نجات خودش کرد،
-     * هیچ اثری نداشت. مسیرِ «فراموشی رمز» این را رعایت می‌کرد و این مسیر نه.
+     * رایج‌ترین واکنش به «رمزم لو رفته» تغییر رمز است — از ۲۰۲۶-۱۰-۳۰ فقط برای حسابِ رمزدار (مدیرِ سامانه و حسابِ نمونه).
+     * اگر آن کار دستگاه‌های مورداعتماد را باطل نکند، مهاجمی که کوکی دارد تا ۱۰ روز واردشده می‌ماند.
      */
     public function test_changing_the_password_revokes_every_trusted_device(): void
     {
+        $admin = $this->passwordAccount();
         TrustedDevice::create([
-            'user_id' => $this->user->id,
+            'user_id' => $admin->id,
             'token_hash' => hash('sha256', Str::random(48)),
             'expires_at' => now()->addDays(10),
         ]);
 
-        $this->actingAs($this->user)
+        $this->actingAs($admin)
             ->putJson('/api/v1/profile/password', [
                 'current_password' => 'secret123',
                 'password' => 'brandnew123',
@@ -73,9 +71,12 @@ class AuthHardeningTest extends TestCase
         $this->assertSame(0, TrustedDevice::count());
     }
 
+    /**
+     * کاربرِ سایت رمز ندارد؛ واکنشِ او به «دستگاهم دستِ کسِ دیگری است» حذفِ همان دستگاه از «امنیت» است — و پس از آن همان
+     * کوکی دیگر گامِ کد را رد نمی‌کند (اثباتِ رفتاری، نه فقط شمارشِ ردیف‌ها).
+     */
     public function test_a_revoked_device_can_no_longer_skip_the_code(): void
     {
-        // اثباتِ رفتاری، نه فقط شمارشِ ردیف‌ها
         $plain = 'k'.Str::random(47);
         $device = TrustedDevice::create([
             'user_id' => $this->user->id,
@@ -84,26 +85,24 @@ class AuthHardeningTest extends TestCase
         ]);
         $cookie = $device->id.':'.$plain;
 
-        $this->actingAs($this->user)->putJson('/api/v1/profile/password', [
-            'current_password' => 'secret123',
-            'password' => 'brandnew123',
-            'password_confirmation' => 'brandnew123',
-        ])->assertOk();
+        $this->actingAs($this->user)->withConfirmedPassword()->deleteJson("/api/v1/profile/devices/{$device->id}")->assertOk();
+        $this->app['auth']->forgetGuards();
 
-        $this->loginWithDevice($cookie, 'brandnew123')
+        $this->loginWithDevice($cookie)
             ->assertOk()
             ->assertJsonPath('otpRequired', true);
     }
 
     public function test_a_wrong_current_password_changes_nothing(): void
     {
+        $admin = $this->passwordAccount();
         TrustedDevice::create([
-            'user_id' => $this->user->id,
+            'user_id' => $admin->id,
             'token_hash' => hash('sha256', Str::random(48)),
             'expires_at' => now()->addDays(10),
         ]);
 
-        $this->actingAs($this->user)
+        $this->actingAs($admin)
             ->putJson('/api/v1/profile/password', [
                 'current_password' => 'wrong-one',
                 'password' => 'brandnew123',
@@ -113,7 +112,23 @@ class AuthHardeningTest extends TestCase
 
         // نه رمز عوض شد نه دستگاهی باطل — شکست نباید عوارض جانبی داشته باشد
         $this->assertSame(1, TrustedDevice::count());
-        $this->assertTrue(Hash::check('secret123', $this->user->fresh()->password));
+        $this->assertTrue(Hash::check('secret123', $admin->fresh()->password));
+    }
+
+    /** کاربرِ سایت (بی رمز) اصلاً مسیرِ تغییرِ رمز ندارد */
+    public function test_a_site_user_cannot_set_a_password(): void
+    {
+        $this->actingAs($this->user)->putJson('/api/v1/profile/password', [
+            'current_password' => 'secret123', 'password' => 'brandnew123', 'password_confirmation' => 'brandnew123',
+        ])->assertForbidden();
+    }
+
+    private function passwordAccount(): User
+    {
+        return User::create([
+            'name' => 'مدیرِ سامانه', 'phone' => '09120000011', 'role' => UserRole::SuperAdmin,
+            'password' => Hash::make('secret123'), 'is_active' => true,
+        ]);
     }
 
     /* ── پنجره‌ی ۱۰ روزه ────────────────────────────────────────────────── */
@@ -310,12 +325,9 @@ class AuthHardeningTest extends TestCase
         );
     }
 
-    private function loginWithDevice(string $cookie, string $password = 'secret123'): TestResponse
+    private function loginWithDevice(string $cookie): TestResponse
     {
-        return $this->callWithDevice('POST', '/api/login', [
-            'phone' => '09120000010',
-            'password' => $password,
-        ], $cookie);
+        return $this->callWithDevice('POST', '/api/login', ['phone' => '09120000010'], $cookie);
     }
 
     private function issueDeviceCookie(): string

@@ -16,7 +16,38 @@ class OtpService
 
     public const RESEND_COOLDOWN = 60;
 
+    /**
+     * سقفِ کدهای **تأییدنشده‌ی** یک شماره در یک ساعت (۲۰۲۶-۱۰-۳۰). از وقتی ورود بی رمز است، دانستنِ یک شماره برای فرستادنِ
+     * پیامک به آن کافی است؛ پیش از این پیامک فقط پس از رمزِ درست می‌رفت. ورودِ موفق کدهای شماره را پاک می‌کند (`clear`)،
+     * پس کاربرِ واقعی هرگز به این سقف نمی‌رسد — فقط پیامک‌بارانِ یک شماره. برای شماره‌ی بی‌حساب هم همان سقف و همان پیام،
+     * تا چیزی درباره‌ی وجودِ حساب نگوید.
+     */
+    public const UNVERIFIED_PER_HOUR = 5;
+
     public function __construct(protected SmsManager $sms) {}
+
+    /** خطای سقف یا فاصله‌ی ارسالِ دوباره برای این شماره؛ `null` یعنی می‌شود فرستاد */
+    private function throttled(string $phone): ?string
+    {
+        // فقط کدِ **مصرف‌نشده** فاصله می‌خواهد: کدِ تأییدشده (پذیرشِ دعوت، تأییدِ دوباره) ثابت کرده سیم‌کارت دستِ همین کاربر است،
+        // همان دلیلی که ورودِ موفق کدها را پاک می‌کند؛ وگرنه ورود از دستگاهِ دیگر تا یک دقیقه «کمی صبر کنید» می‌گرفت
+        $recent = OtpCode::where('phone', $phone)
+            ->where('created_at', '>', now()->subSeconds(self::RESEND_COOLDOWN))
+            ->whereNull('used_at')
+            ->exists();
+        if ($recent) {
+            return 'برای ارسال مجدد کد کمی صبر کنید.';
+        }
+
+        $unverified = OtpCode::where('phone', $phone)
+            ->where('created_at', '>', now()->subHour())
+            ->whereNull('used_at')
+            ->count();
+
+        return $unverified >= self::UNVERIFIED_PER_HOUR
+            ? 'درخواستِ کد برای این شماره بیش از حد بوده است. یک ساعتِ دیگر دوباره تلاش کنید.'
+            : null;
+    }
 
     /**
      * Generate and send a one-time code. Returns the plain code only when the
@@ -28,12 +59,9 @@ class OtpService
     {
         $phone = Phone::normalize($phone);
 
-        // Cooldown: block rapid re-requests.
-        $recent = OtpCode::where('phone', $phone)
-            ->where('created_at', '>', now()->subSeconds(self::RESEND_COOLDOWN))
-            ->exists();
-        if ($recent) {
-            return ['ok' => false, 'dev_code' => null, 'error' => 'برای ارسال مجدد کد کمی صبر کنید.'];
+        // فاصله‌ی ارسالِ دوباره و سقفِ ساعتیِ کدهای تأییدنشده
+        if (($error = $this->throttled($phone)) !== null) {
+            return ['ok' => false, 'dev_code' => null, 'error' => $error];
         }
 
         $code = (string) random_int(100000, 999999);
@@ -132,11 +160,8 @@ class OtpService
     {
         $phone = Phone::normalize($phone);
 
-        $recent = OtpCode::where('phone', $phone)
-            ->where('created_at', '>', now()->subSeconds(self::RESEND_COOLDOWN))
-            ->exists();
-        if ($recent) {
-            return ['ok' => false, 'dev_code' => null, 'error' => 'برای ارسال مجدد کد کمی صبر کنید.'];
+        if (($error = $this->throttled($phone)) !== null) {
+            return ['ok' => false, 'dev_code' => null, 'error' => $error];
         }
 
         $code = (string) random_int(100000, 999999);

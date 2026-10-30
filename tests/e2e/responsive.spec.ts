@@ -450,15 +450,14 @@ test.describe('موبایلِ واقعی', () => {
    * 🔴 Safariِ iOS با فوکوس روی فیلدِ زیرِ ۱۶ پیکسل کلِ صفحه را بزرگ می‌کند
    * و برنمی‌گرداند. همه‌ی فیلدها ۱۳٫۵ پیکسل بودند.
    */
-  test('فیلدهای ورود در نمای لمسی دستِ‌کم ۱۶ پیکسل‌اند و در دسکتاپ دست نخورده‌اند', async ({
+  test('فیلدهای ورود و ثبت‌نام در نمای لمسی دستِ‌کم ۱۶ پیکسل‌اند و در دسکتاپ دست نخورده‌اند', async ({
     page,
     isMobile,
   }) => {
-    await page.goto('/auth')
+    // ورود فقط یک فیلد دارد (شماره، بی رمز — ۲۰۲۶-۱۰-۳۰)؛ فرمِ ثبت‌نام با نام و نام خانوادگی و شماره همان قاعده را می‌سنجد
+    await page.goto('/auth?tab=register')
     // ⚠️ فرم را React می‌سازد؛ در WebKit دیرتر از رویدادِ load. بدونِ صبر، شمارش صفر بود
-    await expect(
-      page.locator('input[type=password]').filter({ visible: true }).first(),
-    ).toBeVisible()
+    await expect(page.getByPlaceholder('مثلاً محمدی').filter({ visible: true })).toBeVisible()
 
     const sizes = await page.evaluate(() =>
       Array.from(document.querySelectorAll('input:not([type=checkbox]):not([type=hidden])'))
@@ -466,7 +465,7 @@ test.describe('موبایلِ واقعی', () => {
         .map((element) => parseFloat(getComputedStyle(element).fontSize)),
     )
 
-    // ضدِ پوچی: صفحه‌ی ورود دستِ‌کم دو فیلدِ دیدنی دارد
+    // ضدِ پوچی: فرمِ ثبت‌نام دستِ‌کم دو فیلدِ دیدنی دارد
     expect(sizes.length).toBeGreaterThanOrEqual(2)
 
     if (isMobile) {
@@ -489,7 +488,7 @@ test.describe('موبایلِ واقعی', () => {
     await page.goto('/auth')
     // ⚠️ فرم را React می‌سازد؛ در WebKit دیرتر از رویدادِ load. بدونِ صبر، شمارش صفر بود
     await expect(
-      page.locator('input[type=password]').filter({ visible: true }).first(),
+      page.locator('input[autocomplete="username"]').filter({ visible: true }).first(),
     ).toBeVisible()
 
     /*

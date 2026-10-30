@@ -92,7 +92,8 @@ class AdminActivityLogTest extends TestCase
         $secret = $service->begin($this->ali)['secret'];
         $service->confirm($this->ali->fresh(), Totp::at($secret, Totp::step() - 1));
 
-        $this->postJson('/api/v1/login', ['phone' => '09121110002', 'password' => 'second-pass-2'])->assertOk()->assertJson(['twoFactorRequired' => true]);
+        $this->ali->forceFill(['username' => 'alibh'])->save();
+        $this->postJson('/api/v1/admin/login', ['username' => 'aliBH', 'password' => 'second-pass-2'])->assertOk()->assertJson(['twoFactorRequired' => true]);
         $this->assertSame(0, AuditLog::where('action', 'admin.signed_in')->count(), 'ورود پیش از کدِ برنامه ثبت شد.');
         $this->postJson('/api/v1/login/two-factor', ['code' => Totp::at($secret, Totp::step())])->assertOk();
 

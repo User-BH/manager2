@@ -3,7 +3,6 @@
 namespace Tests\Feature;
 
 use App\Models\User;
-use App\Support\SystemSettings;
 use Database\Seeders\DemoSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
@@ -37,9 +36,11 @@ class DemoSeederTest extends TestCase
     public function test_each_of_the_four_accounts_signs_in_with_its_role(string $phone, string $role, bool $super, bool $hasComplex): void
     {
         $this->seed(DemoSeeder::class);
-        SystemSettings::set('otp_disabled', true);
 
-        $this->postJson('/api/login', ['phone' => $phone, 'password' => 'password'])->assertOk();
+        // کاربرانِ سایت با شماره و کدِ پیامکی؛ مدیرِ سامانه از درِ خودش با نام کاربری + رمز (۲۰۲۶-۱۰-۳۰)
+        $super
+            ? $this->postJson('/api/v1/admin/login', ['username' => 'sakena.admin', 'password' => 'password'])->assertOk()
+            : $this->signInByPhone($phone)->assertOk();
 
         $user = $this->getJson('/api/me')->assertOk()->json('user');
         $this->assertSame($role, $user['role']);

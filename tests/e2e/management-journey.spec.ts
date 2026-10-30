@@ -18,7 +18,7 @@ import { expect, test, type Locator, type Page } from '@playwright/test'
  *   آزمون صدورِ قبض است، نه فرمِ قانون.
  *
  * ─── پیش‌نیازِ محیط (CI همه را می‌سازد) ────────────────────────────────────
- * `DemoSeeder` (سوپرادمین)، `otp_disabled`، `APP_ENV=local` و `SMS_DRIVER=log`
+ * `DemoSeeder` (سوپرادمین)، `APP_ENV=local` و `SMS_DRIVER=log`
  * (تا کدِ ثبت‌نام در پاسخ بیاید)، و برای اشتراک:
  * `SUBSCRIPTION_GATEWAY=sandbox` و `PAYMENT_SANDBOX_ENABLED=true`.
  *
@@ -33,35 +33,71 @@ function phoneFor(prefix: '0935' | '0936', project: string): string {
   return `${prefix}${RUN}${ENGINE[project] ?? '9'}`
 }
 
-const PASSWORD = 'Secret123x'
-
 /** فرمِ ورود و ثبت‌نام دو بار رسم می‌شود (دسکتاپ/موبایل)؛ فقط نسخه‌ی دیدنی. */
 function visible(locator: Locator): Locator {
   return locator.filter({ visible: true }).first()
 }
 
-async function signIn(page: Page, phone: string, password: string): Promise<number> {
+/**
+ * ورودِ بی‌رمز (۲۰۲۶-۱۰-۳۰): شماره، سپس کدِ پیامکی (با درایورِ log کد در همان پاسخ است)؛ سوپر ادمینِ دمو از درِ مدیران
+ * با نام کاربری و رمز.
+ *
+ * ⚠️ هر ورود حالا یک بار هم `login/verify` می‌زند و سقفِ آن پنج در دقیقه برای هر شماره است (کنترلِ امنیتیِ واقعی که دست
+ * نمی‌خورد). شماره‌ی مدیرِ این فایل در یک دقیقه هم وارد می‌شود و هم کدِ پذیرشِ دعوت را تأیید می‌کند؛ پس اگر سرور ۴۲۹ بدهد،
+ * آزمون مثلِ کاربر همان `Retry-After` را صبر می‌کند و همان کد را دوباره می‌فرستد — سقف دور زده نمی‌شود.
+ */
+async function signIn(page: Page, phone: string): Promise<number> {
   await page.goto('/auth')
 
+  const post = (url: string, data: object) =>
+    page.evaluate(
+      async ({ url, data }) => {
+        await fetch('/api/csrf-token', { credentials: 'include' })
+        const xsrf = decodeURIComponent(
+          (document.cookie.match(/XSRF-TOKEN=([^;]+)/) ?? [])[1] ?? '',
+        )
+        const res = await fetch(url, {
+          method: 'POST',
+          credentials: 'include',
+          headers: {
+            'Content-Type': 'application/json',
+            Accept: 'application/json',
+            'X-XSRF-TOKEN': xsrf,
+          },
+          body: JSON.stringify(data),
+        })
+        return {
+          status: res.status,
+          retryAfter: Number(res.headers.get('Retry-After') ?? 0),
+          code: ((await res.json().catch(() => ({}))) as { dev_code?: string }).dev_code,
+        }
+      },
+      { url, data },
+    )
+
+  if (phone === '09120000001') {
+    return (await post('/api/admin/login', { username: 'sakena.admin', password: 'password' }))
+      .status
+  }
+
+  const start = await post('/api/login', { phone })
+  if (start.status !== 200) return start.status
+
+  let verified = await post('/api/login/verify', { code: start.code })
+  if (verified.status === 429) {
+    const wait = (verified.retryAfter || 60) * 1000 + 1_000
+    test.setTimeout(test.info().timeout + wait)
+    await page.waitForTimeout(wait)
+    verified = await post('/api/login/verify', { code: start.code })
+  }
+  return verified.status
+}
+
+async function signedInPhone(page: Page): Promise<string | undefined> {
   return page.evaluate(
-    async (creds) => {
-      await fetch('/api/csrf-token', { credentials: 'include' })
-      const xsrf = decodeURIComponent((document.cookie.match(/XSRF-TOKEN=([^;]+)/) ?? [])[1] ?? '')
-
-      const res = await fetch('/api/login', {
-        method: 'POST',
-        credentials: 'include',
-        headers: {
-          'Content-Type': 'application/json',
-          Accept: 'application/json',
-          'X-XSRF-TOKEN': xsrf,
-        },
-        body: JSON.stringify(creds),
-      })
-
-      return res.status
-    },
-    { phone, password },
+    async () =>
+      (await (await fetch('/api/me', { credentials: 'include' })).json())?.user?.phone as
+        string | undefined,
   )
 }
 
@@ -88,8 +124,8 @@ async function postFromPage(page: Page, path: string, body: unknown): Promise<nu
 // ⚠️ ترتیب مهم است: مجتمعِ گامِ دوم، مدیرِ گامِ سوم را می‌سازد
 
 /**
- * «پیوستن» ← کدِ پیامکی ← «تأیید و پیوستن». پذیرشِ دعوت از ۱۲/۳ (بندِ ۱۵) همیشه کد می‌خواهد، حتی وقتی
- * `otp_disabled` گامِ دومِ ورود را برداشته؛ کد از پاسخِ همان درخواست است (`devCode`، فقط محیطِ محلی با درایورِ log).
+ * «پیوستن» ← کدِ پیامکی ← «تأیید و پیوستن». پذیرشِ دعوت از ۱۲/۳ (بندِ ۱۵) همیشه کد می‌خواهد؛
+ * ورود هم کد می‌خواهد (بی‌رمز، ۲۰۲۶-۱۰-۳۰)؛ کد از پاسخِ همان درخواست است (`devCode`، فقط محیطِ محلی با درایورِ log).
  */
 async function acceptWithCode(page: Page) {
   const sent = page.waitForResponse(
@@ -126,8 +162,6 @@ test.describe('سفرِ مدیریت', () => {
     await visible(page.getByPlaceholder('مثلاً علی')).fill('ساکن')
     await visible(page.getByPlaceholder('مثلاً محمدی')).fill('سرتاسری')
     await visible(page.getByPlaceholder('۰۹xxxxxxxxx')).fill(phone)
-    await visible(page.getByPlaceholder('حداقل ۸ نویسه')).fill(PASSWORD)
-    await visible(page.getByPlaceholder('تکرار رمز عبور')).fill(PASSWORD)
     await visible(page.getByRole('checkbox')).check()
 
     const sent = page.waitForResponse(
@@ -150,8 +184,9 @@ test.describe('سفرِ مدیریت', () => {
 
     expect((await verified).status()).toBeLessThan(300)
 
-    // حسابِ تازه واقعاً ساخته شده: با همان رمز وارد می‌شود
-    expect(await signIn(page, phone, PASSWORD)).toBe(200)
+    // حسابِ تازه واقعاً ساخته شده و ثبت‌نام خودش واردش کرده (بی رمز، ۲۰۲۶-۱۰-۳۰)
+    await page.waitForURL(/\/dashboard/)
+    expect(await signedInPhone(page)).toBe(phone)
 
     // و به داشبوردِ اولیه با نامِ ساخته‌شده از دو بخش و راهنما می‌رسد — بی درخواستِ تکمیلِ نام
     await page.goto('/dashboard')
@@ -176,7 +211,7 @@ test.describe('سفرِ مدیریت', () => {
   test('سوپرادمین مجتمعِ تازه می‌سازد و مدیرش با پیوندِ دعوت می‌پیوندد', async ({
     page,
   }, testInfo) => {
-    expect(await signIn(page, '09120000001', 'password')).toBe(200)
+    expect(await signIn(page, '09120000001')).toBe(200)
     const managerPhone = phoneFor('0935', testInfo.project.name)
 
     await page.goto('/system/complexes')
@@ -209,7 +244,7 @@ test.describe('سفرِ مدیریت', () => {
     await expect(visible(page.getByPlaceholder('مثلاً علی'))).toBeVisible()
 
     // ── ورود با حسابی که صاحبِ شماره خودش ساخت؛ دعوت منتظر است (OTP ِ ورود در این محیط خاموش است) ──
-    expect(await signIn(page, managerPhone, PASSWORD)).toBe(200)
+    expect(await signIn(page, managerPhone)).toBe(200)
     await page.goto('/dashboard')
     await expect(page.getByText(name)).toBeVisible()
     // پذیرش ولی همیشه کدِ پیامکی می‌خواهد (۱۲/۳، بندِ ۱۵)
@@ -221,7 +256,7 @@ test.describe('سفرِ مدیریت', () => {
   })
 
   test('مدیرِ تازه واحد می‌سازد و شارژِ دوره را صادر می‌کند', async ({ page }, testInfo) => {
-    expect(await signIn(page, phoneFor('0935', testInfo.project.name), PASSWORD)).toBe(200)
+    expect(await signIn(page, phoneFor('0935', testInfo.project.name))).toBe(200)
 
     // ── مدیرِ مجتمعِ تازه: یادآوریِ «اطلاعات مجتمع» تا نخستین تکمیل (مرحلهٔ ۱۰ · فاز ۷؛ بندِ ۷) ──
     await page.goto('/dashboard')
@@ -319,8 +354,6 @@ test.describe('سفرِ مدیریت', () => {
     await visible(page.getByPlaceholder('مثلاً علی')).fill('دعوت')
     await visible(page.getByPlaceholder('مثلاً محمدی')).fill('شده')
     await visible(page.getByPlaceholder('۰۹xxxxxxxxx')).fill(invitee)
-    await visible(page.getByPlaceholder('حداقل ۸ نویسه')).fill(PASSWORD)
-    await visible(page.getByPlaceholder('تکرار رمز عبور')).fill(PASSWORD)
     await visible(page.getByRole('checkbox')).check()
 
     const sent = page.waitForResponse(
@@ -337,14 +370,15 @@ test.describe('سفرِ مدیریت', () => {
     await page.keyboard.type(String(code))
     const response = await verified
     expect(response.status()).toBe(201)
-    // توکن همراهِ کد رفت و سرور عضویت را همان‌جا برقرار کرد
+    // توکن همراهِ کد رفت؛ عضویت را خودِ داشبوردِ واحدِ پایین ثابت می‌کند (بدنه‌ی پاسخ پس از ناوبریِ بی‌درنگِ ثبت‌نام دیگر
+    // خواندنی نیست — ثبت‌نام از ۲۰۲۶-۱۰-۳۰ خودش وارد می‌کند و صفحه را عوض می‌کند)
     expect(response.request().postDataJSON()).toMatchObject({
       invitation_token: expect.any(String),
     })
-    expect(((await response.json()) as { joined: string | null }).joined).toBeTruthy()
 
-    // ── ورود: داشبوردِ واحد، بی داشبوردِ اولیه و بی «پیوستن» ──
-    expect(await signIn(page, invitee, PASSWORD)).toBe(200)
+    // ── ورود (خودِ ثبت‌نام واردش کرد): داشبوردِ واحد، بی داشبوردِ اولیه و بی «پیوستن» ──
+    await page.waitForURL(/\/dashboard/)
+    expect(await signedInPhone(page)).toBe(invitee)
     await page.goto('/dashboard')
     await expect(page.locator('aside').first()).toBeAttached({ timeout: 15_000 })
     await expect(page.locator('[data-experience="registrant"]')).toHaveCount(0)
@@ -369,7 +403,7 @@ test.describe('سفرِ مدیریت', () => {
   })
 
   test('مدیر اشتراک را با درگاهِ آزمایشی می‌خرد', async ({ page }, testInfo) => {
-    expect(await signIn(page, phoneFor('0935', testInfo.project.name), PASSWORD)).toBe(200)
+    expect(await signIn(page, phoneFor('0935', testInfo.project.name))).toBe(200)
 
     await page.goto('/account')
 
@@ -392,7 +426,7 @@ test.describe('سفرِ مدیریت', () => {
   })
 
   test('خروج از منوی کاربر، و بسته‌شدنِ نشستِ سرور', async ({ page }, testInfo) => {
-    expect(await signIn(page, phoneFor('0935', testInfo.project.name), PASSWORD)).toBe(200)
+    expect(await signIn(page, phoneFor('0935', testInfo.project.name))).toBe(200)
 
     /*
      * 🔴 بارشدن‌های سند شمرده می‌شوند. اجرای اولِ این تست در CI روی Firefox

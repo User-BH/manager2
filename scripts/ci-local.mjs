@@ -269,10 +269,6 @@ async function e2e() {
       [
         ['مهاجرت', 'php artisan migrate --force --no-interaction'],
         ['DemoSeeder', 'php artisan db:seed --class=DemoSeeder --force --no-interaction'],
-        [
-          'otp_disabled',
-          `php artisan tinker --execute="App\\Support\\SystemSettings::set('otp_disabled', true);"`,
-        ],
         ['E2eSeeder', 'php artisan db:seed --class=E2eSeeder --force --no-interaction'],
         ['Playwright', `npx playwright test${only} ${list} --reporter=line`],
       ],

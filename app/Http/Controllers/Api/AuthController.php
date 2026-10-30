@@ -7,14 +7,12 @@ use App\Enums\ComplexType;
 use App\Enums\UserRole;
 use App\Exceptions\DomainException;
 use App\Http\Controllers\Controller;
-use App\Http\Requests\ForgotPasswordRequest;
-use App\Http\Requests\ForgotVerifyRequest;
+use App\Http\Requests\AdminLoginRequest;
 use App\Http\Requests\LoginRequest;
 use App\Http\Requests\LoginTwoFactorRequest;
 use App\Http\Requests\LoginVerifyRequest;
 use App\Http\Requests\RegisterRequest;
 use App\Http\Requests\RegisterVerifyRequest;
-use App\Http\Requests\ResetPasswordRequest;
 use App\Listeners\StartAuthenticatedSession;
 use App\Models\Complex;
 use App\Models\ComplexInvitation;
@@ -39,7 +37,6 @@ use App\Support\PersianName;
 use App\Support\Phone;
 use App\Support\Preview;
 use App\Support\SessionContext;
-use App\Support\SystemSettings;
 use App\Support\Username;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -47,6 +44,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\RateLimiter;
+use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 
 /**
@@ -105,135 +103,133 @@ class AuthController extends Controller
     }
 
     /**
-     * گام ۱ ورود: بررسی رمز عبور.
+     * گام ۱ ورود.
      *
-     * رمز درست، کاربر را بلافاصله وارد نمی‌کند: شناسه‌اش در نشست به‌عنوان
-     * «در انتظار مرحله‌ی دوم» نگه داشته می‌شود و یک کد پیامکی فرستاده می‌شود.
-     * تنها میان‌بر، دستگاهِ مورداعتماد است.
+     * دو شکل، و نوعِ شناسه را خودِ درخواست می‌گوید (مرحلهٔ ۱۳ · فاز ۱) — هیچ‌کدام از شکلِ دیگری حدس زده نمی‌شود:
+     *
+     *   - **شماره** (کاربرانِ سایت اصلی، ۲۰۲۶-۱۰-۳۰): بی رمز؛ کدِ پیامکی به شماره می‌رود و گامِ دوم همان کد است.
+     *   - **نام کاربری + رمز**: فقط حساب‌های نمونه‌ی Preview (بیرون از Production).
+     *
+     * دو مدیرِ سامانه از این‌جا وارد نمی‌شوند — مسیرشان `adminLogin` (`/auth/admin`) است.
      */
     public function login(LoginRequest $request, OtpService $otp): JsonResponse
     {
         $request->validated();
 
-        /*
-         * نوعِ شناسه را درخواست صریح می‌گوید (مرحلهٔ ۱۳ · فاز ۱): شماره برای کاربرِ واقعی و سوپر ادمین، نام کاربری فقط
-         * برای حسابِ آزمایشیِ Preview (۲۰۲۶-۱۰-۲۹). هیچ‌کدام از شکلِ دیگری حدس زده نمی‌شود.
-         */
-        $byUsername = $request->byUsername();
-        $field = $request->identifierField();
-        $wrong = $byUsername ? self::WRONG_USERNAME : self::WRONG_PHONE;
+        if (! $request->byUsername()) {
+            $this->refusePhoneFlowsInPreview('phone');
 
-        if (! $byUsername) {
-            $this->refusePhoneFlowsInPreview($field);
+            return $this->loginWithPhone($request, $otp);
         }
 
-        $user = $byUsername
-            ? User::where('username', Username::normalize($request->input('username')))->first()
-            : User::where('phone', Phone::normalize($request->input('phone')))->first();
+        $user = User::where('username', Username::normalize($request->input('username')))->first();
 
         /*
-         * پیامِ یکسان برای «کاربر نیست» و «رمز غلط» تا نشود شماره‌ها را شمارش کرد.
-         *
-         * ⚠️ و **زمانِ** یکسان: پیش از این bcrypt فقط برای حسابِ موجود اجرا
-         * می‌شد و شماره‌ی بی‌حساب محسوس زودتر جواب می‌گرفت. حالا در هر دو حالت
-         * یک بار هش سنجیده می‌شود.
+         * پیامِ یکسان و **زمانِ** یکسان برای «نیست»، «رمز غلط»، «مالِ حسابِ نمونه نیست» و «حسابِ نمونه روی Production»:
+         * در هر حالت یک بار bcrypt سنجیده می‌شود و پاسخ نمی‌گوید چنین حسابی هست.
          */
         $passwordOk = Hash::check((string) $request->input('password'), $user->password ?? OtpService::dummyHash());
-
-        /*
-         * 🔴 همان پیام و همان زمان برای دو حالتِ دیگر هم (مرحلهٔ ۱۳ · فاز ۱):
-         * - نام کاربری فقط مالِ حسابِ آزمایشی است (۲۰۲۶-۱۰-۲۹: سوپر ادمین هم با شماره)؛ کاربرِ واقعی با آن وارد نمی‌شود؛
-         * - حسابِ آزمایشی روی Production هرگز وارد نمی‌شود (`DemoData`)؛ پاسخ نمی‌گوید چنین حسابی هست.
-         */
-        $eligible = $user !== null
-            && (! $byUsername || $user->signsInByUsername())
-            && ! DemoData::refuses($user);
+        $eligible = $user !== null && $user->signsInByUsername() && ! DemoData::refuses($user) && $user->is_active;
 
         if (! $eligible || ! $passwordOk) {
-            // فقط برای حسابِ موجود ثبت می‌شود؛ صاحبش در تاریخچه‌ی ورود می‌بیندش
             if ($user) {
                 $this->recorder->failure($user, $request, LoginEvent::FAILED_PASSWORD);
             }
 
-            throw ValidationException::withMessages([$field => $wrong]);
+            throw ValidationException::withMessages(['username' => self::WRONG_USERNAME]);
         }
 
-        if (! $user->is_active) {
-            throw ValidationException::withMessages([
-                $field => 'حساب کاربری شما هنوز فعال نشده است. پس از تایید مدیر مجتمع می‌توانید وارد شوید.',
-            ]);
+        // حسابِ نمونه شماره و عاملِ دوم ندارد؛ Preview پشتِ کلیدِ دسترسیِ خودش است
+        return $this->completeLogin($request, $user, remember: false, otp: $otp);
+    }
+
+    /**
+     * ورودِ کاربرانِ سایت اصلی با شماره و کدِ پیامکی — بی رمز (۲۰۲۶-۱۰-۳۰، بندِ ۴ ِ کارفرما).
+     *
+     * ─── 🔴 پاسخ نمی‌گوید این شماره حساب دارد یا نه ────────────────────────
+     * برای **هر** شماره‌ی معتبر همان کار انجام می‌شود (`OtpService::issue`): ردیفِ کد، همان فاصله‌ی ارسالِ دوباره، همان
+     * پاسخ؛ فقط برای حسابِ واجدِ شرایط پیامک واقعاً فرستاده می‌شود. شماره‌ی بی‌حساب، حسابِ غیرفعال، مدیرِ سامانه (که فقط
+     * از `/auth/admin` وارد می‌شود) و حسابِ نمونه روی Production کدی نمی‌گیرند و گامِ دوم برایشان همان «کدِ نادرست» است.
+     *
+     * ⚠️ «ورود بدونِ کد» (`otp_disabled`) دیگر وجود ندارد: بی رمز، ورود بی کد یعنی ورود با دانستنِ یک شماره.
+     */
+    private function loginWithPhone(LoginRequest $request, OtpService $otp): JsonResponse
+    {
+        $phone = Phone::normalize($request->input('phone'));
+
+        if (! Phone::isValidMobile($phone)) {
+            throw ValidationException::withMessages(['phone' => 'شماره تلفن همراه معتبر نیست.']);
         }
 
-        /*
-         * 🔴 سوپر ادمین با TOTP (۲۰۲۶-۱۰-۲۵، بخشِ ۵): پس از رمز **همیشه** کدِ برنامه‌ی Authenticator — با هر شناسه، با
-         * `otp_disabled` یا بی آن؛ دستگاهِ مورداعتماد هم ندارد. هیچ شاخه‌ی پایین‌تری (پیامک، ورودِ بی کد) به او نمی‌رسد.
-         */
-        if ($this->twoFactor->enabled($user)) {
-            return $this->startTwoFactor($request, $user);
-        }
+        $user = User::where('phone', $phone)->first();
+        $eligible = $user !== null && $user->is_active && ! $user->isSuperAdmin() && ! DemoData::refuses($user);
 
-        /*
-         * سوپر ادمینِ Production بی TOTP وارد نمی‌شود — نه با پیامک، نه فقط با رمز (۲۰۲۶-۱۰-۲۹، بندِ ۲: «هر دو مدیر
-         * بجای پیامک با TOTP»). راه‌اندازی از شل ِ سرور است.
-         */
-        if ($this->twoFactor->setupRequired($user)) {
-            throw ValidationException::withMessages([
-                $field => 'ورودِ دومرحله‌ایِ (Authenticator) این حساب هنوز راه‌اندازی نشده. روی سرور اجرا کنید: php artisan admin:two-factor <شماره موبایل>',
-            ]);
-        }
-
-        /*
-         * حسابِ بی شماره کدِ پیامکی نمی‌گیرد. فقط حسابِ آزمایشی چنین است و فقط بیرون از Production (پیامِ کارفرما
-         * ۲۰۲۶-۱۰-۱۹: «شماره‌ی موبایلِ واقعی برای این حساب‌ها الزامی نباشد»)؛ Preview پشتِ کلیدِ دسترسیِ خودش است.
-         * سوپر ادمینِ بی شماره وارد نمی‌شود: عاملِ دوم ندارد.
-         */
-        if ($user->phone === null) {
-            if ($user->is_demo) {
-                return $this->completeLogin($request, $user, remember: false, otp: $otp);
-            }
-
-            throw ValidationException::withMessages([$field => 'برای این حساب عاملِ دومِ ورود تعریف نشده است.']);
-        }
-
-        $phone = $user->phone;
-
-        // ورودِ بدونِ کدِ یک‌بارمصرف (تنظیمِ ادمینِ کل): مرحله‌ی دوم کلاً رد و
-        // کاربر مستقیم وارد می‌شود. برای وقتی پنلِ پیامک هنوز آماده نیست.
-        if (SystemSettings::get('otp_disabled', false)) {
-            return $this->completeLogin($request, $user, remember: $request->boolean('remember'), otp: $otp);
-        }
-
-        // دستگاهِ مورداعتماد: رد کردن کاملِ مرحله‌ی دوم.
-        if ($this->devices->isTrustedFor($user, $request)) {
+        // دستگاهِ مورداعتمادِ همین حساب («مرا به خاطر بسپار») تا مهلتش گامِ کد را رد می‌کند
+        if ($eligible && $this->devices->isTrustedFor($user, $request)) {
             return $this->completeLogin($request, $user, remember: false, otp: $otp);
         }
 
-        // شروع مرحله‌ی دوم: کد پیامکی.
-        $result = $otp->request($phone);
+        $result = $otp->issue($phone, deliver: $eligible);
         if (! $result['ok']) {
-            throw ValidationException::withMessages([
-                $field => $result['error'] ?? 'ارسال کد ورود ناموفق بود.',
-            ]);
+            throw ValidationException::withMessages(['phone' => $result['error'] ?? 'ارسال کد ورود ناموفق بود.']);
         }
 
         $request->session()->put('login.pending', [
-            'user_id' => $user->id,
+            'user_id' => $eligible ? $user->id : null,
+            'phone' => $phone,
             'remember' => $request->boolean('remember'),
             'at' => now()->timestamp,
             'factor' => self::FACTOR_SMS,
         ]);
 
-        // با نام کاربری، شماره را کسی نداده؛ پاسخ فقط نسخه‌ی پوشیده‌اش را نشان می‌دهد
-        $shown = $byUsername ? Phone::mask($phone) : $phone;
-
         return response()->json([
             'otpRequired' => true,
-            'phone' => $shown,
-            'message' => 'کد ورود به شماره '.$shown.' ارسال شد.',
-            // در حالت تست (درایور log) کد برگردانده می‌شود تا بدون پیامک واقعی هم
-            // بتوان ورود را آزمود؛ در حالت واقعی null است.
+            'phone' => $phone,
+            'message' => 'کد ورود به شماره '.$phone.' ارسال شد.',
+            // فقط درایورِ log در توسعه و آزمون؛ در Production همیشه null
             'dev_code' => $result['dev_code'] ?? null,
         ]);
+    }
+
+    /**
+     * ورودِ دو مدیرِ سامانه — فقط از `/auth/admin` (۲۰۲۶-۱۰-۳۰، بندِ ۴): نام کاربری + رمز، سپس کدِ برنامه‌ی Authenticator.
+     *
+     * - همان پیام و زمانِ «نادرست» برای نام کاربریِ ناموجود، رمزِ غلط و هر حسابی که سوپر ادمینِ واقعی نیست؛
+     * - روی Production مدیرِ بی TOTP وارد نمی‌شود (راه‌اندازی: `admin:two-factor`)؛ بیرون از Production (توسعه و آزمونِ
+     *   سرتاسری) مدیرِ بی TOTP با همین دو قلم وارد می‌شود؛
+     * - Preview این درِ ورود را ندارد (یک درِ نام کاربری برای حساب‌های نمونه).
+     */
+    public function adminLogin(AdminLoginRequest $request, OtpService $otp): JsonResponse
+    {
+        $request->validated();
+
+        if (Preview::active()) {
+            throw ValidationException::withMessages(['username' => self::PREVIEW_USERNAME_ONLY]);
+        }
+
+        $user = User::where('username', Username::normalize($request->input('username')))->first();
+        $passwordOk = Hash::check((string) $request->input('password'), $user->password ?? OtpService::dummyHash());
+        $eligible = $user !== null && $user->isSuperAdmin() && ! $user->is_demo && $user->is_active;
+
+        if (! $eligible || ! $passwordOk) {
+            if ($user) {
+                $this->recorder->failure($user, $request, LoginEvent::FAILED_PASSWORD);
+            }
+
+            throw ValidationException::withMessages(['username' => self::WRONG_USERNAME]);
+        }
+
+        if ($this->twoFactor->enabled($user)) {
+            return $this->startTwoFactor($request, $user);
+        }
+
+        if ($this->twoFactor->setupRequired($user)) {
+            throw ValidationException::withMessages([
+                'username' => 'ورودِ دومرحله‌ایِ (Authenticator) این حساب هنوز راه‌اندازی نشده. روی سرور اجرا کنید: php artisan admin:two-factor <شماره موبایل>',
+            ]);
+        }
+
+        return $this->completeLogin($request, $user, remember: false, otp: $otp);
     }
 
     /**
@@ -248,24 +244,22 @@ class AuthController extends Controller
         // مرحله‌ی دومِ پیامکی فقط برای ورودی که با پیامک شروع شد — نه برای چالشِ TOTP
         if (! $pending || ($pending['factor'] ?? self::FACTOR_SMS) !== self::FACTOR_SMS) {
             throw ValidationException::withMessages([
-                'code' => 'مهلت ورود تمام شده است. دوباره با رمز عبور وارد شوید.',
+                'code' => 'مهلت ورود تمام شده است. دوباره شماره را وارد کنید.',
             ]);
         }
 
-        $user = User::find($pending['user_id']);
-        if (! $user || ! $user->is_active) {
-            $request->session()->forget('login.pending');
-            throw ValidationException::withMessages(['code' => 'حساب کاربری در دسترس نیست.']);
-        }
+        $user = $pending['user_id'] === null ? null : User::find($pending['user_id']);
+        $phone = (string) ($pending['phone'] ?? $user?->phone);
 
-        // سوپر ادمینی که میانِ دو گام TOTP را فعال کرد با کدِ پیامکی وارد نمی‌شود
-        if ($this->twoFactor->enabled($user)) {
-            $request->session()->forget('login.pending');
-            throw ValidationException::withMessages(['code' => 'مهلت ورود تمام شده است. دوباره با رمز عبور وارد شوید.']);
-        }
-
-        if (! $otp->verify($user->phone, $request->input('code'))) {
-            $this->recorder->failure($user, $request, LoginEvent::FAILED_OTP);
+        /*
+         * شماره‌ی بی‌حساب (یا حسابی که دیگر واجدِ شرایط نیست) همان «کدِ نادرست» را می‌گیرد — نه پیامِ جدا؛ کدش هرگز
+         * فرستاده نشده و تصادفی است. سوپر ادمین هرگز با کدِ پیامکی وارد نمی‌شود.
+         */
+        $verified = $otp->verify($phone, (string) $request->input('code'));
+        if (! $verified || ! $user || ! $user->is_active || $user->isSuperAdmin() || DemoData::refuses($user)) {
+            if ($user) {
+                $this->recorder->failure($user, $request, LoginEvent::FAILED_OTP);
+            }
 
             throw ValidationException::withMessages([
                 'code' => 'کد واردشده نادرست یا منقضی شده است.',
@@ -378,24 +372,13 @@ class AuthController extends Controller
         // چالشِ TOTP پیامکی نمی‌فرستد
         if (! $pending || ($pending['factor'] ?? self::FACTOR_SMS) !== self::FACTOR_SMS) {
             throw ValidationException::withMessages([
-                'code' => 'مهلت ورود تمام شده است. دوباره با رمز عبور وارد شوید.',
+                'code' => 'مهلت ورود تمام شده است. دوباره شماره را وارد کنید.',
             ]);
         }
 
-        $user = User::find($pending['user_id']);
-
-        /*
-         * حالتِ لبه: حساب وسطِ جریانِ چندمرحله‌ای حذف شده.
-         * پیامِ روشن به‌جای ۴۲۲ِ بی‌متن، تا کاربر بداند باید از اول شروع کند.
-         */
-        if (! $user) {
-            throw DomainException::invalid(
-                'حساب کاربری پیدا نشد. لطفاً از ابتدا شروع کنید.',
-                'auth.pending_user_missing',
-            );
-        }
-
-        $result = $otp->request($user->phone);
+        // همان قاعده‌ی گامِ اول: برای هر شماره همان پاسخ، پیامک فقط برای حسابِ واجدِ شرایطِ همین ورود
+        $user = $pending['user_id'] === null ? null : User::find($pending['user_id']);
+        $result = $otp->issue((string) $pending['phone'], deliver: $user !== null && $user->is_active);
         if (! $result['ok']) {
             throw ValidationException::withMessages(['code' => $result['error'] ?? 'ارسال مجدد کد ناموفق بود.']);
         }
@@ -403,161 +386,6 @@ class AuthController extends Controller
         return response()->json([
             'message' => 'کد جدید ارسال شد.',
             'dev_code' => $result['dev_code'] ?? null,
-        ]);
-    }
-
-    /**
-     * فراموشی رمز — گام ۱: فرستادن کد به شماره‌ی کاربر.
-     *
-     * فقط شماره گرفته می‌شود؛ اثبات هویت با کد پیامکی است. محدودیت نرخِ
-     * `otp-request` جلوی سوءاستفاده و مصرف بی‌رویه‌ی اعتبار پیامک را می‌گیرد.
-     *
-     * ─── 🔴 پاسخ نمی‌گوید این شماره حساب دارد یا نه ────────────────────────
-     * پیش از این شماره‌ی دارای حساب ۲۰۰ و بقیه ۴۲۲ می‌گرفتند (و کامنتِ همین‌جا
-     * خلافش را ادعا می‌کرد). حالا وضعیت، شکل، متن، فاصله‌ی ارسالِ مجدد و زمانِ
-     * پاسخ برای هر دو یکی است — جزئیات در `OtpService::issue`. فقط صاحبِ
-     * سیم‌کارت کد را می‌گیرد، پس فقط او می‌تواند جلو برود.
-     */
-    public function forgotPassword(ForgotPasswordRequest $request, OtpService $otp): JsonResponse
-    {
-        $data = $request->validated();
-
-        $this->refusePhoneFlowsInPreview('phone');
-
-        $phone = Phone::normalize($data['phone']);
-
-        // خطای «قالبِ شماره» به وجودِ حساب ربطی ندارد، پس نشانه نیست
-        if (! Phone::isValidMobile($phone)) {
-            throw ValidationException::withMessages(['phone' => 'شماره تلفن همراه معتبر نیست.']);
-        }
-
-        $user = User::where('phone', $phone)->where('is_active', true)->first();
-
-        $result = $otp->issue($phone, deliver: $user !== null);
-        if (! $result['ok']) {
-            throw ValidationException::withMessages(['phone' => $result['error'] ?? 'ارسال کد ناموفق بود.']);
-        }
-
-        $request->session()->put('reset.pending', [
-            'user_id' => $user?->id,
-            'phone' => $phone,
-            'verified' => false,
-            'at' => now()->timestamp,
-        ]);
-
-        return response()->json([
-            'message' => 'اگر حسابِ فعالی با این شماره باشد، کدِ بازیابی به آن پیامک می‌شود.',
-            'dev_code' => $result['dev_code'] ?? null,
-        ]);
-    }
-
-    /**
-     * فراموشی رمز — گام ۲: تایید کد پیامکی.
-     */
-    public function forgotVerify(ForgotVerifyRequest $request, OtpService $otp): JsonResponse
-    {
-        $request->validated();
-
-        $pending = $request->session()->get('reset.pending');
-        if (! $pending) {
-            throw ValidationException::withMessages(['code' => 'مهلت بازیابی تمام شده است. از ابتدا شروع کنید.']);
-        }
-
-        $user = $pending['user_id'] ? User::find($pending['user_id']) : null;
-        $phone = $pending['phone'] ?? $user?->phone;
-
-        /*
-         * 🔴 شماره‌ی بی‌حساب همان پیامِ «کد نادرست» را می‌گیرد، نه «حساب پیدا
-         * نشد» — وگرنه گامِ دوم همان چیزی را لو می‌داد که گامِ اول پنهان کرد.
-         * برای چنین شماره‌ای کدی فرستاده نشده، پس هیچ کدی درست نیست؛ و `verify`
-         * همان هزینه‌ی bcrypt را می‌پردازد.
-         */
-        $verified = $phone !== null && $otp->verify($phone, (string) $request->input('code'));
-
-        if (! $verified || ! $user) {
-            throw ValidationException::withMessages(['code' => 'کد واردشده نادرست یا منقضی شده است.']);
-        }
-
-        // فقط پرچمِ «تاییدشده» را می‌زنیم؛ خودِ تغییر رمز گام بعد است.
-        $request->session()->put('reset.pending', [...$pending, 'verified' => true]);
-
-        return response()->json(['message' => 'کد تایید شد. اکنون رمز تازه را وارد کنید.']);
-    }
-
-    /**
-     * فراموشی رمز — گام ۳: ثبت رمز تازه.
-     */
-    public function resetPassword(ResetPasswordRequest $request): JsonResponse
-    {
-        $request->validated();
-
-        $pending = $request->session()->get('reset.pending');
-        if (! $pending || ! ($pending['verified'] ?? false)) {
-            throw ValidationException::withMessages(['password' => 'ابتدا کد پیامکی را تایید کنید.']);
-        }
-
-        $user = User::find($pending['user_id']);
-
-        /*
-         * حالتِ لبه: حساب وسطِ جریانِ چندمرحله‌ای حذف شده.
-         * پیامِ روشن به‌جای ۴۲۲ِ بی‌متن، تا کاربر بداند باید از اول شروع کند.
-         */
-        if (! $user) {
-            throw DomainException::invalid(
-                'حساب کاربری پیدا نشد. لطفاً از ابتدا شروع کنید.',
-                'auth.pending_user_missing',
-            );
-        }
-
-        $user->update(['password' => Hash::make($request->input('password'))]);
-
-        // همه‌ی دستگاه‌های مورداعتماد باطل می‌شوند: تغییر رمز یعنی «دیگر به هیچ
-        // دستگاه قبلی اعتماد نکن»، مبادا رمز به‌خاطرِ نشت لو رفته باشد.
-        $user->trustedDevices()->delete();
-
-        $request->session()->forget('reset.pending');
-
-        /*
-         * 🔴 همه‌ی نشست‌های قبلیِ این حساب بسته می‌شوند (مرحلهٔ ۵ · فاز ۱۰).
-         *
-         * بازیابیِ رمز رایج‌ترین واکنش به «حسابم دستِ کسی افتاده» است؛ تا
-         * پیش از این، دستگاه‌های مورداعتماد باطل می‌شدند ولی نشستِ بازِ مهاجم
-         * زنده می‌ماند و با رمزِ تازه کاری نداشت. نشستِ همین درخواست هنوز
-         * مهمان است، پس «همه جز این» یعنی همه.
-         */
-        $this->sessions->endOthers($user, $request->session()->getId());
-
-        /*
-         * 🔴 سوپر ادمین با TOTP (یا سوپر ادمینِ Production) خودکار وارد نمی‌شود (۲۰۲۶-۱۰-۲۵، بخشِ ۵): کدِ پیامکی فقط
-         * مالکیتِ سیم‌کارت را ثابت می‌کند، نه عاملِ دوم را — وگرنه بازیابیِ رمز راهِ دورزدنِ Authenticator بود. رمز عوض
-         * شد؛ ورود همان مسیرِ رمز + کدِ برنامه است.
-         */
-        if ($this->twoFactor->enabled($user) || $this->twoFactor->setupRequired($user)) {
-            Audit::log('auth.password_reset_admin', 'بازیابیِ رمزِ سوپر ادمین با کدِ پیامکی؛ ورود همچنان با عاملِ دوم', $user, [], null);
-
-            return response()->json([
-                'message' => 'رمز عبور تغییر کرد. با رمزِ تازه و کدِ برنامه‌ی Authenticator وارد شوید.',
-                'user' => null,
-                'csrfToken' => csrf_token(),
-            ]);
-        }
-
-        /*
-         * ورودِ خودکار پس از بازیابی.
-         *
-         * کاربر همین حالا با کد پیامکی ثابت کرده که صاحب این شماره است و رمز
-         * تازه را هم خودش گذاشته؛ فرستادنش به فرم ورود و یک پیامکِ دومرحله‌ایِ
-         * دیگر، بدون افزودن امنیت فقط اصطکاک است.
-         */
-        $request->attributes->set(StartAuthenticatedSession::EVENT_ATTRIBUTE, LoginEvent::PASSWORD_RESET);
-        Auth::login($user);
-        $request->session()->regenerate();
-        $this->confirmation->confirm($request);
-
-        return response()->json([
-            'message' => 'رمز عبور با موفقیت تغییر کرد.',
-            'user' => $this->userPayload($user),
-            'csrfToken' => csrf_token(),
         ]);
     }
 
@@ -610,7 +438,6 @@ class AuthController extends Controller
             'first_name' => $data['first_name'],
             'last_name' => $data['last_name'],
             'phone' => $phone,
-            'password' => Hash::make($data['password']),
             'at' => now()->timestamp,
         ]);
 
@@ -670,7 +497,8 @@ class AuthController extends Controller
             'last_name' => $pending['last_name'],
             'name' => PersianName::full($pending['first_name'], $pending['last_name']),
             'phone' => $pending['phone'],
-            'password' => $pending['password'],
+            // کاربرانِ سایت رمز ندارند (۲۰۲۶-۱۰-۳۰)؛ ستون پُر می‌ماند با رمزِ تصادفیِ دورریختنی که هیچ مسیری نمی‌پذیرد
+            'password' => Hash::make(Str::random(64)),
             'role' => UserRole::Owner,
             'is_active' => true,
             'terms_accepted_at' => now(),
@@ -681,12 +509,16 @@ class AuthController extends Controller
 
         $joined = $this->joinByInvitation($membership, $user, (string) $request->input('invitation_token', ''));
 
-        return response()->json([
-            'message' => $joined === null
-                ? 'ثبت‌نام کامل شد. اکنون می‌توانید وارد شوید.'
-                : 'ثبت‌نام کامل شد و عضوِ «'.$joined->name.'» شدید. اکنون وارد شوید.',
+        /*
+         * شماره همین حالا با کد ثابت شد و رمزی در کار نیست (۲۰۲۶-۱۰-۳۰): ثبت‌نام همان ورود است — گامِ «اکنون وارد شوید»
+         * فقط یک پیامکِ دیگر می‌خواست.
+         */
+        $response = $this->completeLogin($request, $user, remember: false, otp: $otp);
+
+        return $response->setStatusCode(201)->setData([...$response->getData(true),
+            'message' => $joined === null ? 'ثبت‌نام کامل شد.' : 'ثبت‌نام کامل شد و عضوِ «'.$joined->name.'» شدید.',
             'joined' => $joined?->name,
-        ], 201);
+        ]);
     }
 
     /**
@@ -819,6 +651,8 @@ class AuthController extends Controller
             'roleLabel' => $user->role->label(),
             'isAdmin' => $user->role->isAdmin(),
             'isSuperAdmin' => $user->isSuperAdmin(),
+            // تغییرِ رمز و تأییدِ دوباره با رمز فقط برای حسابِ رمزدار (۲۰۲۶-۱۰-۳۰)
+            'usesPassword' => $user->usesPassword(),
             // کلیدِ «شاملِ دادهٔ آزمایشی» فقط جایی که سرور هم آن را می‌پذیرد (`DemoData::included`)؛ روی Production نه
             'demoData' => $user->isSuperAdmin() && DemoData::allowedHere(),
             // نشستِ سوپر ادمینِ Production بی TOTP: رابط فقط راه‌اندازیِ عاملِ دوم را پیش می‌گذارد (`EnsureAdminTwoFactor`)

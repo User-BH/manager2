@@ -49,7 +49,7 @@ class EndpointInventoryTest extends TestCase
             'login', 'login/resend', 'login/verify',
             'login/two-factor',         // گامِ دومِ سوپر ادمین (۲۰۲۶-۱۰-۲۵): فقط پس از گامِ رمزِ همین نشست؛ قفلِ حساب و سقفِ نرخ
             'me',                       // برای مهمان تهی برمی‌گرداند
-            'password/forgot', 'password/forgot/verify', 'password/reset',
+            'admin/login',              // درِ ورودِ دو مدیرِ سامانه (۲۰۲۶-۱۰-۳۰): نام کاربری + رمز ← TOTP؛ سقفِ نرخ و پاسخِ یکسان
             // بازیابیِ حساب بی شماره‌ی قبلی (مرحلهٔ ۹): فقط ثبتِ درخواست، سقفِ نرخ، پاسخِ یکسان؛ دسترسی نمی‌دهد
             'account-recovery/code', 'account-recovery',
             'register', 'register/verify',

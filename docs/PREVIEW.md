@@ -24,7 +24,7 @@ Preview preview.sakena.ir  ──►  پایگاه‌داده‌ی Preview  (ف�
 | ایندکس نه                        | `X-Robots-Tag: noindex` روی هر پاسخ؛ `robots.txt` → `Disallow: /`                                                                                | `PreviewEnvironmentTest`                           |
 | دیده شود                         | نوارِ «Preview» روی همه‌ی صفحه‌ها (Blade، حتی بی جاوااسکریپت)؛ روی محصول هرگز                                                                    | `PreviewEnvironmentTest`                           |
 | دادهٔ نمونه فقط روی Preview      | `DemoSeeder` و `setup.sh --demo` روی محصول رد می‌شوند؛ `deploy.sh --reset-preview` فقط روی Preview                                               | `DemoSeederTest`، `DeployScriptSafetyTest`         |
-| یک درِ ورود (۲۰۲۶-۱۰-۲۹)         | `/auth` ِ Preview فقط فرمِ نام کاربری است؛ ورود، ثبت‌نام و بازیابیِ رمز با شماره در سرور ۴۲۲ می‌گیرند؛ `/auth/username` ← `/auth`                | `PreviewEnvironmentTest`                           |
+| یک درِ ورود (۲۰۲۶-۱۰-۳۰)         | `/auth` ِ Preview فقط فرمِ نام کاربری است؛ ورود و ثبت‌نام با شماره و درِ مدیران در سرور رد می‌شوند؛ `/auth/username` و `/auth/admin` ← `/auth`   | `PreviewEnvironmentTest`                           |
 | همان نسخه به محصول (۲۰۲۶-۱۰-۲۹)  | نوارِ Preview commit ِ مستقرشده را نشان می‌دهد؛ `deploy.sh --ref=<commit>` محصول را فقط تا همان پیش می‌برد (fast-forward، بی بازنویسی)           | `PreviewEnvironmentTest`، `DeployScriptSafetyTest` |
 
 هزینه‌ی نگهبان: روی هر درخواستِ محصول **یک** کوئریِ تک‌سطری (خواندنِ برچسب، مستقیم از پایگاه‌داده
@@ -89,7 +89,7 @@ php artisan preview:reset-account demo.multi --password   # به‌علاوه‌
 
 | مورد                      | روش                                                                                                                                                                                                       |
 | ------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| نام کاربری                | چهار نامِ جدولِ بالا؛ دو مدیرِ Production نام کاربری ندارند — هر کدام شماره + رمز + Authenticator ([ADMIN_TWO_FACTOR.md](ADMIN_TWO_FACTOR.md))                                                            |
+| نام کاربری                | چهار نامِ جدولِ بالا؛ دو مدیرِ Production فقط روی `sakena.ir/auth/admin` (نام کاربری + رمز + Authenticator، [ADMIN_TWO_FACTOR.md](ADMIN_TWO_FACTOR.md))                                                   |
 | رمزِ اولیه                | فقط در خروجیِ ترمینالِ سرور، یک بار (`preview:reset`، `preview:seed`، `preview:reset-account --password`). مستقیم در vault ِ مشترک بگذارید و ترمینال را پاک کنید؛ نه پیام‌رسان، نه ایمیل، نه مخزن، نه لاگ |
 | تغییرِ رمز                | «اطلاعاتِ کاربری» ← «تغییرِ رمز» (مسیرِ واقعیِ `profile/password`): رمزِ قبلی رد، نشست‌های دیگر بسته                                                                                                      |
 | ورود به Preview           | `https://preview.sakena.ir/?preview_access=<کلید>` سپس `/auth` (فقط نام کاربری)؛ بی پیامک                                                                                                                 |

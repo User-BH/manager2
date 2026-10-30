@@ -226,8 +226,10 @@ describe('تاریخچه پس از ورود', () => {
 
     for (const file of [
       'components/LoginForm.tsx',
+      'components/RegisterForm.tsx',
       'VerifyOtpPage.tsx',
-      'ForgotPasswordPage.tsx',
+      'UsernameLoginPage.tsx',
+      'TwoFactorLoginPage.tsx',
     ]) {
       // مقصد از ۱۰/۵ `afterSignIn()` است (برگشت به صفحه‌ی پیوستنِ QR)؛ قاعده همان `replace` می‌ماند
       expect(codeOf(`resources/js/features/auth/${file}`), file).toContain(
@@ -257,8 +259,9 @@ describe('تاریخچه پس از ورود', () => {
     expect(codeOf('resources/js/features/auth/components/AuthScreen.tsx')).toMatch(
       /to=\{backTo\}[\s\S]{0,120}\breplace\b/,
     )
+    // گامِ کد هم جای فرمِ ورود را می‌گیرد (۲۰۲۶-۱۰-۳۰: پیوندِ «فراموشیِ رمز» دیگر نیست)
     expect(codeOf('resources/js/features/auth/components/LoginForm.tsx')).toMatch(
-      /to="\/auth\/forgot"[\s\S]{0,120}\breplace\b/,
+      /navigate\('\/auth\/verify', \{\s*replace: true/,
     )
   })
 })

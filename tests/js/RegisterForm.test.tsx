@@ -54,8 +54,6 @@ async function fillStepOne(user: ReturnType<typeof userEvent.setup>) {
   await user.type(screen.getByPlaceholderText('مثلاً علی'), 'علی')
   await user.type(screen.getByPlaceholderText('مثلاً محمدی'), 'محمدی')
   await user.type(screen.getByPlaceholderText('۰۹xxxxxxxxx'), '09123456789')
-  await user.type(screen.getByPlaceholderText('حداقل ۸ نویسه'), 'Secret123')
-  await user.type(screen.getByPlaceholderText('تکرار رمز عبور'), 'Secret123')
   await user.click(screen.getByRole('checkbox'))
 }
 
@@ -65,20 +63,18 @@ describe('RegisterForm — ثبت‌نام دومرحله‌ای', () => {
     toastTopSuccessMock.mockReset()
   })
 
-  it('ناهمخوانیِ رمز و تکرارش را نشان می‌دهد و درخواستی نمی‌فرستد', async () => {
+  it('بی رمز (۲۰۲۶-۱۰-۳۰): فرم فیلدِ رمز ندارد و رمزی به سرور نمی‌رود', async () => {
     const user = userEvent.setup()
+    apiMock.mockResolvedValue({ otpRequired: true, phone: '09123456789' })
     render(<RegisterForm />)
 
-    await user.type(screen.getByPlaceholderText('مثلاً علی'), 'علی')
-    await user.type(screen.getByPlaceholderText('مثلاً محمدی'), 'محمدی')
-    await user.type(screen.getByPlaceholderText('۰۹xxxxxxxxx'), '09123456789')
-    await user.type(screen.getByPlaceholderText('حداقل ۸ نویسه'), 'Secret123')
-    await user.type(screen.getByPlaceholderText('تکرار رمز عبور'), 'Different1')
-    await user.click(screen.getByRole('checkbox'))
+    expect(document.querySelector('input[type="password"]')).toBeNull()
+    await fillStepOne(user)
     await user.click(screen.getByRole('button', { name: /دریافت کد تایید/ }))
 
-    expect(await screen.findByText('رمز عبور و تکرار آن یکسان نیستند')).toBeInTheDocument()
-    expect(apiMock).not.toHaveBeenCalled()
+    await waitFor(() => expect(apiMock).toHaveBeenCalledTimes(1))
+    expect(apiMock.mock.calls[0][1].body).not.toHaveProperty('password')
+    expect(apiMock.mock.calls[0][1].body).not.toHaveProperty('password_confirmation')
   })
 
   it('بدون پذیرشِ قوانین جلو نمی‌رود', async () => {
@@ -88,8 +84,6 @@ describe('RegisterForm — ثبت‌نام دومرحله‌ای', () => {
     await user.type(screen.getByPlaceholderText('مثلاً علی'), 'علی')
     await user.type(screen.getByPlaceholderText('مثلاً محمدی'), 'محمدی')
     await user.type(screen.getByPlaceholderText('۰۹xxxxxxxxx'), '09123456789')
-    await user.type(screen.getByPlaceholderText('حداقل ۸ نویسه'), 'Secret123')
-    await user.type(screen.getByPlaceholderText('تکرار رمز عبور'), 'Secret123')
     // تیکِ قوانین عمداً زده نمی‌شود
     await user.click(screen.getByRole('button', { name: /دریافت کد تایید/ }))
 
@@ -134,11 +128,18 @@ describe('RegisterForm — ثبت‌نام دومرحله‌ای', () => {
     expect(apiMock.mock.calls.every((c) => c[0] !== '/register/verify')).toBe(true)
   })
 
-  it('با کاملِ‌شدنِ کد، حساب ساخته می‌شود و به فرم ورود برمی‌گردیم', async () => {
+  it('با کاملِ‌شدنِ کد، حساب ساخته و کاربر مستقیم واردِ داشبورد می‌شود', async () => {
     const user = userEvent.setup()
-    const onRegistered = vi.fn()
+    const replace = vi.fn()
+    vi.stubGlobal('location', {
+      ...window.location,
+      replace,
+      pathname: '/auth',
+      search: '',
+      hash: '',
+    })
     apiMock.mockResolvedValue({ otpRequired: true, phone: '09123456789', dev_code: '123456' })
-    render(<RegisterForm onRegistered={onRegistered} />)
+    render(<RegisterForm />)
 
     await fillStepOne(user)
     await user.click(screen.getByRole('button', { name: /دریافت کد تایید/ }))
@@ -152,16 +153,16 @@ describe('RegisterForm — ثبت‌نام دومرحله‌ای', () => {
     await waitFor(() =>
       expect(apiMock.mock.calls.some((c) => c[0] === '/register/verify')).toBe(true),
     )
-    // تنها اینجاست که حساب ساخته می‌شود، و کاربر به فرم ورود هدایت می‌شود
-    await waitFor(() => expect(onRegistered).toHaveBeenCalled())
+    // تنها اینجاست که حساب ساخته می‌شود؛ ثبت‌نام همان ورود است — بی گامِ «اکنون وارد شوید»
+    await waitFor(() => expect(replace).toHaveBeenCalledWith('/dashboard'))
     expect(toastTopSuccessMock).toHaveBeenCalled()
+    vi.unstubAllGlobals()
   })
 
   it('کدِ نادرست پیام خطا می‌دهد و حساب ساخته نمی‌شود', async () => {
     const user = userEvent.setup()
-    const onRegistered = vi.fn()
     apiMock.mockResolvedValue({ otpRequired: true, phone: '09123456789', dev_code: '123456' })
-    render(<RegisterForm onRegistered={onRegistered} />)
+    render(<RegisterForm />)
 
     await fillStepOne(user)
     await user.click(screen.getByRole('button', { name: /دریافت کد تایید/ }))
@@ -174,6 +175,6 @@ describe('RegisterForm — ثبت‌نام دومرحله‌ای', () => {
     for (let i = 0; i < 6; i++) await user.type(boxes[i], '9')
 
     expect(await screen.findByText('کد واردشده نادرست یا منقضی شده است.')).toBeInTheDocument()
-    expect(onRegistered).not.toHaveBeenCalled()
+    expect(toastTopSuccessMock).not.toHaveBeenCalled()
   })
 })

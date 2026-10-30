@@ -632,11 +632,16 @@ php artisan admin:create --phone=09xxxxxxxxx   # ساخت ادمین کل واق
 ./scripts/setup.sh --demo     # دادهٔ نمونه: مجتمع، واحدها و قبوض ساختگی
 ```
 
-سپس Authenticator ِ همان ادمین (ورود با شماره + رمز + کدِ برنامه، بی پیامک — [docs/ADMIN_TWO_FACTOR.md](docs/ADMIN_TWO_FACTOR.md)):
+سپس نام کاربری و Authenticator ِ همان ادمین. مدیران فقط از `/auth/admin` وارد می‌شوند: نام کاربری + رمز + کدِ برنامه، بی
+پیامک؛ کاربرانِ دیگر از `/auth` با شماره + کدِ پیامکی و بی رمز ([docs/ADMIN_TWO_FACTOR.md](docs/ADMIN_TWO_FACTOR.md)):
 
 ```bash
+php artisan admin:username 09xxxxxxxxx vahidDeep
 php artisan admin:two-factor 09xxxxxxxxx
 ```
+
+> ⚠️ ورودِ کاربران از ۲۰۲۶-۱۰-۳۰ فقط با پیامک است: پیش از استقرار روی Production پنلِ پیامک («سیستم ← پنل پیامک») وصل و
+> آزموده باشد، وگرنه هیچ کاربری وارد نمی‌شود.
 
 دادهٔ نمونه‌ای که پیش‌تر روی سرورِ واقعی ساخته شده (رمزِ «password») را کنار بگذارید — اول فقط گزارش، بعد اجرا:
 
@@ -645,7 +650,7 @@ php artisan sample-data:retire
 php artisan sample-data:retire --force
 ```
 
-اگر رمز ادمین را فراموش کردید:
+اگر رمز ادمین را فراموش کردید (همه‌ی نشست‌های قبلیِ او هم بسته می‌شوند):
 
 ```bash
 php artisan admin:password --phone=09xxxxxxxxx

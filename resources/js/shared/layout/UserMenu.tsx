@@ -3,12 +3,9 @@ import { useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   Building2,
-  Calculator,
   ChevronDown,
   LogOut,
   Mail,
-  Moon,
-  Sun,
   UserPlus,
   UserRound,
   type LucideIcon,
@@ -25,22 +22,11 @@ import { formatNumber } from '@/shared/lib/format'
 import { leaveToAuth } from '@/shared/lib/leaveToAuth'
 import { useAuth } from '@/shared/stores/authStore'
 import { useNotificationStore } from '@/shared/stores/notificationStore'
-import { useTheme } from '@/shared/stores/themeStore'
 import type { MembershipSummary } from '@/shared/types'
 import { UserAvatar } from '@/shared/ui/UserAvatar'
 
-/**
- * ابزارهایی که زیرِ `sm` از نوارِ بالا به این منو می‌آیند (`TopBarActions`؛ ۲۰۲۶-۱۰-۲۹، بندِ ۸) — در عرضِ بزرگ‌تر همان
- * آیکون‌های نوارند و این‌جا پنهان.
- */
-interface NarrowTools {
-  calculator: boolean
-  theme: boolean
-}
-
-export function UserMenu({ narrowTools }: { narrowTools?: NarrowTools } = {}) {
+export function UserMenu() {
   const [open, , setOpen] = useToggle(false)
-  const { theme, toggleTheme } = useTheme()
   const menuRef = useRef<HTMLDivElement>(null)
   const navigate = useNavigate()
   const { user, logout } = useAuth()
@@ -123,7 +109,8 @@ export function UserMenu({ narrowTools }: { narrowTools?: NarrowTools } = {}) {
         aria-label={`حساب کاربری: ${user?.name ?? 'کاربر'}${freshInvitations > 0 ? `، ${formatNumber(freshInvitations)} دعوتِ تازه` : ''}`}
         aria-expanded={open}
         aria-haspopup="true"
-        className="flex items-center gap-2 rounded-xl border py-1.5 pr-1.5 pl-2.5 transition-colors duration-200 hover:bg-(--surface-sunken)"
+        // زیرِ ‎۶۴۰px همان قاعده‌ی ابزارهای نوار (`top-bar-tool`): بی حداقلِ ۴۴px ِ لمسی، تا هفت ابزار در ‎۳۲۰px جا شوند
+        className="top-bar-tool flex items-center gap-2 rounded-xl border p-1 transition-colors duration-200 hover:bg-(--surface-sunken) min-[400px]:py-1.5 min-[400px]:pr-1.5 min-[400px]:pl-2.5"
         style={{ borderColor: 'var(--border-subtle)' }}
       >
         {/*
@@ -205,27 +192,6 @@ export function UserMenu({ narrowTools }: { narrowTools?: NarrowTools } = {}) {
                 void navigate('/profile')
               }}
             />
-            {narrowTools && (narrowTools.calculator || narrowTools.theme) && (
-              <div className="sm:hidden" data-testid="narrow-tools">
-                {narrowTools.calculator && (
-                  <UserMenuItem
-                    icon={Calculator}
-                    label="ماشین حساب"
-                    onClick={() => {
-                      setOpen(false)
-                      void navigate('/calculator')
-                    }}
-                  />
-                )}
-                {narrowTools.theme && (
-                  <UserMenuItem
-                    icon={theme === 'dark' ? Sun : Moon}
-                    label={theme === 'dark' ? 'حالت روشن' : 'حالت تاریک'}
-                    onClick={toggleTheme}
-                  />
-                )}
-              </div>
-            )}
             {others.length > 0 && (
               <OtherCommunities
                 // در داشبوردِ اولیه همه «قبلی»‌اند؛ در داشبوردِ مجتمع، مجتمعِ همین‌جا در فهرست نیست

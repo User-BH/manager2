@@ -21,7 +21,7 @@ export function SidebarContent({
 }: SidebarContentProps) {
   const { user } = useAuth()
   // فقط بخش‌هایی که این نقش اجازه‌ی دیدنشان را دارد
-  const sections = own ?? visibleSections(user?.role)
+  const sections = own ?? visibleSections(user?.role, { complexSelected: user?.complex != null })
 
   return (
     <div className="flex h-full flex-col">

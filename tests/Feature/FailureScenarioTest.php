@@ -299,10 +299,9 @@ class FailureScenarioTest extends TestCase
     {
         Cache::flush();
 
-        $this->postJson('/api/v1/login', [
-            'phone' => '09120000000',
-            'password' => 'wrong-password',
-        ])->assertStatus(422);
+        // ورود بی رمز (۲۰۲۶-۱۰-۳۰): گامِ اول همان پاسخِ یکسان، گامِ دوم با کدِ نادرست ۴۲۲ — نه ۵۰۰
+        $this->postJson('/api/v1/login', ['phone' => '09120000000'])->assertOk();
+        $this->postJson('/api/v1/login/verify', ['code' => '000000'])->assertStatus(422);
     }
 
     // ─────────────────────────────────────────────────────────────────────

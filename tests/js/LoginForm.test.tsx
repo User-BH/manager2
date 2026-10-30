@@ -95,14 +95,27 @@ describe('LoginForm', () => {
     localStorage.clear()
   })
 
+  const SUBMIT = /دریافت کد ورود/
+
   it('برای فرمِ خالی خطای اعتبارسنجی نشان می‌دهد و به سرور درخواست نمی‌زند', async () => {
     const user = userEvent.setup()
     render(<LoginForm />)
 
-    await user.click(screen.getByRole('button', { name: /ورود به پنل/ }))
+    await user.click(screen.getByRole('button', { name: SUBMIT }))
 
     expect(await screen.findByText('شماره موبایل را وارد کنید')).toBeInTheDocument()
     expect(apiMock).not.toHaveBeenCalled()
+  })
+
+  it('بی رمز: فقط شماره، بی «فراموشیِ رمز» و بی پیوند به درِ مدیران (۲۰۲۶-۱۰-۳۰)', () => {
+    render(<LoginForm />)
+
+    expect(screen.queryByPlaceholderText('رمز عبور خود را وارد کنید')).toBeNull()
+    expect(document.querySelector('input[type="password"]')).toBeNull()
+    expect(screen.queryByText(/فراموش/)).toBeNull()
+    expect(document.querySelector('a[href="/auth/forgot"]')).toBeNull()
+    expect(document.querySelector('a[href="/auth/admin"]')).toBeNull()
+    expect(document.querySelector('a[href="/auth/username"]')).toBeNull()
   })
 
   it('بدون حلِ پازل درخواست نمی‌فرستد و توستِ اخطار می‌دهد', async () => {
@@ -110,8 +123,7 @@ describe('LoginForm', () => {
     render(<LoginForm />)
 
     await user.type(screen.getByPlaceholderText('۰۹xxxxxxxxx'), '09123456789')
-    await user.type(screen.getByPlaceholderText('رمز عبور خود را وارد کنید'), 'secret123')
-    await user.click(screen.getByRole('button', { name: /ورود به پنل/ }))
+    await user.click(screen.getByRole('button', { name: SUBMIT }))
 
     await waitFor(() => expect(toastTopErrorMock).toHaveBeenCalled())
     expect(toastTopErrorMock.mock.calls[0][0]).toContain('پازل')
@@ -119,69 +131,51 @@ describe('LoginForm', () => {
     expect(apiMock).not.toHaveBeenCalled()
   })
 
-  it('با پازلِ حل‌شده درخواست را می‌فرستد', async () => {
+  it('با پازلِ حل‌شده فقط شماره را می‌فرستد — بی رمز', async () => {
     const user = userEvent.setup()
     apiMock.mockResolvedValue({ otpRequired: true, phone: '09123456789' })
     render(<LoginForm />)
 
     await user.type(screen.getByPlaceholderText('۰۹xxxxxxxxx'), '09123456789')
-    await user.type(screen.getByPlaceholderText('رمز عبور خود را وارد کنید'), 'secret123')
     await user.click(screen.getByText('حل-پازل'))
-    await user.click(screen.getByRole('button', { name: /ورود به پنل/ }))
+    await user.click(screen.getByRole('button', { name: SUBMIT }))
 
     await waitFor(() => expect(apiMock).toHaveBeenCalledTimes(1))
     expect(apiMock.mock.calls[0][0]).toBe('/login')
+    expect(apiMock.mock.calls[0][1].body).toEqual({ phone: '09123456789', remember: false })
   })
 
-  it('«شماره یا رمز نادرست» هر دو اینپوت را قرمز می‌کند و توست می‌دهد', async () => {
+  it('شماره‌ی نامعتبر از سرور اینپوت را قرمز می‌کند و توست می‌دهد', async () => {
     const user = userEvent.setup()
     apiMock.mockRejectedValue(
-      new FakeApiError('شماره تلفن یا رمز عبور نادرست است.', 422, {
-        phone: ['شماره تلفن یا رمز عبور نادرست است.'],
-      }),
+      new FakeApiError('خطا', 422, { phone: ['شماره تلفن همراه معتبر نیست.'] }),
     )
     render(<LoginForm />)
 
     const phone = screen.getByPlaceholderText('۰۹xxxxxxxxx')
-    const password = screen.getByPlaceholderText('رمز عبور خود را وارد کنید')
-
     await user.type(phone, '09123456789')
-    await user.type(password, 'wrongpass')
     await user.click(screen.getByText('حل-پازل'))
-    await user.click(screen.getByRole('button', { name: /ورود به پنل/ }))
+    await user.click(screen.getByRole('button', { name: SUBMIT }))
 
-    await waitFor(() => expect(toastTopErrorMock).toHaveBeenCalled())
-
-    // پیام باید در توست باشد، نه زیرِ اینپوت
-    expect(toastTopErrorMock.mock.calls[0][0]).toBe('شماره تلفن یا رمز عبور نادرست است.')
-    // و هر دو اینپوت قرمز شوند
-    await waitFor(() => {
-      expect(stateOf(phone)).toBe('invalid')
-      expect(stateOf(password)).toBe('invalid')
-    })
+    await waitFor(() =>
+      expect(toastTopErrorMock).toHaveBeenCalledWith('شماره تلفن همراه معتبر نیست.'),
+    )
+    await waitFor(() => expect(stateOf(phone)).toBe('invalid'))
   })
 
-  it('پیش از ارسال خنثی؛ پس از ارسال، درست فقط سبز و نادرست فقط قرمز', async () => {
+  it('پیش از ارسال خنثی؛ پس از ارسال شماره‌ی درست سبز', async () => {
     const user = userEvent.setup()
+    apiMock.mockResolvedValue({ otpRequired: true, phone: '09123456789' })
     render(<LoginForm />)
 
     const phone = screen.getByPlaceholderText('۰۹xxxxxxxxx')
-    const password = screen.getByPlaceholderText('رمز عبور خود را وارد کنید')
 
     // ⚠️ پیش از اعتبارسنجی، شماره‌ی کامل هم سبز نیست — هنوز سنجیده نشده
     await user.type(phone, '09123456789')
-    await user.type(password, '12')
     expect(stateOf(phone)).toBe('neutral')
-    expect(stateOf(password)).toBe('neutral')
 
-    await user.click(screen.getByRole('button', { name: /ورود به پنل/ }))
-
-    await waitFor(() => expect(stateOf(password)).toBe('invalid'))
-    expect(stateOf(phone)).toBe('valid')
-
-    // پس از ارسال، با هر تایپ دوباره سنجیده می‌شود
-    await user.type(password, '3456')
-    await waitFor(() => expect(stateOf(password)).toBe('valid'))
+    await user.click(screen.getByRole('button', { name: SUBMIT }))
+    await waitFor(() => expect(stateOf(phone)).toBe('valid'))
   })
 
   it('گامِ کد جای فرمِ ورود را در تاریخچه می‌گیرد، نه یک گامِ تازه', async () => {
@@ -206,47 +200,26 @@ describe('LoginForm', () => {
     )
 
     await user.type(screen.getByPlaceholderText('۰۹xxxxxxxxx'), '09123456789')
-    await user.type(screen.getByPlaceholderText('رمز عبور خود را وارد کنید'), 'secret123')
     await user.click(screen.getByText('حل-پازل'))
-    await user.click(screen.getByRole('button', { name: /ورود به پنل/ }))
+    await user.click(screen.getByRole('button', { name: SUBMIT }))
 
     expect(await screen.findByText('نوعِ ناوبری: REPLACE')).toBeInTheDocument()
   })
 
-  it('پس از ورودِ ناموفق، پازل از نو ساخته می‌شود', async () => {
+  it('پس از درخواستِ ناموفق، پازل از نو ساخته می‌شود', async () => {
     const user = userEvent.setup()
-    apiMock.mockRejectedValue(new FakeApiError('خطا', 422, { phone: ['نادرست'] }))
+    apiMock.mockRejectedValue(
+      new FakeApiError('خطا', 422, { phone: ['برای ارسال مجدد کد کمی صبر کنید.'] }),
+    )
     render(<LoginForm />)
 
     expect(screen.getByTestId('puzzle-reset')).toHaveTextContent('0')
 
     await user.type(screen.getByPlaceholderText('۰۹xxxxxxxxx'), '09123456789')
-    await user.type(screen.getByPlaceholderText('رمز عبور خود را وارد کنید'), 'wrongpass')
     await user.click(screen.getByText('حل-پازل'))
-    await user.click(screen.getByRole('button', { name: /ورود به پنل/ }))
+    await user.click(screen.getByRole('button', { name: SUBMIT }))
 
     // شمارنده‌ی بازنشانی باید بالا رفته باشد → پازل تازه
     await waitFor(() => expect(screen.getByTestId('puzzle-reset')).toHaveTextContent('1'))
-  })
-
-  it('یک درِ ورود: پیوندِ «ورود با نام کاربری» دیگر نیست (۲۰۲۶-۱۰-۲۹، بندِ ۴)', () => {
-    render(<LoginForm />)
-
-    expect(screen.queryByRole('link', { name: 'ورود با نام کاربری' })).toBeNull()
-    expect(document.querySelector('a[href="/auth/username"]')).toBeNull()
-  })
-
-  it('کپی‌کردن از فیلد رمز مسدود است', async () => {
-    const user = userEvent.setup()
-    render(<LoginForm />)
-
-    const password = screen.getByPlaceholderText('رمز عبور خود را وارد کنید')
-    await user.type(password, 'Secret123')
-
-    const copyEvent = new Event('copy', { bubbles: true, cancelable: true })
-    const notPrevented = password.dispatchEvent(copyEvent)
-
-    // dispatchEvent برای رویدادِ preventDefault‌شده false برمی‌گرداند
-    expect(notPrevented).toBe(false)
   })
 })

@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { toAsciiDigits } from '@/shared/lib/inputFilters'
 import { useQuery } from '@tanstack/react-query'
 import { Copy, KeyRound, Loader2, ShieldAlert, ShieldCheck } from 'lucide-react'
 import { Card } from '@/shared/ui/Card'
@@ -85,7 +86,8 @@ export default function TwoFactorCard() {
   const codeInput = (onEnter: () => void) => (
     <input
       value={code}
-      onChange={(e) => setCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+      // رقمِ فارسیِ چسبانده هم پذیرفته می‌شود (۲۰۲۶-۱۰-۳۰، بندِ ۵)
+      onChange={(e) => setCode(toAsciiDigits(e.target.value).replace(/\D/g, '').slice(0, 6))}
       onKeyDown={(e) => {
         if (e.key === 'Enter' && code.length === 6) onEnter()
       }}

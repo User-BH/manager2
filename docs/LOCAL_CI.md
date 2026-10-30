@@ -18,7 +18,7 @@ npm run ci:local
 هر کار همان فرمان‌های CI را دارد: `format:check`، `typecheck`، `lint`، Vitest با بودجه‌ی باندل؛ Pint، PHPStan و
 PHPUnit؛ `composer audit`، سه سطحِ `npm audit` و امضای پکیج‌ها؛ و Playwright روی پایگاه‌داده‌ی SQLite ِ **تازه** در
 پوشه‌ی موقتِ سیستم (هرگز `database/database.sqlite`) با همان env ِ CI (`SUBSCRIPTION_GATEWAY=sandbox`،
-`PAYMENT_SANDBOX_ENABLED=true`، `AUTH_PASSWORD_TIMEOUT=5`) و `DemoSeeder`، `otp_disabled` و `E2eSeeder`.
+`PAYMENT_SANDBOX_ENABLED=true`، `AUTH_PASSWORD_TIMEOUT=5`) و `DemoSeeder` و `E2eSeeder`.
 
 گزارشِ هر کار: `storage/logs/ci-local/<زمان>/`. در پایان جدولِ نتیجه و سطرهای شکستِ هر کار چاپ می‌شود؛ کدِ خروج
 فقط با سبزِ همه ۰ است.

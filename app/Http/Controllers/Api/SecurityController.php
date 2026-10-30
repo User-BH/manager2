@@ -7,6 +7,7 @@ use App\Http\Requests\ConfirmPasswordRequest;
 use App\Models\LoginEvent;
 use App\Models\TrustedDevice;
 use App\Services\Auth\LoginRecorder;
+use App\Services\Auth\OtpService;
 use App\Services\Auth\PasswordConfirmation;
 use App\Services\Auth\SessionRegistry;
 use App\Services\Auth\TrustedDeviceService;
@@ -130,19 +131,27 @@ class SecurityController extends Controller
     }
 
     /**
-     * تأییدِ دوباره‌ی رمز. پس از آن، مسیرهای حساس تا
-     * `auth.password_timeout` ثانیه باز می‌مانند.
+     * تأییدِ دوباره پیش از عملیاتِ حساس؛ پس از آن مسیرهای حساس تا `auth.password_timeout` ثانیه باز می‌مانند.
+     *
+     * مدیرِ سامانه با رمز؛ بقیه‌ی کاربران — که از ۲۰۲۶-۱۰-۳۰ رمز ندارند — با کدِ پیامکیِ شماره‌ی خودشان. شکلِ تأیید را
+     * نقشِ حساب تعیین می‌کند، نه درخواست: کاربرِ عادی با فرستادنِ «رمز» و مدیر با فرستادنِ «کد» تأیید نمی‌گیرند.
      */
-    public function confirmPassword(ConfirmPasswordRequest $request): JsonResponse
+    public function confirmPassword(ConfirmPasswordRequest $request, OtpService $otp): JsonResponse
     {
         $request->validated();
 
         $user = $request->user();
 
-        if (! Hash::check((string) $request->input('password'), $user->password)) {
+        if ($user->usesPassword()) {
+            if (! Hash::check((string) $request->input('password'), $user->password)) {
+                $this->recorder->failure($user, $request, LoginEvent::FAILED_REAUTH);
+
+                throw ValidationException::withMessages(['password' => 'رمز عبور نادرست است.']);
+            }
+        } elseif ($user->phone === null || ! $otp->verify($user->phone, (string) $request->input('code'))) {
             $this->recorder->failure($user, $request, LoginEvent::FAILED_REAUTH);
 
-            throw ValidationException::withMessages(['password' => 'رمز عبور نادرست است.']);
+            throw ValidationException::withMessages(['code' => 'کد واردشده نادرست یا منقضی شده است.']);
         }
 
         $this->confirmation->confirm($request);
@@ -150,6 +159,28 @@ class SecurityController extends Controller
         return response()->json([
             'message' => 'تأیید شد.',
             'validForSeconds' => (int) config('auth.password_timeout'),
+        ]);
+    }
+
+    /**
+     * کدِ تأییدِ دوباره به شماره‌ی خودِ حساب — فقط کاربرانِ بی رمز؛ مدیرِ سامانه رمز می‌زند.
+     */
+    public function sendConfirmationCode(Request $request, OtpService $otp): JsonResponse
+    {
+        $user = $request->user();
+
+        if ($user->usesPassword() || $user->phone === null) {
+            throw ValidationException::withMessages(['code' => 'برای این حساب تأیید با رمز است.']);
+        }
+
+        $result = $otp->request($user->phone);
+        if (! $result['ok']) {
+            throw ValidationException::withMessages(['code' => $result['error'] ?? 'ارسال کد ناموفق بود.']);
+        }
+
+        return response()->json([
+            'message' => 'کد تأیید به شماره‌ی شما فرستاده شد.',
+            'dev_code' => $result['dev_code'] ?? null,
         ]);
     }
 }

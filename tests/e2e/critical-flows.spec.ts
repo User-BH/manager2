@@ -110,21 +110,21 @@ test.describe('صفحه‌ی اصلی', () => {
 test.describe('فرمِ ورود', () => {
   test('اعتبارسنجیِ سمت کلاینت پیش از تماس با سرور', async ({ page }) => {
     await page.goto('/auth')
-    await page.getByRole('button', { name: /ورود به پنل/ }).click()
+    await page.getByRole('button', { name: /دریافت کد ورود/ }).click()
     await expect(page.getByText('شماره موبایل را وارد کنید')).toBeVisible()
   })
 
   test('درخواستِ بدون توکنِ CSRF رد می‌شود (۴۱۹)', async ({ request }) => {
     const res = await request.post('/api/login', {
       headers: { Accept: 'application/json' },
-      data: { phone: '09129999999', password: 'x' },
+      data: { phone: '09129999999' },
       failOnStatusCode: false,
     })
     // ۴۱۹ یعنی حفاظتِ CSRF لاراول واقعاً فعال است
     expect(res.status()).toBe(419)
   })
 
-  test('ورود با اطلاعاتِ نادرست، کاربر را وارد نمی‌کند', async ({ page }) => {
+  test('ورود با کدِ نادرست، کاربر را وارد نمی‌کند', async ({ page }) => {
     /*
      * از داخلِ صفحه fetch می‌زنیم، نه با فیکسچرِ `request`.
      *
@@ -137,16 +137,20 @@ test.describe('فرمِ ورود', () => {
     const result = await page.evaluate(async () => {
       await fetch('/api/csrf-token', { credentials: 'include' })
       const xsrf = decodeURIComponent((document.cookie.match(/XSRF-TOKEN=([^;]+)/) ?? [])[1] ?? '')
-      const res = await fetch('/api/login', {
-        method: 'POST',
-        credentials: 'include',
-        headers: {
-          'Content-Type': 'application/json',
-          Accept: 'application/json',
-          'X-XSRF-TOKEN': xsrf,
-        },
-        body: JSON.stringify({ phone: '09129999999', password: 'definitely-wrong' }),
-      })
+      const send = (url: string, data: object) =>
+        fetch(url, {
+          method: 'POST',
+          credentials: 'include',
+          headers: {
+            'Content-Type': 'application/json',
+            Accept: 'application/json',
+            'X-XSRF-TOKEN': xsrf,
+          },
+          body: JSON.stringify(data),
+        })
+      // ورودِ بی‌رمز (۲۰۲۶-۱۰-۳۰): شماره‌ی بی‌حساب همان پاسخِ «کد فرستاده شد» را می‌گیرد؛ هیچ کدی واردش نمی‌کند
+      await send('/api/login', { phone: '09129999999' })
+      const res = await send('/api/login/verify', { code: '000000' })
       const body = await res.json()
       const me = await (await fetch('/api/me', { credentials: 'include' })).json()
       return { status: res.status, message: body.message as string, user: me.user }
@@ -302,7 +306,6 @@ test.describe('تم و تاریخچه', () => {
     await page.goto('/auth')
 
     await page.locator('input[autocomplete="username"]:visible').fill('09120000000')
-    await page.locator('input[autocomplete="current-password"]:visible').fill('password')
 
     /*
      * پازل با رویدادِ نشانگر حل می‌شود، نه با کشیدنِ ماوسِ Playwright.
@@ -334,6 +337,15 @@ test.describe('تم و تاریخچه', () => {
     expect(solved).toBe(true)
 
     await page.locator('button[type="submit"]:visible').click()
+    // گامِ کد: با درایورِ log کد روی همان صفحه است («کد تست»)؛ کادرها با رسیدن به شش رقم خودشان می‌فرستند
+    await page.waitForURL(/\/auth\/verify/)
+    const code = await page
+      .getByText(/^کد تست:/)
+      .locator('span')
+      .innerText()
+    // مثلِ کاربر رقم‌به‌رقم (هر خانه یک رقم دارد و فوکوس خودش جلو می‌رود)
+    await page.locator('input[inputmode="numeric"]:visible').first().click()
+    await page.keyboard.type(code)
     await page.waitForURL(/\/dashboard/, { timeout: 15_000 })
     /*
      * ⚠️ صبر تا داشبورد بالا بیاید (۲۰۲۶-۱۰-۲۵): `BrowserRouter` هنگامِ رندرِ اول `history.replaceState` می‌زند (ناوبریِ

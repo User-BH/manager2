@@ -9,7 +9,6 @@ use App\Models\User;
 use App\Notifications\NewDeviceLoginNotification;
 use App\Services\Auth\LoginRecorder;
 use App\Services\Auth\TrustedDeviceService;
-use App\Support\SystemSettings;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Notification;
@@ -30,17 +29,21 @@ class LoginHistoryTest extends TestCase
     {
         parent::setUp();
 
-        SystemSettings::set('otp_disabled', true);
-
         $this->user = User::create([
             'name' => 'ساکن', 'phone' => '09120000051',
             'role' => UserRole::Owner, 'password' => Hash::make('secret123'), 'is_active' => true,
         ]);
     }
 
-    /** ورود از «مرورگری» با نشانه‌ی دستگاهِ داده‌شده (یا بی‌نشانه). */
-    private function signInFrom(?string $deviceToken = null, string $password = 'secret123'): TestResponse
+    /**
+     * ورود از «مرورگری» با نشانه‌ی دستگاهِ داده‌شده (یا بی‌نشانه): شماره ← کدِ پیامکی (۲۰۲۶-۱۰-۳۰). `$rightCode = false`
+     * یعنی کدِ نادرست — همان «تلاشِ ناموفق» ِ امروز.
+     */
+    private function signInFrom(?string $deviceToken = null, bool $rightCode = true): TestResponse
     {
+        // فاصله‌ی ارسالِ دوباره‌ی کدِ همین شماره (`OtpService::RESEND_COOLDOWN`)
+        $this->travel(61)->seconds();
+
         // هر ورود از «مرورگرِ» تازه: هیچ نشستی از درخواستِ قبلی نماند
         $this->app['auth']->forgetGuards();
         $this->app->forgetInstance('auth.driver');
@@ -52,7 +55,9 @@ class LoginHistoryTest extends TestCase
             $this->withCredentials()->withCookie(LoginRecorder::DEVICE_COOKIE, $deviceToken);
         }
 
-        return $this->postJson('/api/login', ['phone' => $this->user->phone, 'password' => $password]);
+        $code = $this->postJson('/api/login', ['phone' => $this->user->phone])->assertOk()->json('dev_code');
+
+        return $this->postJson('/api/login/verify', ['code' => $rightCode ? $code : '000000']);
     }
 
     private function events(): array
@@ -62,18 +67,15 @@ class LoginHistoryTest extends TestCase
 
     public function test_failed_and_successful_attempts_are_recorded(): void
     {
-        $this->signInFrom(password: 'wrong')->assertUnprocessable();
+        $this->signInFrom(rightCode: false)->assertUnprocessable();
         $this->signInFrom()->assertOk();
 
-        $this->assertSame([LoginEvent::FAILED_PASSWORD, LoginEvent::SUCCESS], $this->events());
+        $this->assertSame([LoginEvent::FAILED_OTP, LoginEvent::SUCCESS], $this->events());
     }
 
     public function test_a_wrong_code_is_recorded_too(): void
     {
-        SystemSettings::set('otp_disabled', false);
-        SystemSettings::forget();
-
-        $this->postJson('/api/login', ['phone' => $this->user->phone, 'password' => 'secret123'])->assertOk();
+        $this->postJson('/api/login', ['phone' => $this->user->phone])->assertOk();
         $this->postJson('/api/login/verify', ['code' => '000000'])->assertUnprocessable();
 
         $this->assertSame([LoginEvent::FAILED_OTP], $this->events());
@@ -85,7 +87,9 @@ class LoginHistoryTest extends TestCase
      */
     public function test_an_unknown_phone_leaves_no_row(): void
     {
-        $this->postJson('/api/login', ['phone' => '09129999999', 'password' => 'whatever'])->assertUnprocessable();
+        // همان پاسخِ «کد فرستاده شد»؛ هر کدی نادرست است و ردیفی نمی‌ماند
+        $this->postJson('/api/login', ['phone' => '09129999999'])->assertOk();
+        $this->postJson('/api/login/verify', ['code' => '000000'])->assertUnprocessable();
 
         $this->assertSame(0, LoginEvent::count());
     }
@@ -139,7 +143,7 @@ class LoginHistoryTest extends TestCase
 
     public function test_each_user_sees_only_their_own_history_newest_first(): void
     {
-        $this->signInFrom(password: 'wrong');
+        $this->signInFrom(rightCode: false);
         $this->signInFrom();
 
         $neighbour = User::create([

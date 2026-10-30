@@ -23,7 +23,8 @@ use Tests\TestCase;
  * ─── یافته ───────────────────────────────────────────────────────────────
  * `POST /password/forgot` برای شماره‌ی دارای حساب ۲۰۰ و برای بقیه ۴۲۲
  * می‌داد، و `POST /register` بی‌هیچ پیامکی «این شماره قبلاً ثبت شده» را
- * برمی‌گرداند. با پاسخِ یکسان هم چهار نشانه می‌ماند که این فایل یکی‌یکی
+ * برمی‌گرداند. از ۲۰۲۶-۱۰-۳۰ ورود بی‌رمز است و همان درِ پیامکی جای فراموشیِ
+ * رمز را گرفته (`POST /login` فقط با شماره)؛ همه‌ی سنجش‌ها روی همان در است. با پاسخِ یکسان هم چهار نشانه می‌ماند که این فایل یکی‌یکی
  * می‌سنجد: **فاصله‌ی ارسالِ مجدد** (ردیفِ کد فقط برای حسابِ موجود ساخته
  * می‌شد)، **گامِ دوم** («حساب پیدا نشد» در برابرِ «کد نادرست»)، **شکستِ
  * پیامک**، و **زمان** (bcrypt و تماسِ شبکه‌ایِ پیامک فقط در یک مسیر).
@@ -75,12 +76,19 @@ class AccountEnumerationTest extends TestCase
         $this->delivered[] = ['phone' => $phone, 'at' => microtime(true)];
     }
 
-    private function forgot(string $phone): TestResponse
+    private function login(string $phone): TestResponse
     {
-        // هر درخواست مثلِ مرورگرِ تازه — بی‌نشستِ بازیابیِ قبلی
+        // هر درخواست مثلِ مرورگرِ تازه — بی‌نشستِ ورودِ قبلی
         $this->flushSession();
 
-        return $this->postJson('/api/password/forgot', ['phone' => $phone]);
+        return $this->postJson('/api/login', ['phone' => $phone]);
+    }
+
+    private function register(string $phone, string $first = 'کسی'): TestResponse
+    {
+        return $this->postJson('/api/register', [
+            'first_name' => $first, 'last_name' => 'ناشناس', 'phone' => $phone, 'accept_terms' => true,
+        ]);
     }
 
     /** پاسخ بی‌`dev_code` (کدِ محیطِ توسعه) و بی‌شماره، برای مقایسه‌ی عین‌به‌عین. */
@@ -96,13 +104,13 @@ class AccountEnumerationTest extends TestCase
         ];
     }
 
-    /* ─────────────────────────── فراموشیِ رمز ─────────────────────────── */
+    /* ─────────────────────────── ورود با پیامک ─────────────────────────── */
 
-    public function test_forgot_password_answers_identically_with_or_without_an_account(): void
+    public function test_login_answers_identically_with_or_without_an_account(): void
     {
-        $known = $this->comparable($this->forgot(self::KNOWN), self::KNOWN);
-        $unknown = $this->comparable($this->forgot(self::UNKNOWN), self::UNKNOWN);
-        $inactive = $this->comparable($this->forgot(self::INACTIVE), self::INACTIVE);
+        $known = $this->comparable($this->login(self::KNOWN), self::KNOWN);
+        $unknown = $this->comparable($this->login(self::UNKNOWN), self::UNKNOWN);
+        $inactive = $this->comparable($this->login(self::INACTIVE), self::INACTIVE);
 
         $this->assertSame(200, $known['status']);
         $this->assertSame($known, $unknown, 'شماره‌ی بی‌حساب پاسخِ متفاوتی گرفت.');
@@ -121,12 +129,12 @@ class AccountEnumerationTest extends TestCase
     {
         SystemSettings::set('sms_driver', 'kavenegar');
 
-        $known = $this->forgot(self::KNOWN)->assertOk()->json();
-        $unknown = $this->forgot(self::UNKNOWN)->assertOk()->json();
-        unset($known['requestId'], $unknown['requestId']);
+        // تنها فرق خودِ شماره‌ای است که کاربر فرستاده
+        $known = $this->comparable($this->login(self::KNOWN)->assertOk(), self::KNOWN);
+        $unknown = $this->comparable($this->login(self::UNKNOWN)->assertOk(), self::UNKNOWN);
 
         $this->assertSame($known, $unknown);
-        $this->assertNull($known['dev_code']);
+        $this->assertNull($this->login('09129999502')->json('dev_code'));
     }
 
     /**
@@ -137,17 +145,14 @@ class AccountEnumerationTest extends TestCase
      */
     public function test_the_resend_cooldown_is_the_same_for_every_number(): void
     {
-        $this->forgot(self::KNOWN)->assertOk();
-        $this->forgot(self::UNKNOWN)->assertOk();
+        $this->login(self::KNOWN)->assertOk();
+        $this->login(self::UNKNOWN)->assertOk();
 
-        $again = fn (string $phone) => $this->comparable($this->forgot($phone), $phone);
+        $again = fn (string $phone) => $this->comparable($this->login($phone), $phone);
         $this->assertSame($again(self::KNOWN), $again(self::UNKNOWN));
         $this->assertSame(422, $again(self::KNOWN)['status']);
 
-        $register = fn (string $phone) => $this->comparable($this->postJson('/api/register', [
-            'first_name' => 'مهاجم', 'last_name' => 'ناشناس', 'phone' => $phone, 'password' => 'newpass123',
-            'password_confirmation' => 'newpass123', 'accept_terms' => true,
-        ]), $phone);
+        $register = fn (string $phone) => $this->comparable($this->register($phone, 'مهاجم'), $phone);
         $this->flushSession();
         $this->assertSame($register(self::KNOWN), $register(self::UNKNOWN), 'فاصله‌ی ارسالِ مجدد از راهِ ثبت‌نام نشانه شد.');
 
@@ -158,8 +163,8 @@ class AccountEnumerationTest extends TestCase
     public function test_the_verify_step_does_not_reveal_a_missing_account(): void
     {
         $verify = function (string $phone): array {
-            $this->forgot($phone)->assertOk();
-            $response = $this->postJson('/api/password/forgot/verify', ['code' => '000000']);
+            $this->login($phone)->assertOk();
+            $response = $this->postJson('/api/login/verify', ['code' => '000000']);
 
             return $this->comparable($response, $phone);
         };
@@ -168,14 +173,16 @@ class AccountEnumerationTest extends TestCase
         $this->assertSame(422, $verify(self::INACTIVE)['status']);
     }
 
-    /** برای شماره‌ی بی‌حساب هیچ کدی درست نیست؛ پس هیچ بازنشانی‌ای ممکن نیست. */
-    public function test_an_unknown_number_can_never_reach_the_reset_step(): void
+    /** برای شماره‌ی بی‌حساب (یا غیرفعال) هیچ کدی درست نیست؛ پس هیچ ورودی ممکن نیست. */
+    public function test_an_unknown_number_can_never_sign_in(): void
     {
-        $this->forgot(self::UNKNOWN)->assertOk()->assertJsonPath('dev_code', null);
+        $this->login(self::UNKNOWN)->assertOk()->assertJsonPath('dev_code', null);
 
-        $this->postJson('/api/password/forgot/verify', ['code' => '123456'])->assertStatus(422);
-        $this->postJson('/api/password/reset', ['password' => 'newpass123', 'password_confirmation' => 'newpass123'])
-            ->assertStatus(422);
+        foreach (['123456', '000000'] as $guess) {
+            $this->postJson('/api/login/verify', ['code' => $guess])->assertStatus(422);
+        }
+        $this->login(self::INACTIVE)->assertOk()->assertJsonPath('dev_code', null);
+        $this->postJson('/api/login/verify', ['code' => '123456'])->assertStatus(422);
 
         $this->assertDatabaseMissing('users', ['phone' => self::UNKNOWN]);
         $this->assertGuest();
@@ -194,7 +201,7 @@ class AccountEnumerationTest extends TestCase
     public function test_the_sms_leaves_only_after_the_response(): void
     {
         $kernel = $this->app->make(Kernel::class);
-        $request = Request::create('/api/password/forgot', 'POST', server: [
+        $request = Request::create('/api/login', 'POST', server: [
             'HTTP_ACCEPT' => 'application/json', 'CONTENT_TYPE' => 'application/json',
         ], content: (string) json_encode(['phone' => self::KNOWN]));
 
@@ -208,7 +215,7 @@ class AccountEnumerationTest extends TestCase
     }
 
     /**
-     * هر دو مسیر یک بار bcrypt می‌پردازند — هم در فراموشیِ رمز و هم در ورود.
+     * هر دو مسیر یک بار bcrypt می‌پردازند — هم در درخواستِ کد و هم در گامِ تأیید.
      *
      * ⚠️ این سنجشِ ساختاری است و عمداً: اندازه‌گیریِ مستقیمِ میلی‌ثانیه در
      * تست ناپایدار است. تستِ بعدی همان را با زمانِ واقعی و حاشیه‌ی گشاده
@@ -262,21 +269,26 @@ class AccountEnumerationTest extends TestCase
             return $calls;
         };
 
-        // فراموشیِ رمز: یک هشِ کد در هر دو مسیر
+        // درخواستِ کد: یک هشِ کد در هر دو مسیر
         $this->assertSame(
-            $count(fn () => $this->forgot(self::KNOWN)->assertOk()),
-            $count(fn () => $this->forgot(self::UNKNOWN)->assertOk()),
+            $count(fn () => $this->login(self::KNOWN)->assertOk()),
+            $count(fn () => $this->login(self::UNKNOWN)->assertOk()),
         );
 
-        // ورود: شماره‌ی بی‌حساب هم یک بار bcrypt می‌سنجد
-        $login = fn (string $phone) => $count(fn () => $this->postJson('/api/login', ['phone' => $phone, 'password' => 'wrong-pass'])->assertStatus(422));
-        $this->assertSame($login(self::KNOWN)['check'], $login(self::UNKNOWN)['check']);
-        $this->assertSame(1, $login(self::UNKNOWN)['check']);
+        // گامِ تأیید با کدِ نادرست: هر دو یک بار bcrypt می‌سنجند
+        $verify = function (string $phone) use ($count): array {
+            OtpCode::query()->delete();
+            Cache::flush();
+            $this->login($phone)->assertOk();
+
+            return $count(fn () => $this->postJson('/api/login/verify', ['code' => '000000'])->assertStatus(422));
+        };
+        $this->assertSame($verify(self::KNOWN), $verify(self::UNKNOWN));
 
         // گامِ تأیید وقتی اصلاً ردیفِ کدی نمانده (مثلاً منقضی و پاک‌شده): باز هم یک bcrypt
-        $this->forgot('09129999501')->assertOk();
+        $this->login('09129999501')->assertOk();
         OtpCode::query()->delete();
-        $verify = $count(fn () => $this->postJson('/api/password/forgot/verify', ['code' => '000000'])->assertStatus(422));
+        $verify = $count(fn () => $this->postJson('/api/login/verify', ['code' => '000000'])->assertStatus(422));
         $this->assertSame(1, $verify['check'], 'نبودِ ردیفِ کد زودتر از سنجیدنِ هش جواب داد.');
     }
 
@@ -305,7 +317,7 @@ class AccountEnumerationTest extends TestCase
             OtpCode::query()->delete();
             Cache::flush();
 
-            $request = Request::create('/api/password/forgot', 'POST', server: [
+            $request = Request::create('/api/login', 'POST', server: [
                 'HTTP_ACCEPT' => 'application/json', 'CONTENT_TYPE' => 'application/json',
             ], content: (string) json_encode(['phone' => $phone]));
 
@@ -343,10 +355,7 @@ class AccountEnumerationTest extends TestCase
         $step = function (string $phone): array {
             $this->flushSession();
 
-            return $this->comparable($this->postJson('/api/register', [
-                'first_name' => 'کسی', 'last_name' => 'ناشناس', 'phone' => $phone, 'password' => 'newpass123',
-                'password_confirmation' => 'newpass123', 'accept_terms' => true,
-            ]), $phone);
+            return $this->comparable($this->register($phone), $phone);
         };
 
         $known = $step(self::KNOWN);
@@ -355,10 +364,7 @@ class AccountEnumerationTest extends TestCase
 
         // صاحبِ شماره کد را وارد می‌کند — حالا، و فقط حالا، می‌شنود که حساب دارد
         $this->flushSession();
-        $code = $this->postJson('/api/register', [
-            'first_name' => 'صاحب', 'last_name' => 'شماره', 'phone' => '09120000502', 'password' => 'newpass123',
-            'password_confirmation' => 'newpass123', 'accept_terms' => true,
-        ])->json('dev_code');
+        $code = $this->register('09120000502', 'صاحب')->json('dev_code');
         User::create(['name' => 'هم‌زمان', 'phone' => '09120000502', 'role' => UserRole::Owner, 'password' => Hash::make('x'), 'is_active' => true]);
 
         $this->postJson('/api/register/verify', ['code' => $code])
@@ -368,12 +374,19 @@ class AccountEnumerationTest extends TestCase
 
     /* ─────────────────────────── ورود ─────────────────────────── */
 
-    public function test_login_answers_identically_for_an_unknown_number_and_a_wrong_password(): void
+    /** شماره‌ی سوپر ادمین هم از درِ کاربران همان پاسخ را می‌گیرد و پیامکی نمی‌رود (درِ او `/auth/admin` است) */
+    public function test_a_super_admin_number_looks_like_any_other_on_the_user_door(): void
     {
-        $known = $this->comparable($this->postJson('/api/login', ['phone' => self::KNOWN, 'password' => 'wrong-pass']), self::KNOWN);
-        $unknown = $this->comparable($this->postJson('/api/login', ['phone' => self::UNKNOWN, 'password' => 'wrong-pass']), self::UNKNOWN);
+        $admin = '09120000503';
+        User::create([
+            'name' => 'مدیر', 'phone' => $admin, 'role' => UserRole::SuperAdmin,
+            'password' => Hash::make('secret123'), 'is_active' => true,
+        ]);
 
-        $this->assertSame(422, $known['status']);
-        $this->assertSame($known, $unknown);
+        $this->assertSame(
+            $this->comparable($this->login(self::KNOWN), self::KNOWN),
+            $this->comparable($this->login($admin), $admin),
+        );
+        $this->assertNotContains($admin, array_column($this->delivered, 'phone'));
     }
 }

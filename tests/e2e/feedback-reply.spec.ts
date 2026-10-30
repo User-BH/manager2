@@ -6,7 +6,7 @@ import { expect, test, type Page } from '@playwright/test'
  * بازخورد با شماره‌ی یک عضو ← ادمینِ کل در «بازخورد کاربران» «عضو سایت» می‌بیند
  * و پاسخ می‌دهد ← همان عضو پاسخ را در اعلان‌هایش می‌بیند؛ عضوِ دیگر نه.
  *
- * پیش‌نیاز: `DemoSeeder` و `otp_disabled`. مالکِ واحدِ ۶ و ۵ ِ دمو؛ هر موتور
+ * پیش‌نیاز: `DemoSeeder`. مالکِ واحدِ ۶ و ۵ ِ دمو؛ هر موتور
  * متنِ یکتای خودش را دارد، پس اجراهای پشتِ هم یکدیگر را نمی‌بینند.
  */
 
@@ -38,10 +38,29 @@ async function call(page: Page, method: string, path: string, body?: unknown): P
 async function signIn(page: Page, phone: string) {
   await page.context().clearCookies()
   await page.goto('/auth')
-  expect(
-    await call(page, 'POST', '/api/login', { phone, password: 'password' }),
-    `ورودِ ${phone}`,
-  ).toBe(200)
+  // ورودِ بی‌رمز (۲۰۲۶-۱۰-۳۰): شماره، سپس کدِ پیامکی (درایورِ log کد را در پاسخ می‌گذارد)؛ سوپر ادمین از درِ مدیران
+  const status = await page.evaluate(async (phone) => {
+    const xsrf = decodeURIComponent((document.cookie.match(/XSRF-TOKEN=([^;]+)/) ?? [])[1] ?? '')
+    const send = (url: string, data: object) =>
+      fetch(url, {
+        method: 'POST',
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json',
+          Accept: 'application/json',
+          'X-XSRF-TOKEN': xsrf,
+        },
+        body: JSON.stringify(data),
+      })
+    const res =
+      phone === '09120000001'
+        ? await send('/api/admin/login', { username: 'sakena.admin', password: 'password' })
+        : await send('/api/login', { phone }).then(async (r) =>
+            r.ok ? send('/api/login/verify', { code: (await r.json()).dev_code }) : r,
+          )
+    return res.status
+  }, phone)
+  expect(status, `ورودِ ${phone}`).toBe(200)
 }
 
 test('ادمینِ کل به عضو پاسخ می‌دهد و فقط همان عضو آن را در اعلان‌هایش می‌بیند', async ({

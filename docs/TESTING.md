@@ -180,7 +180,7 @@ npm test                              # Vitest
 npx playwright test                   # سرتاسری
 ```
 
-⚠️ سرتاسری پیش‌نیازِ داده دارد (دیتابیسِ تازه با `DemoSeeder`، `otp_disabled`
+⚠️ سرتاسری پیش‌نیازِ داده دارد (دیتابیسِ تازه با `DemoSeeder`
 و `E2eSeeder`، و درگاهِ آزمایشیِ اشتراک)؛ فهرستِ دقیق در `DEVELOPER_GUIDE.md`
 و `.github/workflows/ci.yml`.
 

@@ -3,7 +3,6 @@
 namespace App\Http\Requests;
 
 use App\Support\PersianName;
-use Illuminate\Validation\Rules\Password;
 
 /**
  * گامِ اولِ ثبت‌نام. حساب اینجا ساخته **نمی‌شود**؛ فقط کد فرستاده می‌شود.
@@ -23,7 +22,6 @@ class RegisterRequest extends BaseFormRequest
             'first_name' => PersianName::rules(),
             'last_name' => PersianName::rules(),
             'phone' => ['required', 'string'],
-            'password' => ['required', 'confirmed', Password::min(8)->letters()->numbers()],
             'accept_terms' => ['required', 'accepted'],
         ];
     }
@@ -50,7 +48,6 @@ class RegisterRequest extends BaseFormRequest
             'first_name' => 'نام',
             'last_name' => 'نام خانوادگی',
             'phone' => 'شماره تلفن',
-            'password' => 'رمز عبور',
         ];
     }
 

@@ -197,14 +197,16 @@ class MembershipLifecycleTest extends TestCase
         $this->assertSame($other->id, $otherManager->fresh()->complex_id);
     }
 
-    /** مسیرِ امنِ خودِ کاربر سر جایش است: رمز را خودش با رمزِ فعلی عوض می‌کند. */
-    public function test_the_account_owner_still_changes_their_own_password(): void
+    /** کاربرانِ سایت رمز ندارند (۲۰۲۶-۱۰-۳۰): مسیرِ تغییرِ رمز برایشان بسته است و رمزِ ستون دست نمی‌خورد */
+    public function test_a_site_user_has_no_password_to_change(): void
     {
+        $before = $this->alice->fresh()->password;
+
         $this->as($this->alice)->putJson('/api/v1/profile/password', [
             'current_password' => 'secret123', 'password' => 'newSecret456', 'password_confirmation' => 'newSecret456',
-        ])->assertOk();
+        ])->assertForbidden();
 
-        $this->assertTrue(Hash::check('newSecret456', $this->alice->fresh()->password));
+        $this->assertSame($before, $this->alice->fresh()->password);
     }
 
     /* ── F4: مدیرِ دوم ────────────────────────────────────────────────── */
@@ -386,8 +388,10 @@ class MembershipLifecycleTest extends TestCase
 
         $this->flushSession();
         app('auth')->forgetGuards();
-        $this->postJson('/api/v1/login', ['phone' => $this->alice->phone, 'password' => 'secret123'])
-            ->assertStatus(422);
+        // حسابِ غیرفعال کدی نمی‌گیرد و با هیچ کدی وارد نمی‌شود
+        $this->assertNull($this->postJson('/api/v1/login', ['phone' => $this->alice->phone])->assertOk()->json('dev_code'));
+        $this->postJson('/api/v1/login/verify', ['code' => '000000'])->assertStatus(422);
+        $this->assertGuest();
 
         // برگشت‌پذیر: همان ویرایشِ عضو
         $this->as($superAdmin)->withConfirmedPassword()->patchJson("/api/v1/system/members/{$this->alice->id}", [

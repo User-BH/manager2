@@ -218,13 +218,9 @@ jobs:
           # ⚠️ بدونِ داده، سفرِ مالی چیزی برای طی‌کردن ندارد و تست‌هایش
           # سبزِ بی‌معنا می‌شوند (S4-30).
           php artisan db:seed --class=DemoSeeder --force --no-interaction
-          # 🔴 ورودِ این پروژه دومرحله‌ای است (رمز → کدِ پیامکی). کدِ پیامکی از
-          # مرورگر خواندنی نیست، پس سفرِ مالی هرگز شروع نمی‌شد.
-          #
-          # ⚠️ `otp_disabled` یک تنظیمِ **واقعیِ محصول** است («برای وقتی پنلِ
-          # پیامک هنوز آماده نیست»)، نه دور زدنِ امنیت در تست. خودِ OTP
-          # پوششِ جدا دارد: PhoneLoginTest و SessionSecurityTest.
-          php artisan tinker --execute="App\Support\SystemSettings::set('otp_disabled', true);"
+          # ورود بی‌رمز است (شماره → کدِ پیامکی، ۲۰۲۶-۱۰-۳۰). با درایورِ log در
+          # محیطِ local پاسخِ `/api/login` خودش `dev_code` دارد و کمک‌کارهای
+          # سرتاسری همان را می‌فرستند؛ «ورود بی کد» دیگر در محصول نیست.
           # مرحلهٔ ۵ · فاز ۸: موجودیِ کیف برای سفرِ «پرداخت از کیف» — از خودِ
           # WalletService، نه درجِ مستقیم؛ روی محصول اجرا نمی‌شود.
           php artisan db:seed --class=E2eSeeder --force --no-interaction

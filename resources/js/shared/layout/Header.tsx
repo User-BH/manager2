@@ -5,7 +5,7 @@ import { Menu } from 'lucide-react'
 import { SearchBox } from './SearchBox'
 import { RecentSearchesButton } from './RecentSearchesButton'
 import { TopBarActions } from './TopBarActions'
-import { topBarDashboardOf, topBarItems } from '@/shared/config/topBar'
+import { TOOL_SIZE, topBarDashboardOf, topBarItems } from '@/shared/config/topBar'
 import { useAuth } from '@/shared/stores/authStore'
 import { useSidebar } from '@/shared/stores/sidebarStore'
 
@@ -59,7 +59,7 @@ export function Header() {
     >
       <button
         onClick={() => setMobileOpen(true)}
-        className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl transition-colors hover:bg-(--surface-sunken) lg:hidden"
+        className={`${TOOL_SIZE} flex shrink-0 items-center justify-center rounded-xl transition-colors hover:bg-(--surface-sunken) lg:hidden`}
         style={{ color: 'var(--text-secondary)' }}
         aria-label="باز کردن منو"
       >

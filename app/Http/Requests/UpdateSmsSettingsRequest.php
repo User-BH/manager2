@@ -26,7 +26,6 @@ class UpdateSmsSettingsRequest extends BaseFormRequest
             'pattern_code' => ['nullable', 'string', 'max:50'],
             'pattern_variable' => ['nullable', 'string', 'max:50'],
             'phonebook_id' => ['nullable', 'string', 'max:20'],
-            'otp_disabled' => ['boolean'],
         ];
     }
 

@@ -79,6 +79,15 @@ class User extends Authenticatable
      * ۲۰۲۶-۱۰-۲۹ (بندِ ۲) با شماره + رمز + Authenticator وارد می‌شود و کاربرِ واقعی با شماره و کدِ پیامکی — هر دو حتی
      * اگر روزی نام کاربری داشته باشند.
      */
+    /**
+     * حسابی که رمز دارد و با رمز تأیید می‌شود (۲۰۲۶-۱۰-۳۰): دو مدیرِ سامانه و حساب‌های نمونه‌ی Preview (که با نام کاربری +
+     * رمز وارد می‌شوند و شماره ندارند). بقیه‌ی کاربران رمز ندارند — ورود و تأییدِ دوباره با کدِ پیامکی.
+     */
+    public function usesPassword(): bool
+    {
+        return $this->isSuperAdmin() || (bool) $this->is_demo;
+    }
+
     public function signsInByUsername(): bool
     {
         return $this->username !== null && $this->is_demo;

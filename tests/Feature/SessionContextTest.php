@@ -288,14 +288,14 @@ class SessionContextTest extends TestCase
         SystemSettings::set('otp_disabled', true);
         $solo = User::factory()->create(['complex_id' => $this->a->id, 'role' => UserRole::Tenant, 'is_active' => true, 'phone' => '09127770111', 'password' => 'password']);
 
-        $login = $this->postJson('/api/v1/login', ['phone' => $solo->phone, 'password' => 'password'])->assertOk();
+        $login = $this->signInByPhone($solo->phone)->assertOk();
         $this->assertSame(['user' => $solo->id, 'complex' => $this->a->id], $this->pinOf($login));
 
         // سارا (دو عضویت): سنجاقِ «انتخاب»، نه پیش‌فرض
         $this->flushSession();
         $this->app['auth']->forgetGuards();
         $this->sara->forceFill(['password' => 'password'])->save();
-        $multi = $this->postJson('/api/v1/login', ['phone' => $this->sara->phone, 'password' => 'password'])->assertOk();
+        $multi = $this->signInByPhone($this->sara->phone)->assertOk();
         $this->assertSame($this->sara->id.':'.SessionContext::CHOOSING, $multi->getCookie(SessionContext::COOKIE)?->getValue());
     }
 

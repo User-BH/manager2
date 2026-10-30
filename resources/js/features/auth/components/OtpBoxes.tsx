@@ -120,6 +120,23 @@ export function OtpBoxes({
     if (filled.length === length) onComplete?.(filled)
   }
 
+  /*
+   * 🔴 چسباندنِ کد (۲۰۲۶-۱۰-۳۰، بندِ ۵ ِ کارفرما: «اکثرا کد را کپی کرده و وارد می‌کنیم»).
+   *
+   * `maxLength={1}` ِ هر خانه متنِ چسبانده را **پیش از** `onChange` به یک رقم می‌بُرد، پس شاخه‌ی «چسباندن» ِ `setDigit`
+   * هرگز اجرا نمی‌شد. حالا متن از خودِ رویدادِ paste خوانده می‌شود — با رقمِ فارسی، فاصله یا خط‌تیره هم («۱۲۳ ۴۵۶»،
+   * «123-456») — و از همین خانه به بعد پر می‌شود؛ کدِ کامل خودش ارسال می‌شود.
+   */
+  function onPaste(index: number, e: React.ClipboardEvent<HTMLInputElement>) {
+    const clean = toAsciiDigits(e.clipboardData.getData('text')).replace(/\D/g, '')
+    if (!clean) return
+    e.preventDefault()
+    const next = (value.slice(0, index).replace(/\s/g, '') + clean).slice(0, length)
+    onChange(next)
+    refs.current[Math.min(next.length, length - 1)]?.focus()
+    if (next.length === length) onComplete?.(next)
+  }
+
   function onKeyDown(index: number, e: React.KeyboardEvent<HTMLInputElement>) {
     if (e.key === 'Backspace' && !digits[index]?.trim() && index > 0) {
       refs.current[index - 1]?.focus()
@@ -137,6 +154,7 @@ export function OtpBoxes({
           value={digits[i]?.trim() ?? ''}
           onChange={(e) => setDigit(i, e.target.value)}
           onKeyDown={(e) => onKeyDown(i, e)}
+          onPaste={(e) => onPaste(i, e)}
           onFocus={(e) => e.target.select()}
           inputMode="numeric"
           autoComplete={i === 0 ? 'one-time-code' : 'off'}

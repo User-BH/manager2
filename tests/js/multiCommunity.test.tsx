@@ -268,7 +268,7 @@ describe('«تنظیماتِ حساب» در منوی کناری (۱۳/۳، ۱۳
       m.navigation
         .visibleSections(role)
         .flatMap((section) => section.items)
-        .find((item) => item.label === 'تنظیمات حساب')?.path ?? null
+        .find((item) => item.label.startsWith('تنظیمات حساب'))?.path ?? null
 
     expect([
       target('complex_admin'),

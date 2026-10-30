@@ -25,7 +25,8 @@ export default function TwoFactorLoginPage() {
   const [error, setError] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
 
-  if (!fromPassword) return <Navigate to="/auth" replace />
+  // گامِ دومِ مدیرانِ سامانه؛ بی گامِ رمز به درِ ورودِ خودشان برمی‌گردد
+  if (!fromPassword) return <Navigate to="/auth/admin" replace />
 
   async function submit(body: { code: string } | { recovery_code: string }) {
     if (submitting) return

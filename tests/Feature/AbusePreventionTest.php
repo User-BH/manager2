@@ -164,21 +164,27 @@ class AbusePreventionTest extends TestCase
     /** نشستِ دزدیده‌شده نباید بتواند رمزِ فعلی را حدس بزند. */
     public function test_the_current_password_cannot_be_guessed(): void
     {
+        // رمز فقط مالِ مدیرِ سامانه است (۲۰۲۶-۱۰-۳۰)
+        $admin = User::create([
+            'name' => 'مدیرِ سامانه', 'phone' => '09120000098', 'role' => UserRole::SuperAdmin,
+            'password' => Hash::make('secret123'), 'is_active' => true,
+        ]);
+
         for ($i = 1; $i <= 5; $i++) {
-            $this->actingAs($this->manager)->putJson('/api/v1/profile/password', [
+            $this->actingAs($admin)->putJson('/api/v1/profile/password', [
                 'current_password' => "wrong-{$i}",
                 'password' => 'NewPassw0rd!x',
                 'password_confirmation' => 'NewPassw0rd!x',
             ])->assertStatus(422);
         }
 
-        $this->actingAs($this->manager)->putJson('/api/v1/profile/password', [
+        $this->actingAs($admin)->putJson('/api/v1/profile/password', [
             'current_password' => 'secret123',
             'password' => 'NewPassw0rd!x',
             'password_confirmation' => 'NewPassw0rd!x',
         ])->assertStatus(429);
 
-        $this->assertTrue(Hash::check('secret123', $this->manager->fresh()->password));
+        $this->assertTrue(Hash::check('secret123', $admin->fresh()->password));
     }
 
     public function test_starting_payments_in_a_loop_is_capped(): void

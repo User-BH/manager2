@@ -119,7 +119,7 @@ export function AuthPage() {
       </h1>
       <p className="mt-1.5 text-[13px]" style={{ color: 'var(--text-tertiary)' }}>
         {isLogin
-          ? 'با شماره موبایل و رمز عبور خود وارد شوید'
+          ? 'با شماره موبایل و کدِ پیامکی وارد شوید؛ رمز لازم نیست'
           : 'در کمتر از ۵ دقیقه پنل مجتمع خود را راه‌اندازی کنید'}
       </p>
     </div>
@@ -176,7 +176,7 @@ export function AuthPage() {
       {isLogin ? (
         <LoginForm key="login" />
       ) : (
-        <RegisterForm key="register" onRegistered={() => setTab('login')} onOpenTerms={openTerms} />
+        <RegisterForm key="register" onOpenTerms={openTerms} />
       )}
       {switcher}
     </div>
@@ -238,7 +238,7 @@ export function AuthPage() {
             <div className="mt-5 flex items-center gap-2 text-sm text-white/85">
               <ShieldCheck size={16} />
               {isLogin
-                ? 'ورود دومرحله‌ای با پیامک، برای امنیت بیشتر'
+                ? 'ورود بی‌رمز با کدِ یک‌بارمصرفِ پیامکی'
                 : 'اطلاعات شما با بالاترین استاندارد امنیتی محافظت می‌شود'}
             </div>
           </motion.div>

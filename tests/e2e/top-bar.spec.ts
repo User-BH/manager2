@@ -8,7 +8,7 @@ import { expect, test, type Browser, type Locator, type Page } from '@playwright
  * نمی‌افتند، نوار سرریزِ افقی نمی‌سازد. در عرضِ کم کادرِ جست‌وجو آیکون می‌شود و پنلِ زیرِ سربرگ باز می‌شود — روی محتوا،
  * نه پشتش — و نتیجه در محتوای اصلی می‌آید. سوپر ادمینِ بی مجتمعِ برگزیده با جست‌وجو هیچ داده‌ی مجتمعی نمی‌گیرد.
  *
- * پیش‌نیاز: `DemoSeeder`، `E2eSeeder` (`TOP_BAR_INITIAL`، `TOP_BAR_UNITS`) و `otp_disabled`.
+ * پیش‌نیاز: `DemoSeeder`، `E2eSeeder` (`TOP_BAR_INITIAL`، `TOP_BAR_UNITS`).
  */
 
 const INITIAL: Record<string, string> = {
@@ -34,16 +34,25 @@ async function signedIn(browser: Browser, phone: string): Promise<Page> {
   const status = await page.evaluate(async (phone) => {
     await fetch('/api/csrf-token', { credentials: 'include' })
     const xsrf = decodeURIComponent((document.cookie.match(/XSRF-TOKEN=([^;]+)/) ?? [])[1] ?? '')
-    const res = await fetch('/api/login', {
-      method: 'POST',
-      credentials: 'include',
-      headers: {
-        'Content-Type': 'application/json',
-        Accept: 'application/json',
-        'X-XSRF-TOKEN': xsrf,
-      },
-      body: JSON.stringify({ phone, password: 'password' }),
-    })
+    // ورودِ بی‌رمز (۲۰۲۶-۱۰-۳۰): شماره، سپس کدِ پیامکی (با درایورِ log کد در همان پاسخ است)؛
+    // سوپر ادمینِ دمو از درِ مدیران با نام کاربری و رمز
+    const send = (url: string, data: object) =>
+      fetch(url, {
+        method: 'POST',
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json',
+          Accept: 'application/json',
+          'X-XSRF-TOKEN': xsrf,
+        },
+        body: JSON.stringify(data),
+      })
+    const res =
+      phone === '09120000001'
+        ? await send('/api/admin/login', { username: 'sakena.admin', password: 'password' })
+        : await send('/api/login', { phone: phone }).then(async (r) =>
+            r.ok ? send('/api/login/verify', { code: (await r.json()).dev_code }) : r,
+          )
     return res.status
   }, phone)
   expect(status, `ورودِ ${phone}`).toBe(200)
@@ -111,34 +120,32 @@ for (const role of ['unit', 'manager', 'platform'] as const) {
     const t = tools(bar)
 
     for (const width of MEMBER_WIDTHS) {
+      // ⚠️ اعلان با hover باز می‌شود؛ نشانگر جای کلیکِ قبلی مانده و با تغییرِ عرض زنگ زیرِ آن می‌لغزید و پنلش باز می‌شد
+      await page.mouse.move(1, 790)
       await page.setViewportSize({ width, height: 800 })
       const account = bar.getByRole('button', { name: /^حساب کاربری/ })
       await expect(t.notifications).toBeVisible()
       await expect(t.calendar).toBeVisible()
       await expect(account).toBeVisible()
       /*
-       * ۲۰۲۶-۱۰-۲۹، بندِ ۸: زیرِ ‎۶۴۰px ماشین‌حساب و تم در منوی آدمک‌اند (هفت کنترلِ ۴۴ پیکسلی جا نمی‌شد)؛ کادرِ کامل و
-       * «اخیر» از ‎۱۰۲۴px — پایین‌تر روی ماشین‌حساب و تقویم می‌افتادند و پنل همان «اخیر» را دارد.
+       * ۲۰۲۶-۱۰-۳۰ (بندِ ۱): همه‌ی ابزارها در هر عرض در خودِ نوار — ماشین‌حساب و تم هم؛ زیرِ ‎۶۴۰px کمی کوچک‌تر. منوی آدمک
+       * هم درونِ صفحه باز می‌شود. کادرِ کامل و «اخیر» از ‎۱۰۲۴px؛ پایین‌تر آیکون و پنل (همان «اخیر» را دارد).
        */
-      if (width >= 640) {
-        await expect(t.theme).toBeVisible()
-        await expect(t.calculator).toBeVisible()
-      } else {
-        await expect(t.theme).toBeHidden()
-        await expect(t.calculator).toBeHidden()
-        await account.click()
-        await expect(bar.getByRole('button', { name: 'ماشین حساب' })).toBeVisible()
-        await expect(bar.getByRole('button', { name: /^حالت (تاریک|روشن)$/ })).toBeVisible()
-        const menu = (await page
-          .getByRole('button', { name: 'خروج از حساب' })
-          .locator('xpath=..')
-          .boundingBox())!
-        expect(menu.x, `${width}px: منوی آدمک از لبه‌ی چپ بیرون زد`).toBeGreaterThanOrEqual(0)
-        expect(menu.x + menu.width, `${width}px: منو از لبه‌ی راست بیرون زد`).toBeLessThanOrEqual(
-          width,
-        )
-        await account.click()
-      }
+      await expect(t.theme).toBeVisible()
+      await expect(t.calculator).toBeVisible()
+      await account.click()
+      const menu = (await page
+        .getByRole('button', { name: 'خروج از حساب' })
+        .locator('xpath=..')
+        .boundingBox())!
+      expect(menu.x, `${width}px: منوی آدمک از لبه‌ی چپ بیرون زد`).toBeGreaterThanOrEqual(0)
+      expect(menu.x + menu.width, `${width}px: منو از لبه‌ی راست بیرون زد`).toBeLessThanOrEqual(
+        width,
+      )
+      await expect(bar.getByRole('button', { name: 'ماشین حساب' })).toHaveCount(0)
+      await account.click()
+      // ⚠️ منو با انیمیشن بسته می‌شود و گزینه‌هایش تا پایانِ آن درونِ سربرگ دیده می‌شوند؛ سنجشِ «روی هم» مالِ خودِ نوار است
+      await expect(page.getByRole('button', { name: 'خروج از حساب' })).toBeHidden()
       if (width >= 1024) {
         await expect(t.searchBox).toBeVisible()
         await expect(t.recent).toBeVisible()

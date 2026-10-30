@@ -56,21 +56,15 @@ class SecurityAuditTest extends TestCase
     {
         $victim = $this->makeVictim();
 
-        // گامِ اول همچنان کار می‌کند (نباید وجودِ شماره را لو بدهد یا بشکند)
-        $this->postJson('/api/v1/password/forgot', ['phone' => '09121234567'])->assertOk();
-
         /*
-         * ولی بدونِ کدِ درست، گامِ دوم شکست می‌خورد و رمز دست‌نخورده می‌ماند.
-         * در محصول مهاجم آن کد را دیگر از پاسخ نمی‌گیرد (تستِ بالا).
+         * ورود بی رمز (۲۰۲۶-۱۰-۳۰): تنها راهِ ورود همان کد است. گامِ اول کار می‌کند (وجودِ شماره را لو نمی‌دهد) ولی بی کدِ
+         * درست هیچ ورودی نیست؛ در محصول مهاجم کد را از پاسخ نمی‌گیرد (تستِ بالا). مسیرِ «بازیابیِ رمز» دیگر وجود ندارد.
          */
-        $this->postJson('/api/v1/password/forgot/verify', ['code' => '000000'])
-            ->assertStatus(422);
+        $this->postJson('/api/v1/login', ['phone' => '09121234567'])->assertOk();
+        $this->postJson('/api/v1/login/verify', ['code' => '000000'])->assertStatus(422);
+        $this->assertGuest();
 
-        $this->postJson('/api/v1/password/reset', [
-            'password' => 'attacker-owns-you-1',
-            'password_confirmation' => 'attacker-owns-you-1',
-        ])->assertStatus(422);
-
+        $this->postJson('/api/v1/password/forgot', ['phone' => '09121234567'])->assertNotFound();
         $this->assertTrue(Hash::check('victim-strong-password', $victim->fresh()->password));
     }
 

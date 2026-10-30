@@ -53,6 +53,8 @@ export interface CurrentUser {
   roleLabel: string
   isAdmin: boolean
   isSuperAdmin: boolean
+  /** رمز دارد (مدیرِ سامانه یا حسابِ نمونه‌ی Preview)؛ بقیه با کدِ پیامکی (۲۰۲۶-۱۰-۳۰) */
+  usesPassword?: boolean
   /** سوپر ادمین بیرون از Production: کلیدِ «شاملِ دادهٔ آزمایشی» معنا دارد (سرور هم همین را می‌سنجد) */
   demoData?: boolean
   /** سوپر ادمینِ Production بی Authenticator: فقط راه‌اندازیِ عاملِ دوم باز است (سرور بقیه را می‌بندد) */

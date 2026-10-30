@@ -7,7 +7,6 @@ use App\Models\Complex;
 use App\Models\TrustedDevice;
 use App\Models\User;
 use App\Services\Auth\TrustedDeviceService;
-use App\Support\SystemSettings;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
@@ -15,7 +14,7 @@ use Illuminate\Testing\TestResponse;
 use Tests\TestCase;
 
 /**
- * ورود دومرحله‌ای، دستگاهِ مورداعتماد و بازیابی رمز.
+ * ورودِ بی‌رمز با کدِ پیامکی (۲۰۲۶-۱۰-۳۰)، دستگاهِ مورداعتماد و ثبت‌نام.
  *
  * درایور پیامک در تست «log» است، پس OtpService کد را در پاسخ (`dev_code`)
  * برمی‌گرداند و بدون پیامک واقعی می‌توان کل جریان را آزمود.
@@ -44,12 +43,12 @@ class TwoFactorLoginTest extends TestCase
         ]);
     }
 
-    /* --------------------- گام ۱: رمز عبور --------------------- */
+    /* --------------------- گام ۱: شماره --------------------- */
 
-    public function test_correct_password_does_not_log_in_yet_but_sends_a_code(): void
+    public function test_the_phone_alone_does_not_log_in_yet_but_sends_a_code(): void
     {
         $response = $this->postJson('/api/login', [
-            'phone' => '09120000010', 'password' => 'secret123',
+            'phone' => '09120000010',
         ])->assertOk()->assertJsonPath('otpRequired', true);
 
         // هنوز واردنشده — نشست خالی است تا کد تایید شود
@@ -60,22 +59,25 @@ class TwoFactorLoginTest extends TestCase
         $this->assertSame(6, strlen((string) $response->json('dev_code')));
     }
 
-    public function test_a_wrong_password_is_rejected_without_sending_a_code(): void
+    /** شماره‌ی بی‌حساب همان پاسخ را می‌گیرد ولی کدی نمی‌رسد؛ هیچ کدی هم او را وارد نمی‌کند */
+    public function test_an_unknown_phone_gets_no_code_and_cannot_sign_in(): void
     {
-        $this->postJson('/api/login', [
-            'phone' => '09120000010', 'password' => 'wrong-pass',
-        ])->assertStatus(422)->assertJsonValidationErrors('phone');
+        $this->postJson('/api/login', ['phone' => '09129999999'])
+            ->assertOk()->assertJsonPath('otpRequired', true)->assertJsonPath('dev_code', null);
 
-        $this->assertDatabaseCount('otp_codes', 0);
+        $this->postJson('/api/login/verify', ['code' => '000000'])->assertStatus(422)->assertJsonValidationErrors('code');
+        $this->assertGuest();
+        $this->assertDatabaseMissing('users', ['phone' => '09129999999']);
     }
 
-    public function test_an_inactive_account_cannot_start_login(): void
+    public function test_an_inactive_account_cannot_sign_in(): void
     {
         $this->user->update(['is_active' => false]);
 
-        $this->postJson('/api/login', [
-            'phone' => '09120000010', 'password' => 'secret123',
-        ])->assertStatus(422)->assertJsonValidationErrors('phone');
+        $this->postJson('/api/login', ['phone' => '09120000010'])
+            ->assertOk()->assertJsonPath('dev_code', null);
+        $this->postJson('/api/login/verify', ['code' => '000000'])->assertStatus(422);
+        $this->assertGuest();
     }
 
     /* --------------------- گام ۲: کد پیامکی --------------------- */
@@ -83,7 +85,7 @@ class TwoFactorLoginTest extends TestCase
     public function test_the_full_two_step_login_authenticates_the_user(): void
     {
         $code = $this->postJson('/api/login', [
-            'phone' => '09120000010', 'password' => 'secret123',
+            'phone' => '09120000010',
         ])->json('dev_code');
 
         $this->postJson('/api/login/verify', ['code' => $code])
@@ -93,26 +95,20 @@ class TwoFactorLoginTest extends TestCase
         $this->assertAuthenticatedAs($this->user->fresh());
     }
 
-    public function test_when_otp_is_disabled_login_goes_straight_to_the_dashboard(): void
+    /** رمزِ همراهِ شماره هیچ میان‌بُری نیست: کد همیشه لازم است */
+    public function test_a_password_sent_along_the_phone_is_no_shortcut(): void
     {
-        SystemSettings::set('otp_disabled', true);
-
-        // با خاموش‌بودنِ OTP، رمزِ درست بلافاصله کاربر را وارد می‌کند (بدون کد).
         $this->postJson('/api/login', ['phone' => '09120000010', 'password' => 'secret123'])
-            ->assertOk()
-            ->assertJsonMissingPath('otpRequired')
-            ->assertJsonPath('user.phone', '09120000010');
+            ->assertOk()->assertJsonPath('otpRequired', true)->assertJsonMissingPath('user');
 
-        $this->assertAuthenticatedAs($this->user->fresh());
-        // هیچ کدی هم فرستاده نشده است
-        $this->assertDatabaseCount('otp_codes', 0);
+        $this->assertGuest();
     }
 
     public function test_a_full_login_clears_otp_codes_so_an_immediate_relogin_is_not_blocked(): void
     {
         // ورودِ کاملِ اول
         $code = $this->postJson('/api/login', [
-            'phone' => '09120000010', 'password' => 'secret123',
+            'phone' => '09120000010',
         ])->json('dev_code');
         $this->postJson('/api/login/verify', ['code' => $code])->assertOk();
 
@@ -124,7 +120,7 @@ class TwoFactorLoginTest extends TestCase
         $this->postJson('/api/logout')->assertOk();
 
         $this->postJson('/api/login', [
-            'phone' => '09120000010', 'password' => 'secret123',
+            'phone' => '09120000010',
         ])->assertOk()
             ->assertJsonPath('otpRequired', true)
             ->assertJsonPath('dev_code', fn ($code) => strlen((string) $code) === 6);
@@ -132,7 +128,7 @@ class TwoFactorLoginTest extends TestCase
 
     public function test_a_wrong_code_does_not_authenticate(): void
     {
-        $this->postJson('/api/login', ['phone' => '09120000010', 'password' => 'secret123']);
+        $this->postJson('/api/login', ['phone' => '09120000010']);
 
         $this->postJson('/api/login/verify', ['code' => '000000'])
             ->assertStatus(422)->assertJsonValidationErrors('code');
@@ -151,7 +147,7 @@ class TwoFactorLoginTest extends TestCase
     public function test_remember_me_issues_a_trusted_device(): void
     {
         $code = $this->postJson('/api/login', [
-            'phone' => '09120000010', 'password' => 'secret123', 'remember' => true,
+            'phone' => '09120000010', 'remember' => true,
         ])->json('dev_code');
 
         $this->postJson('/api/login/verify', ['code' => $code])
@@ -169,7 +165,7 @@ class TwoFactorLoginTest extends TestCase
         $cookie = $this->issueTrustedDeviceCookie();
 
         $response = $this->jsonWithDevice('POST', '/api/login', [
-            'phone' => '09120000010', 'password' => 'secret123',
+            'phone' => '09120000010',
         ], $cookie);
 
         // بدون otpRequired مستقیم وارد شد و هیچ کدی هم فرستاده نشد
@@ -193,7 +189,7 @@ class TwoFactorLoginTest extends TestCase
 
         // کوکیِ دستگاهِ کاربرِ دیگر نباید مرحله‌ی دوم را برای این کاربر رد کند
         $this->jsonWithDevice('POST', '/api/login', [
-            'phone' => '09120000010', 'password' => 'secret123',
+            'phone' => '09120000010',
         ], $device->id.':'.$plain)->assertOk()->assertJsonPath('otpRequired', true);
     }
 
@@ -218,95 +214,26 @@ class TwoFactorLoginTest extends TestCase
         ]);
 
         $response = $this->jsonWithDevice('POST', '/api/login', [
-            'phone' => '09120000010', 'password' => 'secret123',
+            'phone' => '09120000010',
         ], $device->id.':'.$plain);
 
         // منقضی، پس باز هم کد می‌خواهد
         $response->assertOk()->assertJsonPath('otpRequired', true);
     }
 
-    /* --------------------- بازیابی رمز --------------------- */
+    /* --------------------- بی «فراموشیِ رمز» --------------------- */
 
-    public function test_forgot_password_only_needs_the_phone(): void
+    public function test_there_is_no_password_reset_any_more(): void
     {
-        $this->postJson('/api/password/forgot', ['phone' => '09120000010'])
-            ->assertOk()
-            ->assertJsonPath('dev_code', fn ($code) => strlen((string) $code) === 6);
-    }
-
-    /**
-     * ⚠️ پیش از این «شماره‌ی ناشناس ۴۲۲ می‌گیرد» بود — همان شمارشِ حساب. حالا
-     * پاسخ یکسان است و فقط پیامکی نمی‌رود؛ یکسان‌بودنِ کامل را
-     * `AccountEnumerationTest` می‌سنجد.
-     */
-    public function test_forgot_password_sends_nothing_to_an_unknown_phone(): void
-    {
-        $this->postJson('/api/password/forgot', ['phone' => '09129999999'])
-            ->assertOk()->assertJsonPath('dev_code', null);
-
-        // ردیفِ کد (برای یکسانیِ فاصله‌ی ارسالِ مجدد) هست، ولی کدش هرگز فرستاده نشد
-        $this->assertDatabaseCount('otp_codes', 1);
-        $this->postJson('/api/password/forgot/verify', ['code' => '000000'])->assertStatus(422);
-    }
-
-    public function test_forgot_password_sends_nothing_to_an_inactive_account(): void
-    {
-        $this->user->update(['is_active' => false]);
-
-        $this->postJson('/api/password/forgot', ['phone' => '09120000010'])
-            ->assertOk()->assertJsonPath('dev_code', null);
-        $this->postJson('/api/password/forgot/verify', ['code' => '000000'])->assertStatus(422);
-    }
-
-    public function test_the_full_password_reset_flow_changes_the_password(): void
-    {
-        $code = $this->postJson('/api/password/forgot', ['phone' => '09120000010'])
-            ->assertOk()->json('dev_code');
-
-        $this->postJson('/api/password/forgot/verify', ['code' => $code])->assertOk();
-
-        // پس از ثبت رمز تازه، سرور خودش کاربر را وارد می‌کند و برمی‌گرداند؛
-        // هویتش با کد پیامکی اثبات شده، پس پیامکِ دومرحله‌ایِ دیگر لازم نیست.
+        $this->postJson('/api/password/forgot', ['phone' => '09120000010'])->assertNotFound();
+        $this->postJson('/api/password/forgot/verify', ['code' => '000000'])->assertNotFound();
         $this->postJson('/api/password/reset', [
             'password' => 'newpass123', 'password_confirmation' => 'newpass123',
-        ])->assertOk()->assertJsonPath('user.phone', '09120000010');
+        ])->assertNotFound();
 
-        $this->assertAuthenticatedAs($this->user->fresh());
-
-        // رمز واقعاً عوض شده. (ورودِ فوری را نمی‌آزماییم چون پیامکِ دومرحله‌ایِ
-        // ورود به فاصله‌ی کوتاه پس از پیامکِ بازیابی به سقفِ ارسال مجدد می‌خورد؛
-        // این خودش رفتار درست است.)
-        $fresh = $this->user->fresh();
-        $this->assertTrue(Hash::check('newpass123', $fresh->password));
-        $this->assertFalse(Hash::check('secret123', $fresh->password));
-    }
-
-    public function test_reset_is_refused_before_the_code_is_verified(): void
-    {
-        $this->postJson('/api/password/forgot', ['phone' => '09120000010'])->assertOk();
-
-        // بدون تایید کد، تغییر رمز رد می‌شود
-        $this->postJson('/api/password/reset', [
-            'password' => 'newpass123', 'password_confirmation' => 'newpass123',
-        ])->assertStatus(422)->assertJsonValidationErrors('password');
-    }
-
-    public function test_reset_revokes_trusted_devices(): void
-    {
-        TrustedDevice::create([
-            'user_id' => $this->user->id,
-            'token_hash' => hash('sha256', 'whatever'),
-            'expires_at' => now()->addDays(5),
-        ]);
-
-        $code = $this->postJson('/api/password/forgot', ['phone' => '09120000010'])->json('dev_code');
-        $this->postJson('/api/password/forgot/verify', ['code' => $code])->assertOk();
-        $this->postJson('/api/password/reset', [
-            'password' => 'newpass123', 'password_confirmation' => 'newpass123',
-        ])->assertOk();
-
-        // تغییر رمز یعنی «به هیچ دستگاه قبلی اعتماد نکن»
-        $this->assertSame(0, TrustedDevice::count());
+        // نشانیِ قدیمی (نشانک یا پیوندِ کهنه) به درِ ورود می‌رسد
+        $this->get('/auth/forgot')->assertRedirect('/auth');
+        $this->assertTrue(Hash::check('secret123', $this->user->fresh()->password));
     }
 
     /* --------------------- ثبت‌نام --------------------- */
@@ -318,8 +245,6 @@ class TwoFactorLoginTest extends TestCase
             'first_name' => 'کاربر',
             'last_name' => 'تازه',
             'phone' => '09120000077',
-            'password' => 'newpass123',
-            'password_confirmation' => 'newpass123',
             'accept_terms' => true,
         ])->assertOk()->assertJsonPath('otpRequired', true)->json('dev_code');
 
@@ -352,8 +277,6 @@ class TwoFactorLoginTest extends TestCase
             'first_name' => 'منصرف',
             'last_name' => 'شده',
             'phone' => '09120000088',
-            'password' => 'newpass123',
-            'password_confirmation' => 'newpass123',
             'accept_terms' => true,
         ])->assertOk()->assertJsonPath('otpRequired', true);
 
@@ -367,8 +290,6 @@ class TwoFactorLoginTest extends TestCase
             'first_name' => 'کاربر',
             'last_name' => 'تازه',
             'phone' => '09120000078',
-            'password' => 'newpass123',
-            'password_confirmation' => 'newpass123',
             'accept_terms' => false,
         ])->assertStatus(422)->assertJsonValidationErrors('accept_terms');
 
@@ -382,8 +303,6 @@ class TwoFactorLoginTest extends TestCase
             'first_name' => 'بدون',
             'last_name' => 'مجتمع',
             'phone' => '09120000079',
-            'password' => 'newpass123',
-            'password_confirmation' => 'newpass123',
             'accept_terms' => true,
         ])->assertOk()->json('dev_code');
 

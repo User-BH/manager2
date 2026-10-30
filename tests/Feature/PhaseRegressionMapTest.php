@@ -287,8 +287,9 @@ class PhaseRegressionMapTest extends TestCase
             'شناسه‌ی قبلیِ نشست پس از تغییرِ رمز مرده است' => [
                 'SessionLifecycleTest', 'test_the_old_session_id_is_destroyed_by_a_password_change', '۵',
             ],
+            // «فراموشیِ رمز» برداشته شد (۲۰۲۶-۱۰-۳۰)؛ جانشینش `admin:password` همان تضمین را دارد
             'بازیابیِ رمز همه‌ی نشست‌ها را می‌بندد' => [
-                'SessionLifecycleTest', 'test_resetting_the_password_signs_out_every_session', '۵',
+                'SessionLifecycleTest', 'test_resetting_the_password_on_the_server_signs_out_every_session', '۵',
             ],
             'نشستِ فعال هم سقفِ مطلقِ عمر دارد' => [
                 'SessionLifecycleTest', 'test_an_active_session_still_ends_at_the_absolute_lifetime', '۵',
@@ -428,8 +429,9 @@ class PhaseRegressionMapTest extends TestCase
             ],
 
             /* ── پس از فاز ۱۵: بستنِ شمارشِ حساب (Medium) ───────────────────────── */
-            '🔴 فراموشیِ رمز برای شماره‌ی با و بی‌حساب یکسان پاسخ می‌دهد' => [
-                'AccountEnumerationTest', 'test_forgot_password_answers_identically_with_or_without_an_account', '۶',
+            // همان در حالا درِ ورودِ بی‌رمز است (۲۰۲۶-۱۰-۳۰)
+            '🔴 درِ پیامکی برای شماره‌ی با و بی‌حساب یکسان پاسخ می‌دهد' => [
+                'AccountEnumerationTest', 'test_login_answers_identically_with_or_without_an_account', '۶',
             ],
             'فاصله‌ی ارسالِ مجدد نشانه‌ی وجودِ حساب نیست' => [
                 'AccountEnumerationTest', 'test_the_resend_cooldown_is_the_same_for_every_number', '۶',
@@ -807,8 +809,9 @@ class PhaseRegressionMapTest extends TestCase
             '🔴 مدیرِ مجتمعِ A کاربرِ مجتمعِ B را عوض نمی‌کند' => [
                 'MembershipLifecycleTest', 'test_a_manager_cannot_modify_another_complexes_users', '۹',
             ],
-            'صاحبِ حساب رمزش را خودش عوض می‌کند' => [
-                'MembershipLifecycleTest', 'test_the_account_owner_still_changes_their_own_password', '۹',
+            // کاربرانِ سامانه رمز ندارند (۲۰۲۶-۱۰-۳۰): نه کسی دیگر، نه خودشان رمزی عوض نمی‌کنند
+            'کاربرِ سامانه رمزی برای تعویض ندارد' => [
+                'MembershipLifecycleTest', 'test_a_site_user_has_no_password_to_change', '۹',
             ],
             'ادمینِ کل برای مجتمعِ موجود دوباره دعوتِ مدیر می‌فرستد' => [
                 'MembershipLifecycleTest', 'test_the_super_admin_reissues_a_manager_invitation_for_an_existing_complex', '۹',
@@ -1445,7 +1448,7 @@ class PhaseRegressionMapTest extends TestCase
                 'UsernameLoginTest', 'test_a_real_user_cannot_sign_in_with_a_username_even_if_one_is_set', '۱۳',
             ],
             '🔴 ۱۳/۱: سوپر ادمین با نام کاربری هم کدِ ورود می‌خواهد' => [
-                'UsernameLoginTest', 'test_a_real_super_admin_signs_in_by_phone_not_by_username', '۱۳',
+                'UsernameLoginTest', 'test_a_real_super_admin_signs_in_only_through_the_admin_door', '۱۳',
             ],
             '🔴 ۱۳/۱: نشانگرِ آزمایشی از درخواست نوشته نمی‌شود' => [
                 'UsernameLoginTest', 'test_the_demo_marker_cannot_be_set_from_a_request', '۱۳',
@@ -1467,10 +1470,11 @@ class PhaseRegressionMapTest extends TestCase
                 'SystemMemberSearchTest', 'test_a_name_search_returns_only_matching_names', '۱۳',
             ],
             '🔴 ۱۳/۱: سوپر ادمین با TOTP همیشه کدِ برنامه می‌خواهد، بی پیامک' => [
-                'AdminTwoFactorTest', 'test_login_by_phone_always_asks_for_the_app_code_and_sends_no_sms', '۱۳',
+                'AdminTwoFactorTest', 'test_the_admin_door_always_asks_for_the_app_code_and_sends_no_sms', '۱۳',
             ],
-            '🔴 ۱۳/۱: خاموشیِ پیامک عاملِ دومِ سوپر ادمین را خاموش نمی‌کند' => [
-                'AdminTwoFactorTest', 'test_disabling_sms_codes_does_not_disable_the_admin_second_factor', '۱۳',
+            // «ورود بی کد» (`otp_disabled`) دیگر در محصول نیست (۲۰۲۶-۱۰-۳۰)؛ رمزِ همراهِ شماره هم میان‌بُر نیست
+            '🔴 ۱۳/۱: هیچ کلیدی گامِ کدِ ورود را برنمی‌دارد' => [
+                'TwoFactorLoginTest', 'test_a_password_sent_along_the_phone_is_no_shortcut', '۱۳',
             ],
             '🔴 ۱۳/۱: کدِ TOTP دوباره پذیرفته نمی‌شود' => [
                 'AdminTwoFactorTest', 'test_a_used_code_cannot_be_replayed', '۱۳',
@@ -1479,7 +1483,7 @@ class PhaseRegressionMapTest extends TestCase
                 'AdminTwoFactorTest', 'test_each_recovery_code_works_exactly_once', '۱۳',
             ],
             '🔴 ۱۳/۱: بازیابیِ رمز با پیامک سوپر ادمین را وارد نمی‌کند' => [
-                'AdminTwoFactorTest', 'test_resetting_the_password_by_sms_does_not_sign_the_admin_in', '۱۳',
+                'AdminTwoFactorTest', 'test_there_is_no_sms_password_reset_for_the_admin', '۱۳',
             ],
             '🔴 ۱۳/۱: نشستِ سوپر ادمینِ بی TOTP روی Production فقط به راه‌اندازی می‌رسد' => [
                 'AdminTwoFactorTest', 'test_on_production_an_unenrolled_admin_session_reaches_only_the_setup', '۱۳',
@@ -1721,7 +1725,7 @@ class PhaseRegressionMapTest extends TestCase
             'sessionContext' => ['۱۲/۱', 'سربرگ از پاسخِ موفق و پاسخِ خطا هر دو خوانده می‌شود'],
             // مرحلهٔ ۱۳ («دستورِ یکپارچه»): هم‌ارزیِ zod/mini، گامِ TOTP ِ سوپر ادمین
             'zodMiniParity' => ['۱۳/۱', 'موفقیت، داده و هر پیامِ خطا برای کلِ پیکره یکی است'],
-            'adminTwoFactor' => ['۱۳/۱', 'سوپر ادمین با شماره و رمز به گامِ کدِ برنامه می‌رود، نه کدِ پیامکی'],
+            'adminTwoFactor' => ['۱۳/۱', 'سوپر ادمین با نام کاربری و رمز به گامِ کدِ برنامه می‌رود، نه کدِ پیامکی'],
             // مرحلهٔ ۱۳ · فاز ۲: دکمه‌ی نصبِ Hero — «نصب شد» فقط با رویدادِ مرورگر، یک رویداد یک بار
             'heroInstall' => ['۱۳/۲', '«نصب شد» فقط پس از `appinstalled`'],
             // مرحلهٔ ۱۳ · فاز ۳: صفحه‌ی انتخاب بی «ایجادِ حسابِ جدید»؛ منوی آدمک بی مجتمعِ فعال

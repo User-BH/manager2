@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { AnimatePresence, motion } from 'framer-motion'
 import { Bell, BellOff, CheckCheck, ChevronLeft, Pin } from 'lucide-react'
 import { IconButton } from '@/shared/ui/IconButton'
+import { TOOL_SIZE } from '@/shared/config/topBar'
 import { useNotifications } from '@/shared/stores/notificationStore'
 import { useClickOutside } from '@/shared/hooks'
 import { openTarget } from '@/shared/lib/accountContext'
@@ -96,6 +97,7 @@ export function NotificationBell() {
     >
       <IconButton
         variant="outline"
+        sizeClass={TOOL_SIZE}
         aria-label={unreadCount > 0 ? `${unreadCount} اعلان خوانده‌نشده` : 'اعلان‌ها'}
         aria-expanded={open}
         onClick={toggle}

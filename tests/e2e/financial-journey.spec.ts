@@ -66,16 +66,25 @@ async function signIn(
     await fetch('/api/csrf-token', { credentials: 'include' })
     const xsrf = decodeURIComponent((document.cookie.match(/XSRF-TOKEN=([^;]+)/) ?? [])[1] ?? '')
 
-    const res = await fetch('/api/login', {
-      method: 'POST',
-      credentials: 'include',
-      headers: {
-        'Content-Type': 'application/json',
-        Accept: 'application/json',
-        'X-XSRF-TOKEN': xsrf,
-      },
-      body: JSON.stringify(creds),
-    })
+    // ورودِ بی‌رمز (۲۰۲۶-۱۰-۳۰): شماره، سپس کدِ پیامکی (با درایورِ log کد در همان پاسخ است)؛
+    // سوپر ادمینِ دمو از درِ مدیران با نام کاربری و رمز
+    const send = (url: string, data: object) =>
+      fetch(url, {
+        method: 'POST',
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json',
+          Accept: 'application/json',
+          'X-XSRF-TOKEN': xsrf,
+        },
+        body: JSON.stringify(data),
+      })
+    const res =
+      creds.phone === '09120000001'
+        ? await send('/api/admin/login', { username: 'sakena.admin', password: 'password' })
+        : await send('/api/login', { phone: creds.phone }).then(async (r) =>
+            r.ok ? send('/api/login/verify', { code: (await r.json()).dev_code }) : r,
+          )
 
     return { status: res.status, body: await res.text() }
   }, ownerFor(project))

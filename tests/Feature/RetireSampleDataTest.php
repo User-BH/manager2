@@ -61,7 +61,9 @@ class RetireSampleDataTest extends TestCase
         $this->app['env'] = 'production';
         $this->withoutMiddleware(PreventRequestForgery::class);
         foreach (['09120000000', '09121111101', '09122222202', '09120000001'] as $phone) {
-            $this->postJson('/api/v1/login', ['phone' => $phone, 'password' => 'password'])->assertStatus(422);
+            $this->flushSession();
+            $this->postJson('/api/v1/login', ['phone' => $phone])->assertOk();
+            $this->postJson('/api/v1/login/verify', ['code' => '000000'])->assertStatus(422);
         }
         $this->assertGuest();
         $this->assertNull(User::withoutGlobalScopes()->where('phone', '09121111101')->first());

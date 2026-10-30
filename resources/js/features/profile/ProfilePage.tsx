@@ -149,7 +149,8 @@ export function ProfilePage() {
                 <TwoFactorCard />
               </Suspense>
             )}
-            <PasswordCard />
+            {/* رمز فقط مالِ دو مدیرِ سامانه و حساب‌های نمونه‌ی Preview است؛ کاربرانِ سایت با شماره و کدِ پیامکی (۲۰۲۶-۱۰-۳۰) */}
+            {user?.usesPassword && <PasswordCard />}
             <SecurityCard />
           </div>
 

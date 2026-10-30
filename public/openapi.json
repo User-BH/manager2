@@ -354,6 +354,64 @@
                 }
             }
         },
+        "/api/v1/admin/login": {
+            "post": {
+                "summary": "api.admin.login",
+                "tags": [
+                    "admin"
+                ],
+                "parameters": [],
+                "responses": {
+                    "200": {
+                        "description": "موفق"
+                    },
+                    "422": {
+                        "description": "خطای اعتبارسنجی",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    },
+                    "429": {
+                        "description": "عبور از محدودیتِ نرخ",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    }
+                },
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "username": {
+                                        "type": "string",
+                                        "description": "نام کاربری"
+                                    },
+                                    "password": {
+                                        "type": "string",
+                                        "description": "رمز عبور"
+                                    }
+                                },
+                                "required": [
+                                    "username",
+                                    "password"
+                                ]
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/api/v1/ads": {
             "get": {
                 "summary": "api.ads.index",
@@ -3588,7 +3646,7 @@
                     }
                 },
                 "requestBody": {
-                    "required": true,
+                    "required": false,
                     "content": {
                         "application/json": {
                             "schema": {
@@ -3609,10 +3667,7 @@
                                         "type": "string",
                                         "description": "رمز عبور"
                                     }
-                                },
-                                "required": [
-                                    "password"
-                                ]
+                                }
                             }
                         }
                     }
@@ -6354,165 +6409,6 @@
                 }
             }
         },
-        "/api/v1/password/forgot": {
-            "post": {
-                "summary": "api.password.forgot",
-                "tags": [
-                    "password"
-                ],
-                "parameters": [],
-                "responses": {
-                    "200": {
-                        "description": "موفق"
-                    },
-                    "422": {
-                        "description": "خطای اعتبارسنجی",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/Error"
-                                }
-                            }
-                        }
-                    },
-                    "429": {
-                        "description": "عبور از محدودیتِ نرخ",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/Error"
-                                }
-                            }
-                        }
-                    }
-                },
-                "requestBody": {
-                    "required": true,
-                    "content": {
-                        "application/json": {
-                            "schema": {
-                                "type": "object",
-                                "properties": {
-                                    "phone": {
-                                        "type": "string",
-                                        "description": "شماره موبایل"
-                                    }
-                                },
-                                "required": [
-                                    "phone"
-                                ]
-                            }
-                        }
-                    }
-                }
-            }
-        },
-        "/api/v1/password/forgot/verify": {
-            "post": {
-                "summary": "api.password.forgot.verify",
-                "tags": [
-                    "password"
-                ],
-                "parameters": [],
-                "responses": {
-                    "200": {
-                        "description": "موفق"
-                    },
-                    "422": {
-                        "description": "خطای اعتبارسنجی",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/Error"
-                                }
-                            }
-                        }
-                    },
-                    "429": {
-                        "description": "عبور از محدودیتِ نرخ",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/Error"
-                                }
-                            }
-                        }
-                    }
-                },
-                "requestBody": {
-                    "required": true,
-                    "content": {
-                        "application/json": {
-                            "schema": {
-                                "type": "object",
-                                "properties": {
-                                    "code": {
-                                        "type": "string",
-                                        "description": "کد"
-                                    }
-                                },
-                                "required": [
-                                    "code"
-                                ]
-                            }
-                        }
-                    }
-                }
-            }
-        },
-        "/api/v1/password/reset": {
-            "post": {
-                "summary": "api.password.reset",
-                "tags": [
-                    "password"
-                ],
-                "parameters": [],
-                "responses": {
-                    "200": {
-                        "description": "موفق"
-                    },
-                    "422": {
-                        "description": "خطای اعتبارسنجی",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/Error"
-                                }
-                            }
-                        }
-                    },
-                    "429": {
-                        "description": "عبور از محدودیتِ نرخ",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/Error"
-                                }
-                            }
-                        }
-                    }
-                },
-                "requestBody": {
-                    "required": true,
-                    "content": {
-                        "application/json": {
-                            "schema": {
-                                "type": "object",
-                                "properties": {
-                                    "password": {
-                                        "type": "string",
-                                        "description": "رمز عبور"
-                                    }
-                                },
-                                "required": [
-                                    "password"
-                                ]
-                            }
-                        }
-                    }
-                }
-            }
-        },
         "/api/v1/pay/{bill}": {
             "get": {
                 "summary": "api.pay.show",
@@ -7221,6 +7117,60 @@
             },
             "delete": {
                 "summary": "api.profile.avatar.destroy",
+                "tags": [
+                    "profile"
+                ],
+                "parameters": [],
+                "responses": {
+                    "200": {
+                        "description": "موفق"
+                    },
+                    "422": {
+                        "description": "خطای اعتبارسنجی",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    },
+                    "429": {
+                        "description": "عبور از محدودیتِ نرخ",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "وارد نشده‌اید",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "دسترسی ندارید",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/profile/confirm-code": {
+            "post": {
+                "summary": "api.profile.confirm-code",
                 "tags": [
                     "profile"
                 ],
@@ -8227,10 +8177,6 @@
                                         "type": "string",
                                         "description": "شماره تلفن"
                                     },
-                                    "password": {
-                                        "type": "string",
-                                        "description": "رمز عبور"
-                                    },
                                     "accept_terms": {
                                         "type": "string"
                                     }
@@ -8239,7 +8185,6 @@
                                     "first_name",
                                     "last_name",
                                     "phone",
-                                    "password",
                                     "accept_terms"
                                 ]
                             }
@@ -14607,9 +14552,6 @@
                                     },
                                     "phonebook_id": {
                                         "type": "string"
-                                    },
-                                    "otp_disabled": {
-                                        "type": "boolean"
                                     }
                                 },
                                 "required": [

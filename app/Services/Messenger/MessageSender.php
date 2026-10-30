@@ -12,6 +12,7 @@ use App\Models\Message;
 use App\Models\Unit;
 use App\Models\User;
 use App\Support\PrivateFiles;
+use App\Support\PublicIdentity;
 use App\Support\Uploads;
 use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Http\UploadedFile;
@@ -154,7 +155,7 @@ class MessageSender
                     'attachment_path' => $copy,
                     'attachment_name' => $copy !== null ? $source->attachment_name : null,
                     'attachment_kind' => $copy !== null ? $source->attachment_kind : null,
-                    'author_name' => $user->name,
+                    'author_name' => PublicIdentity::nameOf($user),
                     'author_role' => $user->role->value,
                     'unit_label' => $this->unitLabel($user),
                     'forwarded_from_id' => $source->id,
@@ -201,7 +202,7 @@ class MessageSender
                 'attachment_path' => $path,
                 'attachment_name' => $attachment ? Uploads::safeOriginalName($attachment) : null,
                 'attachment_kind' => $attachment ? $this->attachmentKind($attachment, $data) : null,
-                'author_name' => $user->name,
+                'author_name' => PublicIdentity::nameOf($user),
                 'author_role' => $user->role->value,
                 'unit_label' => $this->unitLabel($user),
             ]);

@@ -13,6 +13,15 @@ use Illuminate\Validation\Rules\Password;
 class UpdatePasswordRequest extends BaseFormRequest
 {
     /**
+     * فقط حسابِ رمزدار (۲۰۲۶-۱۰-۳۰): دو مدیرِ سامانه و حساب‌های نمونه‌ی Preview. کاربرانِ سایت رمز ندارند — پیش از
+     * اعتبارسنجی ۴۰۳، تا پاسخِ «رمزِ ضعیف» هم وانمود نکند که چنین مسیری برایشان هست.
+     */
+    public function authorize(): bool
+    {
+        return $this->user()?->usesPassword() === true;
+    }
+
+    /**
      * @return array<string, mixed>
      */
     public function rules(): array

@@ -262,8 +262,10 @@ class PreviewEnvironmentTest extends TestCase
         $access()->postJson('/api/v1/register', ['phone' => '09129876543', 'first_name' => 'مریم', 'last_name' => 'کاظمی',
             'password' => 'secret123', 'password_confirmation' => 'secret123', 'accept_terms' => true])
             ->assertStatus(422)->assertJsonPath('errors.phone.0', AuthController::PREVIEW_USERNAME_ONLY);
-        $access()->postJson('/api/v1/password/forgot', ['phone' => '09121234567'])
-            ->assertStatus(422)->assertJsonPath('errors.phone.0', AuthController::PREVIEW_USERNAME_ONLY);
+        // درِ مدیرانِ سایت اصلی هم در Preview نیست — نه صفحه، نه API
+        $access()->get('/auth/admin')->assertRedirect('/auth');
+        $access()->postJson('/api/v1/admin/login', ['username' => 'demo.single', 'password' => 'secret123'])
+            ->assertStatus(422)->assertJsonPath('errors.username.0', AuthController::PREVIEW_USERNAME_ONLY);
         $this->assertGuest();
         $this->assertSame(0, OtpCode::count(), 'Preview برای شماره کد ساخت.');
         $this->assertSame(1, User::withoutGlobalScopes()->where('is_demo', false)->count(), 'Preview حسابِ واقعی ساخت.');

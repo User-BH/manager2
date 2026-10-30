@@ -64,20 +64,25 @@ class CreateAdminCommandTest extends TestCase
         $this->artisan('admin:create', ['--phone' => '09121234567', '--first-name' => 'سارا', '--last-name' => 'نوری', '--password' => 'third-pass-3'])
             ->assertFailed();
 
+        // نام کاربریِ درِ `/auth/admin` (۲۰۲۶-۱۰-۳۰) — بی‌حساسیت به بزرگی و کوچکیِ حروف
+        $this->artisan('admin:username', ['phone' => '09121234567', 'username' => 'vahidDeep'])->assertSuccessful();
+        $this->artisan('admin:username', ['phone' => '09121234568', 'username' => 'aliBH'])->assertSuccessful();
+        $this->artisan('admin:username', ['phone' => '09121234568', 'username' => 'VAHIDDEEP'])->assertFailed();
+
         $admins = User::where('role', UserRole::SuperAdmin)->orderBy('phone')->get();
         $this->assertSame(['09121234567', '09121234568'], $admins->pluck('phone')->all());
-        $this->assertSame([null, null], $admins->pluck('username')->all());
+        $this->assertSame(['vahiddeep', 'alibh'], $admins->pluck('username')->all());
 
-        foreach ([[$admins[0], 'first-pass-1', 'second-pass-2'], [$admins[1], 'second-pass-2', 'first-pass-1']] as [$admin, $password, $other]) {
+        foreach ([[$admins[0], 'vahidDeep', 'first-pass-1', 'second-pass-2'], [$admins[1], 'aliBH', 'second-pass-2', 'first-pass-1']] as [$admin, $username, $password, $other]) {
             $this->assertTrue(Hash::check($password, $admin->password));
             $secret = app(AdminTwoFactor::class)->begin($admin)['secret'];
             app(AdminTwoFactor::class)->confirm($admin->fresh(), Totp::at($secret, Totp::step() - 1));
 
             $this->flushSession();
             $this->app['auth']->forgetGuards();
-            // رمزِ مدیرِ دیگر با شماره‌ی این مدیر وارد نمی‌کند
-            $this->postJson('/api/v1/login', ['phone' => $admin->phone, 'password' => $other])->assertStatus(422);
-            $this->postJson('/api/v1/login', ['phone' => $admin->phone, 'password' => $password])
+            // رمزِ مدیرِ دیگر با نام کاربریِ این مدیر وارد نمی‌کند
+            $this->postJson('/api/v1/admin/login', ['username' => $username, 'password' => $other])->assertStatus(422);
+            $this->postJson('/api/v1/admin/login', ['username' => $username, 'password' => $password])
                 ->assertOk()->assertJson(['twoFactorRequired' => true])->assertJsonMissing(['otpRequired' => true]);
             $this->postJson('/api/v1/login/two-factor', ['code' => Totp::at($secret, Totp::step())])
                 ->assertOk()->assertJsonPath('user.id', $admin->id);

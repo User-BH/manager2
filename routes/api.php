@@ -83,8 +83,8 @@ use Illuminate\Support\Facades\Route;
 // --- مهمان ---
 // محدودیت نرخ (تعریف در AppServiceProvider) جلوی حدس‌زدن رمز و کد، و
 // مصرف بی‌رویه‌ی اعتبار پیامک را می‌گیرد.
-// گام ۱ ورود: رمز عبور. رمز درست پیامک می‌فرستد و منتظر مرحله‌ی دوم می‌ماند
-// (مگر دستگاه مورداعتماد باشد که هر دو مرحله را رد می‌کند).
+// گام ۱ ورود: شماره (کدِ پیامکی، بی رمز — ۲۰۲۶-۱۰-۳۰) یا نام کاربری + رمزِ حسابِ نمونه‌ی Preview
+// (دستگاهِ مورداعتماد گامِ کد را رد می‌کند).
 Route::post('login', [AuthController::class, 'login'])
     ->middleware('throttle:login')->name('login');
 // گام ۲ ورود: تایید کد پیامکی
@@ -96,13 +96,10 @@ Route::post('login/resend', [AuthController::class, 'loginResend'])
 Route::post('login/two-factor', [AuthController::class, 'loginTwoFactor'])
     ->middleware('throttle:two-factor-login')->name('login.two-factor');
 
-// فراموشی رمز: شماره + نام مجتمع + تاریخ تولد ← کد پیامکی ← رمز تازه
-Route::post('password/forgot', [AuthController::class, 'forgotPassword'])
-    ->middleware('throttle:otp-request')->name('password.forgot');
-Route::post('password/forgot/verify', [AuthController::class, 'forgotVerify'])
-    ->middleware('throttle:otp-verify')->name('password.forgot.verify');
-Route::post('password/reset', [AuthController::class, 'resetPassword'])
-    ->middleware('throttle:otp-verify')->name('password.reset');
+// ورودِ دو مدیرِ سامانه (۲۰۲۶-۱۰-۳۰): نام کاربری + رمز ← کدِ Authenticator (`login/two-factor`). «فراموشیِ رمز» دیگر نیست:
+// کاربران رمز ندارند و رمزِ مدیر فقط از شل ِ سرور (`admin:password`) عوض می‌شود.
+Route::post('admin/login', [AuthController::class, 'adminLogin'])
+    ->middleware('throttle:login')->name('admin.login');
 
 // بازیابیِ حساب بی شماره‌ی قبلی (مرحلهٔ ۹): کدِ شماره‌ی تازه ← ثبتِ درخواست؛ تصمیم با ادمینِ کل
 Route::post('account-recovery/code', [AccountRecoveryController::class, 'code'])
@@ -421,6 +418,7 @@ Route::middleware(['auth', 'presence'])->group(function () {
     Route::delete('profile/avatar', [AvatarController::class, 'destroy'])->name('profile.avatar.destroy');
     // سرو برای کسی که حقِ دیدن دارد — `ProfilePhoto::canView`
     Route::get('users/{user}/avatar', [AvatarController::class, 'show'])->name('users.avatar');
+    // رمز فقط مالِ دو مدیرِ سامانه و حساب‌های نمونه‌ی Preview است (۲۰۲۶-۱۰-۳۰) — بقیه ۴۰۳ در خودِ کنترلر
     Route::put('profile/password', [ProfileController::class, 'updatePassword'])
         ->middleware('throttle:password-change')->name('profile.password');
     // تغییرِ شماره توسطِ خودِ کاربر: رمز دوباره + کدِ پیامکیِ شماره‌ی تازه (مرحلهٔ ۹)
@@ -445,6 +443,9 @@ Route::middleware(['auth', 'presence'])->group(function () {
         ->name('profile.confirm-password.status');
     Route::post('profile/confirm-password', [SecurityController::class, 'confirmPassword'])
         ->middleware('throttle:reauth')->name('profile.confirm-password');
+    // تأییدِ دوباره‌ی کاربرانِ بی رمز: کدِ پیامکی به شماره‌ی خودِ حساب (۲۰۲۶-۱۰-۳۰)
+    Route::post('profile/confirm-code', [SecurityController::class, 'sendConfirmationCode'])
+        ->middleware('throttle:otp-request')->name('profile.confirm-code');
     Route::middleware('reauth')->group(function () {
         Route::delete('profile/sessions/{session}', [SecurityController::class, 'destroySession'])
             ->name('profile.sessions.destroy');

@@ -52,6 +52,7 @@ class DemoSeeder extends Seeder
         $prevPeriod = Jalali::shiftPeriod($period, -1);
 
         // --- System super-admin (not bound to any complex) ---
+        // ورودِ مدیرِ سامانه فقط از `/auth/admin` با نام کاربری (۲۰۲۶-۱۰-۳۰)؛ `username` عمداً `fillable` نیست
         User::create([
             'name' => 'مدیر سیستم',
             'email' => 'admin@system.test',
@@ -59,7 +60,7 @@ class DemoSeeder extends Seeder
             'password' => Hash::make('password'),
             'role' => UserRole::SuperAdmin,
             'is_active' => true,
-        ]);
+        ])->forceFill(['username' => 'sakena.admin'])->save();
 
         // --- ثبت‌نامِ اولیه: بی‌مجتمع، مثلِ کسی که خودش ثبت‌نام کرده ---
         User::create([

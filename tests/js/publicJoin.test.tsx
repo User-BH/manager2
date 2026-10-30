@@ -109,7 +109,8 @@ describe('کدِ QR در نشانی', () => {
       'components/LoginForm.tsx',
       'VerifyOtpPage.tsx',
       'AuthPage.tsx',
-      'ForgotPasswordPage.tsx',
+      // ثبت‌نام همان ورود است (۲۰۲۶-۱۰-۳۰)؛ «فراموشیِ رمز» دیگر نیست
+      'components/RegisterForm.tsx',
     ]) {
       const code = readFileSync(
         resolve(__dirname, `../../resources/js/features/auth/${file}`),
@@ -245,7 +246,7 @@ describe('ثبت‌نام از پیوندِ دعوت (بندِ ۹۰)', () => {
   async function registerThroughForm(user: ReturnType<typeof userEvent.setup>) {
     render(
       <MemoryRouter>
-        <RegisterForm onRegistered={vi.fn()} />
+        <RegisterForm />
       </MemoryRouter>,
     )
     routes.map = {
@@ -254,8 +255,6 @@ describe('ثبت‌نام از پیوندِ دعوت (بندِ ۹۰)', () => {
     await user.type(screen.getByPlaceholderText('مثلاً علی'), 'علی')
     await user.type(screen.getByPlaceholderText('مثلاً محمدی'), 'محمدی')
     await user.type(screen.getByPlaceholderText('۰۹xxxxxxxxx'), '09123456789')
-    await user.type(screen.getByPlaceholderText('حداقل ۸ نویسه'), 'Secret123')
-    await user.type(screen.getByPlaceholderText('تکرار رمز عبور'), 'Secret123')
     await user.click(screen.getByRole('checkbox'))
     await user.click(screen.getByRole('button', { name: /دریافت کد تایید/ }))
     await screen.findByText(/کد شش‌رقمی به شماره/)

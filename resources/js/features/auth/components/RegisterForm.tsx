@@ -1,33 +1,22 @@
 import { useState } from 'react'
-import { useForm, useWatch } from 'react-hook-form'
+import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { motion } from 'framer-motion'
-import {
-  AlertCircle,
-  ArrowRight,
-  Loader2,
-  Lock,
-  Phone,
-  ShieldCheck,
-  User,
-  UserPlus,
-} from 'lucide-react'
+import { AlertCircle, ArrowRight, Loader2, Phone, ShieldCheck, User, UserPlus } from 'lucide-react'
 import { RestrictedField } from './RestrictedField'
-import { PasswordStrength } from './PasswordStrength'
 import { OtpBoxes } from './OtpBoxes'
 import { registerSchema, type RegisterFormValues } from '../schemas/registerSchema'
-import { filterAsciiPassword, filterHints, filterMobile } from '@/shared/lib/inputFilters'
+import { filterHints, filterMobile } from '@/shared/lib/inputFilters'
 import { filterPersianName, PERSIAN_NAME_HINT } from '@/shared/lib/personName'
 import { toastTopSuccess } from '@/shared/lib/alert'
 import { api, ApiError } from '@/shared/lib/api'
 import { useAutoFocus } from '@/shared/hooks'
 import { inviteToken } from '../inviteToken'
+import { afterSignIn } from '../joinCode'
 
 export function RegisterForm({
-  onRegistered,
   onOpenTerms,
 }: {
-  onRegistered?: () => void
   /** پنجره‌ی قوانین را باز می‌کند (فاز ۶)؛ بی‌آن پیوند مثلِ یک پیوندِ معمولی رفتار می‌کند. */
   onOpenTerms?: () => void
 }) {
@@ -68,14 +57,9 @@ export function RegisterForm({
       firstName: '',
       lastName: '',
       phone: '',
-      password: '',
-      confirmPassword: '',
       acceptTerms: false,
     },
   })
-
-  // برای سنجه‌ی قدرت، مقدار زنده‌ی رمز لازم است
-  const passwordValue = useWatch({ control, name: 'password' }) ?? ''
 
   async function onSubmit(values: RegisterFormValues) {
     setSubmitting(true)
@@ -90,8 +74,6 @@ export function RegisterForm({
             first_name: values.firstName,
             last_name: values.lastName,
             phone: values.phone,
-            password: values.password,
-            password_confirmation: values.confirmPassword,
             // پذیرش قوانین سمت سرور هم ثبت می‌شود، نه فقط تیکِ مرورگر
             accept_terms: values.acceptTerms,
           },
@@ -111,7 +93,6 @@ export function RegisterForm({
           first_name: 'firstName',
           last_name: 'lastName',
           phone: 'phone',
-          password: 'password',
           accept_terms: 'acceptTerms',
         }
 
@@ -150,12 +131,9 @@ export function RegisterForm({
         method: 'POST',
         body: token ? { code: value, invitation_token: token } : { code: value },
       })
-      toastTopSuccess(
-        joined
-          ? `ثبت‌نام کامل شد و عضوِ «${joined}» شدید. وارد حساب خود شوید.`
-          : 'ثبت‌نام شما کامل شد. برای استفاده از خدمات، وارد حساب خود شوید.',
-      )
-      onRegistered?.()
+      // شماره همین حالا ثابت شد و رمزی نیست (۲۰۲۶-۱۰-۳۰): سرور همان‌جا وارد کرده؛ مستقیم به داشبورد
+      toastTopSuccess(joined ? `ثبت‌نام کامل شد و عضوِ «${joined}» شدید.` : 'ثبت‌نام شما کامل شد.')
+      window.location.replace(afterSignIn())
     } catch (err) {
       setOtpError(
         err instanceof ApiError
@@ -303,35 +281,6 @@ export function RegisterForm({
         error={errors.phone?.message}
         filter={filterMobile}
         hint={filterHints.mobile}
-      />
-
-      <div>
-        <RestrictedField
-          control={control}
-          name="password"
-          label="رمز عبور"
-          icon={Lock}
-          type="password"
-          placeholder="حداقل ۸ نویسه"
-          dir="ltr"
-          error={errors.password?.message}
-          filter={filterAsciiPassword}
-          hint={filterHints.asciiPassword}
-        />
-        <PasswordStrength value={passwordValue} />
-      </div>
-
-      <RestrictedField
-        control={control}
-        name="confirmPassword"
-        label="تکرار رمز عبور"
-        icon={Lock}
-        type="password"
-        placeholder="تکرار رمز عبور"
-        dir="ltr"
-        error={errors.confirmPassword?.message}
-        filter={filterAsciiPassword}
-        hint={filterHints.asciiPassword}
       />
 
       <div className="flex flex-col gap-1">

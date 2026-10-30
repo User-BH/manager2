@@ -70,7 +70,8 @@ class MessageResource extends JsonResource
             'body' => $deleted || ($hidden && ! $mayReadHidden) ? null : $message->body,
             'authorName' => $message->author_name,
             // تصویرِ فعلیِ نویسنده، نه نسخه‌ی کپی‌شده (بندِ ۵)؛ حسابِ حذف‌شده یا بی تصویر: null
-            'authorAvatarUrl' => ProfilePhoto::url($message->author),
+            // پیامِ مدیرِ سامانه با نامِ «تیم ساکنا» و بی تصویرِ شخصی (۲۰۲۶-۱۰-۳۰)
+            'authorAvatarUrl' => $message->author?->isSuperAdmin() ? null : ProfilePhoto::url($message->author),
             'unitLabel' => $message->unit_label,
             'isMine' => $isMine,
             'isHidden' => $hidden,

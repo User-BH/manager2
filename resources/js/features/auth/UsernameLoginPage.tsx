@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
@@ -45,10 +46,39 @@ function filterUsername(value: string) {
 
 interface LoginResponse {
   user?: CurrentUser
+  twoFactorRequired?: boolean
 }
 
-export default function UsernameLoginPage() {
-  useDocumentTitle('ورود به محیط آزمایشی')
+/**
+ * دو درِ نام کاربری + رمز، با یک فرم:
+ *
+ *   - `demo`: حساب‌های نمونه‌ی Preview روی همان `/auth` ِ Preview (`POST /login`)؛ بی عاملِ دوم.
+ *   - `admin`: دو مدیرِ سامانه روی `/auth/admin` ِ سایت اصلی (`POST /admin/login`، ۲۰۲۶-۱۰-۳۰)؛ گامِ دوم کدِ Authenticator.
+ *     هیچ پیوندی در سایت به این در نیست.
+ */
+const VARIANTS = {
+  demo: {
+    title: 'ورود به محیط آزمایشی',
+    subtitle: 'با نام کاربری و رمزِ حساب‌های نمونه',
+    endpoint: '/login',
+    extra: { identifier_type: 'username' },
+  },
+  admin: {
+    title: 'ورود مدیران سامانه',
+    subtitle: 'نام کاربری و رمز، سپس کدِ برنامه‌ی Authenticator',
+    endpoint: '/admin/login',
+    extra: {},
+  },
+} as const
+
+export default function UsernameLoginPage({
+  variant = 'demo',
+}: {
+  variant?: keyof typeof VARIANTS
+}) {
+  const config = VARIANTS[variant]
+  useDocumentTitle(config.title)
+  const navigate = useNavigate()
   const [submitting, setSubmitting] = useState(false)
   const [human, setHuman] = useState(false)
   const [credError, setCredError] = useState(false)
@@ -73,12 +103,18 @@ export default function UsernameLoginPage() {
     setCredError(false)
 
     try {
-      const data = await api<LoginResponse>('/login', {
+      const data = await api<LoginResponse>(config.endpoint, {
         method: 'POST',
-        body: { identifier_type: 'username', ...values },
+        body: { ...config.extra, ...values },
       })
 
-      // حسابِ نمونه شماره و عاملِ دوم ندارد: پاسخِ موفق همیشه خودِ کاربر است
+      // مدیرِ سامانه: گامِ دوم کدِ برنامه‌ی Authenticator — نه پیامک
+      if (data.twoFactorRequired) {
+        void navigate('/auth/two-factor', { replace: true, state: { fromPassword: true } })
+        return
+      }
+
+      // حسابِ نمونه شماره و عاملِ دوم ندارد: پاسخِ موفق خودِ کاربر است
       if (data.user) window.location.replace(afterSignIn())
     } catch (error) {
       setHuman(false)
@@ -98,7 +134,7 @@ export default function UsernameLoginPage() {
   }
 
   return (
-    <AuthScreen title="ورود به محیط آزمایشی" subtitle="با نام کاربری و رمزِ حساب‌های نمونه">
+    <AuthScreen title={config.title} subtitle={config.subtitle}>
       <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-3">
         <RestrictedField
           control={control}

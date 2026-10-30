@@ -3,6 +3,7 @@
 namespace App\Notifications;
 
 use App\Models\ComplexInvitation;
+use App\Support\PublicIdentity;
 use Illuminate\Notifications\Notification;
 
 /**
@@ -32,13 +33,18 @@ class InvitationReceivedNotification extends Notification
         $invitation = $this->invitation->loadMissing([
             'complex:id,name',
             'unit' => fn ($q) => $q->withoutGlobalScopes()->select('id', 'unit_number'),
-            'inviter' => fn ($q) => $q->withoutGlobalScopes()->select('id', 'name'),
+            'inviter' => fn ($q) => $q->withoutGlobalScopes()->select('id', 'name', 'role'),
         ]);
 
         // مجتمعِ دعوت کلیدِ خارجیِ الزامی است و همیشه هست
         $complex = $invitation->complex->name;
         $role = $invitation->role->label().($invitation->unit ? ' واحدِ '.$invitation->unit->unit_number : '');
-        $by = $invitation->inviter?->name ? $invitation->inviter->name.'، مدیرِ «'.$complex.'»،' : 'مدیرِ «'.$complex.'»';
+        // دعوتِ سوپر ادمین (مدیرِ مجتمعِ تازه) با نامِ «تیم ساکنا» (۲۰۲۶-۱۰-۳۰)
+        $by = match (true) {
+            $invitation->inviter?->isSuperAdmin() === true => PublicIdentity::TEAM,
+            filled($invitation->inviter?->name) => $invitation->inviter->name.'، مدیرِ «'.$complex.'»،',
+            default => 'مدیرِ «'.$complex.'»',
+        };
 
         return [
             'type' => 'invitation.received',

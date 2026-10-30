@@ -1,13 +1,13 @@
 import { useEffect, useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { useNavigate } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { motion } from 'framer-motion'
-import { Loader2, Lock, LogIn, Phone } from 'lucide-react'
+import { Loader2, LogIn, Phone } from 'lucide-react'
 import { RestrictedField } from './RestrictedField'
 import { SlidePuzzle } from './SlidePuzzle'
 import { loginSchema, type LoginFormValues } from '../schemas/loginSchema'
-import { filterAsciiPassword, filterHints, filterMobile } from '@/shared/lib/inputFilters'
+import { filterHints, filterMobile } from '@/shared/lib/inputFilters'
 import { toastTopError } from '@/shared/lib/alert'
 import {
   forgetRememberedPhone,
@@ -21,15 +21,16 @@ import { afterSignIn } from '../joinCode'
 
 interface LoginResponse {
   otpRequired?: boolean
-  twoFactorRequired?: boolean
   phone?: string
   dev_code?: string | null
   user?: CurrentUser
 }
 
-/** پیامِ سرور برای «شماره یا رمزِ نادرست»؛ این حالت بوردر قرمز + توست می‌گیرد. */
-const WRONG_CREDENTIALS = 'شماره تلفن یا رمز عبور نادرست است.'
-
+/**
+ * ورودِ کاربرانِ سایت با شماره و کدِ پیامکی — بی رمز (۲۰۲۶-۱۰-۳۰، بندِ ۴ ِ کارفرما). دو مدیرِ سامانه از `/auth/admin` وارد
+ * می‌شوند و این فرم هیچ پیوندی به آن ندارد. سرور برای هر شماره‌ی معتبر همان پاسخِ «کد فرستاده شد» را می‌دهد، پس این فرم
+ * هم چیزی درباره‌ی وجودِ حساب نمی‌گوید.
+ */
 export function LoginForm() {
   const navigate = useNavigate()
   const [submitting, setSubmitting] = useState(false)
@@ -47,7 +48,7 @@ export function LoginForm() {
     formState: { errors },
   } = useForm<LoginFormValues>({
     resolver: zodResolver(loginSchema),
-    defaultValues: { phone: '', password: '', remember: false },
+    defaultValues: { phone: '', remember: false },
   })
 
   /*
@@ -90,12 +91,6 @@ export function LoginForm() {
         return
       }
 
-      // سوپر ادمین با Authenticator (با شماره هم وارد شود): کدِ برنامه، نه پیامک
-      if (data.twoFactorRequired) {
-        void navigate('/auth/two-factor', { replace: true, state: { fromPassword: true } })
-        return
-      }
-
       // مرحله‌ی دوم: به صفحه‌ی تایید کد می‌رویم (داخلِ همین island است).
       // ⚠️ `replace`: کلِ جریانِ ورود **یک** ورودی در تاریخچه است که در پایان
       // جای خودش را به داشبورد می‌دهد (`authHistory.ts`).
@@ -115,17 +110,10 @@ export function LoginForm() {
       setPuzzleReset((n) => n + 1)
 
       if (error instanceof ApiError) {
+        // شماره‌ی نامعتبر اینپوت را قرمز می‌کند؛ بقیه (فاصله‌ی ارسالِ دوباره، شکستِ پیامک) فقط توست
         const phoneError = error.fieldError('phone')
-        const passwordError = error.fieldError('password')
-
-        if (phoneError === WRONG_CREDENTIALS) {
-          // شماره/رمز نادرست: هر دو اینپوت قرمز، پیام در توستِ بالا-وسط
-          setCredError(true)
-          toastTopError(WRONG_CREDENTIALS)
-        } else {
-          // سایر خطاهای سرور (حساب غیرفعال، ارسال کد ناموفق و…) هم در توست
-          toastTopError(phoneError ?? passwordError ?? error.message)
-        }
+        if (phoneError === 'شماره تلفن همراه معتبر نیست.') setCredError(true)
+        toastTopError(phoneError ?? error.message)
       } else {
         toastTopError('ارتباط با سرور برقرار نشد.')
       }
@@ -168,22 +156,6 @@ export function LoginForm() {
         hint={filterHints.mobile}
       />
 
-      <RestrictedField
-        control={control}
-        name="password"
-        label="رمز عبور"
-        icon={Lock}
-        type="password"
-        placeholder="رمز عبور خود را وارد کنید"
-        dir="ltr"
-        autoComplete="current-password"
-        error={errors.password?.message}
-        invalid={credError}
-        onUserInput={() => setCredError(false)}
-        filter={filterAsciiPassword}
-        hint={filterHints.asciiPassword}
-      />
-
       {/* پازل امنیتی «ربات نیستم» */}
       <div
         className="rounded-2xl border p-2.5"
@@ -192,24 +164,10 @@ export function LoginForm() {
         <SlidePuzzle onSolved={setHuman} resetSignal={puzzleReset} />
       </div>
 
-      <div className="flex items-center justify-between">
-        <label
-          className="flex items-center gap-2 text-xs"
-          style={{ color: 'var(--text-secondary)' }}
-        >
-          <input type="checkbox" className="h-4 w-4 rounded" {...register('remember')} />
-          مرا به‌خاطر بسپار
-        </label>
-        <Link
-          to="/auth/forgot"
-          // یک ورودی برای کلِ جریانِ ورود (مرحلهٔ ۷ · فاز ۱)
-          replace
-          className="text-xs font-medium"
-          style={{ color: 'var(--color-brand-600)' }}
-        >
-          رمز عبور را فراموش کرده‌اید؟
-        </Link>
-      </div>
+      <label className="flex items-center gap-2 text-xs" style={{ color: 'var(--text-secondary)' }}>
+        <input type="checkbox" className="h-4 w-4 rounded" {...register('remember')} />
+        مرا به‌خاطر بسپار
+      </label>
 
       <button
         type="submit"
@@ -220,12 +178,12 @@ export function LoginForm() {
         {submitting ? (
           <>
             <Loader2 size={17} className="animate-spin" />
-            در حال ورود...
+            در حال ارسال کد...
           </>
         ) : (
           <>
             <LogIn size={17} />
-            ورود به پنل
+            دریافت کد ورود
           </>
         )}
       </button>

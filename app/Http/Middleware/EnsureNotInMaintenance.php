@@ -40,7 +40,8 @@ class EnsureNotInMaintenance
      */
     public const OPEN_ROUTES = [
         'login', 'login.verify', 'login.resend', 'logout',
-        'password.forgot', 'password.forgot.verify', 'password.reset',
+        // دو مدیرِ سامانه در حالتِ تعمیر هم وارد می‌شوند (۲۰۲۶-۱۰-۳۰: درِ جدای `/auth/admin`)
+        'admin.login', 'login.two-factor',
         'csrf-token', 'features.index',
         'payments.callback', 'subscription.callback',
         'health', 'offline', 'client-errors.store', 'web-vitals.store',

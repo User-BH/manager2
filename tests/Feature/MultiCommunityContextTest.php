@@ -365,7 +365,7 @@ class MultiCommunityContextTest extends TestCase
         app(TenantContext::class)->set(null);
         $this->defaultCookies = [];
 
-        return $this->postJson('/api/v1/login', ['phone' => $user->phone, 'password' => self::PASSWORD]);
+        return $this->signInByPhone($user->phone);
     }
 
     /** مرورگری با کوکیِ سنجاقِ خودش (همان قراردادِ `SessionContextTest::device`)، با سنجاقِ خام */

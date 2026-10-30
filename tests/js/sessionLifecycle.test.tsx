@@ -26,6 +26,14 @@ const { api, onReauthRequired, onSessionEnded } = await import('@/shared/lib/api
 const { requestReauth, useReauthStore } = await import('@/shared/stores/reauthStore')
 const { isAuthMessage } = await import('@/shared/lib/authChannel')
 const { ReauthDialog } = await import('@/shared/ui/ReauthDialog')
+const { useAuthStore } = await import('@/shared/stores/authStore')
+
+/*
+ * ⚠️ خودِ `authStore` با import شدن `/me` را می‌خواند (راه‌اندازیِ اولیه). پاسخِ آن (این‌جا خطا، چون ماکِ http چیزی
+ * برنمی‌گرداند) زیرِ بارِ کلِ مجموعه دیر می‌رسید و `user` ِ آزمونِ پنجره را وسطِ کار تهی می‌کرد — پنجره از فرمِ رمز به فرمِ کد
+ * می‌پرید. پیش از هر آزمون همان خواندنِ اول باید تمام شده باشد.
+ */
+await vi.waitFor(() => expect(useAuthStore.getState().isLoading).toBe(false), { timeout: 10_000 })
 
 function httpError(status: number, data: unknown) {
   return { response: { status, data, headers: {} }, isAxiosError: true }
@@ -86,7 +94,8 @@ describe('تأییدِ دوباره‌ی رمز', () => {
     expect(useReauthStore.getState().open).toBe(false)
   })
 
-  it('پنجره رمز را به سرور می‌فرستد و درخواستِ منتظر را آزاد می‌کند', async () => {
+  it('مدیرِ سامانه: پنجره رمز را به سرور می‌فرستد و درخواستِ منتظر را آزاد می‌کند', async () => {
+    useAuthStore.setState({ user: { usesPassword: true } as never, isLoading: false })
     request.mockResolvedValueOnce({ status: 200, data: { message: 'تأیید شد.' } })
     render(<ReauthDialog />)
 
@@ -102,6 +111,29 @@ describe('تأییدِ دوباره‌ی رمز', () => {
       data: { password: 'secret123' },
     })
     await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull())
+  })
+
+  /** کاربرِ بی رمز (۲۰۲۶-۱۰-۳۰): کدِ پیامکیِ شماره‌ی خودش، نه رمز */
+  it('کاربرِ سایت: کد به شماره‌اش می‌رود و همان کد تأیید می‌کند — هیچ فیلدِ رمزی نیست', async () => {
+    useAuthStore.setState({ user: { usesPassword: false } as never, isLoading: false })
+    request
+      .mockResolvedValueOnce({ status: 200, data: { message: 'فرستاده شد', dev_code: '123456' } })
+      .mockResolvedValueOnce({ status: 200, data: { message: 'تأیید شد.' } })
+    render(<ReauthDialog />)
+
+    const waiting = requestReauth()
+
+    expect(screen.queryByLabelText('رمز عبور')).toBeNull()
+    fireEvent.click(await screen.findByRole('button', { name: 'ارسال کد' }))
+    fireEvent.change(await screen.findByLabelText('کدِ پیامک‌شده'), { target: { value: '۱۲۳۴۵۶' } })
+    fireEvent.click(screen.getByRole('button', { name: 'تأیید' }))
+
+    await expect(waiting).resolves.toBe(true)
+    expect(request.mock.calls[0][0]).toMatchObject({ url: '/profile/confirm-code', method: 'POST' })
+    expect(request.mock.calls[1][0]).toMatchObject({
+      url: '/profile/confirm-password',
+      data: { code: '123456' },
+    })
   })
 })
 

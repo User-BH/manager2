@@ -12,7 +12,7 @@ import { expect, test, type Browser, type Page } from '@playwright/test'
  * ۳. خروج در یک تب، تبِ دیگرِ همان مرورگر را هم به صفحه‌ی ورود می‌برد.
  *
  * ─── پیش‌نیازِ محیط ────────────────────────────────────────────────────────
- * `DemoSeeder` و `otp_disabled` (مثلِ بقیه)، و `AUTH_PASSWORD_TIMEOUT=5`:
+ * `DemoSeeder` (مثلِ بقیه)، و `AUTH_PASSWORD_TIMEOUT=5`:
  * ورود خودش رمز را تأیید می‌کند، پس بدونِ پنجره‌ی کوتاه، پنجره‌ی رمز هرگز
  * دیده نمی‌شد و بخشِ دومِ آزمون چیزی نمی‌سنجید.
  */
@@ -24,8 +24,6 @@ const TENANTS: Record<string, string> = {
   webkit: '09122222206',
 }
 
-const PASSWORD = 'password'
-
 async function signIn(page: Page, phone: string): Promise<void> {
   await page.goto('/auth')
 
@@ -34,20 +32,29 @@ async function signIn(page: Page, phone: string): Promise<void> {
       await fetch('/api/csrf-token', { credentials: 'include' })
       const xsrf = decodeURIComponent((document.cookie.match(/XSRF-TOKEN=([^;]+)/) ?? [])[1] ?? '')
 
-      const res = await fetch('/api/login', {
-        method: 'POST',
-        credentials: 'include',
-        headers: {
-          'Content-Type': 'application/json',
-          Accept: 'application/json',
-          'X-XSRF-TOKEN': xsrf,
-        },
-        body: JSON.stringify(creds),
-      })
+      // ورودِ بی‌رمز (۲۰۲۶-۱۰-۳۰): شماره، سپس کدِ پیامکی (با درایورِ log کد در همان پاسخ است)؛
+      // سوپر ادمینِ دمو از درِ مدیران با نام کاربری و رمز
+      const send = (url: string, data: object) =>
+        fetch(url, {
+          method: 'POST',
+          credentials: 'include',
+          headers: {
+            'Content-Type': 'application/json',
+            Accept: 'application/json',
+            'X-XSRF-TOKEN': xsrf,
+          },
+          body: JSON.stringify(data),
+        })
+      const res =
+        creds.phone === '09120000001'
+          ? await send('/api/admin/login', { username: 'sakena.admin', password: 'password' })
+          : await send('/api/login', { phone: creds.phone }).then(async (r) =>
+              r.ok ? send('/api/login/verify', { code: (await r.json()).dev_code }) : r,
+            )
 
       return res.status
     },
-    { phone, password: PASSWORD },
+    { phone },
   )
 
   expect(status).toBe(200)
@@ -72,7 +79,7 @@ async function freshBrowser(browser: Browser, phone: string): Promise<Page> {
 test.describe.configure({ mode: 'serial' })
 
 test.describe('امنیتِ نشست', () => {
-  test('خروج از همه‌ی دستگاه‌های دیگر، با تأییدِ رمز', async ({ browser }, testInfo) => {
+  test('خروج از همه‌ی دستگاه‌های دیگر، با تأییدِ کدِ پیامکی', async ({ browser }, testInfo) => {
     const phone = TENANTS[testInfo.project.name] ?? '09122222202'
 
     const laptop = await freshBrowser(browser, phone)
@@ -87,13 +94,17 @@ test.describe('امنیتِ نشست', () => {
     await laptop.getByRole('button', { name: 'خروج از همه‌ی دستگاه‌های دیگر' }).click()
     await laptop.getByRole('button', { name: 'خارج کن' }).click()
 
-    const dialog = laptop.getByRole('dialog', { name: 'تأییدِ رمز عبور' })
+    const dialog = laptop.getByRole('dialog', { name: 'تأییدِ دوباره' })
     await expect(
       dialog,
-      'پنجره‌ی رمز باز نشد؛ AUTH_PASSWORD_TIMEOUT=5 برای این آزمون لازم است.',
+      'پنجره‌ی تأیید باز نشد؛ AUTH_PASSWORD_TIMEOUT=5 برای این آزمون لازم است.',
     ).toBeVisible()
 
-    await dialog.getByLabel('رمز عبور').fill(PASSWORD)
+    // کاربر رمز ندارد (۲۰۲۶-۱۰-۳۰): کدی به شماره‌ی خودش؛ با درایورِ log کد در همان پنجره است
+    await dialog.getByRole('button', { name: 'ارسال کد' }).click()
+    const hint = dialog.getByText(/کدِ محیطِ آزمایشی:/)
+    const code = ((await hint.innerText()).match(/\d{6}/) ?? [''])[0]
+    await dialog.getByLabel('کدِ پیامک‌شده').fill(code)
 
     const ended = laptop.waitForResponse(
       (r) => r.url().includes('/profile/sessions/end-others') && r.status() === 200,

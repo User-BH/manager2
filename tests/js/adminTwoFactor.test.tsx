@@ -62,7 +62,7 @@ Object.defineProperty(window, 'location', {
 })
 
 const { default: TwoFactorLoginPage } = await import('@/features/auth/TwoFactorLoginPage')
-const { LoginForm } = await import('@/features/auth/components/LoginForm')
+const { default: UsernameLoginPage } = await import('@/features/auth/UsernameLoginPage')
 const { default: TwoFactorCard } = await import('@/features/profile/TwoFactorCard')
 
 function renderLogin(state: unknown) {
@@ -70,7 +70,7 @@ function renderLogin(state: unknown) {
     <MemoryRouter initialEntries={[{ pathname: '/auth/two-factor', state }]}>
       <Routes>
         <Route path="/auth/two-factor" element={<TwoFactorLoginPage />} />
-        <Route path="/auth" element={<p>صفحه‌ی ورود</p>} />
+        <Route path="/auth/admin" element={<p>درِ ورودِ مدیران</p>} />
       </Routes>
     </MemoryRouter>,
   )
@@ -91,10 +91,10 @@ beforeEach(() => {
 })
 
 describe('گامِ دومِ ورود (TOTP)', () => {
-  it('بی گامِ رمز به صفحه‌ی ورود برمی‌گردد', () => {
+  it('بی گامِ رمز به درِ ورودِ مدیران برمی‌گردد', () => {
     renderLogin(null)
 
-    expect(screen.getByText('صفحه‌ی ورود')).toBeInTheDocument()
+    expect(screen.getByText('درِ ورودِ مدیران')).toBeInTheDocument()
     expect(apiMock).not.toHaveBeenCalled()
   })
 
@@ -132,27 +132,30 @@ describe('گامِ دومِ ورود (TOTP)', () => {
   })
 })
 
-describe('فرمِ شماره', () => {
-  it('سوپر ادمین با شماره و رمز به گامِ کدِ برنامه می‌رود، نه کدِ پیامکی (۲۰۲۶-۱۰-۲۹، بندِ ۲)', async () => {
+describe('درِ ورودِ مدیران (/auth/admin)', () => {
+  it('سوپر ادمین با نام کاربری و رمز به گامِ کدِ برنامه می‌رود، نه کدِ پیامکی (۲۰۲۶-۱۰-۳۰، بندِ ۴)', async () => {
     const user = userEvent.setup()
     apiMock.mockResolvedValue({ twoFactorRequired: true })
     render(
-      <MemoryRouter initialEntries={['/auth']}>
+      <MemoryRouter initialEntries={['/auth/admin']}>
         <Routes>
-          <Route path="/auth" element={<LoginForm />} />
+          <Route path="/auth/admin" element={<UsernameLoginPage variant="admin" />} />
           <Route path="/auth/two-factor" element={<p>گام-کد-برنامه</p>} />
           <Route path="/auth/verify" element={<p>گام-پیامک</p>} />
         </Routes>
       </MemoryRouter>,
     )
 
-    await user.type(screen.getByPlaceholderText('۰۹xxxxxxxxx'), '09120000001')
+    // نام کاربری بی‌حساسیت به حروفِ بزرگ و کوچک: «vahidDeep» همان «vahiddeep» است
+    await user.type(screen.getByPlaceholderText('نام کاربری'), 'vahidDeep')
     await user.type(screen.getByPlaceholderText('رمز عبور خود را وارد کنید'), 'secret123')
     await user.click(screen.getByText('حل-پازل'))
     await user.click(screen.getByRole('button', { name: /ورود به پنل/ }))
 
     expect(await screen.findByText('گام-کد-برنامه')).toBeInTheDocument()
     expect(screen.queryByText('گام-پیامک')).toBeNull()
+    expect(apiMock.mock.calls[0][0]).toBe('/admin/login')
+    expect(apiMock.mock.calls[0][1].body).toEqual({ username: 'vahiddeep', password: 'secret123' })
   })
 })
 

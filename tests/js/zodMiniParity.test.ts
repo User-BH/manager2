@@ -4,7 +4,6 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import type { FieldValues, Resolver } from 'react-hook-form'
 import { loginSchema } from '@/features/auth/schemas/loginSchema'
 import { registerSchema } from '@/features/auth/schemas/registerSchema'
-import { forgotPhoneSchema, resetPasswordSchema } from '@/features/auth/schemas/forgotSchema'
 import { NAME_PART_MAX, PERSIAN_NAME_PATTERN, personNamePart } from '@/shared/lib/personName'
 
 /**
@@ -34,43 +33,20 @@ const legacyPhone = z
   .min(1, 'شماره موبایل را وارد کنید')
   .regex(/^09\d{9}$/, 'شماره موبایل باید به‌فرمت ۰۹xxxxxxxxx باشد')
 
-const legacyStrongPassword = z
-  .string()
-  .min(8, 'رمز عبور باید حداقل ۸ کاراکتر باشد')
-  .regex(/[A-Za-z]/, 'رمز باید شامل حرف انگلیسی باشد')
-  .regex(/\d/, 'رمز باید شامل عدد باشد')
-
 const legacy = {
+  // بی رمز (۲۰۲۶-۱۰-۳۰): ورود فقط شماره، ثبت‌نام بی رمز و تکرارش
   login: z.object({
     phone: legacyPhone,
-    password: z.string().min(6, 'رمز عبور باید حداقل ۶ کاراکتر باشد'),
     remember: z.boolean().optional(),
   }),
-  register: z
-    .object({
-      firstName: legacyNamePart('نام'),
-      lastName: legacyNamePart('نام خانوادگی'),
-      phone: legacyPhone,
-      password: legacyStrongPassword,
-      confirmPassword: z.string().min(1, 'تکرار رمز عبور را وارد کنید'),
-      acceptTerms: z.boolean().refine((val) => val === true, {
-        message: 'برای ادامه باید قوانین را بپذیرید',
-      }),
-    })
-    .refine((data) => data.password === data.confirmPassword, {
-      message: 'رمز عبور و تکرار آن یکسان نیستند',
-      path: ['confirmPassword'],
+  register: z.object({
+    firstName: legacyNamePart('نام'),
+    lastName: legacyNamePart('نام خانوادگی'),
+    phone: legacyPhone,
+    acceptTerms: z.boolean().refine((val) => val === true, {
+      message: 'برای ادامه باید قوانین را بپذیرید',
     }),
-  forgotPhone: z.object({ phone: legacyPhone }),
-  reset: z
-    .object({
-      password: legacyStrongPassword,
-      confirmPassword: z.string().min(1, 'تکرار رمز عبور را وارد کنید'),
-    })
-    .refine((data) => data.password === data.confirmPassword, {
-      message: 'رمز عبور و تکرار آن یکسان نیستند',
-      path: ['confirmPassword'],
-    }),
+  }),
 }
 
 /* ── پیکره‌ی ورودی ─────────────────────────────────────────────────────── */
@@ -89,30 +65,6 @@ const PHONES: unknown[] = [
   null,
   undefined,
   9123456789,
-]
-const LOGIN_PASSWORDS: unknown[] = [
-  'secret1',
-  '',
-  '12345',
-  '123456',
-  '      ',
-  'رمزفارسی',
-  null,
-  123456,
-]
-const STRONG_PASSWORDS: unknown[] = [
-  'Secret123',
-  '',
-  'abc',
-  'abcdefgh',
-  '12345678',
-  'abcd1234',
-  'ABCD1234',
-  'abc 1234',
-  'Abc123',
-  'رمزعبور۱۲۳',
-  'a1'.repeat(40),
-  null,
 ]
 const NAMES: unknown[] = [
   'علی',
@@ -183,56 +135,17 @@ const PAIRS = [
     name: 'ورود (loginSchema)',
     current: loginSchema,
     legacy: legacy.login,
-    rows: corpus({ phone: PHONES, password: LOGIN_PASSWORDS, remember: BOOLS }),
+    rows: corpus({ phone: PHONES, remember: BOOLS }),
   },
   {
     name: 'ثبت‌نام (registerSchema)',
     current: registerSchema,
     legacy: legacy.register,
-    rows: corpus(
-      {
-        firstName: NAMES,
-        lastName: NAMES,
-        phone: PHONES,
-        password: STRONG_PASSWORDS,
-        confirmPassword: ['Secret123', '', 'Secret124', 'secret123', null],
-        acceptTerms: BOOLS,
-      },
-      [
-        // فقط ناهمخوانیِ تکرار — پالایشِ سطحِ شیء
-        {
-          firstName: 'علی',
-          lastName: 'رضایی',
-          phone: '09123456789',
-          password: 'Secret123',
-          confirmPassword: 'Secret999',
-          acceptTerms: true,
-        },
-        // ناهمخوانی + خطای فیلد: آیا پالایشِ شیء هنوز اجرا می‌شود؟
-        {
-          firstName: 'A',
-          lastName: 'رضایی',
-          phone: '09123456789',
-          password: 'Secret123',
-          confirmPassword: 'Secret999',
-          acceptTerms: true,
-        },
-      ],
-    ),
-  },
-  {
-    name: 'فراموشیِ رمز — شماره (forgotPhoneSchema)',
-    current: forgotPhoneSchema,
-    legacy: legacy.forgotPhone,
-    rows: corpus({ phone: PHONES }),
-  },
-  {
-    name: 'فراموشیِ رمز — رمزِ تازه (resetPasswordSchema)',
-    current: resetPasswordSchema,
-    legacy: legacy.reset,
     rows: corpus({
-      password: STRONG_PASSWORDS,
-      confirmPassword: ['Secret123', '', 'Secret124', null],
+      firstName: NAMES,
+      lastName: NAMES,
+      phone: PHONES,
+      acceptTerms: BOOLS,
     }),
   },
 ]
@@ -285,19 +198,12 @@ describe('zod/mini همان رفتارِ zod ِ کامل را دارد', () => {
       issues: [': نام بیش از 60 حرف است.'],
     })
 
-    expect(outcome(loginSchema, { phone: '', password: '' })).toEqual({
+    expect(outcome(loginSchema, { phone: '' })).toEqual({
       success: false,
       issues: [
-        'password: رمز عبور باید حداقل ۶ کاراکتر باشد',
         'phone: شماره موبایل باید به‌فرمت ۰۹xxxxxxxxx باشد',
         'phone: شماره موبایل را وارد کنید',
       ],
-    })
-    expect(
-      outcome(resetPasswordSchema, { password: 'Secret123', confirmPassword: 'Secret124' }),
-    ).toEqual({
-      success: false,
-      issues: ['confirmPassword: رمز عبور و تکرار آن یکسان نیستند'],
     })
   })
 })

@@ -7,7 +7,7 @@ import { expect, test, type Browser, type Page } from '@playwright/test'
  * گوشی در آفتاب و مستأجر می‌ماند، ناوبریِ درونِ برنامه‌اش همان زمینه را می‌گیرد، و هیچ بارگذاریِ دوباره‌ای رخ نمی‌دهد
  * (سربرگِ `X-Sakena-Context` با رابطش می‌خواند). پیش از ۱۲/۱ زمینه روی ردیفِ حساب بود و گوشی هم جابه‌جا می‌شد.
  *
- * پیش‌نیاز: `DemoSeeder`، `E2eSeeder` (`TWO_DEVICES`، یکی برای هر موتور) و `otp_disabled`.
+ * پیش‌نیاز: `DemoSeeder`، `E2eSeeder` (`TWO_DEVICES`، یکی برای هر موتور).
  */
 
 const TWO_DEVICES: Record<string, string> = {
@@ -31,19 +31,28 @@ async function signedIn(browser: Browser, phone: string): Promise<Page> {
     async (creds) => {
       await fetch('/api/csrf-token', { credentials: 'include' })
       const xsrf = decodeURIComponent((document.cookie.match(/XSRF-TOKEN=([^;]+)/) ?? [])[1] ?? '')
-      const res = await fetch('/api/login', {
-        method: 'POST',
-        credentials: 'include',
-        headers: {
-          'Content-Type': 'application/json',
-          Accept: 'application/json',
-          'X-XSRF-TOKEN': xsrf,
-        },
-        body: JSON.stringify(creds),
-      })
+      // ورودِ بی‌رمز (۲۰۲۶-۱۰-۳۰): شماره، سپس کدِ پیامکی (با درایورِ log کد در همان پاسخ است)؛
+      // سوپر ادمینِ دمو از درِ مدیران با نام کاربری و رمز
+      const send = (url: string, data: object) =>
+        fetch(url, {
+          method: 'POST',
+          credentials: 'include',
+          headers: {
+            'Content-Type': 'application/json',
+            Accept: 'application/json',
+            'X-XSRF-TOKEN': xsrf,
+          },
+          body: JSON.stringify(data),
+        })
+      const res =
+        creds.phone === '09120000001'
+          ? await send('/api/admin/login', { username: 'sakena.admin', password: 'password' })
+          : await send('/api/login', { phone: creds.phone }).then(async (r) =>
+              r.ok ? send('/api/login/verify', { code: (await r.json()).dev_code }) : r,
+            )
       return res.status
     },
-    { phone, password: 'password' },
+    { phone },
   )
   expect(status).toBe(200)
   return page

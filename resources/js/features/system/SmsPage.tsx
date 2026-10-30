@@ -21,7 +21,6 @@ const smsSchema = z.object({
   pattern_code: z.string().max(50).optional(),
   pattern_variable: z.string().max(50).optional(),
   phonebook_id: z.string().max(20).optional(),
-  otp_disabled: z.boolean().optional(),
 })
 
 type SmsFormValues = z.infer<typeof smsSchema>
@@ -279,37 +278,9 @@ export function SmsPage() {
             )}
 
             {/*
-              ورودِ بدونِ کدِ پیامکی: مرحله‌ی دومِ ورود کلاً حذف می‌شود و کاربر
-              پس از رمز مستقیم وارد داشبورد می‌شود. برای وقتی پنلِ پیامک هنوز
-              آماده نیست؛ امنیتِ ورود را پایین می‌آورد.
+              «ورود بدون کد» برداشته شد (۲۰۲۶-۱۰-۳۰): کاربران رمز ندارند، پس ورودِ بی کد یعنی ورود با دانستنِ یک شماره.
+              تا پنلِ پیامک وصل نیست، ورودِ کاربرانِ سایت اصلی ممکن نیست؛ دو مدیر با Authenticator وارد می‌شوند.
             */}
-            <label
-              className="flex cursor-pointer items-start gap-3 rounded-2xl border p-4"
-              style={{
-                borderColor: 'color-mix(in srgb, var(--color-warning) 45%, var(--border-subtle))',
-                backgroundColor: 'color-mix(in srgb, var(--color-warning) 8%, transparent)',
-              }}
-            >
-              <input
-                type="checkbox"
-                className="mt-0.5 h-4 w-4 rounded"
-                {...register('otp_disabled')}
-              />
-              <span>
-                <span className="text-[13px] font-bold" style={{ color: 'var(--text-primary)' }}>
-                  ورود بدون کد یک‌بارمصرف (OTP)
-                </span>
-                <span
-                  className="mt-1 block text-[11.5px] leading-6"
-                  style={{ color: 'var(--text-tertiary)' }}
-                >
-                  با روشن‌کردنِ این گزینه، مرحله‌ی دومِ ورود حذف می‌شود و کاربر پس از واردکردنِ رمز
-                  مستقیم وارد داشبورد می‌شود. فقط زمانی که پنلِ پیامک هنوز آماده نیست از آن استفاده
-                  کنید.
-                </span>
-              </span>
-            </label>
-
             <div>
               <button
                 type="submit"

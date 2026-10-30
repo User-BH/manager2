@@ -347,39 +347,39 @@ class DashboardToolsTest extends TestCase
 
     public function test_password_change_requires_the_current_password(): void
     {
-        $this->actingAs($this->resident)->putJson('/api/profile/password', [
+        $this->actingAs($this->passwordHolder())->putJson('/api/profile/password', [
             'current_password' => 'wrong-one',
             'password' => 'newsecret123',
             'password_confirmation' => 'newsecret123',
         ])->assertStatus(422)->assertJsonValidationErrors('current_password');
 
-        $this->actingAs($this->resident)->putJson('/api/profile/password', [
+        $this->actingAs($this->passwordHolder())->putJson('/api/profile/password', [
             'current_password' => 'secret123',
             'password' => 'newsecret123',
             'password_confirmation' => 'newsecret123',
         ])->assertOk();
 
-        $this->assertTrue(Hash::check('newsecret123', $this->resident->fresh()->password));
+        $this->assertTrue(Hash::check('newsecret123', $this->passwordHolder()->fresh()->password));
     }
 
     public function test_password_change_rejects_a_weak_password(): void
     {
         // فقط حرف، بدون رقم
-        $this->actingAs($this->resident)->putJson('/api/profile/password', [
+        $this->actingAs($this->passwordHolder())->putJson('/api/profile/password', [
             'current_password' => 'secret123',
             'password' => 'onlyletters',
             'password_confirmation' => 'onlyletters',
         ])->assertStatus(422)->assertJsonValidationErrors('password');
 
         // کوتاه‌تر از ۸ نویسه
-        $this->actingAs($this->resident)->putJson('/api/profile/password', [
+        $this->actingAs($this->passwordHolder())->putJson('/api/profile/password', [
             'current_password' => 'secret123',
             'password' => 'a1b2',
             'password_confirmation' => 'a1b2',
         ])->assertStatus(422)->assertJsonValidationErrors('password');
 
         // همان رمز فعلی
-        $this->actingAs($this->resident)->putJson('/api/profile/password', [
+        $this->actingAs($this->passwordHolder())->putJson('/api/profile/password', [
             'current_password' => 'secret123',
             'password' => 'secret123',
             'password_confirmation' => 'secret123',
@@ -485,5 +485,21 @@ class DashboardToolsTest extends TestCase
 
         // ۱۲/۲: درگاهِ خاموش پیش از ساختنِ هر ردیفی گفته می‌شود — نه ردیفِ «ناموفق»، نه راهِ دیگر
         $this->assertSame(0, Subscription::where('user_id', $this->admin->id)->count());
+    }
+
+    /** رمز فقط مالِ مدیرِ سامانه و حسابِ نمونه است (۲۰۲۶-۱۰-۳۰) */
+    private function passwordHolder(): User
+    {
+        return User::withoutGlobalScopes()->firstWhere('phone', '09120000099') ?? User::create([
+            'name' => 'مدیرِ سامانه', 'phone' => '09120000099', 'role' => UserRole::SuperAdmin,
+            'password' => Hash::make('secret123'), 'is_active' => true,
+        ]);
+    }
+
+    public function test_a_site_user_cannot_change_a_password_they_do_not_have(): void
+    {
+        $this->actingAs($this->resident)->putJson('/api/profile/password', [
+            'current_password' => 'secret123', 'password' => 'onlyletters', 'password_confirmation' => 'onlyletters',
+        ])->assertForbidden();
     }
 }

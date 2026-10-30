@@ -86,7 +86,8 @@ class GlobalBehaviourTest extends TestCase
         return [
             'ورود' => ['/auth'],
             'کدِ تأیید' => ['/auth/verify'],
-            'بازیابی' => ['/auth/forgot'],
+            // «فراموشیِ رمز» دیگر نیست (۲۰۲۶-۱۰-۳۰)؛ درِ مدیران جایش
+            'مدیران' => ['/auth/admin'],
         ];
     }
 

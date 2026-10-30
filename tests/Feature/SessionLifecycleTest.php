@@ -8,7 +8,6 @@ use App\Models\TrustedDevice;
 use App\Models\User;
 use App\Services\Auth\SessionRegistry;
 use App\Services\Auth\TrustedDeviceService;
-use App\Support\SystemSettings;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
@@ -42,7 +41,6 @@ class SessionLifecycleTest extends TestCase
         parent::setUp();
 
         config(['session.driver' => 'database']);
-        SystemSettings::set('otp_disabled', true);
 
         $complex = Complex::create(['type' => 'residential',
             'name' => 'مجتمع نشست', 'slug' => 'session-'.uniqid(), 'currency' => 'toman',
@@ -111,11 +109,44 @@ class SessionLifecycleTest extends TestCase
     private function signIn(User $user, bool $remember = false): array
     {
         $jar = [];
-        $this->browse($jar, 'POST', '/api/login', [
-            'phone' => $user->phone, 'password' => 'secret123', 'remember' => $remember,
-        ])->assertOk()->assertJsonPath('user.id', $user->id);
+        $this->logInto($jar, $user, $remember);
 
         return $jar;
+    }
+
+    /**
+     * ورود از همان درِ هر کس (۲۰۲۶-۱۰-۳۰): کاربر با شماره و کدِ پیامکی؛ سوپر ادمین از درِ مدیران با نام کاربری و رمز
+     * (بیرون از production بی TOTP ِ ثبت‌شده مستقیم وارد می‌شود).
+     *
+     * @param  array<string, string>  $jar
+     */
+    private function logInto(array &$jar, User $user, bool $remember = false): void
+    {
+        if ($user->isSuperAdmin()) {
+            $this->browse($jar, 'POST', '/api/admin/login', ['username' => $user->username, 'password' => 'secret123'])
+                ->assertOk()->assertJsonPath('user.id', $user->id);
+
+            return;
+        }
+
+        $code = $this->browse($jar, 'POST', '/api/login', ['phone' => $user->phone, 'remember' => $remember])
+            ->assertOk()->json('dev_code');
+        $this->browse($jar, 'POST', '/api/login/verify', ['code' => $code])
+            ->assertOk()->assertJsonPath('user.id', $user->id);
+        // بی این، ورودِ پیاپیِ همین شماره پشتِ فاصله‌ی ارسالِ مجدد می‌ماند
+        $this->travel(61)->seconds();
+    }
+
+    /** تنها کسی که هنوز رمز دارد (کاربرانِ سامانه بی‌رمزند) */
+    private function admin(): User
+    {
+        $admin = User::create([
+            'name' => 'مدیرِ سامانه', 'phone' => '09120000033',
+            'role' => UserRole::SuperAdmin, 'password' => Hash::make('secret123'), 'is_active' => true,
+        ]);
+        $admin->forceFill(['username' => 'sakena.admin'])->save();
+
+        return $admin;
     }
 
     /** @param  array<string, string>  $jar */
@@ -147,7 +178,7 @@ class SessionLifecycleTest extends TestCase
         $jar = [config('session.cookie') => Str::random(40)];
         $inFlight = $jar; // درخواستِ تبِ کهنه پیش از ورود رفته است
 
-        $this->browse($jar, 'POST', '/api/login', ['phone' => $user->phone, 'password' => 'secret123'])->assertOk();
+        $this->logInto($jar, $user);
         // پاسخِ مهمان (`/api/me` برای نشستِ ناشناخته کاربر ندارد) — همان چیزی که تبِ کهنه می‌گیرد
         $late = $this->browse($inFlight, 'GET', '/api/me');
         $this->assertNull($late->json('user.id'));
@@ -161,10 +192,11 @@ class SessionLifecycleTest extends TestCase
 
     public function test_changing_the_password_signs_out_a_stolen_session(): void
     {
-        $victim = $this->signIn($this->user);
-        $attacker = $this->signIn($this->user);
+        $admin = $this->admin();
+        $victim = $this->signIn($admin);
+        $attacker = $this->signIn($admin);
 
-        $this->assertSame($this->user->id, $this->whoIs($attacker));
+        $this->assertSame($admin->id, $this->whoIs($attacker));
 
         $this->browse($victim, 'PUT', '/api/profile/password', [
             'current_password' => 'secret123',
@@ -173,7 +205,7 @@ class SessionLifecycleTest extends TestCase
         ])->assertOk();
 
         $this->assertNull($this->whoIs($attacker), '🔴 نشستِ دزدیده پس از تغییرِ رمز زنده ماند.');
-        $this->assertSame($this->user->id, $this->whoIs($victim), 'خودِ کاربر نباید بیرون بیفتد.');
+        $this->assertSame($admin->id, $this->whoIs($victim), 'خودِ کاربر نباید بیرون بیفتد.');
     }
 
     /**
@@ -184,7 +216,7 @@ class SessionLifecycleTest extends TestCase
      */
     public function test_the_old_session_id_is_destroyed_by_a_password_change(): void
     {
-        $victim = $this->signIn($this->user);
+        $victim = $this->signIn($this->admin());
         $stolen = $victim;
 
         $this->browse($victim, 'PUT', '/api/profile/password', [
@@ -197,30 +229,16 @@ class SessionLifecycleTest extends TestCase
         $this->assertNull($this->whoIs($stolen), '🔴 شناسه‌ی قبلیِ نشست هنوز واردشده است.');
     }
 
-    public function test_resetting_the_password_signs_out_every_session(): void
+    /** «فراموشیِ رمز» برداشته شد؛ جانشینش (`admin:password` روی سرور) همان تضمین را دارد: همه‌ی نشست‌ها بسته می‌شوند */
+    public function test_resetting_the_password_on_the_server_signs_out_every_session(): void
     {
-        SystemSettings::set('otp_disabled', false);
-        SystemSettings::forget();
+        $admin = $this->admin();
+        $attacker = $this->signIn($admin);
+        $this->assertSame($admin->id, $this->whoIs($attacker));
 
-        // ورودِ مهاجم (با کد) پیش از بازیابی
-        $attacker = [];
-        $code = $this->browse($attacker, 'POST', '/api/login', [
-            'phone' => $this->user->phone, 'password' => 'secret123',
-        ])->json('dev_code');
-        $this->browse($attacker, 'POST', '/api/login/verify', ['code' => $code])->assertOk();
-        $this->assertSame($this->user->id, $this->whoIs($attacker));
-
-        // صاحبِ حساب از مرورگرِ خودش رمز را بازیابی می‌کند
-        $owner = [];
-        $this->travel(2)->minutes();
-        $code = $this->browse($owner, 'POST', '/api/password/forgot', ['phone' => $this->user->phone])->json('dev_code');
-        $this->browse($owner, 'POST', '/api/password/forgot/verify', ['code' => $code])->assertOk();
-        $this->browse($owner, 'POST', '/api/password/reset', [
-            'password' => 'NewSecret456x', 'password_confirmation' => 'NewSecret456x',
-        ])->assertOk();
+        $this->artisan('admin:password', ['--phone' => $admin->phone, '--password' => 'NewSecret456x'])->assertSuccessful();
 
         $this->assertNull($this->whoIs($attacker), '🔴 بازیابیِ رمز نشستِ مهاجم را نبست.');
-        $this->assertSame($this->user->id, $this->whoIs($owner));
     }
 
     /* ─────────────────────────── فهرست و بستنِ نشست ─────────────────────────── */
@@ -353,10 +371,7 @@ class SessionLifecycleTest extends TestCase
      */
     public function test_a_super_admin_never_rides_a_trusted_device(): void
     {
-        $admin = User::create([
-            'name' => 'مدیرِ سامانه', 'phone' => '09120000033',
-            'role' => UserRole::SuperAdmin, 'password' => Hash::make('secret123'), 'is_active' => true,
-        ]);
+        $admin = $this->admin();
 
         $this->signIn($admin, remember: true);
         $this->assertSame(0, $admin->trustedDevices()->count(), 'برای سوپرادمین دستگاهِ مورداعتماد ساخته شد.');

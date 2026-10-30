@@ -6,7 +6,6 @@ use App\Enums\UserRole;
 use App\Models\Complex;
 use App\Models\ComplexMembership;
 use App\Models\User;
-use App\Support\SystemSettings;
 use Database\Seeders\PreviewSeeder;
 use Illuminate\Foundation\Http\Middleware\PreventRequestForgery;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -79,20 +78,37 @@ class UsernameLoginTest extends TestCase
     /* ── ۲ ─────────────────────────────────────────────────────────────── */
 
     /**
-     * ۲۰۲۶-۱۰-۲۹، بندِ ۲: سوپر ادمینِ واقعی با شماره وارد می‌شود. نام کاربری — حتی اگر از پیش داشته باشد — همان پاسخِ
-     * «نادرست» را می‌گیرد؛ با شماره همان مسیرِ همیشگی (بیرون از Production و بی TOTP: کدِ پیامکی، `AdminTwoFactorTest`).
+     * ۲۰۲۶-۱۰-۳۰، بندِ ۴: سوپر ادمینِ واقعی فقط از `/auth/admin` (`admin/login`) با نام کاربری + رمز وارد می‌شود. درِ حساب‌های
+     * نمونه (نام کاربری روی `/login`) همان «نادرست» را می‌دهد؛ درِ کاربران (شماره) همان پاسخِ یکسانِ «کد فرستاده شد» را، ولی
+     * کدی نمی‌فرستد و هیچ کدی واردش نمی‌کند.
      */
-    public function test_a_real_super_admin_signs_in_by_phone_not_by_username(): void
+    public function test_a_real_super_admin_signs_in_only_through_the_admin_door(): void
     {
-        $this->account(['phone' => '09120000001', 'role' => UserRole::SuperAdmin, 'username' => 'sakena.admin']);
+        $admin = $this->account(['phone' => '09120000001', 'role' => UserRole::SuperAdmin, 'username' => 'sakena.admin']);
 
         $this->postJson('/api/v1/login', ['identifier_type' => 'username', 'username' => 'sakena.admin', 'password' => self::PASSWORD])
             ->assertStatus(422)
             ->assertJsonPath('errors.username.0', 'نام کاربری یا رمز عبور نادرست است.');
+
+        $this->assertNull($this->postJson('/api/v1/login', ['phone' => '09120000001'])->assertOk()->json('dev_code'));
+        $this->postJson('/api/v1/login/verify', ['code' => '000000'])->assertStatus(422);
         $this->assertGuest();
 
-        $this->postJson('/api/v1/login', ['phone' => '09120000001', 'password' => self::PASSWORD])
-            ->assertOk()->assertJson(['otpRequired' => true]);
+        // درِ خودش (بیرون از Production و بی TOTP: مستقیم؛ عاملِ دوم در `AdminTwoFactorTest`)
+        $this->postJson('/api/v1/admin/login', ['username' => 'Sakena.Admin', 'password' => self::PASSWORD])
+            ->assertOk()->assertJsonPath('user.id', $admin->id);
+    }
+
+    /** درِ مدیران فقط مالِ سوپر ادمینِ واقعی است: کاربرِ عادی و حسابِ نمونه با نام کاربری همان «نادرست» را می‌گیرند */
+    public function test_the_admin_door_refuses_everyone_but_a_real_super_admin(): void
+    {
+        $this->account(['phone' => '09121234567', 'role' => UserRole::ComplexAdmin, 'username' => 'manager.one']);
+        $this->account(['phone' => null, 'role' => UserRole::SuperAdmin, 'username' => 'demo.admin', 'is_demo' => true]);
+
+        foreach (['manager.one', 'demo.admin', 'nobody.here'] as $username) {
+            $this->postJson('/api/v1/admin/login', ['username' => $username, 'password' => self::PASSWORD])
+                ->assertStatus(422)->assertJsonPath('errors.username.0', 'نام کاربری یا رمز عبور نادرست است.');
+        }
         $this->assertGuest();
     }
 
@@ -101,8 +117,8 @@ class UsernameLoginTest extends TestCase
         $this->account(['phone' => null, 'role' => UserRole::Owner, 'username' => 'demo.single', 'is_demo' => true]);
 
         // نام کاربری در فیلدِ شماره: به‌عنوانِ شماره خوانده و ناکام می‌شود، نه حدسِ نام کاربری
-        $this->postJson('/api/v1/login', ['phone' => 'demo.single', 'password' => self::PASSWORD])
-            ->assertStatus(422)->assertJsonPath('errors.phone.0', 'شماره تلفن یا رمز عبور نادرست است.');
+        $this->postJson('/api/v1/login', ['phone' => 'demo.single'])
+            ->assertStatus(422)->assertJsonPath('errors.phone.0', 'شماره تلفن همراه معتبر نیست.');
 
         // شماره در فیلدِ نام کاربری: هیچ حسابی با آن «نام کاربری» نیست
         $this->postJson('/api/v1/login', ['identifier_type' => 'username', 'username' => '09120000001', 'password' => self::PASSWORD])
@@ -153,10 +169,9 @@ class UsernameLoginTest extends TestCase
         // همان پاسخِ «نیست»: وجودِ حسابِ آزمایشی لو نمی‌رود
         $this->assertSame($missing, $refused);
 
-        // از مسیرِ شماره هم نه، حتی با کلیدِ «ورودِ بی کد»
-        SystemSettings::set('otp_disabled', true);
-        $this->postJson('/api/v1/login', ['phone' => '09127777777', 'password' => self::PASSWORD])
-            ->assertStatus(422)->assertJsonPath('errors.phone.0', 'شماره تلفن یا رمز عبور نادرست است.');
+        // از مسیرِ شماره هم نه: همان پاسخِ یکسان، بی کد، و هیچ کدی وارد نمی‌کند
+        $this->postJson('/api/v1/login', ['phone' => '09127777777'])->assertOk();
+        $this->postJson('/api/v1/login/verify', ['code' => '000000'])->assertStatus(422);
 
         $this->assertGuest();
     }

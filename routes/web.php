@@ -8,6 +8,7 @@ use App\Http\Controllers\HealthController;
 use App\Http\Controllers\SeoController;
 use App\Http\Controllers\SubscriptionCheckoutController;
 use App\Http\Middleware\SetCurrentComplex;
+use App\Support\Preview;
 use Illuminate\Foundation\Http\Middleware\PreventRequestForgery;
 use Illuminate\Routing\RedirectController;
 use Illuminate\Support\Facades\Route;
@@ -99,8 +100,13 @@ $authView = [
 Route::middleware(['guest', 'cache.headers:no_store;private'])->group(function () use ($authView) {
     Route::view('/auth', 'public.auth', $authView)->name('login');
     Route::view('/auth/verify', 'public.auth', $authView);
-    Route::view('/auth/forgot', 'public.auth', $authView);
     Route::view('/auth/recover', 'public.auth', $authView);
+    /*
+     * درِ ورودِ دو مدیرِ سامانه (۲۰۲۶-۱۰-۳۰): نام کاربری + رمز + Authenticator. هیچ پیوندی در سایت به آن نیست؛ Preview یک
+     * در دارد (`/auth`، نام کاربریِ حساب‌های نمونه)، پس آن‌جا به همان می‌رود.
+     */
+    Route::get('/auth/admin', fn () => Preview::active() ? redirect('/auth') : view('public.auth', $authView))
+        ->name('admin.login.page');
     // پیوندِ دعوت (مرحلهٔ ۹ · فاز ۶): همان island؛ توکن پس از `#` و هرگز به سرور نمی‌رسد.
     // کاربرِ واردشده با `guest` به داشبورد می‌رود — دعوت همان‌جا منتظر است.
     Route::view('/invite', 'public.auth', $authView);
@@ -118,6 +124,8 @@ Route::view('/join', 'public.auth', $authView)->middleware('cache.headers:no_sto
 // نشانیِ قدیمیِ ورود با نام کاربری (۱۳/۱): یک نشانی برای ورود، `/auth` — در Preview همان فرمِ نام کاربری (۲۰۲۶-۱۰-۲۹)
 // فقط GET (نه `Route::redirect` که همه‌ی فعل‌ها را می‌پذیرد و مسیرِ تغییردهنده‌ی بی‌سقف می‌ساخت — `AbusePreventionTest`)
 Route::get('/auth/username', RedirectController::class)->defaults('destination', '/auth')->defaults('status', 302);
+// «فراموشیِ رمز» دیگر نیست (۲۰۲۶-۱۰-۳۰: کاربران رمز ندارند)؛ نشانیِ قدیمی به ورود
+Route::get('/auth/forgot', RedirectController::class)->defaults('destination', '/auth')->defaults('status', 302);
 
 /*
 |--------------------------------------------------------------------------

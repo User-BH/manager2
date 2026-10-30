@@ -6,6 +6,7 @@ use App\Models\ServiceRequest;
 use App\Models\ServiceRequestComment;
 use App\Models\User;
 use App\Support\Jalali;
+use App\Support\PublicIdentity;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
@@ -74,7 +75,7 @@ class ServiceRequestResource extends JsonResource
                     'id' => $c->id,
                     'body' => $c->body,
                     // نویسنده‌ی حذف‌شده: رابطه هست ولی رکورد ممکن است نباشد
-                    'authorName' => $c->author === null ? 'کاربر حذف‌شده' : $c->author->name,
+                    'authorName' => PublicIdentity::nameOf($c->author),
                     'isMine' => $c->user_id === $this->viewer->id,
                     'isInternal' => $c->is_internal,
                     'sentAt' => Jalali::dateTime($c->created_at),

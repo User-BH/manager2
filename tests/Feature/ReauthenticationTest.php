@@ -10,7 +10,6 @@ use App\Models\TrustedDevice;
 use App\Models\User;
 use App\Services\Auth\TrustedDeviceService;
 use App\Services\Features\FeatureFlags;
-use App\Support\SystemSettings;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Routing\Route as RouteDefinition;
 use Illuminate\Support\Facades\Hash;
@@ -129,12 +128,12 @@ class ReauthenticationTest extends TestCase
             ->where('event', LoginEvent::FAILED_REAUTH)->count());
     }
 
-    /** ورود با رمز همین حالا رمز را تأیید کرده؛ کاربر بلافاصله دوباره رمز نمی‌زند. */
+    /** ورود با رمز (درِ مدیران) همین حالا رمز را تأیید کرده؛ مدیر بلافاصله دوباره رمز نمی‌زند. */
     public function test_signing_in_with_the_password_counts_as_a_fresh_confirmation(): void
     {
-        SystemSettings::set('otp_disabled', true);
+        $this->superAdmin->forceFill(['username' => 'sakena.admin'])->save();
 
-        $this->postJson('/api/login', ['phone' => $this->superAdmin->phone, 'password' => 'secret123'])->assertOk();
+        $this->postJson('/api/v1/admin/login', ['username' => 'sakena.admin', 'password' => 'secret123'])->assertOk();
 
         $this->putJson('/api/v1/system/features/polls', ['enabled' => false])->assertOk();
     }

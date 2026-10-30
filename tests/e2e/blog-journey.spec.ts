@@ -9,7 +9,7 @@ import { expect, test, type Page } from '@playwright/test'
  * ⚠️ مقاله جدول و پیوندِ خیلی بلند دارد: همان دو چیزی که روی گوشی صفحه را
  * افقی سرریز می‌کنند.
  *
- * پیش‌نیاز: `DemoSeeder` و `otp_disabled` (مثلِ بقیه).
+ * پیش‌نیاز: `DemoSeeder` (مثلِ بقیه).
  */
 
 const RUN = String(Date.now()).slice(-6)
@@ -22,7 +22,8 @@ async function signInAsSuperAdmin(page: Page): Promise<void> {
     await fetch('/api/csrf-token', { credentials: 'include' })
     const xsrf = decodeURIComponent((document.cookie.match(/XSRF-TOKEN=([^;]+)/) ?? [])[1] ?? '')
 
-    const res = await fetch('/api/login', {
+    // سوپر ادمینِ دمو از درِ مدیران با نام کاربری و رمز (۲۰۲۶-۱۰-۳۰)
+    const res = await fetch('/api/admin/login', {
       method: 'POST',
       credentials: 'include',
       headers: {
@@ -30,7 +31,7 @@ async function signInAsSuperAdmin(page: Page): Promise<void> {
         Accept: 'application/json',
         'X-XSRF-TOKEN': xsrf,
       },
-      body: JSON.stringify({ phone: '09120000001', password: 'password' }),
+      body: JSON.stringify({ username: 'sakena.admin', password: 'password' }),
     })
 
     return res.status

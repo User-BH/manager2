@@ -5,6 +5,7 @@ namespace Tests;
 use App\Services\Auth\PasswordConfirmation;
 use App\Support\SystemSettings;
 use Illuminate\Foundation\Testing\TestCase as BaseTestCase;
+use Illuminate\Testing\TestResponse;
 
 abstract class TestCase extends BaseTestCase
 {
@@ -33,5 +34,17 @@ abstract class TestCase extends BaseTestCase
     protected function withConfirmedPassword(): static
     {
         return $this->withSession([PasswordConfirmation::KEY => now()->timestamp]);
+    }
+
+    /**
+     * ورودِ کاربرِ سایت از همان مسیرِ واقعی (۲۰۲۶-۱۰-۳۰): شماره ← کدِ پیامکی ← ورود. درایورِ `log` در محیطِ آزمون کد را
+     * در پاسخِ گامِ اول برمی‌گرداند؛ کدِ دیگری جز کدِ واقعیِ همان درخواست به کار نمی‌رود.
+     */
+    protected function signInByPhone(string $phone): TestResponse
+    {
+        $code = $this->postJson('/api/v1/login', ['phone' => $phone])->assertOk()->json('dev_code');
+        $this->assertNotNull($code, "برای {$phone} کدی فرستاده نشد.");
+
+        return $this->postJson('/api/v1/login/verify', ['code' => (string) $code]);
     }
 }

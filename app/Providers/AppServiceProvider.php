@@ -171,7 +171,7 @@ class AppServiceProvider extends ServiceProvider
          * خودش را دارد؛ بی آن همه‌ی تلاش‌های نام کاربری پشتِ یک IP یک سهمیه می‌شدند و برای هر نام کاربری جدا نه.
          */
         RateLimiter::for('login', fn (Request $request) => [
-            Limit::perMinute(5)->by($request->input('identifier_type') === 'username'
+            Limit::perMinute(5)->by($request->input('identifier_type') === 'username' || $request->routeIs('admin.login')
                 ? 'username:'.Username::normalize((string) $request->input('username')).'|'.$request->ip()
                 : $this->phoneKey($request)),
             Limit::perMinute(20)->by($request->ip()),
@@ -473,7 +473,15 @@ class AppServiceProvider extends ServiceProvider
          * (CGNAT ِ اپراتورها) یک سهمیه‌ی سه‌تایی را با هم می‌شکستند. شماره‌ی
          * خودِ حساب همان چیزی است که کد به آن می‌رود.
          */
-        $phone = (string) ($request->input('phone') ?: $request->user()->phone ?? '');
+        /*
+         * 🔴 گامِ دومِ ورود و ثبت‌نام (`login/verify`، `register/verify`) هم شماره در بدنه ندارد و کاربر هنوز وارد نشده.
+         * از ۲۰۲۶-۱۰-۳۰ هر ورود همین گام است؛ بی شماره‌ی گامِ اولِ همین نشست، همه‌ی ورودهای پشتِ یک IP پنج تلاش در دقیقه
+         * را با هم می‌شکستند.
+         */
+        $pending = $request->hasSession()
+            ? ($request->session()->get('login.pending.phone') ?: $request->session()->get('register.pending.phone'))
+            : null;
+        $phone = (string) ($request->input('phone') ?: $request->user()->phone ?? $pending ?? '');
 
         return Phone::normalize($phone).'|'.$request->ip();
     }

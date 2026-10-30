@@ -14,7 +14,7 @@ import { expect, test, type Page } from '@playwright/test'
  * می‌خورد و در CI ششمی ۴۲۹ گرفت. فرمِ ثبت‌نام همان‌جا پوشش دارد.
  *
  * ⚠️ پس از پذیرش حساب دیگر اولیه نیست؛ اجرای دوباره‌ی `E2eSeeder` آن را
- * برمی‌گرداند. پیش‌نیاز: `DemoSeeder`، `E2eSeeder`، `otp_disabled`.
+ * برمی‌گرداند. پیش‌نیاز: `DemoSeeder`، `E2eSeeder`.
  */
 
 /** همان `E2eSeeder::REGISTRANTS` */
@@ -23,7 +23,6 @@ const REGISTRANTS: Record<string, string> = {
   firefox: '09120000022',
   webkit: '09120000023',
 }
-const PASSWORD = 'password'
 const NOT_A_MEMBER = 'ثبت‌نام شما کامل است؛ هنوز عضو هیچ مجتمعی نیستید'
 
 const phoneFor = (project: string) => REGISTRANTS[project] ?? REGISTRANTS.chromium
@@ -57,16 +56,19 @@ async function call(
   )
 }
 
-async function signIn(page: Page, phone: string, password: string) {
+/** ورودِ بی‌رمز (۲۰۲۶-۱۰-۳۰): شماره، سپس کدِ پیامکی (درایورِ log کد را در پاسخ می‌گذارد) */
+async function signIn(page: Page, phone: string) {
   await page.context().clearCookies()
   await page.goto('/auth')
-  const { status } = await call(page, 'POST', '/api/login', { phone, password })
-  expect(status, `ورودِ ${phone}`).toBe(200)
+  const start = await call(page, 'POST', '/api/login', { phone })
+  expect(start.status, `ورودِ ${phone}`).toBe(200)
+  const { status } = await call(page, 'POST', '/api/login/verify', { code: start.json.dev_code })
+  expect(status, `کدِ ورودِ ${phone}`).toBe(200)
 }
 
 /**
- * «پیوستن» ← کدِ پیامکی ← «تأیید و پیوستن». پذیرشِ دعوت از ۱۲/۳ (بندِ ۱۵) همیشه کد می‌خواهد، حتی وقتی
- * `otp_disabled` گامِ دومِ ورود را برداشته؛ کد از پاسخِ همان درخواست است (`devCode`، فقط محیطِ محلی با درایورِ log).
+ * «پیوستن» ← کدِ پیامکی ← «تأیید و پیوستن». پذیرشِ دعوت از ۱۲/۳ (بندِ ۱۵) همیشه کد می‌خواهد؛
+ * ورود هم کد می‌خواهد (بی‌رمز، ۲۰۲۶-۱۰-۳۰)؛ کد از پاسخِ همان درخواست است (`devCode`، فقط محیطِ محلی با درایورِ log).
  */
 async function acceptWithCode(page: Page) {
   const sent = page.waitForResponse(
@@ -88,7 +90,7 @@ test.describe('ثبت‌نام‌کننده‌ی اولیه', () => {
   test('داشبوردِ جدای خودش را می‌گیرد، نه پوسته‌ی ساکن', async ({ page }, testInfo) => {
     const phone = phoneFor(testInfo.project.name)
 
-    await signIn(page, phone, PASSWORD)
+    await signIn(page, phone)
     await page.goto('/dashboard')
 
     await expect(page.getByText(NOT_A_MEMBER)).toBeVisible()
@@ -143,7 +145,7 @@ test.describe('ثبت‌نام‌کننده‌ی اولیه', () => {
    * نمی‌شود؛ فقط درخواستِ تکمیل می‌بیند و خودش در پروفایل جدا می‌کند.
    */
   test('حسابِ قبلی نامش را خودش جدا می‌کند و درخواستِ تکمیل می‌رود', async ({ page }, testInfo) => {
-    await signIn(page, phoneFor(testInfo.project.name), PASSWORD)
+    await signIn(page, phoneFor(testInfo.project.name))
     await page.goto('/dashboard')
 
     const prompt = page.getByText('نام و نام خانوادگی‌تان را جدا ثبت کنید.')
@@ -177,7 +179,7 @@ test.describe('ثبت‌نام‌کننده‌ی اولیه', () => {
     const phone = phoneFor(testInfo.project.name)
 
     // ── مدیرِ مجتمعِ آفتاب، با همان API ِ فرمِ «ساکن جدید» ──
-    await signIn(page, '09120000000', 'password')
+    await signIn(page, '09120000000')
     const units = await call(page, 'GET', '/api/v1/units?per_page=50')
     const list = (units.json.data ?? []) as { id: number; unitNumber: string }[]
     const unit = list.find((u) => u.unitNumber === '5')
@@ -193,7 +195,7 @@ test.describe('ثبت‌نام‌کننده‌ی اولیه', () => {
     expect(added.json.invited).toBe(true)
 
     // ── خودِ ثبت‌نام‌کننده ──
-    await signIn(page, phone, PASSWORD)
+    await signIn(page, phone)
     await page.goto('/dashboard')
     await expect(page.getByText(NOT_A_MEMBER)).toBeVisible()
     await expect(page.getByText('مجتمع مسکونی آفتاب')).toBeVisible()

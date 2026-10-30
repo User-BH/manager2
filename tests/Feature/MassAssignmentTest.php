@@ -455,8 +455,8 @@ class MassAssignmentTest extends TestCase
     private const PRIVILEGED_INPUTS = [
         // ── رمزِ خودِ کاربر، در فرم‌هایی که کارشان همین است ──
         'LoginRequest.php' => ['password'],
-        'RegisterRequest.php' => ['password'],
-        'ResetPasswordRequest.php' => ['password'],
+        // ۲۰۲۶-۱۰-۳۰: درِ ورودِ دو مدیرِ سامانه؛ رمز فقط سنجیده می‌شود (`Hash::check`)، نوشته نه
+        'AdminLoginRequest.php' => ['password'],
         'UpdatePasswordRequest.php' => ['password'],
         // تأییدِ دوباره پیش از عملیاتِ حساس؛ فقط سنجیده می‌شود، ذخیره نه (فاز ۱۰)
         'ConfirmPasswordRequest.php' => ['password'],

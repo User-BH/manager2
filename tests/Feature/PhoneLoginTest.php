@@ -21,19 +21,20 @@ class PhoneLoginTest extends TestCase
         ]);
     }
 
-    public function test_login_with_phone_and_password(): void
+    /** ورود بی رمز (۲۰۲۶-۱۰-۳۰): شماره ← کدِ پیامکی ← ورود */
+    public function test_login_with_phone_and_sms_code_needs_no_password(): void
     {
         $this->user();
 
-        // گام ۱: رمز درست کد پیامکی می‌فرستد، هنوز وارد نشده
+        // گام ۱: فقط شماره؛ کدِ پیامکی می‌رود، هنوز وارد نشده
         $code = $this->postJson('/api/login', [
             'phone' => '0912 123 4567', // شکل غیراستاندارد؛ باید نرمال شود
-            'password' => 'secret123',
         ])
             ->assertOk()
             ->assertJsonPath('otpRequired', true)
             ->json('dev_code');
 
+        $this->assertNotNull($code);
         $this->assertGuest();
 
         // گام ۲: تایید کد، ورود نهایی
@@ -44,25 +45,44 @@ class PhoneLoginTest extends TestCase
         $this->assertAuthenticated();
     }
 
-    public function test_login_with_wrong_password_fails(): void
+    /** رمزِ فرستاده‌شده نه کمکی می‌کند نه مانعی: گامِ دوم همیشه کد است */
+    public function test_a_password_is_ignored_and_never_signs_in(): void
     {
         $this->user();
 
-        $this->postJson('/api/login', ['phone' => '09121234567', 'password' => 'nope'])
+        $this->postJson('/api/login', ['phone' => '09121234567', 'password' => 'secret123'])
+            ->assertOk()->assertJsonPath('otpRequired', true)->assertJsonMissingPath('user');
+        $this->assertGuest();
+    }
+
+    public function test_a_wrong_code_does_not_sign_in(): void
+    {
+        $this->user();
+
+        $this->postJson('/api/login', ['phone' => '09121234567'])->assertOk();
+        $this->postJson('/api/login/verify', ['code' => '000000'])
             ->assertStatus(422)
-            ->assertJsonValidationErrors('phone');
+            ->assertJsonValidationErrors('code');
 
         $this->assertGuest();
     }
 
+    public function test_an_invalid_phone_is_refused_before_any_code(): void
+    {
+        $this->postJson('/api/login', ['phone' => '02112345678'])
+            ->assertStatus(422)
+            ->assertJsonPath('errors.phone.0', 'شماره تلفن همراه معتبر نیست.');
+    }
+
+    /** حسابِ غیرفعال همان پاسخِ «کد فرستاده شد» را می‌گیرد ولی کدی نمی‌گیرد و وارد نمی‌شود */
     public function test_inactive_user_cannot_sign_in(): void
     {
         $this->user()->update(['is_active' => false]);
 
-        $this->postJson('/api/login', ['phone' => '09121234567', 'password' => 'secret123'])
-            ->assertStatus(422)
-            ->assertJsonValidationErrors('phone');
+        $response = $this->postJson('/api/login', ['phone' => '09121234567'])->assertOk();
+        $this->assertNull($response->json('dev_code'), 'برای حسابِ غیرفعال کد فرستاده شد.');
 
+        $this->postJson('/api/login/verify', ['code' => '123456'])->assertStatus(422);
         $this->assertGuest();
     }
 
@@ -86,10 +106,7 @@ class PhoneLoginTest extends TestCase
         $this->user();
 
         // توکن تازه در گام دوم (ورود نهایی) برمی‌گردد، جایی که نشست regenerate می‌شود
-        $code = $this->postJson('/api/login', [
-            'phone' => '09121234567',
-            'password' => 'secret123',
-        ])->json('dev_code');
+        $code = $this->postJson('/api/login', ['phone' => '09121234567'])->json('dev_code');
 
         $response = $this->postJson('/api/login/verify', ['code' => $code])->assertOk();
 
